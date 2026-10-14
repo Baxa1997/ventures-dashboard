@@ -14,7 +14,7 @@ interface SidebarProps {
 
 const itemClass = ({ isActive }: { isActive: boolean }) =>
    clsx(
-      'flex h-9 shrink-0 items-center gap-3 rounded-lg px-3 transition-colors',
+      'flex h-8 shrink-0 items-center gap-3 rounded-lg px-3 transition-colors',
       isActive
          ? 'bg-navy-raised font-semibold text-white'
          : 'text-on-dark-soft hover:bg-white/5 hover:text-white',
@@ -64,11 +64,11 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             </div>
             <nav
                aria-label={t('Основная навигация')}
-               className='flex-1 overflow-y-auto px-3 pb-3'
+               className='scrollbar-none flex-1 overflow-y-auto px-3 pb-2'
             >
                {NAV_GROUPS.map((group) => (
                   <div key={group.label}>
-                     <div className='text-on-dark-faint px-3 pt-5 pb-2 text-xs leading-4'>
+                     <div className='text-on-dark-faint px-3 pt-4 pb-1 text-xs leading-4'>
                         {t(group.label)}
                      </div>
                      <div className='flex flex-col gap-0.5'>
@@ -102,7 +102,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                   </div>
                ))}
             </nav>
-            <div className='flex shrink-0 flex-col px-3'>
+            <div className='flex shrink-0 flex-col px-3 pb-2'>
                <NavLink
                   to={SETTINGS_ITEM.to}
                   className={itemClass}

@@ -103,6 +103,14 @@
    }
 }
 
+/* Scrolls without showing a scrollbar (the sidebar on short screens). */
+@utility scrollbar-none {
+   scrollbar-width: none;
+   &::-webkit-scrollbar {
+      display: none;
+   }
+}
+
 /* "Выгрузить для НС" prints the page: leave only the content. */
 @media print {
    .print-hidden {
