@@ -49,7 +49,9 @@ const Waiting = ({ items, tasks }: WaitingProps) => {
                <div className='text-ink-soft text-xs leading-4'>{row.from}</div>
                <div className='text-meta mt-0.5'>{row.title}</div>
                {row.when && (
-                  <div className='text-ink-faint mt-0.5 text-xs'>{row.when}</div>
+                  <div className='text-ink-faint mt-0.5 text-xs'>
+                     {row.when}
+                  </div>
                )}
             </li>
          ))}

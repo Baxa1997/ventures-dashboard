@@ -1,4 +1,4 @@
-import { CheckList, Person, RiskList } from '@modules/Deals/components';
+import { RiskList } from '@modules/Deals/components';
 import {
    ROUND_STAGE_NAMES,
    SOURCE_LABELS,
@@ -12,7 +12,14 @@ import {
    nextTitle,
    pathState,
 } from '@modules/Deals/helpers';
-import { Avatar, Card, FactList, Progress } from '@shared/components';
+import {
+   Avatar,
+   Card,
+   CheckList,
+   FactList,
+   Progress,
+   STACK,
+} from '@shared/components';
 import { SECTION_PATHS, TEAM } from '@shared/constants';
 import { formatDate, shortName } from '@shared/helpers';
 import type { Deal, Fact } from '@shared/types/deals.types';
@@ -24,6 +31,9 @@ import { Link } from 'react-router';
 interface OverviewProps {
    deal: Deal;
 }
+
+// The legal form in front of a company's name does not go into its initials.
+const LEGAL_FORM = /^(ООО|АО|ИП|ЧП)\s+/u;
 
 const toRows = (facts: Fact[]) =>
    facts.map(([label, value, note]) => ({ label, value, note }));
@@ -41,7 +51,7 @@ const Overview = ({ deal }: OverviewProps) => {
    const detailed = !!(deal.terms || deal.metrics || deal.risks);
 
    return (
-      <div className='gap-section flex flex-col'>
+      <div className='gap-section flex flex-1 flex-col'>
          <Card
             action={
                <Link className='link' to='?tab=history'>
@@ -59,11 +69,11 @@ const Overview = ({ deal }: OverviewProps) => {
                         key={step.stage}
                         aria-current={state === 'current' ? 'step' : undefined}
                         className={clsx(
-                           'border-line min-w-0 border-l px-3.5 py-3 first:border-l-0',
+                           'border-line min-w-0 border-l px-3 py-3 first:border-l-0',
                            state === 'current' && 'bg-accent-tint',
                         )}
                      >
-                        <div className='flex items-center gap-2'>
+                        <div className='flex items-center gap-1.5'>
                            <span
                               aria-hidden
                               className={clsx(
@@ -74,7 +84,8 @@ const Overview = ({ deal }: OverviewProps) => {
                                        : 'bg-success-ink text-white'),
                                  state === 'current' &&
                                     'border-accent border-2 after:bg-accent after:size-1.5 after:rounded-full',
-                                 state === 'ahead' && 'border-line-strong border',
+                                 state === 'ahead' &&
+                                    'border-line-strong border',
                               )}
                            >
                               {state === 'done' && (
@@ -83,8 +94,9 @@ const Overview = ({ deal }: OverviewProps) => {
                            </span>
                            <span
                               className={clsx(
-                                 'text-meta truncate font-semibold',
-                                 state === 'ahead' && 'text-ink-soft font-normal',
+                                 'text-meta font-semibold whitespace-nowrap',
+                                 state === 'ahead' &&
+                                    'text-ink-soft font-normal',
                               )}
                            >
                               {t(STAGE_LABELS[step.stage])}
@@ -111,8 +123,8 @@ const Overview = ({ deal }: OverviewProps) => {
             </ol>
          </Card>
 
-         <div className='gap-section grid items-start xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
-            <div className='gap-section flex min-w-0 flex-col'>
+         <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+            <div className={STACK}>
                {deal.terms && (
                   <Card
                      action={
@@ -136,7 +148,10 @@ const Overview = ({ deal }: OverviewProps) => {
                )}
 
                {deal.metrics && (
-                  <Card hint={deal.metrics.hint} title={t('Метрики, проверенные DD')}>
+                  <Card
+                     hint={deal.metrics.hint}
+                     title={t('Метрики, проверенные DD')}
+                  >
                      <div className='p-5'>
                         <dl className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
                            {deal.metrics.items.map((item) => (
@@ -179,7 +194,9 @@ const Overview = ({ deal }: OverviewProps) => {
                            {t('Матрица рисков')}
                         </Link>
                      }
-                     hint={t('{{count}} открытый', { count: deal.risks.length })}
+                     hint={t('{{count}} открытый', {
+                        count: deal.risks.length,
+                     })}
                      title={t('Риски из DD')}
                   >
                      <RiskList risks={deal.risks} />
@@ -194,7 +211,12 @@ const Overview = ({ deal }: OverviewProps) => {
                            labelWidth='27%'
                            rows={[
                               ...(deal.about
-                                 ? [{ label: t('Чем занимается'), value: deal.about }]
+                                 ? [
+                                      {
+                                         label: t('Чем занимается'),
+                                         value: deal.about,
+                                      },
+                                   ]
                                  : []),
                               { label: t('Отрасль'), value: deal.industry },
                               {
@@ -222,7 +244,7 @@ const Overview = ({ deal }: OverviewProps) => {
                )}
             </div>
 
-            <div className='gap-section flex min-w-0 flex-col'>
+            <div className={STACK}>
                {deal.readiness && ready && deal.committee && (
                   <Card
                      hint={`${formatDate(deal.committee.date)}, ${deal.committee.time}`}
@@ -281,7 +303,10 @@ const Overview = ({ deal }: OverviewProps) => {
                                  <Avatar
                                     name={
                                        employee?.name ??
-                                       name.replace(/[^\p{L}\s]/gu, '').trim()
+                                       name
+                                          .replace(/[^\p{L}\s]/gu, '')
+                                          .replace(LEGAL_FORM, '')
+                                          .trim()
                                     }
                                  />
                                  <div className='min-w-0'>
@@ -300,7 +325,10 @@ const Overview = ({ deal }: OverviewProps) => {
                )}
 
                {deal.synergy && (
-                  <Card hint={t('заявлено компанией')} title={t('Синергия с SQB')}>
+                  <Card
+                     hint={t('заявлено компанией')}
+                     title={t('Синергия с SQB')}
+                  >
                      <div className='text-meta px-5 py-1'>
                         <FactList
                            divided

@@ -1,6 +1,5 @@
 import type {
    FundOverview,
-   MyDeal,
    QueueItem,
    SectionCounters,
    Task,
@@ -184,6 +183,7 @@ export const SAMPLE_QUEUE: QueueSeed[] = [
    {
       id: 'q1',
       ownerId: 'e1',
+      dealId: 'easytap',
       subject: 'EasyTap',
       section: 'deals',
       title: 'Утвердить вынос на ИК-2 9 октября',
@@ -194,6 +194,7 @@ export const SAMPLE_QUEUE: QueueSeed[] = [
    {
       id: 'q2',
       ownerId: 'e1',
+      dealId: 'pandev',
       subject: 'Pandev',
       section: 'deals',
       title: 'Продлить DD на 10 рабочих дней или вынести на отказ',
@@ -204,7 +205,8 @@ export const SAMPLE_QUEUE: QueueSeed[] = [
    {
       id: 'q3',
       ownerId: 'e1',
-      subject: 'Recepta (Sendiq)',
+      dealId: 'recepta',
+      subject: 'Recepta (Sandiq)',
       section: 'deals',
       title: 'Подписать SAFE на $150 000',
       note: 'Одобрено ИК-2 и НС · юр. проверка ABACUS завершена',
@@ -337,38 +339,6 @@ export const SAMPLE_WAITING: WaitingItem[] = [
    },
 ];
 
-export const SAMPLE_DEALS: MyDeal[] = [
-   {
-      id: 'd1',
-      ownerId: 'e3',
-      company: 'EasyTap',
-      stage: 'ic2',
-      stageDate: '2026-10-09',
-   },
-   { id: 'd2', ownerId: 'e3', company: 'MoonAI', stage: 'dd', stageDate: '' },
-   {
-      id: 'd3',
-      ownerId: 'e3',
-      company: 'Toklaps',
-      stage: 'meeting',
-      stageDate: '',
-   },
-   {
-      id: 'd4',
-      ownerId: 'e3',
-      company: 'Apicore',
-      stage: 'screening',
-      stageDate: '',
-   },
-   {
-      id: 'd5',
-      ownerId: 'e3',
-      company: 'AgroSense',
-      stage: 'screening',
-      stageDate: '',
-   },
-];
-
 export const SAMPLE_DEADLINES: WeekDeadline[] = [
    {
       id: 'wd1',
@@ -412,7 +382,8 @@ export const SAMPLE_DEADLINES: WeekDeadline[] = [
    },
 ];
 
-export const SAMPLE_FUND: FundOverview = {
+// The deal funnel is not here: it is counted from the deals themselves.
+export const SAMPLE_FUND: Omit<FundOverview, 'funnel'> = {
    updatedAt: '09:00',
    money: {
       onAccounts: 3_630_000,
@@ -446,17 +417,6 @@ export const SAMPLE_FUND: FundOverview = {
          },
       ],
    },
-   funnel: [
-      { stage: 'inbox', count: 12, overdue: 1 },
-      { stage: 'screening', count: 5, overdue: 1 },
-      { stage: 'meeting', count: 2, overdue: 0 },
-      { stage: 'analysis', count: 1, overdue: 0 },
-      { stage: 'ic1', count: 0, overdue: 0 },
-      { stage: 'dd', count: 2, overdue: 1 },
-      { stage: 'ic2', count: 2, overdue: 0 },
-      { stage: 'board', count: 0, overdue: 0 },
-      { stage: 'closing', count: 2, overdue: 0 },
-   ],
    portfolio: {
       quarter: 3,
       reportsDue: '2026-10-25',

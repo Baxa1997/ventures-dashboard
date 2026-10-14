@@ -3,6 +3,7 @@ import {
    SCORES,
    SCREENING_NOTE_FIELDS,
 } from '@modules/Deals/constants';
+import { isScored } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import {
    Button,
@@ -11,6 +12,7 @@ import {
    FactList,
    FilterSelect,
    NoData,
+   STACK,
 } from '@shared/components';
 import { SECTION_PATHS, TEAM } from '@shared/constants';
 import { shortName } from '@shared/helpers';
@@ -36,11 +38,12 @@ interface CriterionRowProps {
    onChange: (patch: Partial<Criterion>) => void;
 }
 
-// A criterion counts once it has both a score and the reasons for it.
-export const isScored = ({ score, rationale }: Criterion) =>
-   score !== null && !!rationale.trim();
-
-const CriterionRow = ({ index, criterion, locked, onChange }: CriterionRowProps) => {
+const CriterionRow = ({
+   index,
+   criterion,
+   locked,
+   onChange,
+}: CriterionRowProps) => {
    const { t } = useTranslation('deals');
    const { title, hint } = CRITERIA[index];
    // typed text is kept here and saved when the field is left
@@ -94,12 +97,14 @@ const CriterionRow = ({ index, criterion, locked, onChange }: CriterionRowProps)
          <textarea
             aria-label={`${t('Обоснование')}: ${t(title)}`}
             className={clsx(
-               'text-meta placeholder:text-ink-soft mt-3 block w-full resize-y rounded-lg border px-4 py-3',
-               empty ? 'bg-ground border-transparent' : 'border-line-strong bg-white',
+               'text-meta placeholder:text-ink-soft field-sizing-content mt-3 block w-full resize-none rounded-lg border px-4 py-3',
+               empty
+                  ? 'bg-ground border-transparent'
+                  : 'border-line-strong bg-white',
             )}
             disabled={locked}
             placeholder={required}
-            rows={2}
+            rows={empty ? 1 : 2}
             value={rationale}
             onBlur={() =>
                rationale !== criterion.rationale &&
@@ -167,7 +172,7 @@ const Screening = ({ deal }: ScreeningProps) => {
    };
 
    return (
-      <div className='gap-section grid items-start xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+      <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
          <Card
             action={
                <Link className='link' to={SECTION_PATHS.documents}>
@@ -179,7 +184,9 @@ const Screening = ({ deal }: ScreeningProps) => {
                done: scored.length,
                total: CRITERIA.length,
             })}
-            title={t('Оценка по {{count}} критериям', { count: CRITERIA.length })}
+            title={t('Оценка по {{total}} критериям', {
+               total: CRITERIA.length,
+            })}
          >
             <ol className='divide-line divide-y px-5'>
                {screening.criteria.map((criterion, index) => (
@@ -214,13 +221,15 @@ const Screening = ({ deal }: ScreeningProps) => {
                </div>
                {screening.savedAt && (
                   <span className='text-ink-soft text-xs'>
-                     {t('Черновик сохранён {{time}}', { time: screening.savedAt })}
+                     {t('Черновик сохранён {{time}}', {
+                        time: screening.savedAt,
+                     })}
                   </span>
                )}
             </div>
          </Card>
 
-         <div className='gap-section flex min-w-0 flex-col'>
+         <div className={STACK}>
             <Card title={t('Решение по скринингу')}>
                <div className='p-5'>
                   <ChoiceCards<ScreeningDecision>
@@ -243,7 +252,9 @@ const Screening = ({ deal }: ScreeningProps) => {
                         {
                            value: 'reject',
                            label: t('Отказать с причиной'),
-                           note: t('Причина из справочника, дата повторной подачи'),
+                           note: t(
+                              'Причина из справочника, дата повторной подачи',
+                           ),
                         },
                      ]}
                      value={screening.decision}
@@ -252,7 +263,9 @@ const Screening = ({ deal }: ScreeningProps) => {
                      }
                   />
                   <div className='text-meta mt-3 flex items-center gap-3'>
-                     <span className='text-ink-soft'>{t('Второй оценщик')}:</span>
+                     <span className='text-ink-soft'>
+                        {t('Второй оценщик')}:
+                     </span>
                      <FilterSelect
                         accent
                         label={t('Второй оценщик')}

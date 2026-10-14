@@ -1,7 +1,4 @@
-import {
-   REJECT_REASON_LABELS,
-   STAGE_LABELS,
-} from '@modules/Deals/constants';
+import { REJECT_REASON_LABELS, STAGE_LABELS } from '@modules/Deals/constants';
 import { personName } from '@modules/Deals/helpers';
 import { Card, NoData } from '@shared/components';
 import { formatDayYear } from '@shared/helpers';

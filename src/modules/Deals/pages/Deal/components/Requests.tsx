@@ -6,7 +6,14 @@ import {
 } from '@modules/Deals/constants';
 import { formatStamp, isOpen, personName } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
-import { Badge, Button, Card, FactList, NoData } from '@shared/components';
+import {
+   Badge,
+   Button,
+   Card,
+   FactList,
+   NoData,
+   STACK,
+} from '@shared/components';
 import { ROLE_LABELS, SECTION_PATHS, TEAM } from '@shared/constants';
 import { formatDate, todayISO } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
@@ -29,7 +36,11 @@ interface RequestsProps {
 // Working days from tomorrow to the day, inclusive.
 const workingDaysLeft = (date: string, today = todayISO()) => {
    let count = 0;
-   for (let day = dayjs(today).add(1, 'day'); !day.isAfter(date); day = day.add(1, 'day'))
+   for (
+      let day = dayjs(today).add(1, 'day');
+      !day.isAfter(date);
+      day = day.add(1, 'day')
+   )
       if (day.day() !== 0 && day.day() !== 6) count += 1;
    return count;
 };
@@ -124,8 +135,8 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
    const author = first && TEAM.find(({ id }) => id === first.byId);
 
    return (
-      <div className='gap-section grid items-start xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
-         <div className='gap-section flex min-w-0 flex-col'>
+      <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+         <div className={STACK}>
             <Card
                action={
                   <Link className='link' to={SECTION_PATHS.correspondence}>
@@ -146,7 +157,9 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                            className='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 py-3.5 sm:grid-cols-[minmax(0,1fr)_10rem_7.5rem]'
                         >
                            <div className='min-w-0'>
-                              <div className='font-semibold'>{request.title}</div>
+                              <div className='font-semibold'>
+                                 {request.title}
+                              </div>
                               <div className='text-ink-soft mt-0.5 text-xs'>
                                  {requestLine(request)}
                               </div>
@@ -167,7 +180,9 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                            </div>
                            <div>
                               {request.status === 'waiting' ? (
-                                 <Badge tone='warning'>{t('Ждём ответа')}</Badge>
+                                 <Badge tone='warning'>
+                                    {t('Ждём ответа')}
+                                 </Badge>
                               ) : (
                                  <Badge tone='success'>{t('Принят')}</Badge>
                               )}
@@ -194,7 +209,9 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                      type='button'
                      className='text-ink-faint text-meta cursor-not-allowed font-medium'
                      disabled
-                     title={t('Файлы появятся, когда будет подключено хранилище')}
+                     title={t(
+                        'Файлы появятся, когда будет подключено хранилище',
+                     )}
                   >
                      {t('Скачать архив')}
                   </button>
@@ -202,8 +219,9 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                hint={`${t('{{count}} документ', { count: documents.length })} · ${t(
                   '{{total}} на проверке',
                   {
-                     total: documents.filter(({ status }) => status === 'review')
-                        .length,
+                     total: documents.filter(
+                        ({ status }) => status === 'review',
+                     ).length,
                   },
                )}`}
                title='Data room'
@@ -227,9 +245,17 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                                        </span>
                                        <Badge
                                           caps
-                                          tone={DOCUMENT_STATUS_TONES[document.status]}
+                                          tone={
+                                             DOCUMENT_STATUS_TONES[
+                                                document.status
+                                             ]
+                                          }
                                        >
-                                          {t(DOCUMENT_STATUS_LABELS[document.status])}
+                                          {t(
+                                             DOCUMENT_STATUS_LABELS[
+                                                document.status
+                                             ],
+                                          )}
                                        </Badge>
                                     </div>
                                     <div className='text-ink-soft mt-0.5 text-xs'>
@@ -266,7 +292,9 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                                           // a rejection always says why
                                           disabled={!reason.trim()}
                                           variant='ghost'
-                                          onClick={() => review(document, false)}
+                                          onClick={() =>
+                                             review(document, false)
+                                          }
                                        >
                                           {t('Отклонить')}
                                        </Button>
@@ -295,7 +323,7 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
             </Card>
          </div>
 
-         <div className='gap-section flex min-w-0 flex-col'>
+         <div className={STACK}>
             {deal.days && (
                <Card
                   title={t('Часы стадии «{{stage}}»', {
@@ -355,9 +383,12 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                               ? [
                                    {
                                       label: t('Возобновится'),
-                                      value: t('после ответа на {{count}} запрос', {
-                                         count: open.length,
-                                      }),
+                                      value: t(
+                                         'после ответа на {{count}} запрос',
+                                         {
+                                            count: open.length,
+                                         },
+                                      ),
                                    },
                                 ]
                               : []),
@@ -399,7 +430,9 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                            {t('Запросил: {{name}}, {{role}} · {{date}}', {
                               name: personName(first.byId),
                               role: author
-                                 ? tLayout(ROLE_LABELS[author.role]).toLowerCase()
+                                 ? tLayout(
+                                      ROLE_LABELS[author.role],
+                                   ).toLowerCase()
                                  : '',
                               date: formatDate(first.sentAt),
                            })}

@@ -3,10 +3,16 @@ import { useSession } from '@shared/hooks';
 import Layout from '@shared/layout';
 import { Navigate, Outlet, useLocation, useRoutes } from 'react-router';
 import Auth from './Auth';
-import ComingSoon from './ComingSoon/ComingSoon';
-import { UPCOMING_SECTIONS } from './ComingSoon/constants';
+import Committee from './Committee';
+import Contracts from './Contracts';
+import Correspondence from './Correspondence';
 import Deals from './Deals';
+import Documents from './Documents';
+import Finance from './Finance';
 import NotFound from './NotFound/NotFound';
+import Portfolio from './Portfolio';
+import Procurement from './Procurement';
+import Settings from './Settings';
 import Work from './Work';
 
 // The pages inside the sidebar layout are for signed-in people. Anybody else
@@ -17,7 +23,11 @@ const SignedIn = () => {
 
    if (!session)
       return (
-         <Navigate replace state={{ from: pathname + search }} to={LOGIN_PATH} />
+         <Navigate
+            replace
+            state={{ from: pathname + search }}
+            to={LOGIN_PATH}
+         />
       );
    return (
       <Layout>
@@ -35,10 +45,18 @@ const Modules = () => {
          children: [
             { path: 'work', element: <Outlet />, children: Work },
             { path: 'deals', element: <Outlet />, children: Deals },
-            ...UPCOMING_SECTIONS.map((section) => ({
-               path: section.path,
-               element: <ComingSoon section={section} />,
-            })),
+            { path: 'committee', element: <Outlet />, children: Committee },
+            { path: 'portfolio', element: <Outlet />, children: Portfolio },
+            { path: 'finance', element: <Outlet />, children: Finance },
+            { path: 'contracts', element: <Outlet />, children: Contracts },
+            { path: 'procurement', element: <Outlet />, children: Procurement },
+            {
+               path: 'correspondence',
+               element: <Outlet />,
+               children: Correspondence,
+            },
+            { path: 'documents', element: <Outlet />, children: Documents },
+            { path: 'settings', element: <Outlet />, children: Settings },
             { path: '*', element: <NotFound /> },
          ],
       },

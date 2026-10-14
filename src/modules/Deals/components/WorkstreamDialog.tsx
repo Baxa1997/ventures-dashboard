@@ -61,16 +61,18 @@ const WorkstreamForm = ({
    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const result = workstreamSchema.safeParse(
-         mode === 'hand'
-            ? { ...values, name: stream?.name ?? '' }
-            : values,
+         mode === 'hand' ? { ...values, name: stream?.name ?? '' } : values,
       );
       if (!result.success) {
          setErrors(fieldErrors(result.error));
          return;
       }
       if (mode === 'hand')
-         await deals.handOverWorkstream(deal.id, streamId, result.data.executor);
+         await deals.handOverWorkstream(
+            deal.id,
+            streamId,
+            result.data.executor,
+         );
       else await deals.addWorkstream(deal.id, result.data);
       onClose();
    };
@@ -88,8 +90,9 @@ const WorkstreamForm = ({
                            setStreamId(event.target.value);
                            setValue(
                               'executor',
-                              pending.find(({ id }) => id === event.target.value)
-                                 ?.executor ?? '',
+                              pending.find(
+                                 ({ id }) => id === event.target.value,
+                              )?.executor ?? '',
                            );
                         }}
                      >
@@ -108,7 +111,9 @@ const WorkstreamForm = ({
                         className='field-input'
                         maxLength={COMPANY_MAX}
                         value={values.name}
-                        onChange={(event) => setValue('name', event.target.value)}
+                        onChange={(event) =>
+                           setValue('name', event.target.value)
+                        }
                      />
                   </Field>
                )}
@@ -122,7 +127,9 @@ const WorkstreamForm = ({
                      className='field-input'
                      maxLength={COMPANY_MAX * 2}
                      value={values.executor}
-                     onChange={(event) => setValue('executor', event.target.value)}
+                     onChange={(event) =>
+                        setValue('executor', event.target.value)
+                     }
                   />
                </Field>
                {mode === 'add' && (
@@ -167,7 +174,12 @@ const WorkstreamDialog = ({ deal, mode, onClose }: WorkstreamDialogProps) => {
          onClose={onClose}
       >
          {mode && (
-            <WorkstreamForm key={mode} deal={deal} mode={mode} onClose={onClose} />
+            <WorkstreamForm
+               key={mode}
+               deal={deal}
+               mode={mode}
+               onClose={onClose}
+            />
          )}
       </Modal>
    );

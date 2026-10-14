@@ -1,10 +1,5 @@
 export type Role =
-   | 'director'
-   | 'deputy'
-   | 'analyst'
-   | 'manager'
-   | 'accountant'
-   | 'assistant';
+   'director' | 'deputy' | 'analyst' | 'manager' | 'accountant' | 'assistant';
 
 export interface Employee {
    id: string;
@@ -25,12 +20,7 @@ export type Section =
    | 'documents';
 
 export type TaskStatus =
-   | 'assigned'
-   | 'in_progress'
-   | 'waiting'
-   | 'postponed'
-   | 'review'
-   | 'done';
+   'assigned' | 'in_progress' | 'waiting' | 'postponed' | 'review' | 'done';
 
 export type TaskPriority = 'low' | 'medium' | 'high';
 
@@ -46,12 +36,7 @@ export type TaskType =
 
 // What a task is attached to; "none" for a task that stands on its own.
 export type TaskRelation =
-   | 'none'
-   | 'deal'
-   | 'portfolio'
-   | 'contract'
-   | 'letter'
-   | 'procurement';
+   'none' | 'deal' | 'portfolio' | 'contract' | 'letter' | 'procurement';
 
 export type TaskRecurrence = 'none' | 'monthly' | 'quarterly';
 
@@ -112,6 +97,7 @@ export interface QueueItem {
    completedAt: string | null;
    // set when the item is a decision the owner has to take
    decision?: { preparedById: string; action: DecisionAction };
+   dealId?: string; // the deal the item is about, if it has a card
 }
 
 export type WaitingSource = 'applicant' | 'company' | 'colleague';
@@ -139,8 +125,7 @@ export type DealStage =
    | 'closing';
 
 export interface MyDeal {
-   id: string;
-   ownerId: string;
+   id: string; // the address of the deal's card
    company: string;
    stage: DealStage;
    stageDate: string; // YYYY-MM-DD of the stage's event, or ''

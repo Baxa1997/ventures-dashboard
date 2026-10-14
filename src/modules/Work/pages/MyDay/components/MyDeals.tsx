@@ -3,6 +3,7 @@ import { formatDate } from '@modules/Work/helpers';
 import { Badge } from '@shared/components';
 import type { MyDeal } from '@shared/types/work.types';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 interface MyDealsProps {
    deals: MyDeal[];
@@ -19,7 +20,12 @@ const MyDeals = ({ deals }: MyDealsProps) => {
                key={deal.id}
                className='flex min-h-11.25 items-center justify-between gap-3 py-2'
             >
-               <span className='font-semibold'>{deal.company}</span>
+               <Link
+                  className='font-semibold hover:underline'
+                  to={`/deals/${deal.id}`}
+               >
+                  {deal.company}
+               </Link>
                <Badge>
                   {t(DEAL_STAGE_LABELS[deal.stage])}
                   {deal.stageDate && ` · ${formatDate(deal.stageDate)}`}

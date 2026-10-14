@@ -122,7 +122,11 @@ export const STATUS_FILLS: Record<DealStatus, string> = {
 };
 
 // Statuses of the "Отказы и пауза" tab.
-export const CLOSED_STATUSES: DealStatus[] = ['rejected', 'paused', 'withdrawn'];
+export const CLOSED_STATUSES: DealStatus[] = [
+   'rejected',
+   'paused',
+   'withdrawn',
+];
 
 export const SOURCE_ORDER: DealSource[] = [
    'site',
@@ -194,9 +198,16 @@ export const REJECT_REASON_LABELS = {
 } as const satisfies Record<RejectReason, string>;
 
 // A rejection by mandate lets the applicant come back at once.
-export const MANDATE_REASONS: RejectReason[] = ['mandate_check', 'mandate_scope'];
+export const MANDATE_REASONS: RejectReason[] = [
+   'mandate_check',
+   'mandate_scope',
+];
 
-export const RESUBMIT_ORDER: Resubmit[] = ['now', 'in_6_months', 'in_12_months'];
+export const RESUBMIT_ORDER: Resubmit[] = [
+   'now',
+   'in_6_months',
+   'in_12_months',
+];
 
 export const RESUBMIT_LABELS = {
    now: 'Сразу',

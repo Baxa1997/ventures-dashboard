@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface ModalProps {
@@ -25,6 +25,7 @@ interface ModalFooterProps extends ModalPartProps {
 const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
    const { t } = useTranslation('components');
    const ref = useRef<HTMLDialogElement>(null);
+   const titleId = useId();
 
    useEffect(() => {
       const dialog = ref.current;
@@ -40,8 +41,8 @@ const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
    return (
       <dialog
          ref={ref}
-         aria-labelledby='modal-title'
-         className='border-line text-ink shadow-popup backdrop:bg-navy/50 m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border bg-white p-0 open:flex'
+         aria-labelledby={titleId}
+         className='border-line text-ink shadow-popup backdrop:bg-navy/50 open:animate-pop backdrop:animate-fade m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border bg-white p-0 open:flex'
          onClose={onClose}
          onClick={(event) => {
             if (event.target === ref.current) onClose();
@@ -49,7 +50,7 @@ const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
       >
          <header className='border-line flex shrink-0 items-start justify-between gap-3 border-b px-5 py-3.5'>
             <div className='min-w-0'>
-               <h2 id='modal-title' className='text-lg leading-6 font-bold'>
+               <h2 id={titleId} className='text-lg leading-6 font-bold'>
                   {title}
                </h2>
                {subtitle && (
@@ -81,9 +82,7 @@ export const ModalBody = ({ children }: ModalPartProps) => (
 // The buttons of a modal; always in view.
 export const ModalFooter = ({ note, children }: ModalFooterProps) => (
    <div className='border-line bg-ground flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t px-5 py-3.5'>
-      {note && (
-         <span className='text-ink-soft mr-auto text-xs'>{note}</span>
-      )}
+      {note && <span className='text-ink-soft mr-auto text-xs'>{note}</span>}
       {children}
    </div>
 );

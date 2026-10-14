@@ -144,9 +144,7 @@ const TaskDetail = ({
                <div className='text-ink-soft pt-1 text-xs'>{caption}</div>
                <StatusBadge status={task.status} />
             </div>
-            <h2 className='text-title mt-2 font-bold'>
-               {task.title}
-            </h2>
+            <h2 className='text-title mt-2 font-bold'>{task.title}</h2>
          </div>
 
          <dl

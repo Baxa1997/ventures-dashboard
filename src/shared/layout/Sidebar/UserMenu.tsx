@@ -39,7 +39,7 @@ const UserMenu = () => {
    return (
       <div ref={ref} className='relative'>
          {open && (
-            <div className='bg-navy-raised shadow-popup absolute inset-x-3 bottom-full mb-1 rounded-lg p-1'>
+            <div className='bg-navy-raised shadow-popup animate-pop absolute inset-x-3 bottom-full mb-1 origin-bottom rounded-lg p-1'>
                <div className={HEADING}>{t('Язык')}</div>
                <div className='px-1 pb-1.5'>
                   <Language />

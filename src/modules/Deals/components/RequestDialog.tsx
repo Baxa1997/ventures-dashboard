@@ -109,7 +109,9 @@ const RequestForm = ({
                      className='field-input sm:w-48'
                      type='date'
                      value={values.dueDate}
-                     onChange={(event) => setValue('dueDate', event.target.value)}
+                     onChange={(event) =>
+                        setValue('dueDate', event.target.value)
+                     }
                   />
                </Field>
                <div className='text-meta flex items-start gap-2.5'>

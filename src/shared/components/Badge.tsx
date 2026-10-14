@@ -20,7 +20,7 @@ const TONES: Record<BadgeTone, string> = {
 const Badge = ({ tone = 'accent', caps = false, children }: BadgeProps) => (
    <span
       className={clsx(
-         'inline-flex items-center rounded-md font-medium whitespace-nowrap',
+         'inline-flex items-center rounded-md font-medium whitespace-nowrap transition-colors',
          caps
             ? 'h-5 px-2 text-[10px] font-semibold tracking-wider uppercase'
             : 'h-6.5 px-2.5 text-xs',

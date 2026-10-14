@@ -18,7 +18,12 @@ const FILLS: Record<ProgressTone, string> = {
 
 // A thin bar that shows how much of something is used. It is always paired
 // with the figures in text, so it is hidden from screen readers.
-const Progress = ({ value, max, tone = 'accent', className }: ProgressProps) => (
+const Progress = ({
+   value,
+   max,
+   tone = 'accent',
+   className,
+}: ProgressProps) => (
    <span
       aria-hidden
       className={clsx(
@@ -27,7 +32,7 @@ const Progress = ({ value, max, tone = 'accent', className }: ProgressProps) => 
       )}
    >
       <span
-         className={clsx('block h-full rounded-full', FILLS[tone])}
+         className={clsx('animate-fill block h-full rounded-full', FILLS[tone])}
          style={{ width: `${Math.min(1, max ? value / max : 0) * 100}%` }}
       />
    </span>

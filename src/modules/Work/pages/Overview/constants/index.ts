@@ -1,5 +1,4 @@
 import type {
-   DealStage,
    DecisionAction,
    MoneyPart,
    Section,
@@ -29,13 +28,5 @@ export const MONEY_PARTS = {
    reserve: { label: 'Резерв follow-on', fill: 'bg-accent-soft' },
    operating: { label: 'Операционные расходы', fill: 'bg-accent-faint' },
 } as const satisfies Record<MoneyPart, { label: string; fill: string }>;
-
-// Working days a deal may stay on a stage, for the stages the footnote names.
-export const STAGE_NORM_DAYS = {
-   inbox: 2,
-   screening: 5,
-   analysis: 10,
-   dd: 30,
-} as const satisfies Partial<Record<DealStage, number>>;
 
 export const QUARTERS = ['I', 'II', 'III', 'IV'];

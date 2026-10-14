@@ -7,11 +7,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { useCurrentUser } from '@shared/hooks';
-import type {
-   Deal,
-   DealSource,
-   RoundStage,
-} from '@shared/types/deals.types';
+import type { Deal, DealSource, RoundStage } from '@shared/types/deals.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -41,7 +37,10 @@ const INITIAL = {
    amount: '',
 };
 
-const NewDealForm = ({ onClose, onCreated }: Omit<NewDealDialogProps, 'open'>) => {
+const NewDealForm = ({
+   onClose,
+   onCreated,
+}: Omit<NewDealDialogProps, 'open'>) => {
    const { t } = useTranslation('deals');
    const { t: tValidation } = useTranslation('validation');
    const user = useCurrentUser();
@@ -49,9 +48,9 @@ const NewDealForm = ({ onClose, onCreated }: Omit<NewDealDialogProps, 'open'>) =
    // an application typed in by hand rarely comes from the website
    const [source, setSource] = useState<DealSource>('network');
    const [roundStage, setRoundStage] = useState<RoundStage>('seed');
-   const [errors, setErrors] = useState<Partial<Record<TextKey, ValidationKey>>>(
-      {},
-   );
+   const [errors, setErrors] = useState<
+      Partial<Record<TextKey, ValidationKey>>
+   >({});
 
    const setValue = (key: TextKey, value: string) => {
       setValues((prev) => ({ ...prev, [key]: value }));
@@ -104,7 +103,9 @@ const NewDealForm = ({ onClose, onCreated }: Omit<NewDealDialogProps, 'open'>) =
                      className='field-input'
                      maxLength={COMPANY_MAX}
                      value={values.company}
-                     onChange={(event) => setValue('company', event.target.value)}
+                     onChange={(event) =>
+                        setValue('company', event.target.value)
+                     }
                   />
                </Field>
                <Field

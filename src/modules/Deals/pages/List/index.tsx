@@ -10,7 +10,6 @@ import {
    LIST_TABS,
    type ListTab,
    SOURCE_LABELS,
-   STAGE_NORMS,
 } from '@modules/Deals/constants';
 import {
    dayOf,
@@ -19,6 +18,7 @@ import {
    isLate,
    outcomeOf,
    personName,
+   stageNorm,
    statusOf,
    sumAmounts,
 } from '@modules/Deals/helpers';
@@ -73,28 +73,28 @@ const DealsList = () => {
 
    const exportRows = () =>
       downloadCsv('sdelki.csv', [
-            [
-               t('Номер'),
-               t('Компания'),
-               t('Отрасль'),
-               t('Стадия или итог'),
-               t('Источник'),
-               t('Запрос'),
-               t('Владелец'),
-               t('Поступила'),
-               t('Следующий шаг или итог'),
-            ],
-            ...visible.current.map((deal) => [
-               deal.number,
-               deal.company,
-               deal.industry,
-               statusOf(t, deal).label,
-               t(SOURCE_LABELS[deal.source]),
-               formatAmount(deal.amount, language),
-               personName(deal.ownerId || deal.proposedOwnerId),
-               dayOf(deal.receivedAt),
-               outcomeOf(t, deal).text,
-            ]),
+         [
+            t('Номер'),
+            t('Компания'),
+            t('Отрасль'),
+            t('Стадия или итог'),
+            t('Источник'),
+            t('Запрос'),
+            t('Владелец'),
+            t('Поступила'),
+            t('Следующий шаг или итог'),
+         ],
+         ...visible.current.map((deal) => [
+            deal.number,
+            deal.company,
+            deal.industry,
+            statusOf(t, deal).label,
+            t(SOURCE_LABELS[deal.source]),
+            formatAmount(deal.amount, language),
+            personName(deal.ownerId || deal.proposedOwnerId),
+            dayOf(deal.receivedAt),
+            outcomeOf(t, deal).text,
+         ]),
       ]);
 
    if (loading || !summary)
@@ -113,7 +113,10 @@ const DealsList = () => {
    const counts: Record<ListTab, number> = {
       inbox: summary.byStatus.review,
       funnel: summary.byStatus.active,
-      closed: CLOSED_STATUSES.reduce((sum, key) => sum + summary.byStatus[key], 0),
+      closed: CLOSED_STATUSES.reduce(
+         (sum, key) => sum + summary.byStatus[key],
+         0,
+      ),
       all: summary.total,
    };
 
@@ -121,7 +124,7 @@ const DealsList = () => {
       inbox: [
          t('{{count}} заявка ждёт разбора', { count: counts.inbox }),
          t('норма — {{count}} рабочий день с момента поступления', {
-            count: STAGE_NORMS.inbox ?? 0,
+            count: stageNorm('inbox') ?? 0,
          }),
       ].join(' · '),
       funnel: [
@@ -131,7 +134,8 @@ const DealsList = () => {
                maximumFractionDigits: 1,
             }).format(sumAmounts(active) / 1_000_000)}`,
          }),
-         late > 0 && t('у {{count}} сделки нарушен срок фонда', { count: late }),
+         late > 0 &&
+            t('у {{count}} сделки нарушен срок фонда', { count: late }),
       ]
          .filter(Boolean)
          .join(' · '),
@@ -159,7 +163,9 @@ const DealsList = () => {
       funnel: (
          <>
             {exportButton(t('Экспорт в Excel'))}
-            <Button onClick={() => setCreating(true)}>{t('Новая сделка')}</Button>
+            <Button onClick={() => setCreating(true)}>
+               {t('Новая сделка')}
+            </Button>
          </>
       ),
       closed: exportButton(t('Выгрузить в Excel')),
@@ -204,7 +210,9 @@ const DealsList = () => {
                   onVisible={setVisible}
                />
             )}
-            {tab === 'funnel' && <Funnel deals={deals} onVisible={setVisible} />}
+            {tab === 'funnel' && (
+               <Funnel deals={deals} onVisible={setVisible} />
+            )}
             {(tab === 'all' || tab === 'closed') && (
                <Registry
                   key={tab}

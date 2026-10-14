@@ -11,7 +11,10 @@ interface CardProps {
 
 const Card = ({ title, hint, action, className, children }: CardProps) => (
    <section
-      className={clsx('border-line rounded-lg border bg-white', className)}
+      className={clsx(
+         'border-line animate-rise rounded-lg border bg-white',
+         className,
+      )}
    >
       {title && (
          <header className='border-line flex min-h-11.5 flex-wrap items-center gap-x-2 border-b px-5 py-2'>
@@ -25,5 +28,11 @@ const Card = ({ title, hint, action, className, children }: CardProps) => (
       {children}
    </section>
 );
+
+/* A column of cards in a row of the page: the column takes the row's height
+   and its last card grows, so the columns of a row end level instead of
+   leaving a short card above an empty gap. */
+export const STACK =
+   'gap-section stagger flex min-w-0 flex-col [&>:last-child]:flex-1';
 
 export default Card;

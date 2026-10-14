@@ -1,3 +1,11 @@
+import { STAGES } from '@modules/Deals/constants';
+import { getDeadline, isLate } from '@modules/Deals/helpers';
+import correspondence, { FUND_TURN } from '@modules/Correspondence/services';
+import deals from '@modules/Deals/services';
+import { moneyParts } from '@modules/Finance/helpers';
+import finance from '@modules/Finance/services';
+import { hasAllDocs } from '@modules/Portfolio/helpers';
+import portfolio from '@modules/Portfolio/services';
 import { TEAM } from '@shared/constants';
 import type {
    Employee,
@@ -16,7 +24,6 @@ import { isDone, isMine, needsAction, shiftMonths, todayISO } from '../helpers';
 import {
    SAMPLE_COUNTERS,
    SAMPLE_DEADLINES,
-   SAMPLE_DEALS,
    SAMPLE_FUND,
    SAMPLE_QUEUE,
    SAMPLE_TASKS,
@@ -64,6 +71,13 @@ const write = (next: Stored) => {
    }
    listeners.forEach((listener) => listener());
 };
+
+// The pages of this module also show deals, and the sidebar counts letters,
+// so they follow those changes too.
+deals.subscribe(() => listeners.forEach((listener) => listener()));
+correspondence.subscribe(() => listeners.forEach((listener) => listener()));
+finance.subscribe(() => listeners.forEach((listener) => listener()));
+portfolio.subscribe(() => listeners.forEach((listener) => listener()));
 
 const newId = () => crypto.randomUUID();
 
@@ -205,8 +219,18 @@ class Work {
       return SAMPLE_WAITING.filter((item) => item.ownerId === userId);
    }
 
+   // The deals a person runs, the furthest along first.
    async getMyDeals(userId: string): Promise<MyDeal[]> {
-      return SAMPLE_DEALS.filter((deal) => deal.ownerId === userId);
+      const all = await deals.getDeals();
+      return all
+         .filter((deal) => deal.status === 'active' && deal.ownerId === userId)
+         .sort((a, b) => STAGES.indexOf(b.stage) - STAGES.indexOf(a.stage))
+         .map((deal) => ({
+            id: deal.id,
+            company: deal.company,
+            stage: deal.stage,
+            stageDate: deal.committee?.date ?? '',
+         }));
    }
 
    async getDeadlines(): Promise<WeekDeadline[]> {
@@ -214,16 +238,113 @@ class Work {
    }
 
    async getFundOverview(): Promise<FundOverview> {
-      return SAMPLE_FUND;
+      const [all, money, holdings] = await Promise.all([
+         deals.getDeals(),
+         finance.getState(),
+         portfolio.getState(),
+      ]);
+      const parts = moneyParts(money);
+      const open = money.payments.filter(({ status }) => status !== 'paid');
+      const note = (part: string) =>
+         SAMPLE_FUND.money.parts.find((item) => item.part === part)?.note ?? '';
+      const { cycle } = holdings;
+      return {
+         ...SAMPLE_FUND,
+         // the money and the portfolio as Финансы and Портфель count them
+         money: {
+            onAccounts: parts.onAccounts,
+            capital: money.capital,
+            plan: {
+               year: money.plan.year,
+               amount: money.plan.directDeals,
+               invested: holdings.companies.reduce(
+                  (sum, { invested }) => sum + invested,
+                  0,
+               ),
+               approved: parts.approved,
+            },
+            parts: [
+               { part: 'free', amount: parts.free, note: note('free') },
+               {
+                  part: 'approved',
+                  amount: parts.approved,
+                  note: open
+                     .map(
+                        ({ title, amount }) =>
+                           `${title.split(' (')[0].replace(' · ', ' ')} $${amount / 1000}K`,
+                     )
+                     .join(' · '),
+               },
+               {
+                  part: 'reserve',
+                  amount: parts.reserve,
+                  note: money.reserves
+                     .map(({ title, note: text }) => `${title} — ${text}`)
+                     .join('; '),
+               },
+               {
+                  part: 'operating',
+                  amount: parts.operating,
+                  note: note('operating'),
+               },
+            ],
+         },
+         portfolio: {
+            quarter: Number(cycle.quarter.slice(-1)),
+            reportsDue: cycle.due,
+            requestedAt: cycle.requestedAt,
+            companies: holdings.companies.map((company) => {
+               const report = company.reports[cycle.quarter];
+               const sample = SAMPLE_FUND.portfolio.companies.find(
+                  ({ name }) => name === company.name,
+               );
+               return {
+                  id: company.id,
+                  name: company.name,
+                  invested: company.invested,
+                  reportReceived: hasAllDocs(company, cycle.quarter),
+                  // the figures to enter while the report waits for its check
+                  nextStep:
+                     report?.metrics === 'check'
+                        ? 'Внести показатели в дашборд'
+                        : sample?.nextStep === 'Внести показатели в дашборд'
+                          ? company.now
+                          : (sample?.nextStep ?? company.now),
+               };
+            }),
+         },
+         // incoming applications, then the deals in work on each stage
+         funnel: STAGES.map((stage) => {
+            const group = all.filter((deal) =>
+               stage === 'inbox'
+                  ? deal.status === 'review'
+                  : deal.status === 'active' && deal.stage === stage,
+            );
+            return {
+               stage,
+               count: group.length,
+               overdue: group.filter((deal) =>
+                  stage === 'inbox'
+                     ? isLate(deal)
+                     : getDeadline(deal).kind === 'overdue',
+               ).length,
+            };
+         }),
+      };
    }
 
    async getCounters(userId: string): Promise<SectionCounters> {
       const { tasks, queueDone } = read();
+      const { letters } = await correspondence.getState();
       const queue = SAMPLE_QUEUE.filter(
          (item) => item.ownerId === userId && !queueDone[item.id],
       );
       return {
          ...SAMPLE_COUNTERS,
+         // the letters where the next move is the fund's
+         correspondence: letters.filter(({ status }) =>
+            FUND_TURN.includes(status),
+         ).length,
          myDay:
             queue.length +
             tasks.filter((task) => needsAction(task, userId)).length,

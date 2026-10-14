@@ -1,11 +1,7 @@
 import { getAssigneeId, todayISO } from '@modules/Work/helpers';
 import { useTasks, useWorkQuery } from '@modules/Work/hooks';
 import work from '@modules/Work/services';
-import type {
-   MyDeal,
-   QueueItem,
-   WaitingItem,
-} from '@shared/types/work.types';
+import type { MyDeal, QueueItem, WaitingItem } from '@shared/types/work.types';
 import { useMemo } from 'react';
 import { type DayItem, statusAfterTick, toDayItems } from '../helpers';
 
@@ -32,9 +28,8 @@ const useMyDay = (userId: string) => {
       return {
          items,
          openCount: open.length,
-         overdueCount: open.filter(
-            ({ dueDate }) => dueDate && dueDate < today,
-         ).length,
+         overdueCount: open.filter(({ dueDate }) => dueDate && dueDate < today)
+            .length,
          // my tasks that stand still until somebody answers
          waitingTasks: tasks.filter(
             (task) =>

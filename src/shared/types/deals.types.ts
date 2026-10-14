@@ -3,19 +3,10 @@ import type { DealStage } from './work.types';
 // Where an application or a deal stands. "review" is an incoming application
 // nobody has decided on yet; "active" is a deal moving through the stages.
 export type DealStatus =
-   | 'review'
-   | 'active'
-   | 'paused'
-   | 'portfolio'
-   | 'withdrawn'
-   | 'rejected';
+   'review' | 'active' | 'paused' | 'portfolio' | 'withdrawn' | 'rejected';
 
 export type DealSource =
-   | 'site'
-   | 'network'
-   | 'conference'
-   | 'partner_fund'
-   | 'accelerator';
+   'site' | 'network' | 'conference' | 'partner_fund' | 'accelerator';
 
 export type RoundStage = 'pre_seed' | 'seed' | 'pre_series_a' | 'series_a';
 
@@ -55,12 +46,13 @@ export interface Risk {
 }
 
 // A line of a checklist that the system keeps: done, still open, open and
-// needing attention, or open and blocking the next step.
+// waiting for somebody, open and needing attention, or open and blocking
+// the next step.
 export interface CheckItem {
    id: string;
    text: string;
    note: string;
-   state: 'done' | 'open' | 'attention' | 'blocking';
+   state: 'done' | 'open' | 'waiting' | 'attention' | 'blocking';
    // set when the item closes by itself once this happens
    fulfilledBy?: 'dd_questionnaire';
 }
@@ -128,7 +120,8 @@ export interface DealDocument {
    };
 }
 
-export type WorkstreamStatus = 'rework' | 'in_progress' | 'not_started' | 'done';
+export type WorkstreamStatus =
+   'rework' | 'in_progress' | 'not_started' | 'done';
 
 export interface Workstream {
    id: string;

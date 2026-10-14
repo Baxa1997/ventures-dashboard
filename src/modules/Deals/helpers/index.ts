@@ -1,16 +1,29 @@
-import { TEAM } from '@shared/constants';
 import {
    addWorkingDays,
    formatDate,
    formatDay,
-   shortName,
+   downloadCsv,
+   personName,
    todayISO,
 } from '@shared/helpers';
-import type { Deal, PathStep, Tone } from '@shared/types/deals.types';
+import type {
+   CheckItem,
+   Criterion,
+   Deal,
+   PathStep,
+   Tone,
+} from '@shared/types/deals.types';
 import type { DealStage } from '@shared/types/work.types';
 import type { TFunction } from 'i18next';
+import type { NormStage } from '@shared/types/settings.types';
+import {
+   currentSettings,
+   parseCheck,
+   parseNorm,
+} from '@modules/Settings/services';
 import {
    CLOSED_STATUSES,
+   CRITERIA,
    MANDATE,
    REJECT_REASON_LABELS,
    ROUND_STAGE_NAMES,
@@ -33,9 +46,33 @@ export const timeOf = (stamp: string) => stamp.slice(11);
 export const formatStamp = (stamp: string) =>
    [formatDate(dayOf(stamp)), timeOf(stamp)].filter(Boolean).join(', ');
 
-export const personName = (id: string) => {
-   const employee = TEAM.find((item) => item.id === id);
-   return employee ? shortName(employee.name) : '';
+export { downloadCsv, personName };
+
+// The check range of the mandate, as Настройки have it now.
+export const mandateLimits = () => {
+   const range = parseCheck(currentSettings().mandate.check);
+   return range
+      ? { minCheck: range[0], maxCheck: range[1] }
+      : { minCheck: MANDATE.minCheck, maxCheck: MANDATE.maxCheck };
+};
+
+// The stages whose norm Настройки give in working days.
+const SETTINGS_STAGES: Partial<Record<DealStage, NormStage>> = {
+   inbox: 'inbox',
+   screening: 'screening',
+   meeting: 'meeting',
+   analysis: 'analysis',
+   dd: 'dd',
+   closing: 'closing',
+};
+
+// Working days a deal may stay on a stage: from Настройки where they give a
+// number, otherwise the stage's own rule.
+export const stageNorm = (stage: DealStage) => {
+   const key = SETTINGS_STAGES[stage];
+   const norm =
+      key && currentSettings().norms.find((item) => item.stage === key);
+   return (norm && parseNorm(norm.norm)) || STAGE_NORMS[stage];
 };
 
 // $250K, $1,5M
@@ -86,13 +123,13 @@ export const deadlineLabel = (t: T, deadline: Deadline) => {
          date: formatDate(deadline.date),
       });
    if (deadline.kind === 'left')
-      return t('Осталось {{count}} р.д.', { count: deadline.days });
+      return t('Осталось {{days}} р.д.', { days: deadline.days });
    return '';
 };
 
 // The day an incoming application has to be decided on by.
 export const triageDue = (deal: Deal) =>
-   addWorkingDays(dayOf(deal.receivedAt), STAGE_NORMS.inbox ?? 0);
+   addWorkingDays(dayOf(deal.receivedAt), stageNorm('inbox') ?? 0);
 
 export type TriageState = 'waiting' | 'overdue' | 'today' | 'ahead';
 
@@ -119,7 +156,8 @@ export const dueText = (
    today = todayISO(),
 ) => {
    if (time) return `${formatDate(dueDate)}, ${time}`;
-   if (dueDate < today) return t('срок был {{date}}', { date: formatDate(dueDate) });
+   if (dueDate < today)
+      return t('срок был {{date}}', { date: formatDate(dueDate) });
    if (dueDate === today) return t('сегодня');
    return t('до {{date}}', { date: formatDate(dueDate) });
 };
@@ -129,7 +167,10 @@ export const dueText = (
 export const statusOf = (t: T, deal: Deal) =>
    deal.status === 'active'
       ? { label: t(STAGE_LABELS[deal.stage]), tone: 'accent' as Tone }
-      : { label: t(STATUS_LABELS[deal.status]), tone: STATUS_TONES[deal.status] };
+      : {
+           label: t(STATUS_LABELS[deal.status]),
+           tone: STATUS_TONES[deal.status],
+        };
 
 // The badge next to the name in a deal's card: the stage and how its deadline stands.
 export const headerBadge = (t: T, deal: Deal) => {
@@ -157,9 +198,10 @@ export const headerBadge = (t: T, deal: Deal) => {
 
 // "B2B SaaS · сайт": the industry and what else tells the deal apart.
 export const dealLine = (t: T, deal: Deal) =>
-   [deal.industry, deal.tags || t(SOURCE_LABELS[deal.source]).toLowerCase()].join(
-      ' · ',
-   );
+   [
+      deal.industry,
+      deal.tags || t(SOURCE_LABELS[deal.source]).toLowerCase(),
+   ].join(' · ');
 
 // The last column of the register: what comes next, or how the deal ended.
 export const outcomeOf = (t: T, deal: Deal) => {
@@ -170,7 +212,10 @@ export const outcomeOf = (t: T, deal: Deal) => {
          late: false,
       };
    if (status === 'withdrawn' && closed)
-      return { text: `${closed.note} · ${formatDate(closed.date)}`, late: false };
+      return {
+         text: `${closed.note} · ${formatDate(closed.date)}`,
+         late: false,
+      };
    if (status === 'paused') return { text: closed?.note ?? '', late: false };
    if (status === 'review')
       return {
@@ -203,27 +248,32 @@ export const mandateTone = (state: MandateState) => MANDATE_TONES[state];
 
 // Applies the published mandate. It does not judge the project, only whether
 // the application fits the rules.
-export const checkMandate = (t: T, deal: Deal, language: string): MandateCheck => {
+export const checkMandate = (
+   t: T,
+   deal: Deal,
+   language: string,
+): MandateCheck => {
    const amount = (value: number) => formatAmount(value, language);
+   const { minCheck, maxCheck } = mandateLimits();
    const industry = deal.industry.trim().toLowerCase();
    const excluded = MANDATE.excluded.includes(industry);
    const licensed = MANDATE.licensed.includes(industry);
-   const tooHigh = deal.amount > MANDATE.maxCheck;
-   const tooLow = deal.amount < MANDATE.minCheck;
+   const tooHigh = deal.amount > maxCheck;
+   const tooLow = deal.amount < minCheck;
    const stageFits = MANDATE.stages.includes(deal.roundStage);
    const stage = ROUND_STAGE_NAMES[deal.roundStage];
-   const range = `$${MANDATE.minCheck / 1000}–${MANDATE.maxCheck / 1000}K`;
+   const range = `$${minCheck / 1000}–${maxCheck / 1000}K`;
 
    const check = () => {
       if (tooHigh)
          return t('{{amount}} — выше {{limit}}', {
             amount: amount(deal.amount),
-            limit: amount(MANDATE.maxCheck),
+            limit: amount(maxCheck),
          });
       if (tooLow)
          return t('{{amount}} — ниже {{limit}}', {
             amount: amount(deal.amount),
-            limit: amount(MANDATE.minCheck),
+            limit: amount(minCheck),
          });
       return t('{{amount}} в пределах {{range}}', {
          amount: amount(deal.amount),
@@ -235,17 +285,21 @@ export const checkMandate = (t: T, deal: Deal, language: string): MandateCheck =
       if (excluded) return { label: t('Исключённая отрасль'), state: 'fail' };
       if (tooHigh)
          return {
-            label: t('Чек выше {{limit}}', { limit: amount(MANDATE.maxCheck) }),
+            label: t('Чек выше {{limit}}', { limit: amount(maxCheck) }),
             state: 'fail',
          };
       if (tooLow)
          return {
-            label: t('Чек ниже {{limit}}', { limit: amount(MANDATE.minCheck) }),
+            label: t('Чек ниже {{limit}}', { limit: amount(minCheck) }),
             state: 'attention',
          };
       if (!stageFits)
-         return { label: t('Стадия: {{stage}}', { stage }), state: 'attention' };
-      if (licensed) return { label: t('Нужна лицензия ЦБ'), state: 'attention' };
+         return {
+            label: t('Стадия: {{stage}}', { stage }),
+            state: 'attention',
+         };
+      if (licensed)
+         return { label: t('Нужна лицензия ЦБ'), state: 'attention' };
       return { label: t('Соответствует'), state: 'ok' };
    };
 
@@ -273,7 +327,9 @@ export const checkMandate = (t: T, deal: Deal, language: string): MandateCheck =
             key: 'industry',
             label: t('Отрасль'),
             value: licensed
-               ? t('{{industry}} — нужна лицензия ЦБ', { industry: deal.industry })
+               ? t('{{industry}} — нужна лицензия ЦБ', {
+                    industry: deal.industry,
+                 })
                : excluded
                  ? deal.industry
                  : t('{{industry}} — в фокусе', { industry: deal.industry }),
@@ -291,6 +347,36 @@ export const checkMandate = (t: T, deal: Deal, language: string): MandateCheck =
 };
 
 // ---- a deal's card
+
+// A criterion counts once it has both a score and the reasons for it.
+export const isScored = ({ score, rationale }: Criterion) =>
+   score !== null && !!rationale.trim();
+
+// What has to be true before a deal leaves its stage. A stage may have its
+// own list; screening always asks for the full score and a second opinion.
+export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
+   if (deal.exit) return deal.exit;
+   if (deal.stage !== 'screening') return [];
+   const scored = (deal.screening?.criteria ?? []).filter(isScored).length;
+   const secondId = deal.screening?.secondId ?? '';
+   return [
+      {
+         id: 'score',
+         text: t('Оценка по 7 критериям заполнена'),
+         note: t('заполнено {{done}} из {{total}}', {
+            done: scored,
+            total: CRITERIA.length,
+         }),
+         state: scored === CRITERIA.length ? 'done' : 'blocking',
+      },
+      {
+         id: 'second',
+         text: t('Решение подтверждает второй сотрудник'),
+         note: secondId ? personName(secondId) : t('не выбран'),
+         state: secondId ? 'done' : 'blocking',
+      },
+   ];
+};
 
 // What the counters next to the card's tabs show.
 export const tabCounts = (deal: Deal) => {
@@ -310,9 +396,9 @@ export const tabCounts = (deal: Deal) => {
 export const defaultPath = (t: T, deal: Deal): PathStep[] => {
    const current = STAGES.indexOf(deal.stage);
    return STAGES.map((stage, index) => {
-      const norm = STAGE_NORMS[stage];
+      const norm = stageNorm(stage);
       const normLine = norm
-         ? t('норма {{count}} р.д.', { count: norm })
+         ? t('норма {{days}} р.д.', { days: norm })
          : t('по графику заседаний');
       if (index === 0)
          return {
@@ -340,19 +426,3 @@ export const pathState = (deal: Deal, stage: DealStage) => {
 };
 
 // ---- the register
-
-// Saves the rows as a CSV file that Excel opens: UTF-8 with a byte order
-// mark, cells separated by semicolons.
-export const downloadCsv = (name: string, rows: string[][]) => {
-   const cell = (value: string) =>
-      /[";\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
-   const text = rows.map((row) => row.map(cell).join(';')).join('\r\n');
-   const url = URL.createObjectURL(
-      new Blob(['﻿', text], { type: 'text/csv;charset=utf-8' }),
-   );
-   const link = document.createElement('a');
-   link.href = url;
-   link.download = name;
-   link.click();
-   URL.revokeObjectURL(url);
-};
