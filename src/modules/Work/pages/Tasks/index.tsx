@@ -14,13 +14,7 @@ import type { Task, TaskInput } from '@shared/types/work.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
-import {
-   Tabs,
-   TaskDetail,
-   TaskForm,
-   TasksTable,
-   Toolbar,
-} from './components';
+import { Tabs, TaskDetail, TaskForm, TasksTable, Toolbar } from './components';
 import { DEFAULT_TAB, type TaskTab } from './constants';
 import { toTab } from './helpers';
 import { useTaskFilters } from './hooks';

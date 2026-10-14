@@ -46,8 +46,11 @@ Three rules hold for every page, each with a shared component in `src/shared/com
 - A page fills the height of the window. `PageBody` takes the rest of the page under the header; a page with little content lets its main card grow to the bottom (see Мой день and Задачи) instead of leaving the page half empty.
 - Search and filters above a list go in `FilterBar`, a white bordered panel.
 - A `Modal` keeps its title and its buttons in view and scrolls only the content between them: put the content in `ModalBody` and the buttons in `ModalFooter` (a form wraps both with `MODAL_FORM`, as in the task form).
+- Cards side by side end level. A grid of columns lets its cells stretch (no `items-start`), and a column of cards uses `STACK` (from `Card.tsx`), whose last card grows to the column's height; an empty card centres its `NoData`.
 
-Other shared pieces: `Tabs` (under a page header), `FilterSelect`, `FactList` (label–value rows), `ChoiceCards` (a radio group drawn as cards), `Progress`, `Badge`, `Field`.
+Motion is set as tokens in `styles/tailwind.css`: cards and filter panels rise into place (`animate-rise`, one after another inside `stagger` groups and `STACK` columns), bars fill from their start (`animate-fill`), chart columns grow from the axis (`animate-grow`), and dialogs and menus pop open (`animate-pop`). People whose system asks for reduced motion get none of it, and printing turns it off.
+
+Other shared pieces: `Tabs` (under a page header), `FilterSelect`, `SearchField`, `BadgeSelect` (a status changed in place), `Table` with the `TH`/`TD` cell classes, `StatTile` (one headline figure), `FactList` (label–value rows), `CheckList` (a checklist the system or a person ticks), `Person` (an employee's initials and short name), `ChoiceCards` (a radio group drawn as cards), `Progress`, `Badge`, `Field`.
 
 ## Pages
 
@@ -69,7 +72,16 @@ The section "Сделки" (`/deals`, `src/modules/Deals`) is built:
 - A deal's card (`/deals/<id>`, tab in `?tab=`) has seven tabs: Обзор, Скрининг и оценка (`screening`), Запросы и документы (`requests`), Due diligence (`dd`), Меморандум (`memo`), Решения ИК и НС (`decisions`), История (`history`). The two buttons in the header belong to the open tab.
 - Three dialogs in `src/modules/Deals/components`: rejection with a reason, moving a deal to the next stage (possible only when the stage's exit conditions are met) and a request to the applicant.
 
-The other sidebar sections (Инвесткомитет, Портфель, Финансы, Договоры, Закупки, Корреспонденция, Документы, Настройки) open a placeholder (`src/modules/ComingSoon`) with the section's purpose until their screens are built.
+The other sections are built from screens 12–25 of the design. Each keeps its tab in the address (`?tab=`):
+
+- Инвесткомитет (`/committee`, `src/modules/Committee`) — Заседания ИК (the next meeting with its agenda and who confirmed, the register of meetings, decisions to carry out), Наблюдательный совет, Реестр решений, Состав и договоры. "Открыть заседание" opens the meeting page (`/committee/<id>`): the secretary records the votes and drafts the protocol; the fund's rules turn the votes into a result (one vote against — the sponsor decides, two — refusal, a dissenting opinion — veto); "Сформировать протокол" sends the decisions to the register, to the deals' cards (Решения ИК и НС) and turns approval conditions into tasks. Materials of a deal on the agenda are counted from its readiness list.
+- Портфель (`/portfolio`, `src/modules/Portfolio`) — Компании, Квартальная отчётность (documents by quarter, the figures from the fund's template confirmed in a dialog), Запросы компаний, Пилоты с SQB; a company's card (`/portfolio/<id>`) with seven tabs. "Запросить данные" creates a task for the company's owner; "Открыть follow-on" creates an application in Сделки. The risk flags read their thresholds from Настройки.
+- Финансы (`/finance`, `src/modules/Finance`) — Капитал и размещение, Бюджет и отчётность, Фактические данные, Платежи. Everything is counted from the statements' data in `services/sample.ts`: the budget's fact is the sum of the operation categories tied to its lines, the operating budget left for the year comes from it, and the money free for deals is the accounts less approved payments, the follow-on reserve and that operating budget. Assigning a category to an operation moves the P&L, the budget and the free money at once. A payment can be passed to the bank only when all its bases are ticked.
+- Договоры (`/contracts`, `src/modules/Contracts`) — one register with five tabs and filters; a contract's card (`/contracts/<id>`). For № 22/26-ABACUS the limit's use is counted from its acts and orders, and the director agrees or returns the month's act; a new order is refused when the limit cannot cover it.
+- Закупки (`/procurement`) — the tenders with their six steps (the stage follows the steps; the commission's step needs at least five members), the commission and protocols, suppliers.
+- Корреспонденция (`/correspondence`) — letters with filters; a letter opens with its next step (sign out a draft with its number, take into work, close — closing needs a number, an answer date and an owner); the monthly reports under ПП-59 and the control plan. The sidebar counter is the number of letters where the next move is the fund's.
+- Документы (`/documents`) — Корпоративные, Приказы, HR, Шаблоны; other sections link to a document with `?doc=<id>`, which marks it. "Новый приказ" numbers the order.
+- Настройки (`/settings`) — Мандат и нормативы (only the director saves; every change goes to the journal), Пользователи и роли (staff, roles, the rights matrix), Справочники, Интеграции. The mandate's check range and the stage norms given in days are what Сделки use for the mandate check, the rejection letter and the deadlines (`mandateLimits` and `stageNorm` in `src/modules/Deals/helpers`).
 
 ## Data
 
@@ -77,14 +89,16 @@ There is no backend yet. Each module's `services` folder starts from the sample 
 
 - The sample data is a snapshot of the fund on 2 October 2026, and its texts name dates around that day. The pages therefore treat that day as "today": see `SAMPLE_TODAY` in `src/shared/constants/system/sample.ts` and `todayISO` in `src/shared/helpers`, the one place to change when the data becomes live.
 - Deals: the register holds 486 deals, of which the sample has 32: the ones the design shows, plus three assigned applications that its counters imply (the design names 9 of the 12 incoming ones). The register's figures (tab counters, the bar, conversion, rejection reasons) are stored and adjusted with every change, so they stay right for deals that are not loaded. Content of a deal's card exists where the design has it: EasyTap (overview, memorandum), Apicore (screening), NeuroFin (requests and documents), MoonAI (due diligence), Toklaps (exit conditions). Other deals show what follows from their basic data.
-- An application's mandate verdict is computed by rules (`MANDATE` in `src/modules/Deals/constants`, `checkMandate` in its helpers), not stored. Stage norms in working days are `STAGE_NORMS` in the same constants.
-- "Мой день" and "Обзор" read the deals from the Deals service, so "Мои сделки" and the funnel on the overview follow what happens in the section.
+- An application's mandate verdict is computed by rules (`checkMandate` in `src/modules/Deals/helpers`), not stored. The check range and the stage norms come from Настройки; the excluded industries and the stages of ИК and the board keep their rules in `MANDATE` and `STAGE_NORMS` (`src/modules/Deals/constants`).
+- "Мой день" and "Обзор" read the deals from the Deals service, and Обзор reads the money from Финансы and the portfolio from Портфель, so they follow what happens in those sections.
+- Where a tab's count in the design is larger than what the screens show or imply (ИК meetings 7 and decisions 16, protocols 4, suppliers 6, orders 12, HR documents 9), the tab keeps the design's number and the list says how many of them the sample has. Records that are not on any screen were not made up, with two exceptions: ИК № 6.2 (Tezbor's approved follow-on, which Финансы rely on) and the two board meetings, which follow from the decisions other screens show. Clockster's quarterly figures are made up for the sample, so that its report has figures to confirm.
+- The design's P&L has one slip: its expense lines for the third quarter add up to 780, not the 760 it prints; the page adds the lines up itself.
 - There is no file storage: uploading "от имени фонда" records only the file's name, and the download links are switched off.
 - Closing a recurring task creates its next occurrence, a month or a quarter later.
 - A task without an assignee goes to the director.
 - Signing in is a stand-in as well: any email and password are accepted, and the form opens filled in (`src/shared/hooks/useSession.ts`). "Не выходить на этом устройстве" keeps the sign-in in localStorage; without it, it lasts until the tab is closed.
-- Who the signed-in person is does not depend on the email yet: the user block at the bottom of the sidebar opens a menu to switch between the director and an analyst (`src/shared/hooks/useCurrentUser.ts`, `SIGN_IN_IDS` in `src/shared/constants/system/user.ts`). The same menu holds the interface language.
-- To start again from the sample data, clear the site's localStorage (keys `sqbv_dashboard_work_v2`, `sqbv_dashboard_deals_v1`, `sqbv_dashboard_user` and `sqbv_dashboard_session`).
+- Who the signed-in person is does not depend on the email yet: the user block at the bottom of the sidebar opens a menu to switch between the director, an analyst, the project manager and the committee's secretary (`src/shared/hooks/useCurrentUser.ts`, `SIGN_IN_IDS` in `src/shared/constants/system/user.ts`). The same menu holds the interface language.
+- To start again from the sample data, clear the site's localStorage (keys starting with `sqbv_dashboard_`). The stores of the new sections are made with `createStore` in `src/shared/helpers/store.ts` and loaded with `useServiceData` in `src/shared/hooks`.
 
 ## Translations
 

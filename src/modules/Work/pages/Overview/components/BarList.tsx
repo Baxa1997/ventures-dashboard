@@ -30,7 +30,7 @@ const BarList = ({ items }: BarListProps) => {
                </span>
                <span
                   aria-hidden
-                  className='bg-track flex h-2 overflow-hidden rounded-full'
+                  className='bg-track flex h-2 overflow-hidden rounded-full [&>span]:animate-fill'
                >
                   <span
                      className='bg-accent'

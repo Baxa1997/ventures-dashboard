@@ -34,7 +34,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             <button
                type='button'
                aria-label={t('Закрыть меню')}
-               className='bg-navy/50 fixed inset-0 z-40 cursor-default lg:hidden'
+               className='bg-navy/50 animate-fade fixed inset-0 z-40 cursor-default lg:hidden'
                onClick={onClose}
             />
          )}

@@ -24,11 +24,7 @@ import type { Employee, Task, TaskInput } from '@shared/types/work.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CHECKLIST_MAX, CONTEXT_MAX } from '../constants';
-import {
-   getInitialValues,
-   type TaskFormValues,
-   toChecklist,
-} from '../helpers';
+import { getInitialValues, type TaskFormValues, toChecklist } from '../helpers';
 import {
    getFieldErrors,
    type TaskFormErrors,
@@ -142,7 +138,9 @@ const TaskForm = ({ task, employees, onSubmit, onCancel }: TaskFormProps) => {
                <Field
                   className='sm:col-span-2'
                   error={errorOf('context')}
-                  hint={t('Контрагент, компания или документ — показывается рядом с типом')}
+                  hint={t(
+                     'Контрагент, компания или документ — показывается рядом с типом',
+                  )}
                   label={t('Уточнение')}
                >
                   <input
@@ -150,7 +148,9 @@ const TaskForm = ({ task, employees, onSubmit, onCancel }: TaskFormProps) => {
                      className='field-input'
                      maxLength={CONTEXT_MAX}
                      value={values.context}
-                     onChange={(event) => setValue('context', event.target.value)}
+                     onChange={(event) =>
+                        setValue('context', event.target.value)
+                     }
                   />
                </Field>
                <Field
@@ -168,7 +168,9 @@ const TaskForm = ({ task, employees, onSubmit, onCancel }: TaskFormProps) => {
                      className='field-input'
                      type='date'
                      value={values.dueDate}
-                     onChange={(event) => setValue('dueDate', event.target.value)}
+                     onChange={(event) =>
+                        setValue('dueDate', event.target.value)
+                     }
                   />
                </Field>
                <Field label={t('Приоритет')}>
@@ -198,7 +200,9 @@ const TaskForm = ({ task, employees, onSubmit, onCancel }: TaskFormProps) => {
                      maxLength={CHECKLIST_MAX}
                      rows={3}
                      value={values.checklist}
-                     onChange={(event) => setValue('checklist', event.target.value)}
+                     onChange={(event) =>
+                        setValue('checklist', event.target.value)
+                     }
                   />
                </Field>
             </div>

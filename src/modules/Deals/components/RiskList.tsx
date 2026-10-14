@@ -1,8 +1,7 @@
-import { Badge } from '@shared/components';
+import { Badge, Person } from '@shared/components';
 import type { Risk } from '@shared/types/deals.types';
 import { useTranslation } from 'react-i18next';
 import { RISK_LEVEL_LABELS } from '../constants';
-import Person from './Person';
 
 interface RiskListProps {
    risks: Risk[];
@@ -27,7 +26,9 @@ const RiskList = ({ risks }: RiskListProps) => {
                <div className='min-w-0'>
                   <div className='font-medium'>{risk.title}</div>
                   {risk.note && (
-                     <div className='text-ink-soft mt-1 text-xs'>{risk.note}</div>
+                     <div className='text-ink-soft mt-1 text-xs'>
+                        {risk.note}
+                     </div>
                   )}
                </div>
                <div className='text-meta max-sm:col-start-2'>

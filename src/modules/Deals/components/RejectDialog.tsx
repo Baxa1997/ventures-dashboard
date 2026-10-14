@@ -9,15 +9,10 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { useCurrentUser } from '@shared/hooks';
-import type {
-   Deal,
-   RejectReason,
-   Resubmit,
-} from '@shared/types/deals.types';
+import type { Deal, RejectReason, Resubmit } from '@shared/types/deals.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-   MANDATE,
    MANDATE_REASONS,
    REJECT_REASON_LABELS,
    REJECT_REASON_ORDER,
@@ -26,7 +21,7 @@ import {
    STAGE_LABELS,
    TEXT_MAX,
 } from '../constants';
-import { formatAmount } from '../helpers';
+import { formatAmount, mandateLimits } from '../helpers';
 import deals from '../services';
 
 interface RejectDialogProps {
@@ -66,8 +61,8 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
          return t(
             'Спасибо за заявку. Мы инвестируем от {{min}} до {{max}} на стадиях pre-seed и seed, а {{company}} привлекает {{amount}}. Сейчас это вне нашего мандата. Вы можете подать заявку снова, если структура раунда изменится, — мы рассмотрим её в обычном порядке.',
             {
-               min: money(MANDATE.minCheck),
-               max: money(MANDATE.maxCheck),
+               min: money(mandateLimits().minCheck),
+               max: money(mandateLimits().maxCheck),
                company: deal.company,
                amount: round(deal.amount),
             },
@@ -84,9 +79,11 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
 
    // an application whose check is over the limit starts with that reason
    const [reason, setReason] = useState<RejectReason | null>(
-      deal.amount > MANDATE.maxCheck ? 'mandate_check' : null,
+      deal.amount > mandateLimits().maxCheck ? 'mandate_check' : null,
    );
-   const [letter, setLetter] = useState(() => (reason ? letterFor(reason) : ''));
+   const [letter, setLetter] = useState(() =>
+      reason ? letterFor(reason) : '',
+   );
    const [letterEdited, setLetterEdited] = useState(false);
    const [comment, setComment] = useState('');
    const [resubmit, setResubmit] = useState<Resubmit>(
@@ -191,7 +188,9 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
                </Field>
                <div className='flex flex-wrap items-center justify-between gap-3'>
                   <div className='min-w-0'>
-                     <div className='font-semibold'>{t('Повторная подача')}</div>
+                     <div className='font-semibold'>
+                        {t('Повторная подача')}
+                     </div>
                      <div className='text-ink-soft mt-0.5 text-xs'>
                         {t(
                            'Норма — через 6 месяцев. При отказе по мандату можно открыть сразу.',
@@ -240,7 +239,9 @@ const RejectDialog = ({ deal, onClose, onDone }: RejectDialogProps) => {
                }),
             ].join(' · ')
          }
-         title={deal ? t('Отказать: {{company}}', { company: deal.company }) : ''}
+         title={
+            deal ? t('Отказать: {{company}}', { company: deal.company }) : ''
+         }
          onClose={onClose}
       >
          {deal && (

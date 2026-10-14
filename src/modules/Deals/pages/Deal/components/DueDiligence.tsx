@@ -3,7 +3,7 @@ import {
    WORKSTREAM_STATUS_LABELS,
    WORKSTREAM_STATUS_TONES,
 } from '@modules/Deals/constants';
-import { Badge, Card, NoData, buttonClass } from '@shared/components';
+import { Badge, buttonClass, Card, NoData, STACK } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
 import { formatDate } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
@@ -45,7 +45,10 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
          : []),
       {
          label: t('Направлений закрыто'),
-         value: t('{{done}} из {{total}}', { done: closed, total: streams.length }),
+         value: t('{{done}} из {{total}}', {
+            done: closed,
+            total: streams.length,
+         }),
          note: dd.closedNote,
          tone: closed < streams.length ? 'text-warning-ink' : '',
       },
@@ -68,7 +71,7 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
    ];
 
    return (
-      <div className='gap-section flex flex-col'>
+      <div className='gap-section flex flex-1 flex-col'>
          {tiles && (
             <dl className='gap-section grid grid-cols-2 xl:grid-cols-4'>
                {tiles.map((tile) => (
@@ -111,7 +114,9 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
                      <thead>
                         <tr className='bg-ground border-line border-b'>
                            <th className={`${TH} pl-5`}>{t('Направление')}</th>
-                           <th className={TH}>{t('Исполнитель и основание')}</th>
+                           <th className={TH}>
+                              {t('Исполнитель и основание')}
+                           </th>
                            <th className={TH}>{t('Передано')}</th>
                            <th className={TH}>{t('Срок')}</th>
                            <th className={TH}>{t('Статус')}</th>
@@ -128,13 +133,19 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
                                  {stream.executor}
                               </td>
                               <td className='text-ink-soft px-3 py-3.5 whitespace-nowrap'>
-                                 {stream.handedAt ? formatDate(stream.handedAt) : '—'}
+                                 {stream.handedAt
+                                    ? formatDate(stream.handedAt)
+                                    : '—'}
                               </td>
                               <td className='text-ink-soft px-3 py-3.5 whitespace-nowrap'>
                                  {formatDate(stream.dueDate)}
                               </td>
                               <td className='px-3 py-3.5'>
-                                 <Badge tone={WORKSTREAM_STATUS_TONES[stream.status]}>
+                                 <Badge
+                                    tone={
+                                       WORKSTREAM_STATUS_TONES[stream.status]
+                                    }
+                                 >
                                     {t(WORKSTREAM_STATUS_LABELS[stream.status])}
                                  </Badge>
                               </td>
@@ -147,11 +158,13 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
                   </table>
                </div>
             ) : (
-               <NoData>{t('Направлений DD для этой сделки в примере нет')}</NoData>
+               <NoData>
+                  {t('Направлений DD для этой сделки в примере нет')}
+               </NoData>
             )}
          </Card>
 
-         <div className='gap-section grid items-start xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+         <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
             <Card
                action={
                   deal.memo && (
@@ -171,7 +184,7 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
             </Card>
 
             {dd && (
-               <div className='gap-section flex min-w-0 flex-col'>
+               <div className={STACK}>
                   <Card title={t('Факторы в пользу')}>
                      <ul className='divide-line text-meta divide-y px-5 py-1'>
                         {dd.strengths.map((strength) => (

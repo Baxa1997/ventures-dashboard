@@ -1,5 +1,7 @@
 {
    "Нет данных": "Ma’lumot yo‘q",
    "Закрыть": "Yopish",
-   "Загрузка…": "Yuklanmoqda…"
+   "Загрузка…": "Yuklanmoqda…",
+   "Выполнено": "Bajarildi",
+   "Не выполнено": "Bajarilmagan"
 }

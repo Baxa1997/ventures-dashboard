@@ -176,7 +176,9 @@ const DealCard = () => {
             </Button>
          );
       if (deal.readiness) {
-         const ready = deal.readiness.items.every(({ state }) => state === 'done');
+         const ready = deal.readiness.items.every(
+            ({ state }) => state === 'done',
+         );
          return (
             <Button
                disabled={!ready}
@@ -256,7 +258,9 @@ const DealCard = () => {
                   event.target.value = '';
                }}
             />
-            <Button onClick={() => setRequestTitle('')}>{t('Новый запрос')}</Button>
+            <Button onClick={() => setRequestTitle('')}>
+               {t('Новый запрос')}
+            </Button>
          </>
       ),
       dd: (
@@ -275,7 +279,12 @@ const DealCard = () => {
                {t('Скачать PDF')}
             </Button>
             {memo.approvedAt ? (
-               <span className={buttonClass('ghost', 'text-success-ink cursor-default')}>
+               <span
+                  className={buttonClass(
+                     'ghost',
+                     'text-success-ink cursor-default',
+                  )}
+               >
                   {t('Утверждён спонсором · {{date}}', {
                      date: formatDate(memo.approvedAt),
                   })}
@@ -315,7 +324,9 @@ const DealCard = () => {
                   id: key,
                   label: t(CARD_TAB_LABELS[key]),
                   count:
-                     (key === 'requests' || key === 'dd' || key === 'decisions') &&
+                     (key === 'requests' ||
+                        key === 'dd' ||
+                        key === 'decisions') &&
                      counts[key]
                         ? counts[key]
                         : undefined,
@@ -338,7 +349,8 @@ const DealCard = () => {
                   </span>
                   {' — '}
                   {[
-                     deal.closed.reason && t(REJECT_REASON_LABELS[deal.closed.reason]),
+                     deal.closed.reason &&
+                        t(REJECT_REASON_LABELS[deal.closed.reason]),
                      deal.closed.note,
                      deal.closed.resubmit &&
                         `${t('Повторная подача')}: ${t(RESUBMIT_LABELS[deal.closed.resubmit]).toLowerCase()}`,

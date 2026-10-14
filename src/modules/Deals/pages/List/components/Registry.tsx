@@ -1,4 +1,3 @@
-import { Person } from '@modules/Deals/components';
 import {
    ALL,
    CLOSED_STATUSES,
@@ -24,7 +23,9 @@ import {
    FilterBar,
    FilterSelect,
    NoData,
+   Person,
    Progress,
+   SearchField,
 } from '@shared/components';
 import { formatDayYear } from '@shared/helpers';
 import type {
@@ -38,8 +39,12 @@ import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { industryOptions, matches, matchesSearch, ownerOptions } from '../helpers';
-import SearchField from './SearchField';
+import {
+   industryOptions,
+   matches,
+   matchesSearch,
+   ownerOptions,
+} from '../helpers';
 
 interface RegistryProps {
    deals: Deal[];
@@ -140,16 +145,22 @@ const Registry = ({
                      <div className='text-meta font-medium'>
                         {t('В портфель дошли {{reached}} — {{share}}', {
                            reached: portfolio,
-                           share: percent(portfolio, summary.total, language, 1),
+                           share: percent(
+                              portfolio,
+                              summary.total,
+                              language,
+                              1,
+                           ),
                         })}
                      </div>
                   </div>
                   <div
                      role='img'
                      aria-label={STATUS_ORDER.map(
-                        (key) => `${t(STATUS_LABELS[key])}: ${summary.byStatus[key]}`,
+                        (key) =>
+                           `${t(STATUS_LABELS[key])}: ${summary.byStatus[key]}`,
                      ).join('; ')}
-                     className='mt-3 flex h-3.5 gap-0.5 overflow-hidden rounded'
+                     className='animate-fill mt-3 flex h-3.5 gap-0.5 overflow-hidden rounded'
                   >
                      {STATUS_ORDER.map((key) => (
                         <span
@@ -180,7 +191,9 @@ const Registry = ({
                      ))}
                   </ul>
                   <h2 className='border-line mt-4 border-t pt-4 text-xs font-semibold'>
-                     {t('Сколько сделок дошло до стадии · % — от предыдущей стадии')}
+                     {t(
+                        'Сколько сделок дошло до стадии · % — от предыдущей стадии',
+                     )}
                   </h2>
                   <dl className='mt-3 grid grid-cols-4 gap-y-4 xl:grid-cols-8'>
                      {summary.reached.map(({ step, count }, index) => (
@@ -192,7 +205,11 @@ const Registry = ({
                            )}
                         >
                            <dt className='text-ink-soft truncate text-xs'>
-                              {t(REACHED_LABELS[step as keyof typeof REACHED_LABELS])}
+                              {t(
+                                 REACHED_LABELS[
+                                    step as keyof typeof REACHED_LABELS
+                                 ],
+                              )}
                            </dt>
                            <dd>
                               <div className='text-title mt-1 font-bold tabular-nums'>
@@ -237,7 +254,9 @@ const Registry = ({
                            </div>
                            <Progress
                               className='mt-1.5'
-                              max={Math.max(...reasons.map(([, value]) => value))}
+                              max={Math.max(
+                                 ...reasons.map(([, value]) => value),
+                              )}
                               tone='neutral'
                               value={count}
                            />
@@ -268,7 +287,10 @@ const Registry = ({
             />
             <FilterSelect
                label={t('Отрасль')}
-               options={[{ value: ALL, label: t('все') }, ...industryOptions(scope)]}
+               options={[
+                  { value: ALL, label: t('все') },
+                  ...industryOptions(scope),
+               ]}
                value={industry}
                onChange={setIndustry}
             />
@@ -286,14 +308,20 @@ const Registry = ({
             />
             <FilterSelect
                label={t('Владелец')}
-               options={[{ value: ALL, label: t('все') }, ...ownerOptions(scope)]}
+               options={[
+                  { value: ALL, label: t('все') },
+                  ...ownerOptions(scope),
+               ]}
                value={ownerId}
                onChange={setOwnerId}
             />
             <FilterSelect
                label={t('Период')}
                options={[
-                  { value: ALL, label: t('с {{year}}', { year: summary.since }) },
+                  {
+                     value: ALL,
+                     label: t('с {{year}}', { year: summary.since }),
+                  },
                   ...years.map((value) => ({ value, label: value })),
                ]}
                value={year}
@@ -332,7 +360,9 @@ const Registry = ({
                                     <Link
                                        className='text-sm font-semibold hover:underline'
                                        to={`/deals/${deal.id}`}
-                                       onClick={(event) => event.stopPropagation()}
+                                       onClick={(event) =>
+                                          event.stopPropagation()
+                                       }
                                     >
                                        {deal.company}
                                     </Link>
@@ -343,7 +373,9 @@ const Registry = ({
                                     </div>
                                  </td>
                                  <td className='px-3 py-3'>
-                                    <Badge tone={state.tone}>{state.label}</Badge>
+                                    <Badge tone={state.tone}>
+                                       {state.label}
+                                    </Badge>
                                  </td>
                                  <td className='text-ink-soft px-3 py-3'>
                                     {t(SOURCE_LABELS[deal.source])}

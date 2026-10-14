@@ -1,10 +1,6 @@
 import { DueDate, StatusBadge } from '@modules/Work/components';
 import { TASK_TYPE_LABELS } from '@modules/Work/constants';
-import {
-   getAssigneeId,
-   getEmployee,
-   shortName,
-} from '@modules/Work/helpers';
+import { getAssigneeId, getEmployee, shortName } from '@modules/Work/helpers';
 import { Avatar } from '@shared/components';
 import type { Employee, Task } from '@shared/types/work.types';
 import clsx from 'clsx';

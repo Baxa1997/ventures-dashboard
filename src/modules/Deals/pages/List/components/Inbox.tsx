@@ -24,6 +24,7 @@ import {
    FilterBar,
    FilterSelect,
    NoData,
+   SearchField,
 } from '@shared/components';
 import { TEAM } from '@shared/constants';
 import { formatDay, shortName } from '@shared/helpers';
@@ -35,7 +36,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { matches, matchesSearch } from '../helpers';
-import SearchField from './SearchField';
 
 interface InboxProps {
    deals: Deal[];
@@ -63,7 +63,13 @@ const TRIAGE_CLASSES = {
 };
 
 // Incoming applications waiting for a decision, and the one that is open.
-const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxProps) => {
+const Inbox = ({
+   deals: all,
+   summary,
+   onVisible,
+   onRequest,
+   onReject,
+}: InboxProps) => {
    const { t, i18n } = useTranslation('deals');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const [search, setSearch] = useState('');
@@ -86,7 +92,10 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
             (deal) =>
                matchesSearch(deal, search) &&
                matches(source, deal.source) &&
-               matches(mandate, checkMandate(t, deal, language).verdict.state) &&
+               matches(
+                  mandate,
+                  checkMandate(t, deal, language).verdict.state,
+               ) &&
                (assignment === ALL ||
                   (assignment === 'assigned') === !!deal.ownerId),
          ),
@@ -172,7 +181,9 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
                            <tr className='border-line border-b'>
                               <th className={`${TH} pl-5`}>{t('Заявка')}</th>
                               <th className={TH}>{t('Источник')}</th>
-                              <th className={`${TH} text-right`}>{t('Запрос')}</th>
+                              <th className={`${TH} text-right`}>
+                                 {t('Запрос')}
+                              </th>
                               <th className={TH}>{t('Проверка мандата')}</th>
                               <th className={`${TH} pr-5`}>{t('Разобрать')}</th>
                            </tr>
@@ -180,7 +191,11 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
                         <tbody className='divide-line divide-y'>
                            {rows.map((deal) => {
                               const active = deal.id === selected?.id;
-                              const { verdict } = checkMandate(t, deal, language);
+                              const { verdict } = checkMandate(
+                                 t,
+                                 deal,
+                                 language,
+                              );
                               return (
                                  <tr
                                     key={deal.id}
@@ -211,9 +226,12 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
                                              deal.number,
                                              deal.industry,
                                              [
-                                                formatDay(dayOf(deal.receivedAt)),
+                                                formatDay(
+                                                   dayOf(deal.receivedAt),
+                                                ),
                                                 // the open application also shows the time
-                                                active && timeOf(deal.receivedAt),
+                                                active &&
+                                                   timeOf(deal.receivedAt),
                                              ]
                                                 .filter(Boolean)
                                                 .join(', '),
@@ -269,7 +287,7 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
             </Card>
 
             {selected && check && (
-               <Card className='self-start'>
+               <Card>
                   <div className='border-line border-b px-5 py-4'>
                      <div className='text-ink-soft text-xs'>
                         {[
@@ -308,7 +326,9 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
                                     className={clsx('mt-0.5 size-4', className)}
                                     strokeWidth={2.5}
                                  />
-                                 <span className='text-ink-soft'>{row.label}</span>
+                                 <span className='text-ink-soft'>
+                                    {row.label}
+                                 </span>
                                  <span>{row.value}</span>
                               </li>
                            );
@@ -323,7 +343,9 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
 
                   {selected.facts && (
                      <div className='border-line text-meta border-b px-5 py-4'>
-                        <h3 className='text-ink-soft text-xs'>{t('Из заявки')}</h3>
+                        <h3 className='text-ink-soft text-xs'>
+                           {t('Из заявки')}
+                        </h3>
                         <FactList
                            className='mt-1'
                            labelWidth='6rem'
@@ -340,7 +362,9 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
                         {t('Решение по заявке')}
                      </h3>
                      <div className='text-meta mt-2.5 flex items-center gap-4'>
-                        <span className='text-ink-soft w-20'>{t('Владелец')}</span>
+                        <span className='text-ink-soft w-20'>
+                           {t('Владелец')}
+                        </span>
                         <FilterSelect
                            accent
                            label={t('Владелец')}
@@ -361,10 +385,16 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
                         >
                            {t('Взять в скрининг')}
                         </Button>
-                        <Button variant='ghost' onClick={() => onRequest(selected)}>
+                        <Button
+                           variant='ghost'
+                           onClick={() => onRequest(selected)}
+                        >
                            {t('Запросить данные')}
                         </Button>
-                        <Button variant='text' onClick={() => onReject(selected)}>
+                        <Button
+                           variant='text'
+                           onClick={() => onReject(selected)}
+                        >
                            {t('Отказать с причиной')}
                         </Button>
                      </div>

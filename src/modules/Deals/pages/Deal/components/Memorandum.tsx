@@ -1,4 +1,3 @@
-import { CheckList } from '@modules/Deals/components';
 import {
    RECOMMENDATION_NAMES,
    RECOMMENDATIONS,
@@ -6,7 +5,14 @@ import {
 } from '@modules/Deals/constants';
 import { formatStamp, isOpen, personName } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
-import { Avatar, Card, FactList, NoData } from '@shared/components';
+import {
+   Avatar,
+   Card,
+   CheckList,
+   FactList,
+   NoData,
+   STACK,
+} from '@shared/components';
 import { TEAM } from '@shared/constants';
 import type { Deal } from '@shared/types/deals.types';
 import clsx from 'clsx';
@@ -51,7 +57,7 @@ const Memorandum = ({ deal }: MemorandumProps) => {
    };
 
    return (
-      <div className='gap-section grid items-start lg:grid-cols-[14.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)_19rem]'>
+      <div className='gap-section grid flex-1 lg:grid-cols-[14.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)_19rem]'>
          <Card className='print-hidden p-3'>
             <h2 className='text-ink-soft px-2 pt-1 pb-2 text-xs'>
                {t('Разделы по шаблону фонда')}
@@ -141,7 +147,9 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                                  : 'border-line-strong text-ink-soft enabled:hover:border-accent bg-white',
                            )}
                            disabled={locked}
-                           onClick={() => deals.setRecommendation(deal.id, value)}
+                           onClick={() =>
+                              deals.setRecommendation(deal.id, value)
+                           }
                         >
                            {RECOMMENDATION_NAMES[value]}
                         </button>
@@ -152,7 +160,10 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                   divided
                   className='text-meta mt-3'
                   labelWidth='38%'
-                  rows={memo.summary.map(([label, value]) => ({ label, value }))}
+                  rows={memo.summary.map(([label, value]) => ({
+                     label,
+                     value,
+                  }))}
                />
                {memo.comment && (
                   <div className='bg-accent-tint mt-2 flex gap-3 rounded-lg px-4 py-3.5'>
@@ -212,7 +223,9 @@ const Memorandum = ({ deal }: MemorandumProps) => {
             </section>
          </Card>
 
-         <div className='gap-section print-hidden flex min-w-0 flex-col lg:col-span-2 xl:col-span-1'>
+         <div
+            className={clsx(STACK, 'print-hidden lg:col-span-2 xl:col-span-1')}
+         >
             <Card hint={memo.checklistHint} title={t('Чек-лист перед ИК')}>
                <div className='p-5'>
                   <CheckList className='text-meta' items={memo.checklist} />
@@ -230,14 +243,18 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                         <span
                            className={clsx(
                               'text-meta w-5 font-medium',
-                              v === memo.version ? 'text-accent' : 'text-ink-soft',
+                              v === memo.version
+                                 ? 'text-accent'
+                                 : 'text-ink-soft',
                            )}
                         >
                            v{v}
                         </span>
                         <div className='min-w-0'>
                            <div className='text-meta'>{formatStamp(at)}</div>
-                           <div className='text-ink-soft mt-0.5 text-xs'>{note}</div>
+                           <div className='text-ink-soft mt-0.5 text-xs'>
+                              {note}
+                           </div>
                         </div>
                      </li>
                   ))}

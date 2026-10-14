@@ -42,7 +42,7 @@ const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
       <dialog
          ref={ref}
          aria-labelledby={titleId}
-         className='border-line text-ink shadow-popup backdrop:bg-navy/50 m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border bg-white p-0 open:flex'
+         className='border-line text-ink shadow-popup backdrop:bg-navy/50 open:animate-pop backdrop:animate-fade m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border bg-white p-0 open:flex'
          onClose={onClose}
          onClick={(event) => {
             if (event.target === ref.current) onClose();
@@ -82,9 +82,7 @@ export const ModalBody = ({ children }: ModalPartProps) => (
 // The buttons of a modal; always in view.
 export const ModalFooter = ({ note, children }: ModalFooterProps) => (
    <div className='border-line bg-ground flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t px-5 py-3.5'>
-      {note && (
-         <span className='text-ink-soft mr-auto text-xs'>{note}</span>
-      )}
+      {note && <span className='text-ink-soft mr-auto text-xs'>{note}</span>}
       {children}
    </div>
 );

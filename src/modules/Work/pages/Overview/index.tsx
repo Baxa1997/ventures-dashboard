@@ -1,3 +1,4 @@
+import { stageNorm } from '@modules/Deals/helpers';
 import { DEAL_STAGE_LABELS } from '@modules/Work/constants';
 import { formatToday } from '@modules/Work/helpers';
 import { useTasks } from '@modules/Work/hooks';
@@ -21,7 +22,7 @@ import {
    FundMoney,
    Portfolio,
 } from './components';
-import { DECISIONS_LIMIT, QUARTERS, STAGE_NORM_DAYS } from './constants';
+import { DECISIONS_LIMIT, QUARTERS } from './constants';
 import { formatRange, formatUsd } from './helpers';
 import { useOverview } from './hooks';
 
@@ -62,8 +63,9 @@ const Overview = () => {
             <Loading />
          ) : (
             <PageBody className='gap-section flex flex-col'>
-               <div className='gap-section grid items-start xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+               <div className='gap-section grid xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
                   <Card
+                     className='flex flex-col'
                      title={t('Требуют вашего решения')}
                      hint={decisions.length}
                      action={
@@ -82,6 +84,7 @@ const Overview = () => {
                      )}
                   </Card>
                   <Card
+                     className='flex flex-col'
                      title={t('Сроки на неделю')}
                      hint={formatRange(week.start, week.end)}
                      action={
@@ -113,8 +116,9 @@ const Overview = () => {
                   <FundMoney money={fund.money} />
                </Card>
 
-               <div className='gap-section grid items-start xl:grid-cols-2'>
+               <div className='gap-section grid xl:grid-cols-2'>
                   <Card
+                     className='flex flex-col'
                      title={t('Воронка по стадиям')}
                      hint={t('{{count}} сделка', {
                         count: fund.funnel.reduce(
@@ -136,10 +140,15 @@ const Overview = () => {
                            overdue,
                         }))}
                      />
-                     <p className='text-ink-soft px-5 pt-2 pb-4 text-xs'>
+                     <p className='text-ink-soft mt-auto px-5 pt-2 pb-4 text-xs'>
                         {t(
                            'Нормативы стадий: входящие — {{inbox}} рабочих дня, скрининг — {{screening}}, анализ — {{analysis}}, детальный DD — {{dd}}. Красным — сделки, где срок нарушен по вине фонда.',
-                           STAGE_NORM_DAYS,
+                           {
+                              inbox: stageNorm('inbox'),
+                              screening: stageNorm('screening'),
+                              analysis: stageNorm('analysis'),
+                              dd: stageNorm('dd'),
+                           },
                         )}
                      </p>
                   </Card>

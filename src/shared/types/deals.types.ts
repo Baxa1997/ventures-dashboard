@@ -3,19 +3,10 @@ import type { DealStage } from './work.types';
 // Where an application or a deal stands. "review" is an incoming application
 // nobody has decided on yet; "active" is a deal moving through the stages.
 export type DealStatus =
-   | 'review'
-   | 'active'
-   | 'paused'
-   | 'portfolio'
-   | 'withdrawn'
-   | 'rejected';
+   'review' | 'active' | 'paused' | 'portfolio' | 'withdrawn' | 'rejected';
 
 export type DealSource =
-   | 'site'
-   | 'network'
-   | 'conference'
-   | 'partner_fund'
-   | 'accelerator';
+   'site' | 'network' | 'conference' | 'partner_fund' | 'accelerator';
 
 export type RoundStage = 'pre_seed' | 'seed' | 'pre_series_a' | 'series_a';
 
@@ -129,7 +120,8 @@ export interface DealDocument {
    };
 }
 
-export type WorkstreamStatus = 'rework' | 'in_progress' | 'not_started' | 'done';
+export type WorkstreamStatus =
+   'rework' | 'in_progress' | 'not_started' | 'done';
 
 export interface Workstream {
    id: string;

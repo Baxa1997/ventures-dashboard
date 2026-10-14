@@ -26,6 +26,6 @@ export const DIRECTOR_ID = 'e1';
 
 /* Stand-in for signing in until authentication is connected: the sidebar lets
    you switch between these people, to see the pages as each of them does. */
-export const SIGN_IN_IDS = ['e1', 'e3'];
+export const SIGN_IN_IDS = ['e1', 'e3', 'e5', 'e7'];
 
 export const DEFAULT_USER_ID = DIRECTOR_ID;

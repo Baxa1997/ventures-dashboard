@@ -170,7 +170,8 @@ export const SAMPLE_DEALS: Deal[] = [
       },
       committee: { number: 7, date: '2026-10-09', time: '15:00' },
       meta: 'маркетплейс сменной занятости · KZ, KG, UZ · холдинг в МФЦА · в работе с 10 марта 2026',
-      pathHint: 'в работе 147 рабочих дней · из них 66 на паузе по вине компании',
+      pathHint:
+         'в работе 147 рабочих дней · из них 66 на паузе по вине компании',
       path: [
          { stage: 'inbox', line1: '10 марта', line2: '1 из 2 р.д.' },
          { stage: 'screening', line1: '11–14 марта', line2: '4 из 5 р.д.' },
@@ -214,14 +215,22 @@ export const SAMPLE_DEALS: Deal[] = [
          hint: 'факт 2025',
          items: [
             { label: 'GMV', value: '$4,68M', note: '×2,6 к 2024' },
-            { label: 'Чистая выручка', value: '$1,09M', note: 'take rate 23,3%' },
+            {
+               label: 'Чистая выручка',
+               value: '$1,09M',
+               note: 'take rate 23,3%',
+            },
             {
                label: 'EBITDA',
                value: '+$125K',
                note: 'январь 2026 — отрицательная',
                warn: true,
             },
-            { label: 'NRR', value: '136,6%', note: 'удержание оборота клиентов' },
+            {
+               label: 'NRR',
+               value: '136,6%',
+               note: 'удержание оборота клиентов',
+            },
          ],
          note: 'Источник: финансовый DD SQB Ventures, июнь 2026. Метрики, которые компания заявила, но DD не подтвердил, на эту панель не попадают.',
       },
@@ -320,7 +329,10 @@ export const SAMPLE_DEALS: Deal[] = [
          recommendation: 'conditional',
          summary: [
             ['Спонсор', 'Т. Бекмуллин, директор'],
-            ['Сумма', '$300 000 · SAFE, cap $15M или дисконт 20% (запрос компании)'],
+            [
+               'Сумма',
+               '$300 000 · SAFE, cap $15M или дисконт 20% (запрос компании)',
+            ],
             [
                'Доля после конвертации',
                '2,0% при cap $15M · 4,3% при оценке DD $7M',
@@ -352,7 +364,11 @@ export const SAMPLE_DEALS: Deal[] = [
                'сделано 3 из 5',
                'attention',
             ),
-            check('k5', 'KYC/AML без красных флагов', 'комплаенс SQB · 24 сентября'),
+            check(
+               'k5',
+               'KYC/AML без красных флагов',
+               'комплаенс SQB · 24 сентября',
+            ),
             check(
                'k6',
                'Проверка конфликта интересов',
@@ -361,8 +377,16 @@ export const SAMPLE_DEALS: Deal[] = [
             ),
          ],
          versions: [
-            { v: 3, at: '2026-09-30 19:05', note: 'Д. Мирзаев · после Legal DD' },
-            { v: 2, at: '2026-09-22 11:40', note: 'Д. Мирзаев · правки спонсора' },
+            {
+               v: 3,
+               at: '2026-09-30 19:05',
+               note: 'Д. Мирзаев · после Legal DD',
+            },
+            {
+               v: 2,
+               at: '2026-09-22 11:40',
+               note: 'Д. Мирзаев · правки спонсора',
+            },
             {
                v: 1,
                at: '2026-07-02 16:10',
@@ -372,27 +396,54 @@ export const SAMPLE_DEALS: Deal[] = [
          approvedAt: null,
       },
       journal: [
-         { id: 'j7', date: '2026-09-25', kind: 'text', text: 'Переведена в стадию «ИК-2»' },
+         {
+            id: 'j7',
+            date: '2026-09-25',
+            kind: 'text',
+            text: 'Переведена в стадию «ИК-2»',
+         },
          {
             id: 'j6',
-            date: '2026-05-04', kind: 'text',
+            date: '2026-05-04',
+            kind: 'text',
             text: 'Переведена в стадию «Детальный DD»',
          },
          {
             id: 'j5',
-            date: '2026-04-30', kind: 'text',
+            date: '2026-04-30',
+            kind: 'text',
             text: 'ИК № 6: одобрен детальный DD',
          },
-         { id: 'j4', date: '2026-04-15', kind: 'text', text: 'Анализ завершён' },
-         { id: 'j3', date: '2026-03-25', kind: 'text', text: 'Встреча с командой' },
-         { id: 'j2', date: '2026-03-11', kind: 'text', text: 'Взята в скрининг' },
-         { id: 'j1', date: '2026-03-10', kind: 'text', text: 'Заявка поступила · нетворк' },
+         {
+            id: 'j4',
+            date: '2026-04-15',
+            kind: 'text',
+            text: 'Анализ завершён',
+         },
+         {
+            id: 'j3',
+            date: '2026-03-25',
+            kind: 'text',
+            text: 'Встреча с командой',
+         },
+         {
+            id: 'j2',
+            date: '2026-03-11',
+            kind: 'text',
+            text: 'Взята в скрининг',
+         },
+         {
+            id: 'j1',
+            date: '2026-03-10',
+            kind: 'text',
+            text: 'Заявка поступила · нетворк',
+         },
       ],
    }),
    deal({
       id: 'recepta',
       number: 'SQBV-2025-0187',
-      company: 'Recepta (Sendiq)',
+      company: 'Recepta (Sandiq)',
       industry: 'Цифровые чеки',
       tags: 'одобрено ИК-2 и НС',
       amount: 150_000,
@@ -601,8 +652,18 @@ export const SAMPLE_DEALS: Deal[] = [
          completedAt: null,
       },
       journal: [
-         { id: 'j2', date: '2026-09-30', kind: 'text', text: 'Взята в скрининг · Д. Мирзаев' },
-         { id: 'j1', date: '2026-09-29', kind: 'text', text: 'Заявка поступила · сайт' },
+         {
+            id: 'j2',
+            date: '2026-09-30',
+            kind: 'text',
+            text: 'Взята в скрининг · Д. Мирзаев',
+         },
+         {
+            id: 'j1',
+            date: '2026-09-29',
+            kind: 'text',
+            text: 'Заявка поступила · сайт',
+         },
       ],
    }),
    deal({
@@ -785,11 +846,22 @@ export const SAMPLE_DEALS: Deal[] = [
       journal: [
          {
             id: 'j3',
-            date: '2026-09-30', kind: 'text',
+            date: '2026-09-30',
+            kind: 'text',
             text: 'Отправлены 2 запроса заявителю · часы стадии остановлены',
          },
-         { id: 'j2', date: '2026-09-25', kind: 'text', text: 'Переведена в стадию «Анализ»' },
-         { id: 'j1', date: '2026-09-05', kind: 'text', text: 'Заявка поступила · сайт' },
+         {
+            id: 'j2',
+            date: '2026-09-25',
+            kind: 'text',
+            text: 'Переведена в стадию «Анализ»',
+         },
+         {
+            id: 'j1',
+            date: '2026-09-05',
+            kind: 'text',
+            text: 'Заявка поступила · сайт',
+         },
       ],
    }),
    deal({
@@ -829,7 +901,10 @@ export const SAMPLE_DEALS: Deal[] = [
       dd: {
          due: '2026-10-20',
          closedNote: 'юридическое вернули на доработку',
-         external: { value: '36,0 млн сум', note: 'ABACUS · Legal DD по тарифу' },
+         external: {
+            value: '36,0 млн сум',
+            note: 'ABACUS · Legal DD по тарифу',
+         },
          strengths: [
             'MRR больше $22K, рост +46% за август (по звонку 14 августа — проверяется финансовым DD)',
             'Подписан Astana Motors: пилот завершён, дальше сеть ~160 точек',
@@ -889,7 +964,8 @@ export const SAMPLE_DEALS: Deal[] = [
             handedAt: '',
             dueDate: '2026-10-16',
             status: 'not_started',
-            conclusion: 'Оплата из Узбекистана через сторонний контур — проверить',
+            conclusion:
+               'Оплата из Узбекистана через сторонний контур — проверить',
          },
       ],
       risks: [

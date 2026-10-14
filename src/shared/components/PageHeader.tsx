@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect } from 'react';
 
 interface PageHeaderProps {
-   section: ReactNode; // where the page is: a section name or breadcrumbs
+   section?: ReactNode; // where the page is: a section name or breadcrumbs
    title: string;
    badge?: ReactNode; // shown after the title, e.g. the stage of a deal
    meta?: ReactNode;
@@ -25,8 +25,12 @@ const PageHeader = ({
       <header className='border-line px-page border-b bg-white pt-5'>
          <div className='flex flex-wrap items-center justify-between gap-x-6 gap-y-3'>
             <div className='min-w-0 flex-[1_1_20rem]'>
-               <p className='text-ink-soft text-xs leading-4'>{section}</p>
-               <div className='mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1'>
+               {section && (
+                  <p className='text-ink-soft mb-1.5 text-xs leading-4'>
+                     {section}
+                  </p>
+               )}
+               <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
                   <h1 className='text-display font-bold'>{title}</h1>
                   {badge}
                </div>

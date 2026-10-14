@@ -1,10 +1,5 @@
 export type Role =
-   | 'director'
-   | 'deputy'
-   | 'analyst'
-   | 'manager'
-   | 'accountant'
-   | 'assistant';
+   'director' | 'deputy' | 'analyst' | 'manager' | 'accountant' | 'assistant';
 
 export interface Employee {
    id: string;
@@ -25,12 +20,7 @@ export type Section =
    | 'documents';
 
 export type TaskStatus =
-   | 'assigned'
-   | 'in_progress'
-   | 'waiting'
-   | 'postponed'
-   | 'review'
-   | 'done';
+   'assigned' | 'in_progress' | 'waiting' | 'postponed' | 'review' | 'done';
 
 export type TaskPriority = 'low' | 'medium' | 'high';
 
@@ -46,12 +36,7 @@ export type TaskType =
 
 // What a task is attached to; "none" for a task that stands on its own.
 export type TaskRelation =
-   | 'none'
-   | 'deal'
-   | 'portfolio'
-   | 'contract'
-   | 'letter'
-   | 'procurement';
+   'none' | 'deal' | 'portfolio' | 'contract' | 'letter' | 'procurement';
 
 export type TaskRecurrence = 'none' | 'monthly' | 'quarterly';
 

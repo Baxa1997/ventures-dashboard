@@ -206,7 +206,7 @@ export const SAMPLE_QUEUE: QueueSeed[] = [
       id: 'q3',
       ownerId: 'e1',
       dealId: 'recepta',
-      subject: 'Recepta (Sendiq)',
+      subject: 'Recepta (Sandiq)',
       section: 'deals',
       title: 'Подписать SAFE на $150 000',
       note: 'Одобрено ИК-2 и НС · юр. проверка ABACUS завершена',

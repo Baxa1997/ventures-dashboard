@@ -19,7 +19,9 @@ export const newDealSchema = z.object({
    about: text(TEXT_MAX),
    industry: required(COMPANY_MAX),
    country: required(COMPANY_MAX),
-   amount: z.coerce.number({ message: AMOUNT_INVALID }).positive(AMOUNT_INVALID),
+   amount: z.coerce
+      .number({ message: AMOUNT_INVALID })
+      .positive(AMOUNT_INVALID),
 });
 
 export const requestSchema = z.object({

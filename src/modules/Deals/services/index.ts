@@ -1,8 +1,10 @@
+import settings from '@modules/Settings/services';
 import { addWorkingDays, todayISO } from '@shared/helpers';
 import type {
    Criterion,
    Deal,
    DealsSummary,
+   Decision,
    DealStatus,
    JournalEntry,
    NewDealInput,
@@ -14,8 +16,8 @@ import type {
 } from '@shared/types/deals.types';
 import type { DealStage } from '@shared/types/work.types';
 import dayjs from 'dayjs';
-import { CRITERIA, STAGE_NORMS } from '../constants';
-import { nextStageOf } from '../helpers';
+import { CRITERIA } from '../constants';
+import { nextStageOf, stageNorm } from '../helpers';
 import { SAMPLE_DEALS, SAMPLE_SUMMARY } from './sample';
 
 /* There is no backend yet. Everything starts from the sample data in ./sample;
@@ -60,6 +62,9 @@ const write = (next: Stored) => {
    }
    listeners.forEach((listener) => listener());
 };
+
+// Deadlines and the mandate check follow the rules in Настройки.
+settings.subscribe(() => listeners.forEach((listener) => listener()));
 
 const newId = () => crypto.randomUUID();
 
@@ -121,7 +126,7 @@ const reach = (
 
 // The state of a deal that has just entered a stage.
 const onStage = (deal: Deal, stage: DealStage): Deal => {
-   const norm = STAGE_NORMS[stage];
+   const norm = stageNorm(stage);
    return {
       ...deal,
       status: 'active',
@@ -507,7 +512,11 @@ class Deals {
       );
    }
 
-   async handOverWorkstream(id: string, workstreamId: string, executor: string) {
+   async handOverWorkstream(
+      id: string,
+      workstreamId: string,
+      executor: string,
+   ) {
       change(id, (deal) => {
          const name =
             deal.workstreams?.find((item) => item.id === workstreamId)?.name ??
@@ -529,6 +538,14 @@ class Deals {
             { kind: 'workstream', name, handed: true },
          );
       });
+   }
+
+   // A decision of the committee or the board, from its protocol.
+   async addDecision(id: string, decision: Omit<Decision, 'id'>) {
+      change(id, (deal) => ({
+         ...deal,
+         decisions: [{ id: newId(), ...decision }, ...(deal.decisions ?? [])],
+      }));
    }
 }
 

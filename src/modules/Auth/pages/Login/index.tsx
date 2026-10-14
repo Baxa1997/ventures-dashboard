@@ -108,7 +108,7 @@ const Login = () => {
          <main className='grid place-items-center p-8'>
             <form
                noValidate
-               className='grid w-full max-w-105 gap-5'
+               className='animate-rise grid w-full max-w-105 gap-5'
                onSubmit={handleSubmit}
             >
                <h2 className='mb-1 text-[28px] leading-tight font-bold tracking-[-0.01em]'>

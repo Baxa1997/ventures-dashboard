@@ -1,11 +1,9 @@
-import { Person } from '@modules/Deals/components';
 import {
    ALL,
    FUNNEL_STAGES,
    SOURCE_LABELS,
    SOURCE_ORDER,
    STAGE_LABELS,
-   STAGE_NORMS,
 } from '@modules/Deals/constants';
 import {
    type Deadline,
@@ -17,6 +15,7 @@ import {
    getDeadline,
    nextTitle,
    sumAmounts,
+   stageNorm,
 } from '@modules/Deals/helpers';
 import {
    Badge,
@@ -24,7 +23,9 @@ import {
    FilterBar,
    FilterSelect,
    NoData,
+   Person,
    Progress,
+   SearchField,
 } from '@shared/components';
 import { formatDate, formatDay } from '@shared/helpers';
 import type { Deal, DealSource } from '@shared/types/deals.types';
@@ -33,8 +34,12 @@ import clsx from 'clsx';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { industryOptions, matches, matchesSearch, ownerOptions } from '../helpers';
-import SearchField from './SearchField';
+import {
+   industryOptions,
+   matches,
+   matchesSearch,
+   ownerOptions,
+} from '../helpers';
 
 interface FunnelProps {
    deals: Deal[];
@@ -111,7 +116,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
             number: meeting.number,
             date: formatDay(meeting.date),
          });
-      const norm = STAGE_NORMS[key];
+      const norm = stageNorm(key);
       if (norm) return t('норма {{days}} р.д.', { days: norm });
       if (key === 'board') return t('по графику НС');
       return committee
@@ -120,7 +125,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
    };
 
    const groupNote = (key: DealStage, group: Deal[]) => {
-      const norm = STAGE_NORMS[key];
+      const norm = stageNorm(key);
       const meeting = group.find((deal) => deal.committee)?.committee;
       return [
          t('{{count}} сделка', { count: group.length }),
@@ -263,7 +268,9 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                      </thead>
                      <tbody>
                         {FUNNEL_STAGES.map((key) => {
-                           const group = rows.filter((deal) => deal.stage === key);
+                           const group = rows.filter(
+                              (deal) => deal.stage === key,
+                           );
                            if (!group.length) return null;
                            return (
                               <Fragment key={key}>
@@ -307,7 +314,10 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                                              </div>
                                           </td>
                                           <td className='px-3 py-3 text-right font-medium tabular-nums'>
-                                             {formatAmount(deal.amount, language)}
+                                             {formatAmount(
+                                                deal.amount,
+                                                language,
+                                             )}
                                           </td>
                                           <td className='px-3 py-3'>
                                              <Person id={deal.ownerId} />
@@ -330,7 +340,9 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                                                    <Progress
                                                       className='mt-1.5 w-32'
                                                       max={deal.days.norm}
-                                                      tone={PROGRESS_TONES[tone]}
+                                                      tone={
+                                                         PROGRESS_TONES[tone]
+                                                      }
                                                       value={deal.days.used}
                                                    />
                                                 </>

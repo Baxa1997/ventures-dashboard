@@ -18,8 +18,7 @@ const REQUIRED: ValidationKey = 'Обязательное поле';
 const TOO_LONG: ValidationKey = 'Слишком длинное значение';
 const DATE_INVALID: ValidationKey = 'Укажите дату';
 
-const oneOf = <T extends string>(values: T[]) =>
-   z.enum(values as [T, ...T[]]);
+const oneOf = <T extends string>(values: T[]) => z.enum(values as [T, ...T[]]);
 
 export const taskSchema: z.ZodType<TaskFormValues> = z.object({
    title: z.string().trim().min(1, REQUIRED).max(TITLE_MAX, TOO_LONG),

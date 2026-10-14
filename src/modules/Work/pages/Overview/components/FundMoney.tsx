@@ -62,7 +62,7 @@ const FundMoney = ({ money }: FundMoneyProps) => {
             aria-label={parts
                .map(({ label, value }) => `${label}: ${value}`)
                .join('; ')}
-            className='mt-3.5 flex h-7 gap-0.5 overflow-hidden rounded-md'
+            className='animate-fill mt-3.5 flex h-7 gap-0.5 overflow-hidden rounded-md'
          >
             {parts.map(({ part, amount, label, value }) => (
                <span

@@ -1,6 +1,7 @@
 import {
    Badge,
    Button,
+   CheckList,
    FactList,
    Modal,
    ModalBody,
@@ -10,10 +11,9 @@ import { addWorkingDays, formatDate, todayISO } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { STAGE_LABELS, STAGE_NORMS } from '../constants';
-import { exitConditions, nextStageOf, personName } from '../helpers';
+import { STAGE_LABELS } from '../constants';
+import { exitConditions, nextStageOf, personName, stageNorm } from '../helpers';
 import deals from '../services';
-import CheckList from './CheckList';
 
 interface TransferDialogProps {
    deal: Deal | null; // null: the dialog is closed
@@ -32,7 +32,7 @@ const APPLICANT_VIEW = {
 const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
    const { t } = useTranslation('deals');
    const next = deal && nextStageOf(deal.stage);
-   const norm = next ? STAGE_NORMS[next] : null;
+   const norm = next ? stageNorm(next) : null;
    const exit = deal ? exitConditions(t, deal) : [];
    const met = exit.filter((item) => item.state === 'done').length;
    const stage = deal ? t(STAGE_LABELS[deal.stage]) : '';
