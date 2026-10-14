@@ -11,7 +11,7 @@ import type { Deal } from '@shared/types/deals.types';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { STAGE_LABELS, STAGE_NORMS } from '../constants';
-import { nextStageOf, personName } from '../helpers';
+import { exitConditions, nextStageOf, personName } from '../helpers';
 import deals from '../services';
 import CheckList from './CheckList';
 
@@ -21,6 +21,7 @@ interface TransferDialogProps {
 }
 
 // What the applicant sees in the cabinet once the deal is on a stage.
+// Keys of the "deals" translations.
 const APPLICANT_VIEW = {
    meeting: 'дату и участников встречи',
    analysis: '«Due diligence» и чек-лист документов',
@@ -32,7 +33,7 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
    const { t } = useTranslation('deals');
    const next = deal && nextStageOf(deal.stage);
    const norm = next ? STAGE_NORMS[next] : null;
-   const exit = deal?.exit ?? [];
+   const exit = deal ? exitConditions(t, deal) : [];
    const met = exit.filter((item) => item.state === 'done').length;
    const stage = deal ? t(STAGE_LABELS[deal.stage]) : '';
    const target = next ? t(STAGE_LABELS[next]) : t('Портфель');

@@ -1,3 +1,6 @@
+import { STAGES } from '@modules/Deals/constants';
+import { getDeadline, isLate } from '@modules/Deals/helpers';
+import deals from '@modules/Deals/services';
 import { TEAM } from '@shared/constants';
 import type {
    Employee,
@@ -16,7 +19,6 @@ import { isDone, isMine, needsAction, shiftMonths, todayISO } from '../helpers';
 import {
    SAMPLE_COUNTERS,
    SAMPLE_DEADLINES,
-   SAMPLE_DEALS,
    SAMPLE_FUND,
    SAMPLE_QUEUE,
    SAMPLE_TASKS,
@@ -64,6 +66,9 @@ const write = (next: Stored) => {
    }
    listeners.forEach((listener) => listener());
 };
+
+// The pages of this module also show deals, so they follow those changes too.
+deals.subscribe(() => listeners.forEach((listener) => listener()));
 
 const newId = () => crypto.randomUUID();
 
@@ -205,8 +210,18 @@ class Work {
       return SAMPLE_WAITING.filter((item) => item.ownerId === userId);
    }
 
+   // The deals a person runs, the furthest along first.
    async getMyDeals(userId: string): Promise<MyDeal[]> {
-      return SAMPLE_DEALS.filter((deal) => deal.ownerId === userId);
+      const all = await deals.getDeals();
+      return all
+         .filter((deal) => deal.status === 'active' && deal.ownerId === userId)
+         .sort((a, b) => STAGES.indexOf(b.stage) - STAGES.indexOf(a.stage))
+         .map((deal) => ({
+            id: deal.id,
+            company: deal.company,
+            stage: deal.stage,
+            stageDate: deal.committee?.date ?? '',
+         }));
    }
 
    async getDeadlines(): Promise<WeekDeadline[]> {
@@ -214,7 +229,27 @@ class Work {
    }
 
    async getFundOverview(): Promise<FundOverview> {
-      return SAMPLE_FUND;
+      const all = await deals.getDeals();
+      return {
+         ...SAMPLE_FUND,
+         // incoming applications, then the deals in work on each stage
+         funnel: STAGES.map((stage) => {
+            const group = all.filter((deal) =>
+               stage === 'inbox'
+                  ? deal.status === 'review'
+                  : deal.status === 'active' && deal.stage === stage,
+            );
+            return {
+               stage,
+               count: group.length,
+               overdue: group.filter((deal) =>
+                  stage === 'inbox'
+                     ? isLate(deal)
+                     : getDeadline(deal).kind === 'overdue',
+               ).length,
+            };
+         }),
+      };
    }
 
    async getCounters(userId: string): Promise<SectionCounters> {

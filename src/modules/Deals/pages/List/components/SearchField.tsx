@@ -7,7 +7,7 @@ interface SearchFieldProps {
 }
 
 const SearchField = ({ label, value, onChange }: SearchFieldProps) => (
-   <div className='relative w-full sm:w-64'>
+   <div className='relative w-full sm:w-72'>
       <Search
          aria-hidden
          className='text-ink-soft pointer-events-none absolute top-2.5 left-3 size-4'

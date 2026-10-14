@@ -112,6 +112,7 @@ export interface QueueItem {
    completedAt: string | null;
    // set when the item is a decision the owner has to take
    decision?: { preparedById: string; action: DecisionAction };
+   dealId?: string; // the deal the item is about, if it has a card
 }
 
 export type WaitingSource = 'applicant' | 'company' | 'colleague';
@@ -139,8 +140,7 @@ export type DealStage =
    | 'closing';
 
 export interface MyDeal {
-   id: string;
-   ownerId: string;
+   id: string; // the address of the deal's card
    company: string;
    stage: DealStage;
    stageDate: string; // YYYY-MM-DD of the stage's event, or ''

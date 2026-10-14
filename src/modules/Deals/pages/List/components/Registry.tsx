@@ -50,12 +50,12 @@ interface RegistryProps {
 
 const TH = 'px-3 py-2.5 text-xs font-normal text-ink-soft';
 
+// 44%, 1,0%
 const percent = (part: number, whole: number, language: string, digits = 0) =>
-   new Intl.NumberFormat(language, {
-      style: 'percent',
+   `${new Intl.NumberFormat(language, {
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
-   }).format(whole ? part / whole : 0);
+   }).format(whole ? (part / whole) * 100 : 0)}%`;
 
 /* The register of every application and deal. Its figures cover the whole
    register; the table lists the deals that are loaded, a page at a time. */
@@ -138,8 +138,8 @@ const Registry = ({
                         </span>
                      </div>
                      <div className='text-meta font-medium'>
-                        {t('В портфель дошли {{count}} — {{share}}', {
-                           count: portfolio,
+                        {t('В портфель дошли {{reached}} — {{share}}', {
+                           reached: portfolio,
                            share: percent(portfolio, summary.total, language, 1),
                         })}
                      </div>
@@ -301,7 +301,7 @@ const Registry = ({
             />
          </FilterBar>
 
-         <Card className='mt-section flex-1 overflow-hidden'>
+         <Card className='mt-section flex flex-1 flex-col overflow-hidden'>
             {rows.length ? (
                <div className='overflow-x-auto'>
                   <table className='text-meta w-full min-w-5xl border-collapse text-left'>
@@ -376,7 +376,7 @@ const Registry = ({
             ) : (
                <NoData>{t('Сделок по этим условиям нет')}</NoData>
             )}
-            <div className='border-line text-ink-soft flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-xs'>
+            <div className='border-line text-ink-soft mt-auto flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-xs'>
                <span>
                   {t('Показаны {{shown}} из {{total}}', {
                      shown: rows.length,
@@ -391,7 +391,7 @@ const Registry = ({
                      className='link'
                      onClick={() => setLimit((prev) => prev + REGISTER_STEP)}
                   >
-                     {t('Показать ещё {{count}}', { count: REGISTER_STEP })}
+                     {t('Показать ещё {{step}}', { step: REGISTER_STEP })}
                   </button>
                )}
             </div>

@@ -49,7 +49,10 @@ const Overview = () => {
                   <Button variant='ghost' onClick={() => window.print()}>
                      {t('Выгрузить для НС')}
                   </Button>
-                  <Link className={buttonClass()} to={SECTION_PATHS.deals}>
+                  <Link
+                     className={buttonClass()}
+                     to={`${SECTION_PATHS.deals}?new=1`}
+                  >
                      {t('Новая сделка')}
                   </Link>
                </>

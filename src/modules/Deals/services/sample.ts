@@ -241,13 +241,13 @@ export const SAMPLE_DEALS: Deal[] = [
                'g5',
                'Ответ компании по 3 рискам',
                'запрошено 18 сентября · ждём',
-               'attention',
+               'waiting',
             ),
             check(
                'g6',
                'Обоснование исключения из мандата',
                'не начато',
-               'attention',
+               'waiting',
             ),
          ],
       },
@@ -607,7 +607,7 @@ export const SAMPLE_DEALS: Deal[] = [
    }),
    deal({
       id: 'payway',
-      number: 'SQBV-2026-0160',
+      number: 'SQBV-2026-0159',
       company: 'PayWay',
       industry: 'Fintech',
       amount: 150_000,
@@ -618,7 +618,7 @@ export const SAMPLE_DEALS: Deal[] = [
    }),
    deal({
       id: 'agrosense',
-      number: 'SQBV-2026-0159',
+      number: 'SQBV-2026-0160',
       company: 'AgroSense',
       industry: 'AgroTech',
       amount: 300_000,

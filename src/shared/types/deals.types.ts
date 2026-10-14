@@ -55,12 +55,13 @@ export interface Risk {
 }
 
 // A line of a checklist that the system keeps: done, still open, open and
-// needing attention, or open and blocking the next step.
+// waiting for somebody, open and needing attention, or open and blocking
+// the next step.
 export interface CheckItem {
    id: string;
    text: string;
    note: string;
-   state: 'done' | 'open' | 'attention' | 'blocking';
+   state: 'done' | 'open' | 'waiting' | 'attention' | 'blocking';
    // set when the item closes by itself once this happens
    fulfilledBy?: 'dd_questionnaire';
 }

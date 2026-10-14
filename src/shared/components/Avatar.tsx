@@ -6,13 +6,15 @@ interface AvatarProps {
    onDark?: boolean;
 }
 
-const getInitials = (name: string) =>
-   name
-      .split(/\s+/)
-      .map((word) => word[0])
-      .join('')
+// "Дилшод Мирзаев" → "ДМ"; a single word gives its first two letters
+const getInitials = (name: string) => {
+   const words = name.trim().split(/\s+/);
+   return (
+      words.length > 1 ? words.map((word) => word[0]).join('') : words[0]
+   )
       .slice(0, 2)
       .toUpperCase();
+};
 
 const Avatar = ({ name, size = 'sm', onDark = false }: AvatarProps) => (
    <span

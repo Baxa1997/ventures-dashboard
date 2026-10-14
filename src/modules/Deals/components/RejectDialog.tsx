@@ -50,6 +50,15 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
    const language = i18n.resolvedLanguage ?? i18n.language;
    const money = (amount: number) =>
       `$${new Intl.NumberFormat(language).format(amount)}`;
+   // $300 000, but $1,5 млн
+   const round = (amount: number) =>
+      amount >= 1_000_000
+         ? t('{{amount}} млн', {
+              amount: `$${new Intl.NumberFormat(language, {
+                 maximumFractionDigits: 1,
+              }).format(amount / 1_000_000)}`,
+           })
+         : money(amount);
 
    // What the applicant is told, worded from the reason.
    const letterFor = (reason: RejectReason) => {
@@ -60,7 +69,7 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
                min: money(MANDATE.minCheck),
                max: money(MANDATE.maxCheck),
                company: deal.company,
-               amount: money(deal.amount),
+               amount: round(deal.amount),
             },
          );
       if (reason === 'other')

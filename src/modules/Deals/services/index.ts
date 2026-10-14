@@ -281,8 +281,15 @@ class Deals {
          id,
          (deal) => {
             const stage = nextStageOf(deal.stage);
+            const screening =
+               deal.stage === 'screening' && deal.screening
+                  ? { ...deal.screening, completedAt: todayISO() }
+                  : deal.screening;
             return stage
-               ? logged(onStage(deal, stage), { kind: 'stage', stage })
+               ? logged(
+                    { ...onStage(deal, stage), screening },
+                    { kind: 'stage', stage },
+                 )
                : logged(
                     {
                        ...deal,

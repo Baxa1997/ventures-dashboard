@@ -4,4 +4,4 @@ export { default as History } from './History';
 export { default as Memorandum } from './Memorandum';
 export { default as Overview } from './Overview';
 export { default as Requests } from './Requests';
-export { default as Screening, isScored } from './Screening';
+export { default as Screening } from './Screening';

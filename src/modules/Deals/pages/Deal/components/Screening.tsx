@@ -3,6 +3,7 @@ import {
    SCORES,
    SCREENING_NOTE_FIELDS,
 } from '@modules/Deals/constants';
+import { isScored } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import {
    Button,
@@ -35,10 +36,6 @@ interface CriterionRowProps {
    locked: boolean;
    onChange: (patch: Partial<Criterion>) => void;
 }
-
-// A criterion counts once it has both a score and the reasons for it.
-export const isScored = ({ score, rationale }: Criterion) =>
-   score !== null && !!rationale.trim();
 
 const CriterionRow = ({ index, criterion, locked, onChange }: CriterionRowProps) => {
    const { t } = useTranslation('deals');
@@ -94,12 +91,12 @@ const CriterionRow = ({ index, criterion, locked, onChange }: CriterionRowProps)
          <textarea
             aria-label={`${t('Обоснование')}: ${t(title)}`}
             className={clsx(
-               'text-meta placeholder:text-ink-soft mt-3 block w-full resize-y rounded-lg border px-4 py-3',
+               'text-meta placeholder:text-ink-soft field-sizing-content mt-3 block w-full resize-none rounded-lg border px-4 py-3',
                empty ? 'bg-ground border-transparent' : 'border-line-strong bg-white',
             )}
             disabled={locked}
             placeholder={required}
-            rows={2}
+            rows={empty ? 1 : 2}
             value={rationale}
             onBlur={() =>
                rationale !== criterion.rationale &&
@@ -179,7 +176,7 @@ const Screening = ({ deal }: ScreeningProps) => {
                done: scored.length,
                total: CRITERIA.length,
             })}
-            title={t('Оценка по {{count}} критериям', { count: CRITERIA.length })}
+            title={t('Оценка по {{total}} критериям', { total: CRITERIA.length })}
          >
             <ol className='divide-line divide-y px-5'>
                {screening.criteria.map((criterion, index) => (

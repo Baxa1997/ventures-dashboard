@@ -1,4 +1,3 @@
-import { Person } from '@modules/Deals/components';
 import {
    ALL,
    SOURCE_FROM_LABELS,
@@ -164,8 +163,8 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
             />
          </FilterBar>
 
-         <div className='mt-section gap-section grid flex-1 items-start xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
-            <Card className='overflow-hidden'>
+         <div className='mt-section gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+            <Card className='flex flex-col overflow-hidden'>
                {rows.length ? (
                   <div className='overflow-x-auto'>
                      <table className='text-meta w-full min-w-2xl border-collapse text-left'>
@@ -249,7 +248,7 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
                ) : (
                   <NoData>{t('Заявок по этим условиям нет')}</NoData>
                )}
-               <div className='border-line text-ink-soft flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-xs'>
+               <div className='border-line text-ink-soft mt-auto flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-xs'>
                   <span>
                      {t('Показаны {{shown}} из {{total}}', {
                         shown: rows.length,
@@ -270,7 +269,7 @@ const Inbox = ({ deals: all, summary, onVisible, onRequest, onReject }: InboxPro
             </Card>
 
             {selected && check && (
-               <Card>
+               <Card className='self-start'>
                   <div className='border-line border-b px-5 py-4'>
                      <div className='text-ink-soft text-xs'>
                         {[

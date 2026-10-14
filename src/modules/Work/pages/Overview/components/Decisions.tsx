@@ -21,6 +21,11 @@ const Decisions = ({ items, employees }: DecisionsProps) => {
             if (!item.decision) return null;
             const author = getEmployee(employees, item.decision.preparedById);
             const action = DECISION_ACTIONS[item.decision.action];
+            // a decision about a deal opens that deal's card
+            const target =
+               item.dealId && action.section === 'deals'
+                  ? `${SECTION_PATHS.deals}/${item.dealId}${item.decision.action === 'memo' ? '?tab=memo' : ''}`
+                  : SECTION_PATHS[action.section];
             return (
                <li
                   key={item.id}
@@ -38,7 +43,7 @@ const Decisions = ({ items, employees }: DecisionsProps) => {
                   </div>
                   <div className='flex shrink-0 items-center justify-between gap-2 max-sm:w-full max-sm:pl-10 sm:flex-col sm:items-end sm:justify-start'>
                      <DueBadge date={item.dueDate} withDays />
-                     <Link className='link' to={SECTION_PATHS[action.section]}>
+                     <Link className='link' to={target}>
                         {t(action.label)}
                      </Link>
                   </div>

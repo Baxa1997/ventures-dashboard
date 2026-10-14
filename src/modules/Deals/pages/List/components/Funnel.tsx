@@ -70,8 +70,16 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
    const [deadline, setDeadline] = useState<DeadlineFilter>(ALL);
    const [stage, setStage] = useState<DealStage | typeof ALL>(ALL);
 
+   // inside a stage, the deal that came first is listed first
    const funnel = useMemo(
-      () => all.filter(({ status }) => status === 'active'),
+      () =>
+         all
+            .filter(({ status }) => status === 'active')
+            .sort(
+               (a, b) =>
+                  a.receivedAt.localeCompare(b.receivedAt) ||
+                  a.number.localeCompare(b.number),
+            ),
       [all],
    );
    const rows = useMemo(
@@ -95,18 +103,20 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
       .flatMap((deal) => (deal.committee ? [deal.committee] : []))
       .sort((a, b) => a.date.localeCompare(b.date))[0];
 
-   const tileNote = (key: DealStage, overdue: number) => {
+   const tileNote = (key: DealStage, group: Deal[], overdue: number) => {
       if (overdue) return t('{{count}} просрочена', { count: overdue });
+      const meeting = group.find((deal) => deal.committee)?.committee;
+      if (meeting)
+         return t('ИК № {{number}}, {{date}}', {
+            number: meeting.number,
+            date: formatDay(meeting.date),
+         });
       const norm = STAGE_NORMS[key];
-      if (norm) return t('норма {{count}} р.д.', { count: norm });
+      if (norm) return t('норма {{days}} р.д.', { days: norm });
       if (key === 'board') return t('по графику НС');
-      if (!committee) return t('по графику заседаний');
-      return key === 'ic1'
+      return committee
          ? t('ближайшее {{date}}', { date: formatDay(committee.date) })
-         : t('ИК № {{number}}, {{date}}', {
-              number: committee.number,
-              date: formatDay(committee.date),
-           });
+         : t('по графику заседаний');
    };
 
    const groupNote = (key: DealStage, group: Deal[]) => {
@@ -230,7 +240,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                            overdue ? 'text-danger' : 'text-ink-soft',
                         )}
                      >
-                        {tileNote(key, overdue)}
+                        {tileNote(key, group, overdue)}
                      </div>
                   </button>
                );

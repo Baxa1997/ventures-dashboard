@@ -1,4 +1,4 @@
-import { CheckList, Person, RiskList } from '@modules/Deals/components';
+import { CheckList, RiskList } from '@modules/Deals/components';
 import {
    ROUND_STAGE_NAMES,
    SOURCE_LABELS,
@@ -24,6 +24,9 @@ import { Link } from 'react-router';
 interface OverviewProps {
    deal: Deal;
 }
+
+// The legal form in front of a company's name does not go into its initials.
+const LEGAL_FORM = /^(ООО|АО|ИП|ЧП)\s+/u;
 
 const toRows = (facts: Fact[]) =>
    facts.map(([label, value, note]) => ({ label, value, note }));
@@ -59,11 +62,11 @@ const Overview = ({ deal }: OverviewProps) => {
                         key={step.stage}
                         aria-current={state === 'current' ? 'step' : undefined}
                         className={clsx(
-                           'border-line min-w-0 border-l px-3.5 py-3 first:border-l-0',
+                           'border-line min-w-0 border-l px-3 py-3 first:border-l-0',
                            state === 'current' && 'bg-accent-tint',
                         )}
                      >
-                        <div className='flex items-center gap-2'>
+                        <div className='flex items-center gap-1.5'>
                            <span
                               aria-hidden
                               className={clsx(
@@ -83,7 +86,7 @@ const Overview = ({ deal }: OverviewProps) => {
                            </span>
                            <span
                               className={clsx(
-                                 'text-meta truncate font-semibold',
+                                 'text-meta font-semibold whitespace-nowrap',
                                  state === 'ahead' && 'text-ink-soft font-normal',
                               )}
                            >
@@ -281,7 +284,10 @@ const Overview = ({ deal }: OverviewProps) => {
                                  <Avatar
                                     name={
                                        employee?.name ??
-                                       name.replace(/[^\p{L}\s]/gu, '').trim()
+                                       name
+                                          .replace(/[^\p{L}\s]/gu, '')
+                                          .replace(LEGAL_FORM, '')
+                                          .trim()
                                     }
                                  />
                                  <div className='min-w-0'>

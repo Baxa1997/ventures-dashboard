@@ -11,6 +11,7 @@ interface CheckListProps {
 const BOXES: Record<CheckItem['state'], string> = {
    done: 'border-success-ink bg-success-ink text-white',
    open: 'border-line-strong bg-white text-transparent',
+   waiting: 'border-line-strong bg-white text-transparent',
    attention: 'border-warning-ink bg-warning-tint text-transparent',
    blocking: 'border-danger bg-white text-transparent',
 };
@@ -18,6 +19,7 @@ const BOXES: Record<CheckItem['state'], string> = {
 const NOTES: Record<CheckItem['state'], string> = {
    done: 'text-ink-soft',
    open: 'text-ink-soft',
+   waiting: 'text-warning-ink',
    attention: 'text-warning-ink',
    blocking: 'text-danger',
 };

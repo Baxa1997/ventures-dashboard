@@ -6,11 +6,18 @@ import {
    shortName,
    todayISO,
 } from '@shared/helpers';
-import type { Deal, PathStep, Tone } from '@shared/types/deals.types';
+import type {
+   CheckItem,
+   Criterion,
+   Deal,
+   PathStep,
+   Tone,
+} from '@shared/types/deals.types';
 import type { DealStage } from '@shared/types/work.types';
 import type { TFunction } from 'i18next';
 import {
    CLOSED_STATUSES,
+   CRITERIA,
    MANDATE,
    REJECT_REASON_LABELS,
    ROUND_STAGE_NAMES,
@@ -86,7 +93,7 @@ export const deadlineLabel = (t: T, deadline: Deadline) => {
          date: formatDate(deadline.date),
       });
    if (deadline.kind === 'left')
-      return t('Осталось {{count}} р.д.', { count: deadline.days });
+      return t('Осталось {{days}} р.д.', { days: deadline.days });
    return '';
 };
 
@@ -292,6 +299,36 @@ export const checkMandate = (t: T, deal: Deal, language: string): MandateCheck =
 
 // ---- a deal's card
 
+// A criterion counts once it has both a score and the reasons for it.
+export const isScored = ({ score, rationale }: Criterion) =>
+   score !== null && !!rationale.trim();
+
+// What has to be true before a deal leaves its stage. A stage may have its
+// own list; screening always asks for the full score and a second opinion.
+export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
+   if (deal.exit) return deal.exit;
+   if (deal.stage !== 'screening') return [];
+   const scored = (deal.screening?.criteria ?? []).filter(isScored).length;
+   const secondId = deal.screening?.secondId ?? '';
+   return [
+      {
+         id: 'score',
+         text: t('Оценка по 7 критериям заполнена'),
+         note: t('заполнено {{done}} из {{total}}', {
+            done: scored,
+            total: CRITERIA.length,
+         }),
+         state: scored === CRITERIA.length ? 'done' : 'blocking',
+      },
+      {
+         id: 'second',
+         text: t('Решение подтверждает второй сотрудник'),
+         note: secondId ? personName(secondId) : t('не выбран'),
+         state: secondId ? 'done' : 'blocking',
+      },
+   ];
+};
+
 // What the counters next to the card's tabs show.
 export const tabCounts = (deal: Deal) => {
    const openStreams = (deal.workstreams ?? []).filter(
@@ -312,7 +349,7 @@ export const defaultPath = (t: T, deal: Deal): PathStep[] => {
    return STAGES.map((stage, index) => {
       const norm = STAGE_NORMS[stage];
       const normLine = norm
-         ? t('норма {{count}} р.д.', { count: norm })
+         ? t('норма {{days}} р.д.', { days: norm })
          : t('по графику заседаний');
       if (index === 0)
          return {
