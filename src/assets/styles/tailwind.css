@@ -1,0 +1,117 @@
+@import 'tailwindcss';
+
+/* SQB Ventures ERP design tokens. Colours are taken from the ERP V2 screens
+   (Figma, "SQB VC Website"); text shades are set so small text passes 4.5:1. */
+@theme {
+   --font-sans: 'Golos Text', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+   /* page rhythm: p-page around a page's content, gap-section between its
+      blocks (filters, cards, columns) */
+   --spacing-page: 0.9375rem;
+   --spacing-section: 0.75rem;
+
+   /* type steps between Tailwind's xs (12px) and base (16px) */
+   --text-meta: 0.8125rem;
+   --text-meta--line-height: 1.125rem;
+   --text-title: 0.9375rem;
+   --text-title--line-height: 1.375rem;
+   --text-display: 1.625rem;
+   --text-display--line-height: 2rem;
+
+   /* dark surface: sidebar, and the "free" part of the fund's money */
+   --color-navy: #0d1431;
+   --color-navy-raised: #1b2347;
+   --color-navy-pill: #253057;
+   --color-navy-line: #192244;
+   --color-on-dark-soft: #a3abc7;
+   --color-on-dark-faint: #7c85a8;
+
+   /* accent: buttons, links, selected state, chart fills */
+   --color-accent: #3750d8;
+   --color-accent-strong: #2a40b8;
+   --color-accent-soft: #93a4f9;
+   --color-accent-faint: #cbd4fc;
+   --color-accent-tint: #e9edfc;
+
+   /* surfaces and lines */
+   --color-ground: #f6f7fb;
+   --color-track: #edf0f6;
+   --color-line: #edf0f6;
+   --color-line-strong: #cfd4df;
+
+   /* text */
+   --color-ink: #151b2f;
+   --color-ink-soft: #6a7189;
+   --color-ink-faint: #8a90a5;
+
+   /* status */
+   --color-success-ink: #2a7250;
+   --color-success-tint: #e4f1ea;
+   --color-warning-ink: #86621c;
+   --color-warning-tint: #f9f1e0;
+   --color-danger: #a23142;
+   --color-danger-tint: #f8e8ec;
+   --color-neutral-ink: #5d647c;
+   --color-neutral-tint: #edeff4;
+
+   --shadow-popup: 0 16px 48px rgba(13, 20, 49, 0.2);
+
+   /* brandbook (Aug 2025) values, for the sign-in page */
+   --font-brand: 'Mulish', system-ui, -apple-system, 'Segoe UI', sans-serif;
+   --color-brand-navy: #262f70;
+   --color-brand-sky: #2e63d4;
+   --color-brand-sky-deep: #2456bd;
+   --color-brand-ground: #f3f5f8;
+   --color-brand-line: #b9c2ce;
+   --color-brand-ink-soft: #565e8c;
+}
+
+@layer base {
+   body {
+      @apply bg-ground text-ink font-sans text-sm antialiased;
+      letter-spacing: -0.01em;
+   }
+   button,
+   select {
+      cursor: pointer;
+   }
+   :focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 1px;
+   }
+}
+
+@layer components {
+   .link {
+      @apply text-accent text-meta font-medium whitespace-nowrap hover:underline;
+   }
+   /* The brandbook's cover: its gradient under the "V" pattern. */
+   .brand-art {
+      background:
+         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='56'%3E%3Cg fill='none' stroke='%23fff' stroke-opacity='.2' stroke-width='3.2' stroke-linejoin='miter'%3E%3Cpath d='M6 5l8.500 17 8.500-17'/%3E%3Cpath d='M36 33l8.500 17 8.500-17'/%3E%3C/g%3E%3C/svg%3E")
+            0 0 / 60px 56px,
+         linear-gradient(180deg, #407cea 0%, #3157b8 55%, #262f70 100%);
+   }
+   .field-input {
+      @apply border-line-strong text-ink placeholder:text-ink-faint h-10 w-full rounded-lg border bg-white px-3 text-sm font-normal;
+   }
+   textarea.field-input {
+      @apply h-auto py-2;
+   }
+   .field-input[aria-invalid='true'] {
+      @apply border-danger;
+   }
+}
+
+/* "Выгрузить для НС" prints the page: leave only the content. */
+@media print {
+   .print-hidden {
+      display: none !important;
+   }
+   .print-full {
+      padding-left: 0 !important;
+   }
+   body {
+      background: #fff;
+   }
+}

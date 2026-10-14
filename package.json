@@ -1,0 +1,40 @@
+{
+   "name": "venture-dashboard",
+   "private": true,
+   "version": "0.1.0",
+   "type": "module",
+   "packageManager": "yarn@1.22.22",
+   "scripts": {
+      "build": "tsc --noEmit && vite build",
+      "dev": "vite",
+      "preview": "vite preview",
+      "type-check": "tsc --noEmit"
+   },
+   "dependencies": {
+      "@tailwindcss/vite": "^4.3.3",
+      "clsx": "^2.1.1",
+      "dayjs": "^1.11.23",
+      "i18next": "^25.5.2",
+      "i18next-browser-languagedetector": "^8.2.0",
+      "lucide-react": "^1.56.0",
+      "react": "^19.2.8",
+      "react-dom": "^19.2.8",
+      "react-i18next": "^15.7.3",
+      "react-router": "^8.3.0",
+      "tailwindcss": "^4.3.3",
+      "zod": "3.24.1"
+   },
+   "devDependencies": {
+      "@types/node": "^26.1.2",
+      "@types/react": "^19.2.17",
+      "@types/react-dom": "^19.2.3",
+      "@vitejs/plugin-react-swc": "^4.1.0",
+      "typescript": "^7.0.2",
+      "vite": "^7.1.7",
+      "vite-plugin-checker": "^0.14.5"
+   },
+   "engines": {
+      "node": ">=22.23.1",
+      "yarn": ">=1.22.22"
+   }
+}

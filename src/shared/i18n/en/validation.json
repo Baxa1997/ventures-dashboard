@@ -1,0 +1,6 @@
+{
+   "Обязательное поле": "This field is required",
+   "Слишком длинное значение": "This value is too long",
+   "Укажите дату": "Enter a date",
+   "Введите корректный адрес почты": "Enter a valid email address"
+}

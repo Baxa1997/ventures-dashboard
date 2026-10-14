@@ -1,0 +1,22 @@
+{
+   "exclude": ["dist", "node_modules"],
+   "include": ["src", "vite.config.ts", "vite-env.d.ts"],
+   "compilerOptions": {
+      "esModuleInterop": true,
+      "isolatedModules": true,
+      "jsx": "react-jsx",
+      "lib": ["ES2022", "DOM", "DOM.Iterable"],
+      "module": "ESNext",
+      "moduleResolution": "Bundler",
+      "noEmit": true,
+      "resolveJsonModule": true,
+      "skipLibCheck": true,
+      "strict": true,
+      "target": "ES2022",
+      "paths": {
+         "@assets/*": ["./src/assets/*"],
+         "@modules/*": ["./src/modules/*"],
+         "@shared/*": ["./src/shared/*"]
+      }
+   }
+}
