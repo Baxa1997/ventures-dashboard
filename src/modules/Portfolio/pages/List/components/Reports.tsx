@@ -1,11 +1,14 @@
 import MetricsDialog from '@modules/Portfolio/components/MetricsDialog';
 import {
-   QUARTERS,
    REPORT_DOC_LABELS,
    REPORT_DOCS,
    TEMPLATE_BLOCKS,
 } from '@modules/Portfolio/constants';
-import { quarterLabel, receivedCount } from '@modules/Portfolio/helpers';
+import {
+   quarterLabel,
+   receivedCount,
+   recentQuarters,
+} from '@modules/Portfolio/helpers';
 import type { PortfolioData } from '@modules/Portfolio/hooks';
 import {
    Avatar,
@@ -71,7 +74,7 @@ const Reports = ({ data }: ReportsProps) => {
                       })}
             </p>
             <div role='group' aria-label={t('Квартал')} className='flex gap-2'>
-               {QUARTERS.map((value) => (
+               {recentQuarters(cycle.quarter).map((value) => (
                   <button
                      key={value}
                      type='button'

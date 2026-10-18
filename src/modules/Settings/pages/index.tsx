@@ -16,7 +16,6 @@ import {
    PageHeader,
    Tabs,
 } from '@shared/components';
-import { DIRECTOR_ID } from '@shared/constants';
 import { useCurrentUser, useServiceData } from '@shared/hooks';
 import type { SettingsState } from '@shared/types/settings.types';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -45,7 +44,7 @@ const SettingsPage = () => {
    const [journal, setJournal] = useState(false);
    const [inviting, setInviting] = useState(false);
    const title = t('Настройки');
-   const director = user.id === DIRECTOR_ID;
+   const director = user.role === 'director';
 
    useEffect(() => {
       if (data && !draft)
@@ -154,16 +153,11 @@ const SettingsPage = () => {
          </PageHeader>
          <PageBody className='flex flex-col'>
             {tab === 'rules' && (
-               <Rules
-                  data={data}
-                  draft={draft}
-                  editable={director}
-                  onChange={setDraft}
-               />
+               <Rules draft={draft} editable={director} onChange={setDraft} />
             )}
             {tab === 'users' && <Users data={data} />}
-            {tab === 'lists' && <Lists />}
-            {tab === 'integrations' && <Integrations data={data} />}
+            {tab === 'lists' && <Lists data={data} />}
+            {tab === 'integrations' && <Integrations />}
          </PageBody>
          <JournalDialog
             data={data}

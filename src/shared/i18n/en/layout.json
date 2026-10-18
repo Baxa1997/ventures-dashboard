@@ -19,7 +19,6 @@
    "Меню": "Menu",
    "Закрыть меню": "Close menu",
    "Язык": "Language",
-   "Войти как": "Sign in as",
    "Выйти": "Sign out",
    "Директор": "Director",
    "Зам. директора": "Deputy director",
@@ -42,5 +41,10 @@
    "Мандат, нормативы стадий, флаги портфеля, правила ИК; сотрудники, роли и права.": "Mandate, stage norms, portfolio flags, committee rules; employees, roles and permissions.",
    "Секретарь ИК": "IC secretary",
    "Юрист": "Lawyer",
-   "Сотрудник": "Staff member"
+   "Сотрудник": "Staff member",
+   "Не удалось загрузить сотрудников фонда из ucode": "Could not load the fund's staff from ucode",
+   "Повторить": "Try again",
+   "Сессия закончилась, войдите снова": "The session has ended, sign in again",
+   "ucode не принял изменение или не ответил. Обновите страницу и попробуйте ещё раз.": "ucode refused the change or did not answer. Reload the page and try again.",
+   "Закрыть": "Close"
 }

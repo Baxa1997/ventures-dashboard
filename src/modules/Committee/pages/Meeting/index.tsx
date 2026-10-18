@@ -29,7 +29,7 @@ import {
    STACK,
    type BadgeTone,
 } from '@shared/components';
-import { DIRECTOR_ID } from '@shared/constants';
+import { directorId } from '@shared/constants';
 import { useCurrentUser } from '@shared/hooks';
 import type { AgendaItem, Meeting } from '@shared/types/committee.types';
 import clsx from 'clsx';
@@ -109,7 +109,8 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
       meeting.agenda[0];
    const live = meeting.status === 'live';
    const held = meeting.status === 'held';
-   const canRecord = user.id === meeting.secretaryId || user.id === DIRECTOR_ID;
+   const canRecord =
+      user.id === meeting.secretaryId || user.role === 'director';
    const present = data.members.filter(
       ({ id }) => meeting.attendance[id] === 'confirmed',
    ).length;
@@ -201,12 +202,7 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                           'Протокол формируется, когда по всем вопросам есть решение',
                        )
                }
-               onClick={() =>
-                  committee.formProtocol(meeting.id, {
-                     date,
-                     outcome: (outcome) => t(OUTCOMES[outcome].label),
-                  })
-               }
+               onClick={() => committee.formProtocol(meeting.id, user.id)}
             >
                {t('Сформировать протокол')}
             </Button>
@@ -321,7 +317,7 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
             meetingId={meeting.id}
             sponsorId={
                data.deals.find(({ id }) => id === sponsorItem?.dealId)?.memo
-                  ?.sponsorId ?? DIRECTOR_ID
+                  ?.sponsorId || directorId()
             }
             onClose={() => setSponsorItem(null)}
          />
@@ -401,7 +397,7 @@ const ItemCard = ({
                />
             ) : (
                <p className='text-ink-soft px-5 py-4'>
-                  {t('Материалы этого вопроса не перенесены из Notion.')}
+                  {t('Материалы по этому вопросу не внесены.')}
                </p>
             )}
          </Card>
@@ -457,7 +453,7 @@ const Voting = ({
          <Card title={t('Голосование')}>
             <div className='flex flex-wrap items-center justify-between gap-3 px-5 py-4'>
                <p className='text-ink-soft'>
-                  {t('Голоса этого заседания не перенесены из Notion.')}
+                  {t('Голоса этого заседания не записаны.')}
                </p>
                {item.outcome && (
                   <Badge tone={OUTCOMES[item.outcome].tone}>

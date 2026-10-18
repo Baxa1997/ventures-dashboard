@@ -3,8 +3,7 @@ import {
    WORKSTREAM_STATUS_LABELS,
    WORKSTREAM_STATUS_TONES,
 } from '@modules/Deals/constants';
-import { Badge, buttonClass, Card, NoData, STACK } from '@shared/components';
-import { SECTION_PATHS } from '@shared/constants';
+import { Badge, Card, NoData, STACK } from '@shared/components';
 import { formatDate } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
 import clsx from 'clsx';
@@ -98,16 +97,7 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
             </dl>
          )}
 
-         <Card
-            action={
-               <Link className='link' to={SECTION_PATHS.documents}>
-                  {t('Шаблон DD')}
-               </Link>
-            }
-            className='overflow-hidden'
-            hint={dd && t('данные из «Трекер аудита» в Notion')}
-            title={t('Направления DD')}
-         >
+         <Card className='overflow-hidden' title={t('Направления DD')}>
             {streams.length ? (
                <div className='overflow-x-auto'>
                   <table className='text-meta w-full min-w-4xl border-collapse text-left'>
@@ -200,12 +190,6 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
                            {dd.alert.title}
                         </h2>
                         <p className='text-meta mt-2'>{dd.alert.text}</p>
-                        <Link
-                           className={buttonClass('ghost', 'mt-3.5')}
-                           to={SECTION_PATHS.procurement}
-                        >
-                           {t('Создать закупку')}
-                        </Link>
                      </section>
                   )}
                </div>

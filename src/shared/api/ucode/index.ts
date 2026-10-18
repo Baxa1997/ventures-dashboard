@@ -1,29 +1,27 @@
 /* ucode, the fund's backend (docs/ERP.md §2 and §9, docs/ucode-migration.md).
 
-   Two ways in:
-   - Staff sign-in, the real one: with VITE_UCODE_PROJECT_ID,
-     VITE_UCODE_ENVIRONMENT_ID and VITE_UCODE_CLIENT_TYPE_ID set (public ids, not
-     secrets), a person signs in with their work email and password, and every
-     call carries their token; ucode applies their role's permissions.
-   - The dev server's key, for work before anyone has a user: with UCODE_API_KEY,
-     `yarn dev` forwards /ucode to the ucode admin API and adds the key
-     (vite.config.ts); the browser holds no key.
-   With neither, the panel runs on its sample data. */
+   A person signs in with their ucode user (login or work email, and password)
+   and every call carries their token, so ucode applies their role's
+   permissions. Where to sign in is given by VITE_UCODE_PROJECT_ID,
+   VITE_UCODE_ENVIRONMENT_ID and VITE_UCODE_CLIENT_TYPE_IDS: public ids, not
+   secrets. The client types are tried in their order (STAFF, then ADMIN), since
+   a user belongs to one of them and the sign-in has to name it. */
 
 const ADMIN_URL = 'https://api.admin.u-code.io';
 const AUTH_URL = 'https://api.auth.u-code.io';
-const PROXY = '/ucode';
 const PAGE = 200;
 
 const PROJECT = import.meta.env.VITE_UCODE_PROJECT_ID ?? '';
 const ENVIRONMENT = import.meta.env.VITE_UCODE_ENVIRONMENT_ID ?? '';
-const CLIENT_TYPE = import.meta.env.VITE_UCODE_CLIENT_TYPE_ID ?? '';
+const CLIENT_TYPES = (import.meta.env.VITE_UCODE_CLIENT_TYPE_IDS ?? '')
+   .split(',')
+   .map((id) => id.trim())
+   .filter(Boolean);
 
-// Staff sign in to ucode with their own users.
-export const ucodeSignIn = Boolean(PROJECT && ENVIRONMENT && CLIENT_TYPE);
-
-// The panel's data comes from ucode.
-export const ucodeEnabled: boolean = ucodeSignIn || __UCODE__;
+// Whether the build knows where to sign in.
+export const ucodeConfigured = Boolean(
+   PROJECT && ENVIRONMENT && CLIENT_TYPES.length,
+);
 
 export class UcodeError extends Error {
    constructor(
@@ -44,6 +42,7 @@ export interface UcodeTokens {
    accessToken: string;
    refreshToken: string;
    userId: string; // the ucode user; employees.user_id points to it
+   clientType: string; // the client type the user signed in with
 }
 
 let tokens: UcodeTokens | null = null;
@@ -66,86 +65,133 @@ export const setUcodeTokens = (
 const parse = async (response: Response) => {
    const text = await response.text();
    try {
-      return text ? (JSON.parse(text) as { data?: unknown; description?: string }) : undefined;
+      return text
+         ? (JSON.parse(text) as { data?: unknown; description?: string })
+         : undefined;
    } catch {
       return { description: text.slice(0, 200) };
    }
 };
 
+// The reply also carries the user's row, password hash included: only the
+// tokens and the user's id are kept.
 interface LoginReply {
    token?: { access_token?: string; refresh_token?: string };
    user_id_auth?: string;
    user_id?: string;
-   user?: { id?: string };
 }
 
-const tokensOf = (reply: LoginReply | undefined, refreshToken = ''): UcodeTokens | null =>
+const tokensOf = (
+   reply: LoginReply | undefined,
+   clientType: string,
+   previous?: UcodeTokens,
+): UcodeTokens | null =>
    reply?.token?.access_token
       ? {
            accessToken: reply.token.access_token,
-           refreshToken: reply.token.refresh_token || refreshToken,
-           userId: reply.user_id_auth || reply.user?.id || reply.user_id || tokens?.userId || '',
+           refreshToken:
+              reply.token.refresh_token || previous?.refreshToken || '',
+           userId:
+              reply.user_id_auth || reply.user_id || previous?.userId || '',
+           clientType,
         }
       : null;
 
-// Signs a staff member in with their work email and password.
-export const login = async (email: string, password: string) => {
+const signInWith = async (
+   clientType: string,
+   username: string,
+   password: string,
+) => {
    const response = await fetch(`${AUTH_URL}/v2/login?project-id=${PROJECT}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Environment-Id': ENVIRONMENT },
+      headers: {
+         'Content-Type': 'application/json',
+         'Environment-Id': ENVIRONMENT,
+      },
       body: JSON.stringify({
-         username: email,
+         username,
          password,
-         client_type: CLIENT_TYPE,
+         client_type: clientType,
          project_id: PROJECT,
          type: 'default',
       }),
    });
    const json = await parse(response);
-   const next = response.ok ? tokensOf(json?.data as LoginReply) : null;
-   if (!next)
-      throw new UcodeError(
-         typeof json?.data === 'string' ? json.data : (json?.description ?? 'Sign-in failed'),
-         response.status,
-      );
-   return next;
+   const next = response.ok
+      ? tokensOf(json?.data as LoginReply, clientType)
+      : null;
+   if (next) return next;
+   throw new UcodeError(
+      typeof json?.data === 'string'
+         ? json.data
+         : (json?.description ?? 'Sign-in failed'),
+      response.status,
+   );
+};
+
+/* Signs a person in with their login or work email and password. ucode answers
+   400 both for a user it does not know in a client type and for a wrong
+   password, so each client type is asked in turn; the last refusal is thrown. */
+export const login = async (username: string, password: string) => {
+   if (!ucodeConfigured)
+      throw new UcodeError('The panel is not connected to ucode', 0);
+   let refusal: unknown;
+   for (const clientType of CLIENT_TYPES)
+      try {
+         return await signInWith(clientType, username, password);
+      } catch (error) {
+         if (!(error instanceof UcodeError) || error.status >= 500) throw error;
+         refusal = error;
+      }
+   throw refusal;
 };
 
 // A new access token for the refresh token, or null when the session is over.
 const refresh = async () => {
    if (!tokens?.refreshToken) return null;
-   const response = await fetch(`${AUTH_URL}/v2/refresh?project-id=${PROJECT}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Environment-Id': ENVIRONMENT },
-      body: JSON.stringify({
-         refresh_token: tokens.refreshToken,
-         client_type_id: CLIENT_TYPE,
-         env_id: ENVIRONMENT,
-         project_id: PROJECT,
-      }),
-   });
-   return response.ok ? tokensOf((await parse(response))?.data as LoginReply, tokens.refreshToken) : null;
+   const current = tokens;
+   const response = await fetch(
+      `${AUTH_URL}/v2/refresh?project-id=${PROJECT}`,
+      {
+         method: 'PUT',
+         headers: {
+            'Content-Type': 'application/json',
+            'Environment-Id': ENVIRONMENT,
+         },
+         body: JSON.stringify({
+            refresh_token: current.refreshToken,
+            client_type_id: current.clientType,
+            env_id: ENVIRONMENT,
+            project_id: PROJECT,
+         }),
+      },
+   );
+   return response.ok
+      ? tokensOf(
+           (await parse(response))?.data as LoginReply,
+           current.clientType,
+           current,
+        )
+      : null;
 };
 
 // ---- calls
 
 const send = (path: string, method: string, body: unknown) =>
-   fetch(ucodeSignIn ? `${ADMIN_URL}${path}` : `${PROXY}${path}`, {
+   fetch(`${ADMIN_URL}${path}`, {
       method,
       headers: {
          'Content-Type': 'application/json',
-         ...(ucodeSignIn && {
-            Authorization: `Bearer ${tokens?.accessToken ?? ''}`,
-            'Environment-Id': ENVIRONMENT,
-         }),
+         Authorization: `Bearer ${tokens?.accessToken ?? ''}`,
+         'Environment-Id': ENVIRONMENT,
       },
       ...(body !== undefined && { body: JSON.stringify(body) }),
    });
 
 const call = async <T>(method: string, path: string, body?: unknown) => {
-   if (ucodeSignIn && !tokens) throw new UcodeError('Not signed in', 401);
+   if (!tokens) throw new UcodeError('Not signed in', 401);
    let response = await send(path, method, body);
-   if (ucodeSignIn && response.status === 401) {
+   if (response.status === 401) {
       // the access token ran out: refresh it once, or end the session
       const next = await refresh();
       if (!next) {
@@ -170,14 +216,23 @@ interface ListReply {
 }
 
 // Every row of a table that matches the filter (field slug → value).
-export const listRows = async (table: string, filter: Record<string, unknown> = {}) => {
+export const listRows = async (
+   table: string,
+   filter: Record<string, unknown> = {},
+) => {
    const rows: Row[] = [];
    for (let offset = 0; ; offset += PAGE) {
-      const query = encodeURIComponent(JSON.stringify({ ...filter, limit: PAGE, offset }));
-      const reply = await call<ListReply>('GET', `/v2/items/${table}?data=${query}`);
+      const query = encodeURIComponent(
+         JSON.stringify({ ...filter, limit: PAGE, offset }),
+      );
+      const reply = await call<ListReply>(
+         'GET',
+         `/v2/items/${table}?data=${query}`,
+      );
       const page = reply.data?.data?.response ?? [];
       rows.push(...page);
-      if (page.length < PAGE || rows.length >= (reply.data?.data?.count ?? 0)) return rows;
+      if (page.length < PAGE || rows.length >= (reply.data?.data?.count ?? 0))
+         return rows;
    }
 };
 
@@ -194,8 +249,12 @@ export const createRow = async (table: string, data: Record<string, unknown>) =>
 export const updateRow = (table: string, data: Row) =>
    call('PUT', `/v2/items/${table}`, { data, disable_faas: true });
 
+export const deleteRow = (table: string, guid: string) =>
+   call('DELETE', `/v2/items/${table}/${guid}`, { data: {} });
+
 // JSON fields are text columns in ucode: written as JSON text, read back parsed.
-export const toJson = (value: unknown) => (value === undefined ? undefined : JSON.stringify(value));
+export const toJson = (value: unknown) =>
+   value === undefined ? undefined : JSON.stringify(value);
 
 export const fromJson = <T>(value: unknown, fallback: T): T => {
    if (value === null || value === undefined || value === '') return fallback;
@@ -205,4 +264,30 @@ export const fromJson = <T>(value: unknown, fallback: T): T => {
    } catch {
       return fallback;
    }
+};
+
+// ---- reading rows
+
+export const str = (value: unknown) =>
+   value === null || value === undefined ? '' : String(value);
+
+export const num = (value: unknown) =>
+   value === null || value === undefined || value === '' ? 0 : Number(value);
+
+// A number, or null for an empty field.
+export const numOrNull = (value: unknown) =>
+   value === null || value === undefined || value === '' ? null : Number(value);
+
+// A DATE field comes back as 2026-10-18T00:00:00Z: its day.
+export const day = (value: unknown) => str(value).slice(0, 10);
+
+// Rows that point to a parent, grouped by the parent's guid.
+export const groupBy = (rows: Row[], field: string) => {
+   const groups = new Map<string, Row[]>();
+   for (const row of rows) {
+      const key = str(row[field]);
+      if (!key) continue;
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+   }
+   return groups;
 };

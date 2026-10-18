@@ -1,12 +1,9 @@
 import settings from '@modules/Settings/services';
-import { ucodeEnabled } from '@shared/api/ucode';
-import { addWorkingDays, todayISO } from '@shared/helpers';
+import { addWorkingDays, createStore, newId, todayISO } from '@shared/helpers';
 import type {
    Criterion,
    Deal,
    DealsSummary,
-   Decision,
-   DealStatus,
    JournalEntry,
    NewDealInput,
    Recommendation,
@@ -19,81 +16,21 @@ import type { DealStage } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import { CRITERIA } from '../constants';
 import { nextStageOf, stageNorm } from '../helpers';
-import { SAMPLE_DEALS, SAMPLE_SUMMARY } from './sample';
 import { insertDeal, loadDeals, saveDeal, summarize } from './ucode';
 
-/* Without ucode everything starts from the sample data in ./sample; what a
-   person changes is kept in this browser's localStorage. The register's figures
-   cover deals that are not in the sample, so they are stored and adjusted with
-   each change.
+/* The deals come from ucode's tables, applications from the website among
+   them (./ucode). Each change is worked out here, then written to ucode; if
+   ucode refuses it, the change is undone and the error goes to the page. The
+   register's figures are counted from the deals. Deadlines and the mandate
+   check follow Настройки, which are read before the deals. */
 
-   With ucode (the dev server's UCODE_API_KEY, see @shared/api/ucode) the deals
-   come from its tables, applications from the website among them. Each change
-   is worked out here as before, then written to ucode by ./ucode; if ucode
-   refuses it, the change is undone and the error goes to the page. The
-   register's figures are counted from the deals. */
-
-const STORAGE_KEY = 'sqbv_dashboard_deals_v1';
-
-interface Stored {
-   deals: Deal[];
-   summary: DealsSummary;
-}
-
-// Kept in memory as well, so the pages still work when storage is unavailable.
-let cache: Stored | null = null;
-
-const listeners = new Set<() => void>();
-
-// ucode's deals are read once, then kept in memory.
-let loading: Promise<void> | null = null;
-const ready = () => {
-   if (!ucodeEnabled) return Promise.resolve();
-   loading ??= loadDeals().then(
-      (deals) => {
-         cache = { deals, summary: summarize(deals) };
-      },
-      (error: unknown) => {
-         loading = null; // the next page load tries again
-         throw error;
-      },
-   );
-   return loading;
-};
-
-const read = (): Stored => {
-   if (cache) return cache;
-   if (ucodeEnabled) return { deals: [], summary: summarize([]) };
-   try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-         cache = JSON.parse(stored) as Stored;
-         return cache;
-      }
-   } catch {
-      // storage unavailable or unreadable: start from the sample data
-   }
-   cache = { deals: SAMPLE_DEALS, summary: SAMPLE_SUMMARY };
-   return cache;
-};
-
-const write = (next: Stored) => {
-   if (ucodeEnabled) cache = { deals: next.deals, summary: summarize(next.deals) };
-   else {
-      cache = next;
-      try {
-         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-         // storage unavailable: changes last until the page is reloaded
-      }
-   }
-   listeners.forEach((listener) => listener());
-};
+const store = createStore(async () => {
+   await settings.getSettings();
+   return loadDeals();
+});
 
 // Deadlines and the mandate check follow the rules in Настройки.
-settings.subscribe(() => listeners.forEach((listener) => listener()));
-
-const newId = () => crypto.randomUUID();
+settings.subscribe(store.notify);
 
 const nowTime = () => dayjs().format('HH:mm');
 
@@ -106,58 +43,29 @@ type EntryInput = JournalEntry extends infer E
 const entry = (input: EntryInput): JournalEntry =>
    ({ id: newId(), date: todayISO(), ...input }) as JournalEntry;
 
-// Applies a change to one deal and, when given, to the register's figures;
-// with ucode, writes it there and undoes it if ucode refuses.
-const change = async (
-   id: string,
-   apply: (deal: Deal) => Deal,
-   adjust?: (summary: DealsSummary, before: Deal) => DealsSummary,
-) => {
-   await ready();
-   const state = read();
-   const before = state.deals.find((deal) => deal.id === id);
+const replace = (deals: Deal[], next: Deal) =>
+   deals.map((deal) => (deal.id === next.id ? next : deal));
+
+// Applies a change to one deal and writes it to ucode; undoes it if ucode
+// refuses.
+const change = async (id: string, apply: (deal: Deal) => Deal) => {
+   const deals = await store.get();
+   const before = deals.find((deal) => deal.id === id);
    if (!before) throw new Error(`Deal ${id} does not exist`);
    const after = apply(before);
-   write({
-      deals: state.deals.map((deal) => (deal.id === id ? after : deal)),
-      summary: adjust ? adjust(state.summary, before) : state.summary,
-   });
-   if (ucodeEnabled)
-      try {
-         await saveDeal(before, after);
-      } catch (error) {
-         write(state);
-         throw error;
-      }
+   store.set((current) => replace(current, after));
+   try {
+      await saveDeal(before, after);
+   } catch (error) {
+      store.set((current) => replace(current, before));
+      throw error;
+   }
    return after;
 };
 
 const logged = (deal: Deal, input: EntryInput): Deal => ({
    ...deal,
    journal: [entry(input), ...deal.journal],
-});
-
-const moveStatus = (
-   summary: DealsSummary,
-   from: DealStatus,
-   to: DealStatus,
-): DealsSummary => ({
-   ...summary,
-   byStatus: {
-      ...summary.byStatus,
-      [from]: summary.byStatus[from] - 1,
-      [to]: summary.byStatus[to] + 1,
-   },
-});
-
-const reach = (
-   summary: DealsSummary,
-   step: DealsSummary['reached'][number]['step'],
-): DealsSummary => ({
-   ...summary,
-   reached: summary.reached.map((item) =>
-      item.step === step ? { ...item, count: item.count + 1 } : item,
-   ),
 });
 
 // The state of a deal that has just entered a stage.
@@ -190,17 +98,6 @@ const emptyScreening = (): Screening => ({
    completedAt: null,
 });
 
-const slug = (company: string, taken: string[]) => {
-   const base =
-      company
-         .toLowerCase()
-         .replace(/[^a-z0-9]+/g, '-')
-         .replace(/^-|-$/g, '') || 'deal';
-   let id = base;
-   for (let n = 2; taken.includes(id); n++) id = `${base}-${n}`;
-   return id;
-};
-
 // SQBV-2026-0173: the year and the next free number in it.
 const nextNumber = (deals: Deal[], year: string) => {
    const prefix = `SQBV-${year}-`;
@@ -214,39 +111,32 @@ const nextNumber = (deals: Deal[], year: string) => {
 };
 
 class Deals {
-   // Calls the listener after every change to the stored data.
+   // Calls the listener after every change to the deals.
    subscribe(listener: () => void) {
-      listeners.add(listener);
-      return () => {
-         listeners.delete(listener);
-      };
+      return store.subscribe(listener);
    }
 
    async getDeals(): Promise<Deal[]> {
-      await ready();
-      return read().deals;
+      return store.get();
    }
 
    async getSummary(): Promise<DealsSummary> {
-      await ready();
-      return read().summary;
+      return summarize(await store.get());
+   }
+
+   // Reads the deals again, after another section wrote to their rows.
+   async reload() {
+      await store.reload();
    }
 
    // An application entered by hand goes to the incoming ones.
    async createDeal(input: NewDealInput, userId: string): Promise<Deal> {
-      await ready();
-      const state = read();
+      const deals = await store.get();
       const today = todayISO();
       const deal: Deal = {
          ...input,
-         // a ucode row's id is a guid; the sample's are readable slugs
-         id: ucodeEnabled
-            ? newId()
-            : slug(
-                 input.company,
-                 state.deals.map(({ id }) => id),
-              ),
-         number: nextNumber(state.deals, today.slice(0, 4)),
+         id: newId(),
+         number: nextNumber(deals, today.slice(0, 4)),
          tags: '',
          receivedAt: `${today} ${nowTime()}`,
          status: 'review',
@@ -258,113 +148,82 @@ class Deals {
          next: null,
          journal: [entry({ kind: 'created', userId })],
       };
-      const summary = reach(state.summary, 'received');
-      write({
-         deals: [deal, ...state.deals],
-         summary: {
-            ...summary,
-            total: summary.total + 1,
-            byStatus: {
-               ...summary.byStatus,
-               review: summary.byStatus.review + 1,
-            },
-         },
-      });
-      if (ucodeEnabled)
-         try {
-            await insertDeal(deal);
-         } catch (error) {
-            write(state);
-            throw error;
-         }
+      store.set((current) => [deal, ...current]);
+      try {
+         await insertDeal(deal);
+      } catch (error) {
+         store.set((current) => current.filter(({ id }) => id !== deal.id));
+         throw error;
+      }
       return deal;
    }
 
    async takeToScreening(id: string, ownerId: string) {
-      await change(
-         id,
-         (deal) =>
-            logged(
-               {
-                  ...onStage(deal, 'screening'),
-                  ownerId,
-                  screening: deal.screening ?? emptyScreening(),
-               },
-               { kind: 'taken', userId: ownerId },
-            ),
-         (summary) =>
-            reach(moveStatus(summary, 'review', 'active'), 'screening'),
+      await change(id, (deal) =>
+         logged(
+            {
+               ...onStage(deal, 'screening'),
+               ownerId,
+               screening: deal.screening ?? emptyScreening(),
+            },
+            { kind: 'taken', userId: ownerId },
+         ),
       );
    }
 
    async rejectDeal(id: string, input: RejectInput, userId: string) {
-      await change(
-         id,
-         (deal) =>
-            logged(
-               {
-                  ...deal,
-                  status: 'rejected',
-                  waiting: false,
-                  days: null,
-                  next: null,
-                  ownerId: deal.ownerId || userId,
-                  closed: {
-                     reason: input.reason,
-                     note: input.comment,
-                     date: todayISO(),
-                     letter: input.letter,
-                     resubmit: input.resubmit,
-                  },
+      await change(id, (deal) =>
+         logged(
+            {
+               ...deal,
+               status: 'rejected',
+               waiting: false,
+               days: null,
+               next: null,
+               ownerId: deal.ownerId || userId,
+               closed: {
+                  reason: input.reason,
+                  note: input.comment,
+                  date: todayISO(),
+                  letter: input.letter,
+                  resubmit: input.resubmit,
                },
-               { kind: 'rejected', reason: input.reason, userId },
-            ),
-         (summary, before) => ({
-            ...moveStatus(summary, before.status, 'rejected'),
-            reasons: {
-               ...summary.reasons,
-               [input.reason]: summary.reasons[input.reason] + 1,
             },
-         }),
+            { kind: 'rejected', reason: input.reason, userId },
+         ),
       );
    }
 
    // Moves a deal to the next stage; after "Закрытие" it joins the portfolio.
    async transferDeal(id: string) {
-      await change(
-         id,
-         (deal) => {
-            const stage = nextStageOf(deal.stage);
-            const screening =
-               deal.stage === 'screening' && deal.screening
-                  ? { ...deal.screening, completedAt: todayISO() }
-                  : deal.screening;
-            return stage
-               ? logged(
-                    { ...onStage(deal, stage), screening },
-                    { kind: 'stage', stage },
-                 )
-               : logged(
-                    {
-                       ...deal,
-                       status: 'portfolio',
-                       days: null,
-                       next: null,
-                       waiting: false,
-                    },
-                    { kind: 'stage', stage: 'portfolio' },
-                 );
-         },
-         (summary, before) => {
-            const stage = nextStageOf(before.stage);
-            return stage
-               ? reach(summary, stage)
-               : reach(moveStatus(summary, 'active', 'portfolio'), 'portfolio');
-         },
-      );
+      await change(id, (deal) => {
+         const stage = nextStageOf(deal.stage);
+         const screening =
+            deal.stage === 'screening' && deal.screening
+               ? { ...deal.screening, completedAt: todayISO() }
+               : deal.screening;
+         return stage
+            ? logged(
+                 { ...onStage(deal, stage), screening },
+                 { kind: 'stage', stage },
+              )
+            : logged(
+                 {
+                    ...deal,
+                    status: 'portfolio',
+                    days: null,
+                    next: null,
+                    waiting: false,
+                 },
+                 { kind: 'stage', stage: 'portfolio' },
+              );
+      });
    }
 
-   private async updateScreening(id: string, apply: (value: Screening) => Screening) {
+   private async updateScreening(
+      id: string,
+      apply: (value: Screening) => Screening,
+   ) {
       await change(id, (deal) => ({
          ...deal,
          screening: {
@@ -387,7 +246,10 @@ class Deals {
       id: string,
       patch: Partial<Pick<Screening, 'decision' | 'secondId'>>,
    ) {
-      await this.updateScreening(id, (screening) => ({ ...screening, ...patch }));
+      await this.updateScreening(id, (screening) => ({
+         ...screening,
+         ...patch,
+      }));
    }
 
    async setScreeningNote(id: string, note: Record<ScreeningNoteKey, string>) {
@@ -396,23 +258,20 @@ class Deals {
 
    // Closes the screening with an invitation to a meeting.
    async completeScreening(id: string, userId: string) {
-      await change(
-         id,
-         (deal) =>
+      await change(id, (deal) =>
+         logged(
             logged(
-               logged(
-                  {
-                     ...onStage(deal, 'meeting'),
-                     screening: deal.screening && {
-                        ...deal.screening,
-                        completedAt: todayISO(),
-                     },
+               {
+                  ...onStage(deal, 'meeting'),
+                  screening: deal.screening && {
+                     ...deal.screening,
+                     completedAt: todayISO(),
                   },
-                  { kind: 'screening', userId },
-               ),
-               { kind: 'stage', stage: 'meeting' },
+               },
+               { kind: 'screening', userId },
             ),
-         (summary) => reach(summary, 'meeting'),
+            { kind: 'stage', stage: 'meeting' },
+         ),
       );
    }
 
@@ -587,14 +446,6 @@ class Deals {
             { kind: 'workstream', name, handed: true },
          );
       });
-   }
-
-   // A decision of the committee or the board, from its protocol.
-   async addDecision(id: string, decision: Omit<Decision, 'id'>) {
-      await change(id, (deal) => ({
-         ...deal,
-         decisions: [{ id: newId(), ...decision }, ...(deal.decisions ?? [])],
-      }));
    }
 }
 

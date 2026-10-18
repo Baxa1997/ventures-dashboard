@@ -6,7 +6,8 @@ import {
    ROLE_LABELS,
    ROLE_RIGHTS,
 } from '@modules/Settings/constants';
-import { Avatar, Badge, Card, Table, TD, TH } from '@shared/components';
+import { Avatar, Badge, Card, NoData, Table, TD, TH } from '@shared/components';
+import { ROLE_LABELS as SYSTEM_ROLES } from '@shared/constants';
 import { formatDate } from '@shared/helpers';
 import type { SettingsState } from '@shared/types/settings.types';
 import clsx from 'clsx';
@@ -19,10 +20,12 @@ interface UsersProps {
 // The fund's staff with their roles, and the rights each role gives.
 const Users = ({ data }: UsersProps) => {
    const { t } = useTranslation('settings');
+   const { t: tLayout } = useTranslation('layout');
 
    return (
       <>
          <Card hint={data.staff.length} title={t('Сотрудники фонда')}>
+            {!data.staff.length && <NoData />}
             <Table
                className='min-w-3xl'
                head={
@@ -44,7 +47,7 @@ const Users = ({ data }: UsersProps) => {
                               </span>
                               <span className='text-ink-soft block text-xs'>
                                  {member.invitedAt
-                                    ? t('приглашение отправлено {{date}}', {
+                                    ? t('добавлен {{date}}, ещё не входил', {
                                          date: formatDate(member.invitedAt),
                                       })
                                     : member.email || member.position}
@@ -54,6 +57,9 @@ const Users = ({ data }: UsersProps) => {
                      </td>
                      <td className={TD}>
                         <span className='flex flex-wrap gap-1.5'>
+                           <span className='bg-accent-tint text-accent rounded-md px-2 py-1 text-xs font-medium'>
+                              {tLayout(SYSTEM_ROLES[member.role])}
+                           </span>
                            {member.roles.map((role) => (
                               <span
                                  key={role}

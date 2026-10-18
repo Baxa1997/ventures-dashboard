@@ -9,17 +9,12 @@ import type { Section, SectionCounters } from '@shared/types/work.types';
 import {
    Briefcase,
    CalendarCheck,
-   FileSignature,
-   Folder,
    Funnel,
    Landmark,
    LayoutGrid,
    ListChecks,
    type LucideIcon,
-   Mail,
-   Package,
    SlidersHorizontal,
-   Wallet,
 } from 'lucide-react';
 
 const SECTION_ICONS: Record<Section, LucideIcon> = {
@@ -27,11 +22,6 @@ const SECTION_ICONS: Record<Section, LucideIcon> = {
    deals: Funnel,
    committee: Landmark,
    portfolio: Briefcase,
-   finance: Wallet,
-   contracts: FileSignature,
-   procurement: Package,
-   correspondence: Mail,
-   documents: Folder,
 };
 
 const section = (id: Section) => ({
@@ -60,16 +50,6 @@ export const NAV_GROUPS = [
    {
       label: 'Инвестиции',
       items: [section('deals'), section('committee'), section('portfolio')],
-   },
-   {
-      label: 'Фонд',
-      items: [
-         section('finance'),
-         section('contracts'),
-         section('procurement'),
-         section('correspondence'),
-         section('documents'),
-      ],
    },
 ] as const;
 

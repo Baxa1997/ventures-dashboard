@@ -27,7 +27,13 @@ const Waiting = ({ items, tasks }: WaitingProps) => {
             item.source === 'colleague'
                ? item.from
                : `${item.from} · ${t(WAITING_SOURCE_LABELS[item.source])}`,
-         title: item.title,
+         // a company's missing report is named by its quarter, 2026-Q3
+         title:
+            item.source === 'company'
+               ? t('Отчёт за {{quarter}}', {
+                    quarter: item.title.replace(/^(\d{4})-Q(\d)$/, 'Q$2 $1'),
+                 })
+               : item.title,
          when: when(item),
       })),
       ...tasks.map((task) => ({

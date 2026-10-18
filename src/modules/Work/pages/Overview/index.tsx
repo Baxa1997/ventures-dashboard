@@ -103,17 +103,23 @@ const Overview = () => {
 
                <Card
                   title={t('Деньги фонда')}
-                  hint={t('на счетах {{amount}} · капитал {{capital}}', {
-                     amount: formatUsd(fund.money.onAccounts, language),
-                     capital: formatUsd(fund.money.capital, language),
-                  })}
-                  action={
-                     <Link className='link' to={SECTION_PATHS.finance}>
-                        {t('Финансы фонда')}
-                     </Link>
+                  hint={
+                     fund.money &&
+                     t('на счетах {{amount}} · капитал {{capital}}', {
+                        amount: formatUsd(fund.money.onAccounts, language),
+                        capital: formatUsd(fund.money.capital, language),
+                     })
                   }
                >
-                  <FundMoney money={fund.money} />
+                  {fund.money ? (
+                     <FundMoney money={fund.money} />
+                  ) : (
+                     <NoData>
+                        {t(
+                           'Остатки фонда ещё не внесены: их ведёт главный бухгалтер в таблице fund_money, пока не подключены Финансы.',
+                        )}
+                     </NoData>
+                  )}
                </Card>
 
                <div className='gap-section grid xl:grid-cols-2'>
@@ -154,26 +160,30 @@ const Overview = () => {
                   </Card>
                   <Card
                      title={t('Портфель')}
-                     hint={`${t('{{count}} компания', {
-                        count: fund.portfolio.companies.length,
-                     })} · ${t('отчёты за {{quarter}} квартал', {
-                        quarter: QUARTERS[fund.portfolio.quarter - 1],
-                     })}`}
+                     hint={[
+                        t('{{count}} компания', {
+                           count: fund.portfolio.companies.length,
+                        }),
+                        fund.portfolio.quarter &&
+                           t('отчёты за {{quarter}} квартал', {
+                              quarter: QUARTERS[fund.portfolio.quarter - 1],
+                           }),
+                     ]
+                        .filter(Boolean)
+                        .join(' · ')}
                      action={
                         <Link className='link' to={SECTION_PATHS.portfolio}>
                            {t('Открыть портфель')}
                         </Link>
                      }
                   >
-                     <Portfolio portfolio={fund.portfolio} />
+                     {fund.portfolio.companies.length ? (
+                        <Portfolio portfolio={fund.portfolio} />
+                     ) : (
+                        <NoData>{t('В портфеле пока нет компаний')}</NoData>
+                     )}
                   </Card>
                </div>
-
-               <p className='text-ink-soft text-xs'>
-                  {t(
-                     'Суммы по отдельным компаниям и сделкам на макете примерные. Вложено $0,95 млн — из отчёта по ПП-59 за август 2026; остатки на счетах — из выписок, на макете примерные.',
-                  )}
-               </p>
             </PageBody>
          )}
       </>

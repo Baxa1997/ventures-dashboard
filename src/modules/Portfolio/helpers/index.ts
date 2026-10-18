@@ -7,7 +7,13 @@ import type {
    ReportingCycle,
 } from '@shared/types/portfolio.types';
 import type { TFunction } from 'i18next';
-import { REPORT_DOCS, REQUEST_ANSWER_DAYS } from '../constants';
+import {
+   AUTO_REMINDER_DAYS,
+   QUARTERS_SHOWN,
+   REPORT_DOCS,
+   REPORTS_DUE_DAY,
+   REQUEST_ANSWER_DAYS,
+} from '../constants';
 
 type T = TFunction<'portfolio'>;
 
@@ -26,6 +32,38 @@ export const quarterName = (t: T, quarter: string) =>
    t('{{quarter}} квартал', {
       quarter: ['I', 'II', 'III', 'IV'][Number(quarter.split('-Q')[1]) - 1],
    });
+
+// The quarter before the one `today` is in: 2026-10-18 → 2026-Q3.
+export const lastClosedQuarter = (today = todayISO()) => {
+   const previous = dayjs(today).subtract(3, 'month');
+   return `${previous.year()}-Q${Math.floor(previous.month() / 3) + 1}`;
+};
+
+// 2026-Q3 → 2026-Q2
+const previousQuarter = (quarter: string) => {
+   const [year, q] = quarter.split('-Q').map(Number);
+   return q > 1 ? `${year}-Q${q - 1}` : `${year - 1}-Q4`;
+};
+
+// The quarters the tables show, oldest first, ending with `quarter`.
+export const recentQuarters = (quarter: string, count = QUARTERS_SHOWN) => {
+   const quarters = [quarter];
+   while (quarters.length < count)
+      quarters.unshift(previousQuarter(quarters[0]));
+   return quarters;
+};
+
+// The reporting deadline of a quarter and its automatic reminder.
+export const reportDates = (quarter: string) => {
+   const [year, q] = quarter.split('-Q').map(Number);
+   const due = dayjs(new Date(year, q * 3, REPORTS_DUE_DAY));
+   return {
+      due: due.format('YYYY-MM-DD'),
+      autoReminderAt: due
+         .subtract(AUTO_REMINDER_DAYS, 'day')
+         .format('YYYY-MM-DD'),
+   };
+};
 
 // $150K
 export const formatK = (amount: number) => `$${Math.round(amount / 1000)}K`;

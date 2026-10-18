@@ -78,11 +78,6 @@ const Members = ({ data }: MembersProps) => {
                </p>
             </Card>
          </div>
-         <p className='text-ink-soft mt-section text-xs'>
-            {t(
-               'Состав ИК на макете условный. Число членов и кворум задаются в Настройках по Положению об ИК.',
-            )}
-         </p>
       </>
    );
 };

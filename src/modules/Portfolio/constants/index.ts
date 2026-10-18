@@ -1,6 +1,7 @@
 import type { BadgeTone } from '@shared/components';
 import type {
    Instrument,
+   MetricFormat,
    MetricKey,
    PilotStatus,
    ReportDoc,
@@ -49,6 +50,7 @@ export const CARD_TAB_LABELS = {
 
 export const INSTRUMENT_LABELS = {
    safe: 'SAFE',
+   convertible: 'Конвертируемый заём',
    equity: 'Доля',
 } as const satisfies Record<Instrument, string>;
 
@@ -75,7 +77,13 @@ export const REPORT_DOC_ITEMS = {
    form2: 'Форма 2',
 } as const satisfies Record<ReportDoc, string>;
 
-export const QUARTERS = ['2026-Q1', '2026-Q2', '2026-Q3'];
+// How many quarters the reporting table and a company's card show.
+export const QUARTERS_SHOWN = 3;
+
+// Reports for a quarter are due on this day of the month after it, with an
+// automatic reminder this many days before (the design's 25 October for Q3).
+export const REPORTS_DUE_DAY = 25;
+export const AUTO_REMINDER_DAYS = 5;
 
 // The fund's report template, block by block.
 export const TEMPLATE_BLOCKS = [
@@ -90,6 +98,7 @@ export const TEMPLATE_BLOCKS = [
 ] as const;
 
 export const PILOT_STATUSES = {
+   planned: { label: 'Запланирован', tone: 'neutral' },
    success: { label: 'Успешно', tone: 'success' },
    in_progress: { label: 'Идёт', tone: 'accent' },
    failed: { label: 'Не принят', tone: 'danger' },
@@ -103,6 +112,17 @@ export const REQUEST_STATUSES = {
 
 // A request the fund leaves unanswered longer than this is shown in red.
 export const REQUEST_ANSWER_DAYS = 5;
+
+export const METRIC_FORMATS = {
+   mrr: 'usd',
+   revenue: 'usd',
+   margin: 'percent',
+   burn: 'usd',
+   runway: 'months',
+   clients: 'number',
+   churn: 'percent',
+   team: 'number',
+} as const satisfies Record<MetricKey, MetricFormat>;
 
 export const METRIC_LABELS = {
    mrr: 'MRR',

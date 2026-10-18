@@ -1,10 +1,16 @@
+import { STAGE_NEXT_LABELS } from '@modules/Deals/constants';
 import type { BadgeTone } from '@shared/components';
-import { DIRECTOR_ID } from '@shared/constants';
-import type { Employee, Task } from '@shared/types/work.types';
+import { directorId } from '@shared/constants';
+import type {
+   Employee,
+   QueueItem,
+   Task,
+   WeekDeadline,
+} from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
-import { capitalize, daysUntil, todayISO } from '@shared/helpers';
-import { DATE_FORMAT, SOON_DAYS } from '../constants';
+import { capitalize, daysUntil, personName, todayISO } from '@shared/helpers';
+import { DATE_FORMAT, DEAL_STAGE_LABELS, SOON_DAYS } from '../constants';
 
 export {
    capitalize,
@@ -62,7 +68,7 @@ export const getEmployee = (employees: Employee[], id: string) =>
    employees.find((employee) => employee.id === id);
 
 // A task nobody is assigned to is the director's by default.
-export const getAssigneeId = (task: Task) => task.assigneeId || DIRECTOR_ID;
+export const getAssigneeId = (task: Task) => task.assigneeId || directorId();
 
 // "Мои": tasks a person does or checks.
 export const isMine = (task: Task, userId: string) =>
@@ -74,3 +80,54 @@ export const needsAction = (task: Task, userId: string) =>
       ? task.reviewerId === userId
       : getAssigneeId(task) === userId &&
         (task.status === 'assigned' || task.status === 'in_progress');
+
+// How a Мой день item that comes from a deal reads, in the interface language.
+export const queueWording = (
+   t: TFunction<'work'>,
+   tDeals: TFunction<'deals'>,
+   item: QueueItem,
+) => {
+   const by = personName(item.decision?.preparedById ?? '');
+   if (item.kind === 'inbox')
+      return {
+         title: t('Разобрать заявку'),
+         note: t('Заявка {{number}}', { number: item.note }),
+      };
+   if (item.kind === 'next')
+      return {
+         title:
+            item.title ||
+            (item.stage ? tDeals(STAGE_NEXT_LABELS[item.stage]) : ''),
+         note: item.stage ? t(DEAL_STAGE_LABELS[item.stage]) : '',
+      };
+   if (item.kind === 'memo')
+      return {
+         title: t('Утвердить меморандум v{{version}}', { version: item.note }),
+         note: by && t('подготовил {{name}}', { name: by }),
+      };
+   return {
+      title: t('Подтвердить решение по скринингу'),
+      note: by && t('предложил {{name}}', { name: by }),
+   };
+};
+
+// How a deadline of the week reads; the deals' and the reports' are worded here.
+export const deadlineWording = (
+   t: TFunction<'work'>,
+   tDeals: TFunction<'deals'>,
+   item: WeekDeadline,
+) => {
+   if (item.kind === 'reports')
+      return {
+         title: t('Квартальные отчёты компаний'),
+         note: item.title.replace(/^(\d{4})-Q(\d)$/, 'Q$2 $1'),
+      };
+   if (item.kind === 'deal')
+      return {
+         title: item.title,
+         note:
+            item.note ||
+            (item.stage ? tDeals(STAGE_NEXT_LABELS[item.stage]) : ''),
+      };
+   return { title: item.title, note: item.note };
+};

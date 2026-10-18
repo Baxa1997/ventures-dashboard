@@ -8,14 +8,15 @@
      node scripts/ucode/verify.mjs [--rows]
 
    --rows also checks the row counts of the test environment: industries 11,
-   reject_reasons 6, stage_norms 8, fund_settings 1, every other table empty. */
+   reject_reasons 6, stage_norms 8, fund_settings 1, employees 1 (Sqb-admin's
+   profile, auth.mjs link), every other table empty. */
 
 import { ucode } from './api.mjs';
 import { readTables } from './schema.mjs';
 
 const TYPES = { BOOLEAN: 'CHECKBOX' };
 const SYSTEM = new Set(['guid', 'created_at', 'updated_at', 'deleted_at', 'folder_id']);
-const ROWS = { industries: 11, reject_reasons: 6, stage_norms: 8, fund_settings: 1 };
+const ROWS = { industries: 11, reject_reasons: 6, stage_norms: 8, fund_settings: 1, employees: 1 };
 const withRows = process.argv.includes('--rows');
 
 // "FROM investments TO decisions" → "decisions"

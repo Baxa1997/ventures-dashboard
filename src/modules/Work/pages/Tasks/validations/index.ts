@@ -20,20 +20,31 @@ const DATE_INVALID: ValidationKey = 'Укажите дату';
 
 const oneOf = <T extends string>(values: T[]) => z.enum(values as [T, ...T[]]);
 
-export const taskSchema: z.ZodType<TaskFormValues> = z.object({
-   title: z.string().trim().min(1, REQUIRED).max(TITLE_MAX, TOO_LONG),
-   type: oneOf(TASK_TYPE_ORDER),
-   context: z.string().trim().max(CONTEXT_MAX, TOO_LONG),
-   relation: oneOf(TASK_RELATION_ORDER),
-   assigneeId: z.string(),
-   reviewerId: z.string(),
-   // the deadline is optional
-   dueDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, DATE_INVALID),
-   priority: oneOf(TASK_PRIORITY_ORDER),
-   status: oneOf(TASK_STATUS_ORDER),
-   recurrence: oneOf(TASK_RECURRENCE_ORDER),
-   checklist: z.string().max(CHECKLIST_MAX, TOO_LONG),
-});
+// A task attached to a deal or a company names which one.
+export const taskSchema: z.ZodType<TaskFormValues> = z
+   .object({
+      title: z.string().trim().min(1, REQUIRED).max(TITLE_MAX, TOO_LONG),
+      type: oneOf(TASK_TYPE_ORDER),
+      context: z.string().trim().max(CONTEXT_MAX, TOO_LONG),
+      relation: oneOf(TASK_RELATION_ORDER),
+      relationId: z.string(),
+      assigneeId: z.string(),
+      reviewerId: z.string(),
+      // the deadline is optional
+      dueDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, DATE_INVALID),
+      priority: oneOf(TASK_PRIORITY_ORDER),
+      status: oneOf(TASK_STATUS_ORDER),
+      recurrence: oneOf(TASK_RECURRENCE_ORDER),
+      checklist: z.string().max(CHECKLIST_MAX, TOO_LONG),
+   })
+   .superRefine((values, context) => {
+      if (values.relation !== 'none' && !values.relationId)
+         context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: REQUIRED,
+            path: ['relationId'],
+         });
+   });
 
 export type TaskFormErrors = Partial<
    Record<keyof TaskFormValues, ValidationKey>

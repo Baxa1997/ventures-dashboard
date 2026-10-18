@@ -1,3 +1,4 @@
+import { OUTCOMES } from '@modules/Committee/constants';
 import {
    createRow,
    fromJson,
@@ -204,12 +205,17 @@ const toWorkstream = (row: Row): Workstream => ({
    conclusion: str(row.conclusion),
 });
 
+// A decision of the register (written by Инвесткомитет) as the deal's card shows it.
 const DECISION_BODY: Record<string, string> = { ic1: 'ИК-1', ic2: 'ИК-2', board: 'Набсовет' };
 const toDecision = (row: Row): Decision => ({
    id: row.guid,
    body: DECISION_BODY[str(row.stage)] ?? 'ИК',
-   detail: str(row.meeting_label),
-   outcome: str(row.note),
+   detail: [str(row.meeting_label), row.date ? dayjs(day(row.date)).format('D MMMM YYYY') : '']
+      .filter(Boolean)
+      .join(' · '),
+   outcome: [OUTCOMES[str(row.outcome) as keyof typeof OUTCOMES]?.label, str(row.note)]
+      .filter(Boolean)
+      .join(' · '),
 });
 
 const toMemo = (rows: Row[], checks: Row[]): Memo | undefined => {
@@ -481,6 +487,10 @@ export const loadDeals = async (): Promise<Deal[]> => {
       })
       .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 };
+
+// The memos row of a deal's memorandum version, for an agenda item to point to.
+export const memoRowOf = (dealId: string, version: number) =>
+   links.get(dealId)?.memos.get(version) ?? null;
 
 // ---- Deal → rows
 

@@ -1,5 +1,7 @@
 // Настройки: the rules the system works by, and who may do what.
 
+import type { Role } from './work.types';
+
 export type MandateField =
    'check' | 'stages' | 'focus' | 'geography' | 'excluded';
 
@@ -61,17 +63,25 @@ export interface StaffMember {
    name: string;
    position: string;
    email: string;
-   roles: StaffRole[];
+   role: Role; // what the system lets them do (employees.role, their ucode role)
+   roles: StaffRole[]; // the duties they hold
    access: Access;
-   invitedAt: string | null; // YYYY-MM-DD for someone invited but not signed in yet
+   invitedAt: string | null; // YYYY-MM-DD for someone without a ucode user yet
+}
+
+export type IndustryMandate = 'focus' | 'allowed' | 'licensed' | 'excluded';
+
+export interface Industry {
+   id: string;
+   name: string;
+   mandate: IndustryMandate;
 }
 
 export interface SettingsState {
    mandate: Record<MandateField, string>;
-   // what the fund's site says, while it differs from the mandate
-   site: { check: string; stages: string } | null;
    norms: StageNorm[];
    flags: PortfolioFlags;
    journal: SettingsChange[];
    staff: StaffMember[];
+   industries: Industry[];
 }

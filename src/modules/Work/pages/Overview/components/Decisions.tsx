@@ -1,5 +1,5 @@
 import { DueBadge } from '@modules/Work/components';
-import { getEmployee } from '@modules/Work/helpers';
+import { getEmployee, queueWording } from '@modules/Work/helpers';
 import { Avatar } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
 import type { Employee, QueueItem } from '@shared/types/work.types';
@@ -14,6 +14,7 @@ interface DecisionsProps {
 
 const Decisions = ({ items, employees }: DecisionsProps) => {
    const { t } = useTranslation('work');
+   const { t: tDeals } = useTranslation('deals');
 
    return (
       <ul className='divide-line divide-y px-5 pt-1 pb-1.5'>
@@ -21,6 +22,7 @@ const Decisions = ({ items, employees }: DecisionsProps) => {
             if (!item.decision) return null;
             const author = getEmployee(employees, item.decision.preparedById);
             const action = DECISION_ACTIONS[item.decision.action];
+            const { title, note } = queueWording(t, tDeals, item);
             // a decision about a deal opens that deal's card
             const target =
                item.dealId && action.section === 'deals'
@@ -36,9 +38,9 @@ const Decisions = ({ items, employees }: DecisionsProps) => {
                      <div className='text-ink-soft text-xs leading-4'>
                         {item.subject}
                      </div>
-                     <div className='mt-0.5 font-semibold'>{item.title}</div>
+                     <div className='mt-0.5 font-semibold'>{title}</div>
                      <div className='text-ink-soft text-meta mt-0.5'>
-                        {item.note}
+                        {note}
                      </div>
                   </div>
                   <div className='flex shrink-0 items-center justify-between gap-2 max-sm:w-full max-sm:pl-10 sm:flex-col sm:items-end sm:justify-start'>

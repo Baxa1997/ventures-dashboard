@@ -1,53 +1,68 @@
-/* There is no backend yet. A store starts from a section's sample data and
-   keeps what a person changes in this browser's localStorage; it is kept in
-   memory as well, so the pages still work when storage is unavailable.
-   Services read and change their data through a store and return promises, so
-   their bodies can be replaced with API calls without changing the pages. */
+/* What a section reads from ucode, kept in memory once read. A service reads
+   its rows through a store, writes a change to ucode, then puts the changed
+   value here, and the pages load again (useServiceData). Signing out, or in as
+   somebody else, drops every store, so nobody sees the last person's data. */
 
 export interface Store<T> {
-   read: () => T;
-   update: (apply: (state: T) => T) => T;
+   get: () => Promise<T>; // read once, then the kept value
+   peek: () => T | undefined; // the kept value, if it has been read
+   set: (apply: (state: T) => T) => T; // only after get has resolved
+   reload: () => Promise<T>;
    subscribe: (listener: () => void) => () => void;
+   notify: () => void;
 }
 
-export const createStore = <T>(key: string, initial: () => T): Store<T> => {
-   let cache: T | null = null;
-   const listeners = new Set<() => void>();
+const stores = new Set<{ clear: () => void }>();
 
-   const read = () => {
-      if (cache) return cache;
-      try {
-         const stored = localStorage.getItem(key);
-         if (stored) {
-            cache = JSON.parse(stored) as T;
-            return cache;
-         }
-      } catch {
-         // storage unavailable or unreadable: start from the sample data
-      }
-      cache = initial();
-      return cache;
+export const clearStores = () => stores.forEach((store) => store.clear());
+
+export const createStore = <T>(load: () => Promise<T>): Store<T> => {
+   let value: T | undefined;
+   let loading: Promise<T> | null = null;
+   const listeners = new Set<() => void>();
+   const notify = () => listeners.forEach((listener) => listener());
+
+   const reload = () => {
+      const current = load().then(
+         (loaded) => {
+            if (loading === current) value = loaded;
+            return loaded;
+         },
+         (error: unknown) => {
+            if (loading === current) loading = null; // the next read tries again
+            throw error;
+         },
+      );
+      loading = current;
+      return current;
    };
 
-   return {
-      read,
-      update: (apply) => {
-         const next = apply(read());
-         cache = next;
-         try {
-            localStorage.setItem(key, JSON.stringify(next));
-         } catch {
-            // storage unavailable: changes last until the page is reloaded
-         }
-         listeners.forEach((listener) => listener());
-         return next;
+   stores.add({
+      clear: () => {
+         value = undefined;
+         loading = null;
       },
+   });
+
+   return {
+      get: () =>
+         value !== undefined ? Promise.resolve(value) : (loading ?? reload()),
+      peek: () => value,
+      set: (apply) => {
+         if (value === undefined)
+            throw new Error('The store has not been read yet');
+         value = apply(value);
+         notify();
+         return value;
+      },
+      reload: () => reload().then((loaded) => (notify(), loaded)),
       subscribe: (listener) => {
          listeners.add(listener);
          return () => {
             listeners.delete(listener);
          };
       },
+      notify,
    };
 };
 

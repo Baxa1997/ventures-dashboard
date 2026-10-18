@@ -1,10 +1,7 @@
-import { ucodeEnabled } from '@shared/api/ucode';
-import { DATE_FORMAT, SAMPLE_TODAY, TEAM } from '@shared/constants';
+import { DATE_FORMAT, TEAM } from '@shared/constants';
 import dayjs from 'dayjs';
 
-// The sample data is dated around SAMPLE_TODAY; data from ucode lives in the real one.
-export const todayISO = () =>
-   ucodeEnabled ? dayjs().format(DATE_FORMAT) : SAMPLE_TODAY;
+export const todayISO = () => dayjs().format(DATE_FORMAT);
 
 export const daysUntil = (date: string, today = todayISO()) =>
    dayjs(date).diff(dayjs(today), 'day');
@@ -12,14 +9,17 @@ export const daysUntil = (date: string, today = todayISO()) =>
 export const capitalize = (text: string) =>
    text.charAt(0).toUpperCase() + text.slice(1);
 
-// 5 окт
-export const formatDay = (date: string) => dayjs(date).format('D MMM');
+// 5 окт; an empty date (not set yet) is a dash
+export const formatDay = (date: string) =>
+   date ? dayjs(date).format('D MMM') : '—';
 
 // 5 октября
-export const formatDate = (date: string) => dayjs(date).format('D MMMM');
+export const formatDate = (date: string) =>
+   date ? dayjs(date).format('D MMMM') : '—';
 
 // 5 окт 2026
-export const formatDayYear = (date: string) => dayjs(date).format('D MMM YYYY');
+export const formatDayYear = (date: string) =>
+   date ? dayjs(date).format('D MMM YYYY') : '—';
 
 // The day that is `count` working days (Monday to Friday) after `date`;
 // a negative count goes back.
@@ -89,4 +89,4 @@ export const downloadCsv = (name: string, rows: string[][]) => {
    URL.revokeObjectURL(url);
 };
 
-export { createStore, newId, type Store } from './store';
+export { clearStores, createStore, newId, type Store } from './store';

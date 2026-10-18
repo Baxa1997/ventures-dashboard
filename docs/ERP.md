@@ -9,11 +9,11 @@ Sources: the system map «Операционная платформа фонда
 | Phase | Part | State today |
 | --- | --- | --- |
 | 1 | **Website** — Pitch Us form, Become a partner form, public content | Built. Writes `applications` and `partner_requests` to ucode, reads `portfolio`, `news`, `team`, `pages` |
-| 1 | **Admin: Работа** — Обзор, Мой день, Задачи | Built on sample data |
-| 1 | **Admin: Инвестиции** — Сделки, Инвесткомитет, Портфель | Built on sample data |
-| 1 | **Admin: Настройки** — mandate, stage norms, staff and roles | Built on sample data. Needed in phase 1: Сделки take the mandate and the norms from it |
+| 1 | **Admin: Работа** — Обзор, Мой день, Задачи | On ucode (tasks; Мой день and Обзор counted from the tables, §5.7) |
+| 1 | **Admin: Инвестиции** — Сделки, Инвесткомитет, Портфель | On ucode |
+| 1 | **Admin: Настройки** — mandate, stage norms, staff and roles | On ucode. Сделки take the mandate and the norms from it |
 | 2 | **Startup cabinet** — the applicant's status, the fund's requests and documents; the portfolio company's quarterly reports and requests | Not built |
-| 3 | Финансы, Договоры, Закупки, Корреспонденция, Документы | Built on sample data; backend later |
+| 3 | Финансы, Договоры, Закупки, Корреспонденция, Документы | Screens built, hidden from the panel until their tables exist (they come back from the repo's history) |
 
 ## 2. How the parts connect
 
@@ -481,6 +481,8 @@ The feedback document asks that a file downloaded from the CRM carry the name of
 13. **Watermarking files that are not PDF:** convert to PDF for everyone, or also let some roles download originals.
 
 ## 9. Connecting this repo
+
+Done on 18 October 2026, as described below: every phase 1 section reads and writes ucode with the signed-in person's token, and the sample data and localStorage stores are gone (README, «Data»; ucode-migration.md, «Status»). The state changes are still worked out in the panel and written as plain updates; moving them into the functions of §5 is next, together with the permissions of §6.
 
 - Each module's service already returns promises in the page's types (`src/modules/*/services/index.ts`). Replace their bodies with ucode calls and keep the types; put the row ↔ type mapping next to each service, as the website does in `mappers.ts`.
 - Add `src/shared/api/ucode/`: base URL, the signed-in person's token and its refresh (`POST /v2/auth/refresh`), CRUD over `/v2/items/{table}`, file upload, and calls to the functions of §5.

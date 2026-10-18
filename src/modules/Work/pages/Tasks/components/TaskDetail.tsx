@@ -1,5 +1,6 @@
 import { StatusBadge } from '@modules/Work/components';
 import {
+   TASK_RELATION_LABELS,
    TASK_RELATION_SECTIONS,
    TASK_STATUS_LABELS,
    TASK_TYPE_LABELS,
@@ -20,6 +21,7 @@ import type {
    Task,
    TaskEvent,
    TaskStatus,
+   TaskTargets,
 } from '@shared/types/work.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
@@ -32,6 +34,7 @@ import { getNextStep } from '../helpers';
 interface TaskDetailProps {
    task: Task;
    employees: Employee[];
+   targets: TaskTargets;
    onAdvance: (status: TaskStatus) => void;
    onToggleItem: (itemId: string) => void;
    onComment: (text: string) => void;
@@ -46,6 +49,7 @@ const SECTION = 'border-line border-b px-5 py-4';
 const TaskDetail = ({
    task,
    employees,
+   targets,
    onAdvance,
    onToggleItem,
    onComment,
@@ -74,7 +78,7 @@ const TaskDetail = ({
       .join(' · ');
 
    const due = () => {
-      if (!task.dueDate) return t('срок не задан');
+      if (!task.dueDate) return task.dueLabel || t('срок не задан');
       const relative = isDone(task) ? '' : relativeDue(t, task.dueDate);
       return [formatDate(task.dueDate), relative].filter(Boolean).join(', ');
    };
@@ -114,20 +118,18 @@ const TaskDetail = ({
       [t('Срок'), due()],
    ];
    if (task.recurrence !== 'none') fields.push([t('Повтор'), recurrence()]);
-   if (task.basis)
+   if (task.relation !== 'none')
       fields.push([
-         t('Основание'),
-         task.relation === 'none' ? (
-            task.basis
-         ) : (
-            <Link
-               className='text-accent font-medium hover:underline'
-               to={SECTION_PATHS[TASK_RELATION_SECTIONS[task.relation]]}
-            >
-               {task.basis}
-            </Link>
-         ),
+         t(TASK_RELATION_LABELS[task.relation]),
+         <Link
+            className='text-accent font-medium hover:underline'
+            to={`${SECTION_PATHS[TASK_RELATION_SECTIONS[task.relation]]}/${task.relationId}`}
+         >
+            {targets[task.relation].find(({ id }) => id === task.relationId)
+               ?.name ?? t('Открыть')}
+         </Link>,
       ]);
+   if (task.basis) fields.push([t('Основание'), task.basis]);
 
    const submitComment = (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();

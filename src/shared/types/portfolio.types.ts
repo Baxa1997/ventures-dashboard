@@ -1,7 +1,7 @@
 // Портфель: the companies the fund has invested in, their quarterly
 // reporting, pilots with the bank and requests to the fund.
 
-export type Instrument = 'safe' | 'equity';
+export type Instrument = 'safe' | 'convertible' | 'equity';
 
 export type ReportDoc =
    'fund_template' | 'company_template' | 'form1' | 'form2';
@@ -32,7 +32,7 @@ export interface Metric {
    values: Record<string, number | null>; // quarter → value
 }
 
-export type PilotStatus = 'success' | 'in_progress' | 'failed';
+export type PilotStatus = 'planned' | 'in_progress' | 'success' | 'failed';
 
 export interface Pilot {
    id: string;

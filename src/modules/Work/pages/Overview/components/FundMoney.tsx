@@ -5,7 +5,7 @@ import { MONEY_PARTS } from '../constants';
 import { formatMillions } from '../helpers';
 
 interface FundMoneyProps {
-   money: FundOverview['money'];
+   money: NonNullable<FundOverview['money']>;
 }
 
 // Where the money on the accounts stands: one bar split into its parts, and

@@ -14,7 +14,7 @@ import {
    NoData,
    STACK,
 } from '@shared/components';
-import { ROLE_LABELS, SECTION_PATHS, TEAM } from '@shared/constants';
+import { ROLE_LABELS, TEAM } from '@shared/constants';
 import { formatDate, todayISO } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
 import type {
@@ -26,7 +26,6 @@ import dayjs from 'dayjs';
 import { FileText } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
 
 interface RequestsProps {
    deal: Deal;
@@ -57,7 +56,6 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
    // the document being checked, and the reason typed for rejecting it
    const [reviewId, setReviewId] = useState<string | null>(null);
    const [reason, setReason] = useState('');
-   const total = deal.totals?.requests ?? requests.length;
 
    const requestLine = (request: DealRequest) =>
       request.detail ||
@@ -138,11 +136,6 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
       <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
          <div className={STACK}>
             <Card
-               action={
-                  <Link className='link' to={SECTION_PATHS.correspondence}>
-                     {t('Все запросы')}
-                  </Link>
-               }
                hint={`${t('{{count}} открытый', { count: open.length })} · ${t(
                   '{{count}} закрыт',
                   { count: requests.length - open.length },
@@ -192,14 +185,6 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                   </ul>
                ) : (
                   <NoData>{t('Запросов заявителю пока нет')}</NoData>
-               )}
-               {total > requests.length && (
-                  <p className='border-line text-ink-soft border-t px-5 py-3 text-xs'>
-                     {t(
-                        'В примере — {{shown}} из {{total}}: остальные запросы есть на макете только числом.',
-                        { shown: requests.length, total },
-                     )}
-                  </p>
                )}
             </Card>
 

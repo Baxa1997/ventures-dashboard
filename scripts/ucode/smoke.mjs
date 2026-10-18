@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* An end-to-end test of the ucode schema with the panel's own kind of data:
-   one deal (EasyTap, from the Deals sample) followed from application to
+   one deal (EasyTap, the design's example) followed from application to
    committee, portfolio, report and task, with a row in every table of the
    batches and every relation filled. It writes the rows through the ucode
    admin API (api.mjs), reads each back with its relations, loads every child

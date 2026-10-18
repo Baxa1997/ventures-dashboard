@@ -1,4 +1,4 @@
-import { EMAIL_MAX, PASSWORD_MAX } from '@modules/Auth/constants';
+import { LOGIN_MAX, PASSWORD_MAX } from '@modules/Auth/constants';
 import type { RuTranslation } from '@shared/i18n/ru';
 import { z } from 'zod';
 
@@ -7,15 +7,10 @@ type ValidationKey = keyof RuTranslation['validation'];
 
 const REQUIRED: ValidationKey = 'Обязательное поле';
 const TOO_LONG: ValidationKey = 'Слишком длинное значение';
-const EMAIL_INVALID: ValidationKey = 'Введите корректный адрес почты';
 
+// A ucode user signs in with a login or a work email, so either is accepted.
 export const loginSchema = z.object({
-   email: z
-      .string()
-      .trim()
-      .min(1, REQUIRED)
-      .max(EMAIL_MAX, TOO_LONG)
-      .email(EMAIL_INVALID),
+   login: z.string().trim().min(1, REQUIRED).max(LOGIN_MAX, TOO_LONG),
    password: z.string().min(1, REQUIRED).max(PASSWORD_MAX, TOO_LONG),
 });
 

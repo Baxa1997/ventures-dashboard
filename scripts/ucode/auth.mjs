@@ -9,12 +9,16 @@
      node scripts/ucode/auth.mjs setup
         makes STAFF and its roles where they are missing; changes nothing else
      node scripts/ucode/auth.mjs user <email> <role> "<Full name>"
-        makes a staff user with a new password, printed once, and its
-        employees row. A user may take a paid seat of the ucode plan.
+        makes a staff user with a new password, printed once, and links its
+        employees row: the one Настройки added with this email, or a new one.
+        A user may take a paid seat of the ucode plan.
+     node scripts/ucode/auth.mjs link <login> <role> "<Full name>"
+        gives an existing ucode user (of any client type, e.g. ADMIN's
+        Sqb-admin) an employees row, so they can sign in to the panel
 
-   STAFF has no table of its own: its users live in ucode's system user table,
-   like those of ADMIN, and the panel finds the person's employees row by
-   user_id. Sign-in: POST https://api.auth.u-code.io/v2/login with STAFF's id. */
+   The panel finds the person's employees row by user_id. Sign-in:
+   POST https://api.auth.u-code.io/v2/login with the client type's id; the
+   panel tries those of VITE_UCODE_CLIENT_TYPE_IDS in turn. */
 
 import { randomBytes } from 'node:crypto';
 import { ucode, ucodeAuth } from './api.mjs';
@@ -147,24 +151,57 @@ const user = async (email, role, fullName) => {
    );
    const userId = created?.id ?? created?.guid;
    if (!userId) throw new Error(`ucode returned no user id: ${JSON.stringify(created).slice(0, 200)}`);
-   const [first, ...rest] = fullName.split(' ');
-   reply(
-      await ucode('POST', '/v2/items/employees', {
-         data: {
-            user_id: userId,
-            full_name: fullName,
-            short_name: rest.length ? `${first[0]}. ${rest.join(' ')}` : fullName,
-            email: email.toLowerCase(),
-            role,
-            is_active: true,
-            invited_at: new Date().toISOString().slice(0, 10),
-         },
-         disable_faas: true,
-      }),
-      'create employees row',
-   );
+   await employeeFor(userId, { email: email.toLowerCase(), role, fullName });
    console.log(`✓ ${fullName} <${email}> as ${role}: user ${userId}`);
    console.log(`  password (shown once, not stored): ${password}`);
+};
+
+// The employees row of a ucode user: the one already linked, or the one with
+// the user's email (added in Настройки), or a new one.
+const employeeFor = async (userId, { email = '', role, fullName }) => {
+   const rows =
+      reply(
+         await ucode('GET', `/v2/items/employees?data=${encodeURIComponent(JSON.stringify({ limit: 500, offset: 0 }))}`),
+         'employees',
+      )?.data?.response ?? [];
+   const existing =
+      rows.find((row) => row.user_id === userId) ??
+      (email ? rows.find((row) => String(row.email ?? '').toLowerCase() === email) : undefined);
+   const [first, ...rest] = fullName.split(' ');
+   const fields = {
+      user_id: userId,
+      full_name: fullName,
+      short_name: rest.length ? `${first[0]}. ${rest.join(' ')}` : fullName,
+      role,
+      is_active: true,
+      ...(email ? { email } : {}),
+      // what Настройки show as access; a row that has one keeps it
+      ...(existing?.access ? {} : { access: role === 'director' ? 'full' : role === 'other' ? 'limited' : 'work' }),
+   };
+   if (existing) {
+      reply(await ucode('PUT', '/v2/items/employees', { data: { guid: existing.guid, ...fields }, disable_faas: true }), 'update employees row');
+      console.log(`· employees row ${existing.guid} linked`);
+   } else {
+      reply(
+         await ucode('POST', '/v2/items/employees', {
+            data: { ...fields, invited_at: new Date().toISOString().slice(0, 10) },
+            disable_faas: true,
+         }),
+         'create employees row',
+      );
+      console.log('✓ employees row created');
+   }
+};
+
+const link = async (login, role, fullName) => {
+   if (!login || !ROLES.includes(role) || !fullName)
+      throw new Error(`Usage: auth.mjs link <login> <${ROLES.join('|')}> "<Full name>"`);
+   const found = (await users()).find(
+      (item) => item.login === login || String(item.email ?? '').toLowerCase() === login.toLowerCase(),
+   );
+   if (!found) throw new Error(`No ucode user ${login}`);
+   await employeeFor(found.id, { email: found.email ?? '', role, fullName });
+   console.log(`✓ ${login} (user ${found.id}) is ${fullName}, ${role}, in the panel`);
 };
 
 const [command, ...args] = process.argv.slice(2);
@@ -172,8 +209,11 @@ try {
    if (command === 'list') await list();
    else if (command === 'setup') await setup();
    else if (command === 'user') await user(...args);
+   else if (command === 'link') await link(...args);
    else {
-      console.error('Usage: node scripts/ucode/auth.mjs list | setup | user <email> <role> "<Full name>"');
+      console.error(
+         'Usage: node scripts/ucode/auth.mjs list | setup | user <email> <role> "<Full name>" | link <login> <role> "<Full name>"',
+      );
       process.exitCode = 2;
    }
 } catch (error) {

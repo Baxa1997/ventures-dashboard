@@ -1,4 +1,12 @@
 /// <reference types="vite/client" />
 
-// True while the dev server forwards /ucode to the ucode project (vite.config.ts).
-declare const __UCODE__: boolean;
+// Where staff sign in to ucode (.env.example); public ids, not secrets.
+interface ImportMetaEnv {
+   readonly VITE_UCODE_PROJECT_ID?: string;
+   readonly VITE_UCODE_ENVIRONMENT_ID?: string;
+   readonly VITE_UCODE_CLIENT_TYPE_IDS?: string; // comma-separated, tried in order
+}
+
+interface ImportMeta {
+   readonly env: ImportMetaEnv;
+}

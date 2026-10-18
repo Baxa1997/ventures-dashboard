@@ -46,15 +46,17 @@ const RemindDialog = ({ data, open, onClose }: RemindDialogProps) => {
                         </li>
                      ))}
                   </ul>
-                  <p className='text-ink-soft mt-3 text-xs'>
-                     {t(
-                        'Последнее напоминание — {{date}}. Следующее уйдёт автоматически {{auto}}.',
-                        {
-                           date: formatDate(cycle.remindedAt),
-                           auto: formatDate(cycle.autoReminderAt),
-                        },
-                     )}
-                  </p>
+                  {cycle.remindedAt && (
+                     <p className='text-ink-soft mt-3 text-xs'>
+                        {t(
+                           'Последнее напоминание — {{date}}. Следующее уйдёт автоматически {{auto}}.',
+                           {
+                              date: formatDate(cycle.remindedAt),
+                              auto: formatDate(cycle.autoReminderAt),
+                           },
+                        )}
+                     </p>
+                  )}
                </>
             ) : (
                <p>{t('Все компании сдали документы за квартал.')}</p>

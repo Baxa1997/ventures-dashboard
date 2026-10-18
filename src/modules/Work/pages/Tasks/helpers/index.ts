@@ -106,6 +106,7 @@ export const getInitialValues = (
    type: task?.type ?? 'other',
    context: task?.context ?? '',
    relation: task?.relation ?? 'none',
+   relationId: task?.relationId ?? '',
    assigneeId: task ? task.assigneeId : userId,
    reviewerId: task?.reviewerId ?? '',
    dueDate: task?.dueDate ?? '',

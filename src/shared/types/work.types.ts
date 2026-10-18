@@ -1,4 +1,4 @@
-// employees.role in ucode; the last three come with real staff, not the sample.
+// employees.role in ucode.
 export type Role =
    | 'director'
    | 'deputy'
@@ -16,17 +16,9 @@ export interface Employee {
    role: Role;
 }
 
-// Sections of the platform that work items point to.
-export type Section =
-   | 'tasks'
-   | 'deals'
-   | 'committee'
-   | 'portfolio'
-   | 'finance'
-   | 'contracts'
-   | 'procurement'
-   | 'correspondence'
-   | 'documents';
+// Sections of the platform that work items point to. Финансы, Договоры,
+// Закупки, Корреспонденция and Документы join in phase 3.
+export type Section = 'tasks' | 'deals' | 'committee' | 'portfolio';
 
 export type TaskStatus =
    'assigned' | 'in_progress' | 'waiting' | 'postponed' | 'review' | 'done';
@@ -44,8 +36,8 @@ export type TaskType =
    | 'other';
 
 // What a task is attached to; "none" for a task that stands on its own.
-export type TaskRelation =
-   'none' | 'deal' | 'portfolio' | 'contract' | 'letter' | 'procurement';
+// Contracts, letters and procurements join in phase 3.
+export type TaskRelation = 'none' | 'deal' | 'portfolio';
 
 export type TaskRecurrence = 'none' | 'monthly' | 'quarterly';
 
@@ -74,6 +66,7 @@ export interface TaskInput {
    type: TaskType;
    context: string; // counterparty or document, shown next to the type
    relation: TaskRelation;
+   relationId: string; // the deal or the company, '' without a relation
    assigneeId: string; // '' — not assigned, goes to the director by default
    reviewerId: string; // '' — nobody checks the result
    dueDate: string; // YYYY-MM-DD, or '' when no deadline is set
@@ -86,27 +79,48 @@ export interface TaskInput {
 export interface Task extends TaskInput {
    id: string;
    basis: string; // the document the task comes from
+   dueLabel: string; // «до ИК-2» when the deadline is an event, not a date
+   origin: string; // manual, ic_condition, …: what made the task
+   createdById: string;
+   decisionId: string; // the committee decision it carries out, or ''
    createdAt: string; // YYYY-MM-DD
    completedAt: string | null; // YYYY-MM-DD, set while the status is "done"
    history: TaskEvent[]; // newest first
 }
 
-export type DecisionAction = 'memo' | 'decide' | 'contract' | 'act' | 'letter';
+// A deal or a portfolio company a task can be attached to.
+export interface TaskTarget {
+   id: string;
+   name: string;
+}
 
-// Something a person has to do that comes from a deal, the portfolio or a
-// letter rather than from the task list.
+export type TaskTargets = Record<Exclude<TaskRelation, 'none'>, TaskTarget[]>;
+
+// Contracts, acts and letters to approve join in phase 3.
+export type DecisionAction = 'memo' | 'decide';
+
+/* Something a person has to do that comes from a deal rather than from the
+   task list, counted from the deals (docs/ERP.md §5.7):
+   - inbox: an application offered to them to take or decline;
+   - next: the next step of a deal they own, due within 5 working days;
+   - memo: a memorandum waiting for them, its sponsor, to approve;
+   - screening: a screening decision waiting for them, the second reviewer. */
+export type QueueKind = 'inbox' | 'next' | 'memo' | 'screening';
+
 export interface QueueItem {
    id: string;
+   kind: QueueKind;
    ownerId: string;
-   subject: string; // company, counterparty or document
+   subject: string; // the company
    section: Section;
-   title: string;
-   note: string;
+   title: string; // the deal's next step, for "next"; '' — the stage's own
+   note: string; // the deal's number, or the memorandum's version
+   stage?: DealStage; // the deal's stage, for "next"
    dueDate: string; // YYYY-MM-DD
-   completedAt: string | null;
+   completedAt: string | null; // ticked today in this browser
    // set when the item is a decision the owner has to take
    decision?: { preparedById: string; action: DecisionAction };
-   dealId?: string; // the deal the item is about, if it has a card
+   dealId?: string; // the deal the item is about
 }
 
 export type WaitingSource = 'applicant' | 'company' | 'colleague';
@@ -142,10 +156,13 @@ export interface MyDeal {
 
 export interface WeekDeadline {
    id: string;
+   // "reports" is worded when shown: its title is the quarter
+   kind: 'meeting' | 'deal' | 'task' | 'reports';
    date: string; // YYYY-MM-DD
    title: string;
    section: Section;
-   note: string;
+   note: string; // for a deal, its next step; '' — the stage's own
+   stage?: DealStage; // for a deal
    keyEvent: boolean; // the event of the week, e.g. a committee meeting
 }
 
@@ -165,7 +182,8 @@ export interface PortfolioCompany {
    nextStep: string;
 }
 
-// What the fund overview shows; amounts are in USD.
+// What the fund overview shows; amounts are in USD. The money is null until
+// the chief accountant fills in fund_money (docs/ERP.md §4.8).
 export interface FundOverview {
    updatedAt: string; // HH:mm of the last data refresh
    money: {
@@ -178,12 +196,12 @@ export interface FundOverview {
          approved: number;
       };
       parts: { part: MoneyPart; amount: number; note: string }[];
-   };
+   } | null;
    funnel: FunnelStage[];
    portfolio: {
-      quarter: number;
-      reportsDue: string; // YYYY-MM-DD
-      requestedAt: string; // YYYY-MM-DD
+      quarter: number | null; // null before the first reporting cycle
+      reportsDue: string; // YYYY-MM-DD, '' without a cycle
+      requestedAt: string; // YYYY-MM-DD, '' until the reports are requested
       companies: PortfolioCompany[];
    };
 }
