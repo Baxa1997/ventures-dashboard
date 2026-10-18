@@ -14,17 +14,15 @@ import {
 import { usePortfolio } from '@modules/Portfolio/hooks';
 import {
    Button,
-   buttonClass,
    Loading,
    PageBody,
    PageHeader,
    Tabs,
 } from '@shared/components';
-import { SECTION_PATHS } from '@shared/constants';
 import { formatDate, formatUsd } from '@shared/helpers';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { Companies, Pilots, Reports, Requests } from './components';
 
 const toTab = (value: string | null): ListTab =>
@@ -103,17 +101,7 @@ const PortfolioList = () => {
             {remindButton(t('Запросить отчёты'))}
          </>
       ),
-      reports: (
-         <>
-            <Link
-               className={buttonClass('ghost')}
-               to={`${SECTION_PATHS.documents}?tab=templates`}
-            >
-               {t('Шаблон отчёта фонда')}
-            </Link>
-            {remindButton(t('Напомнить компаниям'))}
-         </>
-      ),
+      reports: remindButton(t('Напомнить компаниям')),
       requests: null,
       pilots: null,
    };

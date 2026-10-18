@@ -8,7 +8,7 @@ import type {
    TaskType,
 } from '@shared/types/work.types';
 
-export { DATE_FORMAT, SAMPLE_TODAY } from '@shared/constants';
+export { DATE_FORMAT } from '@shared/constants';
 
 export const TITLE_MAX = 120;
 
@@ -67,31 +67,22 @@ export const TASK_TYPE_LABELS = {
 export const TASK_RELATION_ORDER: TaskRelation[] = [
    'deal',
    'portfolio',
-   'contract',
-   'letter',
-   'procurement',
    'none',
 ];
 
 export const TASK_RELATION_LABELS = {
    deal: 'Сделка',
    portfolio: 'Компания портфеля',
-   contract: 'Договор',
-   letter: 'Письмо',
-   procurement: 'Закупка',
    none: 'Без связи',
 } as const satisfies Record<TaskRelation, string>;
 
-// Where the thing a task is attached to lives.
+// Where the thing a task is attached to lives; its card is under this path.
 export const TASK_RELATION_SECTIONS: Record<
    Exclude<TaskRelation, 'none'>,
    Section
 > = {
    deal: 'deals',
    portfolio: 'portfolio',
-   contract: 'contracts',
-   letter: 'correspondence',
-   procurement: 'procurement',
 };
 
 export const TASK_RECURRENCE_ORDER: TaskRecurrence[] = [

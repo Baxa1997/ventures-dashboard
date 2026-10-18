@@ -50,7 +50,7 @@ export { downloadCsv, personName };
 
 // The check range of the mandate, as Настройки have it now.
 export const mandateLimits = () => {
-   const range = parseCheck(currentSettings().mandate.check);
+   const range = parseCheck(currentSettings()?.mandate.check ?? '');
    return range
       ? { minCheck: range[0], maxCheck: range[1] }
       : { minCheck: MANDATE.minCheck, maxCheck: MANDATE.maxCheck };
@@ -71,7 +71,7 @@ const SETTINGS_STAGES: Partial<Record<DealStage, NormStage>> = {
 export const stageNorm = (stage: DealStage) => {
    const key = SETTINGS_STAGES[stage];
    const norm =
-      key && currentSettings().norms.find((item) => item.stage === key);
+      key && currentSettings()?.norms.find((item) => item.stage === key);
    return (norm && parseNorm(norm.norm)) || STAGE_NORMS[stage];
 };
 

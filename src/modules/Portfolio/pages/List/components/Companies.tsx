@@ -57,19 +57,21 @@ const Companies = ({ data }: CompaniesProps) => {
          <div className='gap-section stagger grid sm:grid-cols-2 xl:grid-cols-4'>
             <StatTile
                label={t('Вложено напрямую')}
-               note={t('{{count}} компания · по отчёту ПП-59', {
-                  count: companies.length,
-               })}
+               note={t('{{count}} компания', { count: companies.length })}
                value={formatUsd(invested, language)}
             />
             <StatTile
                label={t('Отчёты за {{quarter}}', {
                   quarter: quarterName(t, cycle.quarter),
                })}
-               note={t('срок {{due}} · напоминание {{date}}', {
-                  due: formatDate(cycle.due),
-                  date: formatDate(cycle.remindedAt),
-               })}
+               note={
+                  cycle.remindedAt
+                     ? t('срок {{due}} · напоминание {{date}}', {
+                          due: formatDate(cycle.due),
+                          date: formatDate(cycle.remindedAt),
+                       })
+                     : t('срок сдачи {{date}}', { date: formatDate(cycle.due) })
+               }
                tone={reported.length < companies.length ? 'warning' : 'success'}
                value={t('{{done}} из {{total}}', {
                   done: reported.length,
@@ -188,9 +190,7 @@ const Companies = ({ data }: CompaniesProps) => {
             </Table>
          </Card>
          <p className='text-ink-soft mt-section text-xs'>
-            {t(
-               'Суммы и инструменты по компаниям на макете примерные; итог $950 000 — из отчёта по ПП-59. Карточка компании открывается по клику на строку.',
-            )}
+            {t('Карточка компании открывается по клику на строку.')}
          </p>
       </>
    );

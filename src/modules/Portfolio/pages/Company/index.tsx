@@ -8,7 +8,6 @@ import {
    METRIC_LABELS,
    PILOT_STATUSES,
    PORTFOLIO_PATH,
-   QUARTERS,
    REPORT_DOC_ITEMS,
    REPORT_DOC_LABELS,
    REPORT_DOCS,
@@ -17,6 +16,7 @@ import {
    formatMetric,
    quarterLabel,
    quarterName,
+   recentQuarters,
 } from '@modules/Portfolio/helpers';
 import { type PortfolioData, usePortfolio } from '@modules/Portfolio/hooks';
 import { useDeals } from '@modules/Deals/hooks';
@@ -159,7 +159,9 @@ const CompanyView = ({ data, company }: ViewProps) => {
                   <MetricsTable company={company} cycle={data.cycle} />
                </Card>
             )}
-            {tab === 'reports' && <ReportsTab company={company} />}
+            {tab === 'reports' && (
+               <ReportsTab company={company} cycle={data.cycle} />
+            )}
             {tab === 'pilots' && <Pilots companyId={company.id} data={data} />}
             {tab === 'requests' && (
                <Requests companyId={company.id} data={data} />
@@ -274,7 +276,7 @@ const Overview = ({ data, company, onSelect }: OverviewProps) => {
                <MetricsTable company={company} cycle={cycle} />
                <p className='border-line text-ink-soft border-t px-5 py-3 text-xs'>
                   {t(
-                     'Значения на макете условные. Показатели попадают сюда из шаблона отчёта фонда автоматически; аналитик подтверждает, а не перепечатывает.',
+                     'Показатели попадают сюда из шаблона отчёта фонда автоматически; аналитик подтверждает, а не перепечатывает.',
                   )}
                </p>
             </Card>
@@ -315,15 +317,17 @@ const Overview = ({ data, company, onSelect }: OverviewProps) => {
                         state: report?.received[doc] ? 'done' : 'open',
                      }))}
                   />
-                  <p className='text-ink-soft mt-3 text-xs'>
-                     {t(
-                        'Запрос отправлен {{date}} в кабинет компании. Напоминание уйдёт автоматически {{auto}}.',
-                        {
-                           date: formatDate(cycle.requestedAt),
-                           auto: formatDate(cycle.autoReminderAt),
-                        },
-                     )}
-                  </p>
+                  {cycle.requestedAt && (
+                     <p className='text-ink-soft mt-3 text-xs'>
+                        {t(
+                           'Запрос отправлен {{date}} в кабинет компании. Напоминание уйдёт автоматически {{auto}}.',
+                           {
+                              date: formatDate(cycle.requestedAt),
+                              auto: formatDate(cycle.autoReminderAt),
+                           },
+                        )}
+                     </p>
+                  )}
                </div>
             </Card>
             <Card hint={t('примерные значения')} title={t('Позиция фонда')}>
@@ -344,7 +348,7 @@ interface MetricsTableProps {
 const MetricsTable = ({ company, cycle }: MetricsTableProps) => {
    const { t, i18n } = useTranslation('portfolio');
    const language = i18n.resolvedLanguage ?? i18n.language;
-   const quarters = QUARTERS;
+   const quarters = recentQuarters(cycle.quarter);
 
    if (!company.metrics.length)
       return (
@@ -432,7 +436,13 @@ const PositionFacts = ({ company }: { company: PortfolioCompany }) => {
 };
 
 // Every quarter's four documents.
-const ReportsTab = ({ company }: { company: PortfolioCompany }) => {
+const ReportsTab = ({
+   company,
+   cycle,
+}: {
+   company: PortfolioCompany;
+   cycle: PortfolioData['cycle'];
+}) => {
    const { t } = useTranslation('portfolio');
    return (
       <Card className='flex-1'>
@@ -449,30 +459,32 @@ const ReportsTab = ({ company }: { company: PortfolioCompany }) => {
                </>
             }
          >
-            {[...QUARTERS].reverse().map((quarter) => (
-               <tr key={quarter}>
-                  <td className={clsx(TD, 'font-semibold')}>
-                     {quarterLabel(t, quarter)}
-                  </td>
-                  {REPORT_DOCS.map((doc) => {
-                     const day = company.reports[quarter]?.received[doc];
-                     return (
-                        <td key={doc} className={TD}>
-                           {day ? (
-                              <>
-                                 <Badge tone='success'>{t('Получен')}</Badge>
-                                 <div className='text-ink-soft mt-1 text-xs'>
-                                    {formatDate(day)}
-                                 </div>
-                              </>
-                           ) : (
-                              <Badge>{t('Ожидается')}</Badge>
-                           )}
-                        </td>
-                     );
-                  })}
-               </tr>
-            ))}
+            {recentQuarters(cycle.quarter)
+               .reverse()
+               .map((quarter) => (
+                  <tr key={quarter}>
+                     <td className={clsx(TD, 'font-semibold')}>
+                        {quarterLabel(t, quarter)}
+                     </td>
+                     {REPORT_DOCS.map((doc) => {
+                        const day = company.reports[quarter]?.received[doc];
+                        return (
+                           <td key={doc} className={TD}>
+                              {day ? (
+                                 <>
+                                    <Badge tone='success'>{t('Получен')}</Badge>
+                                    <div className='text-ink-soft mt-1 text-xs'>
+                                       {formatDate(day)}
+                                    </div>
+                                 </>
+                              ) : (
+                                 <Badge>{t('Ожидается')}</Badge>
+                              )}
+                           </td>
+                        );
+                     })}
+                  </tr>
+               ))}
          </Table>
       </Card>
    );
@@ -481,7 +493,8 @@ const ReportsTab = ({ company }: { company: PortfolioCompany }) => {
 // The files the company uploaded in its cabinet, newest first.
 const DocumentsTab = ({ company }: { company: PortfolioCompany }) => {
    const { t } = useTranslation('portfolio');
-   const files = [...QUARTERS].reverse().flatMap((quarter) =>
+   const quarters = Object.keys(company.reports).sort().reverse();
+   const files = quarters.flatMap((quarter) =>
       REPORT_DOCS.flatMap((doc) => {
          const day = company.reports[quarter]?.received[doc];
          return day ? [{ quarter, doc, day }] : [];
@@ -515,9 +528,7 @@ const DocumentsTab = ({ company }: { company: PortfolioCompany }) => {
             <NoData>{t('Компания ещё не загружала документы')}</NoData>
          )}
          <p className='border-line text-ink-soft mt-auto border-t px-5 py-3 text-xs'>
-            {t(
-               'Файлы лежат в кабинете компании; уставные документы и соглашения — в «Договорах».',
-            )}
+            {t('Файлы лежат в кабинете компании.')}
          </p>
       </Card>
    );

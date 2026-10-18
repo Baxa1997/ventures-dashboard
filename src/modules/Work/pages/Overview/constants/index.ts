@@ -12,9 +12,6 @@ export const DECISIONS_LIMIT = 5;
 export const DECISION_ACTIONS = {
    memo: { label: 'Открыть меморандум', section: 'deals' },
    decide: { label: 'Решить', section: 'deals' },
-   contract: { label: 'Открыть договор', section: 'contracts' },
-   act: { label: 'Открыть акт', section: 'contracts' },
-   letter: { label: 'Открыть письмо', section: 'correspondence' },
 } as const satisfies Record<
    DecisionAction,
    { label: string; section: Section }

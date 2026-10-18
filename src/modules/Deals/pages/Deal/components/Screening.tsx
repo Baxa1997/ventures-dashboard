@@ -14,7 +14,7 @@ import {
    NoData,
    STACK,
 } from '@shared/components';
-import { SECTION_PATHS, TEAM } from '@shared/constants';
+import { TEAM } from '@shared/constants';
 import { shortName } from '@shared/helpers';
 import type {
    Criterion,
@@ -25,7 +25,6 @@ import type {
 import clsx from 'clsx';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
 
 interface ScreeningProps {
    deal: Deal;
@@ -174,11 +173,6 @@ const Screening = ({ deal }: ScreeningProps) => {
    return (
       <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
          <Card
-            action={
-               <Link className='link' to={SECTION_PATHS.documents}>
-                  {t('Методика оценки')}
-               </Link>
-            }
             className='overflow-hidden'
             hint={t('заполнено {{done}} из {{total}}', {
                done: scored.length,

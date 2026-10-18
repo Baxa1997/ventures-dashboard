@@ -11,6 +11,7 @@ import {
    TH,
 } from '@shared/components';
 import { formatDate } from '@shared/helpers';
+import { useCurrentUser } from '@shared/hooks';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ interface MetricsDialogProps {
 // the analyst to confirm rather than type again.
 const MetricsDialog = ({ company, quarter, onClose }: MetricsDialogProps) => {
    const { t, i18n } = useTranslation('portfolio');
+   const user = useCurrentUser();
    const language = i18n.resolvedLanguage ?? i18n.language;
    const [year, q] = quarter.split('-Q');
    const previous = Number(q) > 1 ? `${year}-Q${Number(q) - 1}` : null;
@@ -111,7 +113,11 @@ const MetricsDialog = ({ company, quarter, onClose }: MetricsDialogProps) => {
             <Button
                onClick={async () => {
                   if (company)
-                     await portfolio.confirmMetrics(company.id, quarter);
+                     await portfolio.confirmMetrics(
+                        company.id,
+                        quarter,
+                        user.id,
+                     );
                   onClose();
                }}
             >

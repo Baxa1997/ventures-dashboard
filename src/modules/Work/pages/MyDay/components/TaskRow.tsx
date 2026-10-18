@@ -1,5 +1,6 @@
 import { DueBadge, TaskCheck } from '@modules/Work/components';
 import { TASK_TYPE_LABELS } from '@modules/Work/constants';
+import { queueWording } from '@modules/Work/helpers';
 import { SECTION_LABELS } from '@shared/constants';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,7 @@ interface TaskRowProps {
 const TaskRow = ({ item, onToggle }: TaskRowProps) => {
    const { t } = useTranslation('work');
    const { t: tLayout } = useTranslation('layout');
+   const { t: tDeals } = useTranslation('deals');
 
    const text =
       item.kind === 'queue'
@@ -22,8 +24,7 @@ const TaskRow = ({ item, onToggle }: TaskRowProps) => {
                  item.item.subject,
                  tLayout(SECTION_LABELS[item.item.section]),
               ],
-              title: item.item.title,
-              note: item.item.note,
+              ...queueWording(t, tDeals, item.item),
            }
          : {
               origin: [

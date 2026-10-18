@@ -20,7 +20,7 @@ import {
    Progress,
    STACK,
 } from '@shared/components';
-import { SECTION_PATHS, TEAM } from '@shared/constants';
+import { TEAM } from '@shared/constants';
 import { formatDate, shortName } from '@shared/helpers';
 import type { Deal, Fact } from '@shared/types/deals.types';
 import clsx from 'clsx';
@@ -126,14 +126,7 @@ const Overview = ({ deal }: OverviewProps) => {
          <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
             <div className={STACK}>
                {deal.terms && (
-                  <Card
-                     action={
-                        <Link className='link' to={SECTION_PATHS.contracts}>
-                           {t('Открыть проект SAFE')}
-                        </Link>
-                     }
-                     title={t('Условия сделки')}
-                  >
+                  <Card title={t('Условия сделки')}>
                      <div className='px-5 pt-1 pb-5'>
                         <FactList
                            divided

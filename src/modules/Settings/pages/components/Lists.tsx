@@ -1,57 +1,61 @@
-import { TYPE_LABELS } from '@modules/Contracts/constants';
 import {
    REJECT_REASON_LABELS,
    REJECT_REASON_ORDER,
    SOURCE_LABELS,
    SOURCE_ORDER,
 } from '@modules/Deals/constants';
-import finance from '@modules/Finance/services';
-import { Card } from '@shared/components';
-import { useServiceData } from '@shared/hooks';
-import type { ContractType } from '@shared/types/contracts.types';
+import { INDUSTRY_MANDATES } from '@modules/Settings/constants';
+import { Badge, Card } from '@shared/components';
+import type { SettingsState } from '@shared/types/settings.types';
 import { useTranslation } from 'react-i18next';
 
-const loadFinance = () => finance.getState();
-const subscribeFinance = (listener: () => void) => finance.subscribe(listener);
+interface ListsProps {
+   data: SettingsState;
+}
+
+interface ListItem {
+   key: string;
+   text: string;
+   badge?: (typeof INDUSTRY_MANDATES)[keyof typeof INDUSTRY_MANDATES];
+}
 
 /* The reference lists the platform's forms and checks use. They change
    together with the documents they come from, so they are read-only here. */
-const Lists = () => {
+const Lists = ({ data }: ListsProps) => {
    const { t } = useTranslation('settings');
    const { t: tDeals } = useTranslation('deals');
-   const { t: tContracts } = useTranslation('contracts');
-   const financeData = useServiceData(loadFinance, subscribeFinance);
 
-   const lists = [
+   const lists: { title: string; note: string; items: ListItem[] }[] = [
+      {
+         title: t('Отрасли'),
+         note: t('Отрасли формы заявки на сайте и их место в мандате'),
+         items: data.industries.map(({ id, name, mandate }) => ({
+            key: id,
+            text: name,
+            badge: INDUSTRY_MANDATES[mandate],
+         })),
+      },
       {
          title: t('Причины отказа'),
          note: t('Отказ возможен только с причиной из списка'),
-         items: REJECT_REASON_ORDER.map((reason) =>
-            tDeals(REJECT_REASON_LABELS[reason]),
-         ),
+         items: REJECT_REASON_ORDER.map((reason) => ({
+            key: reason,
+            text: tDeals(REJECT_REASON_LABELS[reason]),
+         })),
       },
       {
          title: t('Источники сделок'),
          note: t('Откуда пришла заявка'),
-         items: SOURCE_ORDER.map((source) => tDeals(SOURCE_LABELS[source])),
-      },
-      {
-         title: t('Статьи операций'),
-         note: t('Привязаны к строкам бюджета; по ним считается факт'),
-         items: financeData?.categories.map(({ title }) => title) ?? [],
-      },
-      {
-         title: t('Типы договоров'),
-         note: t('Вкладки реестра договоров'),
-         items: (Object.keys(TYPE_LABELS) as ContractType[]).map((type) =>
-            tContracts(TYPE_LABELS[type]),
-         ),
+         items: SOURCE_ORDER.map((source) => ({
+            key: source,
+            text: tDeals(SOURCE_LABELS[source]),
+         })),
       },
    ];
 
    return (
       <>
-         <div className='gap-section stagger grid lg:grid-cols-2 2xl:grid-cols-4'>
+         <div className='gap-section stagger grid lg:grid-cols-2 2xl:grid-cols-3'>
             {lists.map((list) => (
                <Card
                   key={list.title}
@@ -61,8 +65,16 @@ const Lists = () => {
                   <p className='text-ink-soft px-5 pt-3 text-xs'>{list.note}</p>
                   <ul className='divide-line divide-y px-5 pb-2'>
                      {list.items.map((item) => (
-                        <li key={item} className='py-2.5'>
-                           {item}
+                        <li
+                           key={item.key}
+                           className='flex items-center justify-between gap-3 py-2.5'
+                        >
+                           {item.text}
+                           {item.badge && (
+                              <Badge tone={item.badge.tone}>
+                                 {t(item.badge.label)}
+                              </Badge>
+                           )}
                         </li>
                      ))}
                   </ul>

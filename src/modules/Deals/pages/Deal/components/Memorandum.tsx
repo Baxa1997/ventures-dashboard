@@ -231,7 +231,7 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                   <CheckList className='text-meta' items={memo.checklist} />
                   <p className='text-ink-soft mt-4 text-xs'>
                      {t(
-                        'Пока чек-лист не закрыт, рассылка материалов на ИК недоступна. Пункты взяты из «Чек-лист ИК» в Notion.',
+                        'Пока чек-лист не закрыт, рассылка материалов на ИК недоступна.',
                      )}
                   </p>
                </div>

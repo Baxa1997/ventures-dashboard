@@ -1,19 +1,15 @@
 import { Avatar } from '@shared/components';
-import { ROLE_LABELS, SIGN_IN_IDS, TEAM } from '@shared/constants';
-import { setCurrentUser, signOut, useCurrentUser } from '@shared/hooks';
-import clsx from 'clsx';
+import { ROLE_LABELS } from '@shared/constants';
+import { signOut, useCurrentUser } from '@shared/hooks';
 import { LogOut } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Language from '../Language';
 
-const ACCOUNTS = TEAM.filter(({ id }) => SIGN_IN_IDS.includes(id));
-
 const HEADING = 'text-on-dark-faint px-2.5 pt-1.5 pb-1 text-xs';
 
-// The signed-in person. The block opens a menu with the interface language,
-// signing out and, until authentication is connected, a short list of people
-// to look at the pages as.
+// The signed-in person. The block opens a menu with the interface language
+// and signing out.
 const UserMenu = () => {
    const { t } = useTranslation('layout');
    const user = useCurrentUser();
@@ -44,31 +40,6 @@ const UserMenu = () => {
                <div className='px-1 pb-1.5'>
                   <Language />
                </div>
-               <div className={clsx(HEADING, 'border-t border-white/10')}>
-                  {t('Войти как')}
-               </div>
-               {ACCOUNTS.map((account) => (
-                  <button
-                     key={account.id}
-                     type='button'
-                     aria-pressed={account.id === user.id}
-                     className={clsx(
-                        'flex w-full flex-col rounded-md px-2.5 py-1.5 text-left hover:bg-white/10',
-                        account.id === user.id && 'bg-white/10',
-                     )}
-                     onClick={() => {
-                        setCurrentUser(account.id);
-                        setOpen(false);
-                     }}
-                  >
-                     <span className='text-meta font-semibold'>
-                        {account.name}
-                     </span>
-                     <span className='text-on-dark-soft text-xs'>
-                        {t(ROLE_LABELS[account.role])}
-                     </span>
-                  </button>
-               ))}
                <div className='mt-1 border-t border-white/10 pt-1'>
                   <button
                      type='button'

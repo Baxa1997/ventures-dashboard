@@ -4,23 +4,12 @@ import {
    MANDATE_FIELDS,
    NORM_STAGE_LABELS,
 } from '@modules/Settings/constants';
-import settings from '@modules/Settings/services';
-import {
-   Button,
-   Card,
-   FactList,
-   STACK,
-   Table,
-   TD,
-   TH,
-} from '@shared/components';
-import type { SettingsState } from '@shared/types/settings.types';
+import { Card, FactList, STACK, Table, TD, TH } from '@shared/components';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { Draft } from '..';
 
 interface RulesProps {
-   data: SettingsState;
    draft: Draft;
    editable: boolean;
    onChange: (draft: Draft) => void;
@@ -29,40 +18,13 @@ interface RulesProps {
 /* The investment mandate, the stage norms, the portfolio's risk flags and the
    committee's voting rules. The mandate's check and the stage norms are what
    Сделки check applications and count deadlines by. */
-const Rules = ({ data, draft, editable, onChange }: RulesProps) => {
+const Rules = ({ draft, editable, onChange }: RulesProps) => {
    const { t } = useTranslation('settings');
    const input =
       'field-input text-meta h-9 disabled:bg-ground disabled:text-ink-soft';
 
    return (
       <>
-         {data.site && (
-            <div className='bg-warning-tint mb-section flex flex-col gap-3 rounded-lg px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6'>
-               <div className='min-w-0 flex-1'>
-                  <p className='text-warning-ink font-semibold'>
-                     {t('Мандат на сайте расходится с мандатом фонда')}
-                  </p>
-                  <p className='mt-0.5'>
-                     {t(
-                        'На сайте: чек {{siteCheck}}, стадии {{siteStages}}. Здесь: {{check}}, {{stages}}. Проверка входящих заявок и письма об отказе берут значения отсюда.',
-                        {
-                           siteCheck: data.site.check,
-                           siteStages: data.site.stages,
-                           check: data.mandate.check,
-                           stages: data.mandate.stages.toLowerCase(),
-                        },
-                     )}
-                  </p>
-               </div>
-               <Button
-                  disabled={!editable}
-                  variant='ghost'
-                  onClick={() => settings.syncSite()}
-               >
-                  {t('Обновить сайт')}
-               </Button>
-            </div>
-         )}
          <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]'>
             <div className={STACK}>
                <Card

@@ -20,7 +20,12 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { useCurrentUser } from '@shared/hooks';
-import type { Employee, Task, TaskInput } from '@shared/types/work.types';
+import type {
+   Employee,
+   Task,
+   TaskInput,
+   TaskTargets,
+} from '@shared/types/work.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CHECKLIST_MAX, CONTEXT_MAX } from '../constants';
@@ -34,11 +39,18 @@ import {
 interface TaskFormProps {
    task?: Task;
    employees: Employee[];
+   targets: TaskTargets;
    onSubmit: (values: TaskInput) => void;
    onCancel: () => void;
 }
 
-const TaskForm = ({ task, employees, onSubmit, onCancel }: TaskFormProps) => {
+const TaskForm = ({
+   task,
+   employees,
+   targets,
+   onSubmit,
+   onCancel,
+}: TaskFormProps) => {
    const { t } = useTranslation('work');
    const { t: tValidation } = useTranslation('validation');
    const user = useCurrentUser();
@@ -131,10 +143,47 @@ const TaskForm = ({ task, employees, onSubmit, onCancel }: TaskFormProps) => {
                   )}
                </Field>
                <Field label={t('Связано с')}>
-                  {select('relation', TASK_RELATION_ORDER, (relation) =>
-                     t(TASK_RELATION_LABELS[relation]),
-                  )}
+                  <select
+                     className='field-input'
+                     value={values.relation}
+                     onChange={(event) => {
+                        setValue(
+                           'relation',
+                           event.target.value as TaskFormValues['relation'],
+                        );
+                        setValue('relationId', '');
+                     }}
+                  >
+                     {TASK_RELATION_ORDER.map((relation) => (
+                        <option key={relation} value={relation}>
+                           {t(TASK_RELATION_LABELS[relation])}
+                        </option>
+                     ))}
+                  </select>
                </Field>
+               {values.relation !== 'none' && (
+                  <Field
+                     className='sm:col-span-2'
+                     error={errorOf('relationId')}
+                     label={t(TASK_RELATION_LABELS[values.relation])}
+                  >
+                     <select
+                        aria-invalid={!!errors.relationId}
+                        className='field-input'
+                        value={values.relationId}
+                        onChange={(event) =>
+                           setValue('relationId', event.target.value)
+                        }
+                     >
+                        <option value=''>{t('Выберите')}</option>
+                        {targets[values.relation].map((target) => (
+                           <option key={target.id} value={target.id}>
+                              {target.name}
+                           </option>
+                        ))}
+                     </select>
+                  </Field>
+               )}
                <Field
                   className='sm:col-span-2'
                   error={errorOf('context')}

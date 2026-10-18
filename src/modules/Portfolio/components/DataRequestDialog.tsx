@@ -8,6 +8,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { addWorkingDays, personName, todayISO } from '@shared/helpers';
+import { useCurrentUser } from '@shared/hooks';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +28,7 @@ const DataRequestDialog = ({
    onClose,
 }: DataRequestDialogProps) => {
    const { t } = useTranslation('portfolio');
+   const user = useCurrentUser();
    const [text, setText] = useState('');
    const [dueDate, setDueDate] = useState(() => addWorkingDays(todayISO(), 5));
    const [error, setError] = useState('');
@@ -44,22 +46,27 @@ const DataRequestDialog = ({
          setError(t('Напишите, какие данные нужны'));
          return;
       }
-      await work.createTask({
-         title: t('Запросить у {{company}}: {{text}}', {
-            company: company.name,
-            text: text.trim(),
-         }),
-         type: 'portfolio',
-         context: company.name,
-         relation: 'portfolio',
-         assigneeId: company.ownerId,
-         reviewerId: '',
-         dueDate,
-         priority: 'medium',
-         status: 'assigned',
-         recurrence: 'none',
-         checklist: [],
-      });
+      await work.createTask(
+         {
+            title: t('Запросить у {{company}}: {{text}}', {
+               company: company.name,
+               text: text.trim(),
+            }),
+            type: 'portfolio',
+            context: company.name,
+            relation: 'portfolio',
+            relationId: company.id,
+            assigneeId: company.ownerId,
+            reviewerId: '',
+            dueDate,
+            priority: 'medium',
+            status: 'assigned',
+            recurrence: 'none',
+            checklist: [],
+         },
+         user.id,
+         { origin: 'data_request' },
+      );
       setDone(true);
    };
 

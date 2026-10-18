@@ -19,7 +19,6 @@
    "Меню": "Menyu",
    "Закрыть меню": "Menyuni yopish",
    "Язык": "Til",
-   "Войти как": "Kim sifatida kirish",
    "Выйти": "Chiqish",
    "Директор": "Direktor",
    "Зам. директора": "Direktor o‘rinbosari",
@@ -39,5 +38,13 @@
    "Закупки по шагам: заявка, комиссия, протокол, договор; сроки каждого шага.": "Bosqichma-bosqich xaridlar: ariza, komissiya, bayonnoma, shartnoma; har bir bosqich muddati.",
    "Входящие и исходящие письма с номерами и сроками ответа; письмо порождает задачу.": "Raqamlari va javob muddatlari bilan kiruvchi va chiquvchi xatlar; xat vazifa yaratadi.",
    "Устав, положения, политики: действующая версия, статус, кем и когда утверждён.": "Ustav, nizomlar, siyosatlar: amaldagi versiya, holat, kim va qachon tasdiqlagan.",
-   "Мандат, нормативы стадий, флаги портфеля, правила ИК; сотрудники, роли и права.": "Mandat, bosqich me’yorlari, portfel belgilari, IQ qoidalari; xodimlar, rollar va huquqlar."
+   "Мандат, нормативы стадий, флаги портфеля, правила ИК; сотрудники, роли и права.": "Mandat, bosqich me’yorlari, portfel belgilari, IQ qoidalari; xodimlar, rollar va huquqlar.",
+   "Секретарь ИК": "IK kotibi",
+   "Юрист": "Yurist",
+   "Сотрудник": "Xodim",
+   "Не удалось загрузить сотрудников фонда из ucode": "Fond xodimlarini ucode’dan yuklab bo‘lmadi",
+   "Повторить": "Qayta urinish",
+   "Сессия закончилась, войдите снова": "Sessiya tugadi, qayta kiring",
+   "ucode не принял изменение или не ответил. Обновите страницу и попробуйте ещё раз.": "ucode o‘zgarishni qabul qilmadi yoki javob bermadi. Sahifani yangilab, qayta urinib ko‘ring.",
+   "Закрыть": "Yopish"
 }

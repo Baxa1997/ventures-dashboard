@@ -31,7 +31,6 @@ import {
    formatUsd,
    personName,
 } from '@shared/helpers';
-import { DIRECTOR_ID } from '@shared/constants';
 import { useCurrentUser } from '@shared/hooks';
 import type { Attendance, Meeting } from '@shared/types/committee.types';
 import clsx from 'clsx';
@@ -47,6 +46,7 @@ interface MeetingsProps {
 // committee's meetings and the decisions still to be carried out.
 const Meetings = ({ data }: MeetingsProps) => {
    const { t } = useTranslation('committee');
+   const user = useCurrentUser();
    const navigate = useNavigate();
    const icMeetings = data.meetings
       .filter(({ body }) => body === 'ic')
@@ -100,7 +100,6 @@ const Meetings = ({ data }: MeetingsProps) => {
                      {t('Экспорт')}
                   </button>
                }
-               hint={t('перенесён из Notion')}
                title={t('Реестр заседаний')}
             >
                <Table
@@ -146,15 +145,6 @@ const Meetings = ({ data }: MeetingsProps) => {
                      </tr>
                   ))}
                </Table>
-               <p className='border-line text-ink-soft border-t px-5 py-3 text-xs'>
-                  {t(
-                     'В образце {{shown}} из {{total}} заседаний: остальные перенесут из Notion.',
-                     {
-                        shown: icMeetings.length,
-                        total: data.totals.meetings,
-                     },
-                  )}
-               </p>
             </Card>
 
             <Card
@@ -180,7 +170,11 @@ const Meetings = ({ data }: MeetingsProps) => {
                                     type='button'
                                     className='text-ink-soft hover:text-accent text-xs'
                                     onClick={() =>
-                                       committee.setTaskDone(task.id, true)
+                                       committee.setTaskDone(
+                                          task.id,
+                                          true,
+                                          user.id,
+                                       )
                                     }
                                  >
                                     {t('Отметить выполненным')}
@@ -195,11 +189,6 @@ const Meetings = ({ data }: MeetingsProps) => {
                )}
             </Card>
          </div>
-         <p className='text-ink-soft mt-section text-xs'>
-            {t(
-               'Состав ИК на макете условный. Число членов и кворум задаются в Настройках по Положению об ИК.',
-            )}
-         </p>
       </>
    );
 };
@@ -233,7 +222,7 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
    const started = meeting.status !== 'planned';
    // the secretary marks who confirmed, until the meeting opens
    const canEdit =
-      !started && (user.id === meeting.secretaryId || user.id === DIRECTOR_ID);
+      !started && (user.id === meeting.secretaryId || user.role === 'director');
 
    const open = async () => {
       if (!started) await committee.startMeeting(meeting.id);

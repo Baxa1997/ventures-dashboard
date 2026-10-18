@@ -127,15 +127,6 @@ const Decisions = ({ data }: DecisionsProps) => {
             ) : (
                <NoData>{t('Решений по этим условиям нет')}</NoData>
             )}
-            <p className='border-line text-ink-soft mt-auto border-t px-5 py-3 text-xs'>
-               {t(
-                  'В образце {{shown}} из {{total}} решений: остальные перенесут из Notion.',
-                  {
-                     shown: data.decisions.length,
-                     total: data.totals.decisions,
-                  },
-               )}
-            </p>
          </Card>
       </>
    );

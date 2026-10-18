@@ -9,16 +9,14 @@ import {
 import { useCommittee } from '@modules/Committee/hooks';
 import {
    Button,
-   buttonClass,
    Loading,
    PageBody,
    PageHeader,
    Tabs,
 } from '@shared/components';
-import { SECTION_PATHS } from '@shared/constants';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Board, Decisions, Meetings, Members } from './components';
 
 const toTab = (value: string | null): ListTab =>
@@ -56,17 +54,9 @@ const CommitteeList = () => {
       <>
          <PageHeader
             actions={
-               <>
-                  <Link
-                     className={buttonClass('ghost')}
-                     to={`${SECTION_PATHS.documents}?doc=ic-regulation`}
-                  >
-                     {t('Положение об ИК')}
-                  </Link>
-                  <Button onClick={() => setScheduling(true)}>
-                     {t('Назначить заседание')}
-                  </Button>
-               </>
+               <Button onClick={() => setScheduling(true)}>
+                  {t('Назначить заседание')}
+               </Button>
             }
             meta={[
                t('Кворум ИК — {{count}} член', { count: IC_RULES.quorum }),

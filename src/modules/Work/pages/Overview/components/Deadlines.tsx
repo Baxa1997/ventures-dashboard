@@ -1,5 +1,9 @@
 import { SOON_DAYS } from '@modules/Work/constants';
-import { daysUntil, formatWeekday } from '@modules/Work/helpers';
+import {
+   daysUntil,
+   deadlineWording,
+   formatWeekday,
+} from '@modules/Work/helpers';
 import { SECTION_LABELS } from '@shared/constants';
 import type { WeekDeadline } from '@shared/types/work.types';
 import clsx from 'clsx';
@@ -17,28 +21,35 @@ const dayClass = ({ date, keyEvent }: WeekDeadline) => {
 
 const Deadlines = ({ items }: DeadlinesProps) => {
    const { t } = useTranslation('layout');
+   const { t: tWork } = useTranslation('work');
+   const { t: tDeals } = useTranslation('deals');
 
    return (
       <ul className='divide-line divide-y px-5 py-1.5'>
-         {items.map((item) => (
-            <li key={item.id} className='flex gap-3 py-3.5'>
-               <time
-                  dateTime={item.date}
-                  className={clsx(
-                     'w-17 shrink-0 text-xs leading-4.5 font-semibold',
-                     dayClass(item),
-                  )}
-               >
-                  {formatWeekday(item.date)}
-               </time>
-               <div className='min-w-0'>
-                  <div className='text-meta'>{item.title}</div>
-                  <div className='text-ink-soft mt-px text-xs'>
-                     {t(SECTION_LABELS[item.section])} · {item.note}
+         {items.map((item) => {
+            const { title, note } = deadlineWording(tWork, tDeals, item);
+            return (
+               <li key={item.id} className='flex gap-3 py-3.5'>
+                  <time
+                     dateTime={item.date}
+                     className={clsx(
+                        'w-17 shrink-0 text-xs leading-4.5 font-semibold',
+                        dayClass(item),
+                     )}
+                  >
+                     {formatWeekday(item.date)}
+                  </time>
+                  <div className='min-w-0'>
+                     <div className='text-meta'>{title}</div>
+                     <div className='text-ink-soft mt-px text-xs'>
+                        {[t(SECTION_LABELS[item.section]), note]
+                           .filter(Boolean)
+                           .join(' · ')}
+                     </div>
                   </div>
-               </div>
-            </li>
-         ))}
+               </li>
+            );
+         })}
       </ul>
    );
 };

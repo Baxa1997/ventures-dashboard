@@ -9,7 +9,9 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { ROLE_LABELS as SYSTEM_ROLES } from '@shared/constants';
 import type { Access, StaffRole } from '@shared/types/settings.types';
+import type { Role } from '@shared/types/work.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -18,11 +20,14 @@ interface InviteDialogProps {
    onClose: () => void;
 }
 
-/* Invites an employee by email with the roles they will have. A person can
-   hold several roles; the access level follows the widest of them. */
+/* Adds an employee with their role in the system, which their ucode role and
+   what the panel lets them do follow, and the duties they hold. A person can
+   hold several duties; the access level follows the widest of them. */
 const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
    const { t } = useTranslation('settings');
+   const { t: tLayout } = useTranslation('layout');
    const [name, setName] = useState('');
+   const [role, setRole] = useState<Role>('analyst');
    const [email, setEmail] = useState('');
    const [position, setPosition] = useState('');
    const [roles, setRoles] = useState<StaffRole[]>([]);
@@ -37,6 +42,7 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
       setName('');
       setEmail('');
       setPosition('');
+      setRole('analyst');
       setRoles([]);
       setErrors({});
       onClose();
@@ -63,6 +69,7 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
                   name: name.trim(),
                   email: email.trim(),
                   position: position.trim(),
+                  role,
                   roles,
                   access,
                });
@@ -97,6 +104,21 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
                         onChange={(event) => setPosition(event.target.value)}
                      />
                   </Field>
+                  <Field label={t('Роль в системе')}>
+                     <select
+                        className='field-input'
+                        value={role}
+                        onChange={(event) =>
+                           setRole(event.target.value as Role)
+                        }
+                     >
+                        {(Object.keys(SYSTEM_ROLES) as Role[]).map((value) => (
+                           <option key={value} value={value}>
+                              {tLayout(SYSTEM_ROLES[value])}
+                           </option>
+                        ))}
+                     </select>
+                  </Field>
                   <Field label={t('Доступ')}>
                      <select
                         className='field-input'
@@ -115,7 +137,7 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
                </div>
                <fieldset className='mt-5'>
                   <legend className='text-ink-soft text-xs font-medium'>
-                     {t('Роли')}
+                     {t('Обязанности')}
                   </legend>
                   <ul className='mt-2 grid gap-2.5 sm:grid-cols-2'>
                      {(Object.keys(ROLE_LABELS) as StaffRole[]).map((role) => {
@@ -153,7 +175,7 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
             </ModalBody>
             <ModalFooter
                note={t(
-                  'Приглашение уйдёт на почту, вход — после подтверждения',
+                  'Войти сотрудник сможет, когда для него создадут пользователя ucode',
                )}
             >
                <Button variant='ghost' onClick={close}>

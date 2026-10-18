@@ -23,9 +23,11 @@ const Portfolio = ({ portfolio }: PortfolioProps) => {
                      <th className={`${TH} pl-5`}>{t('Компания')}</th>
                      <th className={`${TH} text-right`}>{t('Вложено')}</th>
                      <th className={TH}>
-                        {t('Отчёт Q{{quarter}}', {
-                           quarter: portfolio.quarter,
-                        })}
+                        {portfolio.quarter
+                           ? t('Отчёт Q{{quarter}}', {
+                                quarter: portfolio.quarter,
+                             })
+                           : t('Отчёт')}
                      </th>
                      <th className={`${TH} pr-5`}>{t('Следующий шаг')}</th>
                   </tr>
@@ -54,16 +56,23 @@ const Portfolio = ({ portfolio }: PortfolioProps) => {
                </tbody>
             </table>
          </div>
-         <p className='border-line text-ink-soft border-t px-5 py-3 text-xs'>
-            {t(
-               'Срок сдачи отчётов за {{quarter}} квартал — {{due}}. Запрос отправлен компаниям {{sent}}.',
-               {
-                  quarter: QUARTERS[portfolio.quarter - 1],
-                  due: formatDate(portfolio.reportsDue),
-                  sent: formatDate(portfolio.requestedAt),
-               },
-            )}
-         </p>
+         {portfolio.quarter && (
+            <p className='border-line text-ink-soft border-t px-5 py-3 text-xs'>
+               {portfolio.requestedAt
+                  ? t(
+                       'Срок сдачи отчётов за {{quarter}} квартал — {{due}}. Запрос отправлен компаниям {{sent}}.',
+                       {
+                          quarter: QUARTERS[portfolio.quarter - 1],
+                          due: formatDate(portfolio.reportsDue),
+                          sent: formatDate(portfolio.requestedAt),
+                       },
+                    )
+                  : t('Срок сдачи отчётов за {{quarter}} квартал — {{due}}.', {
+                       quarter: QUARTERS[portfolio.quarter - 1],
+                       due: formatDate(portfolio.reportsDue),
+                    })}
+            </p>
+         )}
       </>
    );
 };

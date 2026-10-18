@@ -2,6 +2,7 @@ import type { BadgeTone } from '@shared/components';
 import type {
    Access,
    FlagField,
+   IndustryMandate,
    MandateField,
    NormStage,
    StaffRole,
@@ -74,6 +75,17 @@ export const ROLE_LABELS = {
    procurement_secretary: 'Секретарь закупочной комиссии',
 } as const satisfies Record<StaffRole, string>;
 
+// industries.mandate: where an industry stands in the fund's mandate.
+export const INDUSTRY_MANDATES = {
+   focus: { label: 'В фокусе', tone: 'success' },
+   allowed: { label: 'Допустима', tone: 'neutral' },
+   licensed: { label: 'Нужна лицензия', tone: 'warning' },
+   excluded: { label: 'Исключена', tone: 'danger' },
+} as const satisfies Record<
+   IndustryMandate,
+   { label: string; tone: BadgeTone }
+>;
+
 export const ACCESS = {
    full: { label: 'Полный', tone: 'success' },
    work: { label: 'Рабочий', tone: 'accent' },
@@ -136,15 +148,12 @@ export const EXTERNAL_RIGHTS = [
    { role: 'Заявитель', text: 'только кабинет заявки на сайте' },
 ] as const;
 
-export type IntegrationState =
-   'manual' | 'moving' | 'built_in' | 'synced' | 'differs';
+export type IntegrationState = 'manual' | 'moving' | 'built_in';
 
 export const INTEGRATION_STATES = {
    manual: { label: 'Вручную', tone: 'neutral' },
    moving: { label: 'Идёт перенос', tone: 'warning' },
    built_in: { label: 'Встроено', tone: 'success' },
-   synced: { label: 'Совпадает', tone: 'success' },
-   differs: { label: 'Расходится', tone: 'warning' },
 } as const satisfies Record<
    IntegrationState,
    { label: string; tone: BadgeTone }
@@ -173,7 +182,7 @@ export const INTEGRATIONS = [
       id: 'site',
       title: 'Сайт фонда',
       text: 'Мандат и форма заявки; заявки с сайта попадают во «Входящие».',
-      state: 'site',
+      state: 'built_in',
    },
    {
       id: 'notion',

@@ -1,9 +1,6 @@
 import logoWhite from '@assets/images/logo-white.png';
-import {
-   DEMO_CREDENTIALS,
-   EMAIL_MAX,
-   PASSWORD_MAX,
-} from '@modules/Auth/constants';
+import { LOGIN_MAX, PASSWORD_MAX } from '@modules/Auth/constants';
+import { UcodeError, ucodeConfigured } from '@shared/api/ucode';
 import { OVERVIEW_PATH } from '@shared/constants';
 import { signIn, useSession } from '@shared/hooks';
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
@@ -38,16 +35,22 @@ const Field = ({ label, error, children }: FieldProps) => (
 );
 
 /* The sign-in page, in the brandbook's look rather than the platform's: it is
-   the fund's front door. Any email and password are accepted until
-   authentication is connected. */
+   the fund's front door. ucode checks the login (or work email) and password
+   (@shared/api/ucode). A build without the ucode ids says so instead of
+   letting anybody in. */
 const Login = () => {
    const { t } = useTranslation('auth');
    const { t: tValidation } = useTranslation('validation');
    const session = useSession();
    const location = useLocation();
-   const [values, setValues] = useState<LoginValues>(DEMO_CREDENTIALS);
+   const [values, setValues] = useState<LoginValues>({
+      login: '',
+      password: '',
+   });
    const [remember, setRemember] = useState(true);
    const [errors, setErrors] = useState<LoginErrors>({});
+   const [busy, setBusy] = useState(false);
+   const [failure, setFailure] = useState('');
    const title = t('Вход');
 
    useEffect(() => {
@@ -63,6 +66,7 @@ const Login = () => {
    const setValue = (key: keyof LoginValues, value: string) => {
       setValues((prev) => ({ ...prev, [key]: value }));
       setErrors((prev) => ({ ...prev, [key]: undefined }));
+      setFailure('');
    };
 
    const errorOf = (key: keyof LoginValues) => {
@@ -70,14 +74,30 @@ const Login = () => {
       return message && tValidation(message);
    };
 
-   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const result = loginSchema.safeParse(values);
       if (!result.success) {
          setErrors(getFieldErrors(result.error));
          return;
       }
-      signIn(result.data.email, remember);
+      setBusy(true);
+      try {
+         await signIn(result.data.login, result.data.password, remember);
+      } catch (error) {
+         // ucode answers a wrong login or password with 400 or 404, a blocked user with 403
+         const refused =
+            error instanceof UcodeError &&
+            error.status >= 400 &&
+            error.status < 500;
+         setFailure(
+            refused
+               ? t('Неверный логин или пароль')
+               : t('Не удалось войти. Попробуйте ещё раз.'),
+         );
+      } finally {
+         setBusy(false);
+      }
    };
 
    return (
@@ -114,15 +134,19 @@ const Login = () => {
                <h2 className='mb-1 text-[28px] leading-tight font-bold tracking-[-0.01em]'>
                   {title}
                </h2>
-               <Field error={errorOf('email')} label={t('Рабочая почта')}>
+               <Field
+                  error={errorOf('login')}
+                  label={t('Логин или рабочая почта')}
+               >
                   <input
-                     aria-invalid={!!errors.email}
+                     aria-invalid={!!errors.login}
+                     autoCapitalize='none'
                      autoComplete='username'
                      className={INPUT}
-                     maxLength={EMAIL_MAX}
-                     type='email'
-                     value={values.email}
-                     onChange={(event) => setValue('email', event.target.value)}
+                     maxLength={LOGIN_MAX}
+                     spellCheck={false}
+                     value={values.login}
+                     onChange={(event) => setValue('login', event.target.value)}
                   />
                </Field>
                <Field error={errorOf('password')} label={t('Пароль')}>
@@ -147,15 +171,25 @@ const Login = () => {
                   />
                   {t('Не выходить на этом устройстве')}
                </label>
+               {failure && (
+                  <p role='alert' className='text-danger text-[15px]'>
+                     {failure}
+                  </p>
+               )}
+               {!ucodeConfigured && (
+                  <p role='alert' className='text-danger text-[15px]'>
+                     {t(
+                        'Панель не подключена к ucode. Задайте VITE_UCODE_PROJECT_ID, VITE_UCODE_ENVIRONMENT_ID и VITE_UCODE_CLIENT_TYPE_IDS.',
+                     )}
+                  </p>
+               )}
                <button
                   type='submit'
-                  className='bg-brand-sky hover:bg-brand-sky-deep focus-visible:outline-brand-sky rounded-[10px] px-4 py-3.5 text-base font-bold text-white transition-colors'
+                  disabled={busy || !ucodeConfigured}
+                  className='bg-brand-sky hover:bg-brand-sky-deep focus-visible:outline-brand-sky rounded-[10px] px-4 py-3.5 text-base font-bold text-white transition-colors disabled:opacity-70'
                >
-                  {t('Войти')}
+                  {busy ? t('Вход…') : t('Войти')}
                </button>
-               <p className='text-brand-ink-soft text-[13px] leading-normal'>
-                  {t('Прототип: войти можно с любой почтой и паролем.')}
-               </p>
             </form>
          </main>
       </div>

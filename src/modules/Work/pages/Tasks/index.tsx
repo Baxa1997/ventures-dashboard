@@ -32,6 +32,7 @@ const Tasks = () => {
    const {
       tasks,
       employees,
+      targets,
       loading,
       createTask,
       updateTask,
@@ -111,9 +112,7 @@ const Tasks = () => {
             meta={
                !loading &&
                [
-                  t(
-                     'Поручения команды фонда — перенесены из Notion «Задачи по фонду»',
-                  ),
+                  t('Поручения команды фонда'),
                   t('{{count}} открытая', { count: summary.open }),
                   t('{{count}} просрочена', { count: summary.overdue }),
                   t('{{count}} не распределена', {
@@ -146,6 +145,7 @@ const Tasks = () => {
                      <TaskDetail
                         key={selected.id}
                         employees={employees}
+                        targets={targets}
                         task={selected}
                         onAdvance={(status) =>
                            updateTask(selected.id, { status })
@@ -180,6 +180,7 @@ const Tasks = () => {
                <TaskForm
                   key={form.task?.id ?? 'new'}
                   employees={employees}
+                  targets={targets}
                   task={form.task}
                   onCancel={closeForm}
                   onSubmit={handleSubmit}

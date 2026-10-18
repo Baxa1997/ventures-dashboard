@@ -150,6 +150,18 @@
    textarea.field-input {
       @apply h-auto py-2;
    }
+   /* The browser's own arrow sits on the very edge whatever the padding, so a
+      select draws the filters' chevron (lucide ChevronDown, ink-soft) 12px in
+      from the right and keeps its text clear of it. */
+   select.field-input {
+      appearance: none;
+      padding-right: 2.25rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236a7189' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-position: right 0.75rem center;
+      background-size: 1rem;
+      background-repeat: no-repeat;
+      text-overflow: ellipsis;
+   }
    .field-input[aria-invalid='true'] {
       @apply border-danger;
    }
