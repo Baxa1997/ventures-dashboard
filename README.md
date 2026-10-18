@@ -85,7 +85,22 @@ The other sections are built from screens 12–25 of the design. Each keeps its 
 
 ## Data
 
-There is no backend yet. Each module's `services` folder starts from the sample data in its `sample.ts` (the content of the design) and keeps what a person changes in the browser's localStorage. The methods return promises, so they can be replaced with API calls without changing the pages.
+Each module's `services` folder starts from the sample data in its `sample.ts` (the content of the design) and keeps what a person changes in the browser's localStorage. The methods return promises, so they can be replaced with API calls without changing the pages.
+
+### Сделки on ucode
+
+The fund's backend is a ucode project (`docs/ERP.md`, `docs/ucode-migration.md`). Сделки can run on its test environment:
+
+```bash
+echo "UCODE_API_KEY=<the test project's API key>" >> .env.local   # git-ignored
+yarn dev
+```
+
+- The dev server forwards `/ucode` to the ucode admin API and adds the key (`vite.config.ts`), so the browser never holds it. Without the key, and in every `yarn build`, the panel runs on the sample data as before.
+- The deals then come from ucode's tables (`src/modules/Deals/services/ucode.ts`), applications from the website among them: the website's Pitch Us form opens a deal in the inbox, with the pitch deck and the «Из заявки» facts. Every change in Сделки — a deal entered by hand, taken, screened, moved, asked for a document, declined — is worked out by the same service as before and then written to ucode; if ucode refuses it, it is undone. The register's figures are counted from the deals.
+- A deal from the website carries the applicant's status: taking, moving and declining it set `applications.public_status`, which never goes back, and declining sets `resubmit_after` (at once for a mandate reason, otherwise in 6 or 12 months), after which the website accepts a new application from the same email.
+- "Today" is the real date with ucode, not `SAMPLE_TODAY`.
+- Still on sample data: the other sections, the employees (the ids written as owners are the sample's `e1`…), and signing in. ERP.md §9 has the order; staff signing in to ucode then replaces the dev server's key.
 
 - The sample data is a snapshot of the fund on 2 October 2026, and its texts name dates around that day. The pages therefore treat that day as "today": see `SAMPLE_TODAY` in `src/shared/constants/system/sample.ts` and `todayISO` in `src/shared/helpers`, the one place to change when the data becomes live.
 - Deals: the register holds 486 deals, of which the sample has 32: the ones the design shows, plus three assigned applications that its counters imply (the design names 9 of the 12 incoming ones). The register's figures (tab counters, the bar, conversion, rejection reasons) are stored and adjusted with every change, so they stay right for deals that are not loaded. Content of a deal's card exists where the design has it: EasyTap (overview, memorandum), Apicore (screening), NeuroFin (requests and documents), MoonAI (due diligence), Toklaps (exit conditions). Other deals show what follows from their basic data.

@@ -1,8 +1,10 @@
+import { ucodeEnabled } from '@shared/api/ucode';
 import { DATE_FORMAT, SAMPLE_TODAY, TEAM } from '@shared/constants';
 import dayjs from 'dayjs';
 
-// See SAMPLE_TODAY: return dayjs().format(DATE_FORMAT) once the data is live.
-export const todayISO = () => SAMPLE_TODAY;
+// The sample data is dated around SAMPLE_TODAY; data from ucode lives in the real one.
+export const todayISO = () =>
+   ucodeEnabled ? dayjs().format(DATE_FORMAT) : SAMPLE_TODAY;
 
 export const daysUntil = (date: string, today = todayISO()) =>
    dayjs(date).diff(dayjs(today), 'day');

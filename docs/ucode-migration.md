@@ -33,8 +33,9 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
 - 18 October, fixes: `portfolio_companies.about`, `instrument` and `since`, made SINGLE_LINE by `update_table` before its type mapping was known, changed to MULTI_LINE, PICK_LIST and NUMBER with `PUT /v2/fields/{table}`. The 9 fields `update_table` had made (those three, `portfolio_companies.facts` and the 5 of `reporting_cycles`) were hidden and labelled from their slugs; they now have the same settings and labels as the rest. `check` afterwards: every table ✓ except `agenda_items` (below).
 - 18 October, folders: **Landing page** and **Startup cabinet** created next to Admin with the MCP's `create_menu`; `applications`, `partner_requests` and `portfolio` moved from Admin to Landing page with `PUT /v3/menus` (see «The ucode MCP»). `get_menus` then shows 3 tables in Landing page, the 36 ERP tables in Admin, and Startup cabinet empty.
 - `agenda_items.status` (type STATUS), made by hand in the ucode admin to capture the field request, was deleted by hand the same day.
-- 18 October, pick-list options set with `node scripts/ucode/fields.mjs options all --write`: 47 of the 50 pick lists have their options (value = the batch's value, label readable). **Open: the 3 on tables with rows** — `industries.mandate`, `stage_norms.stage`, `stage_norms.escalate_to` — still have none: `node scripts/ucode/fields.mjs options 1 --write --with-rows`, or by hand in the field settings. An update keeps the rows' values (tested, see «The ucode MCP»), and every stored value is in its list.
-- 18 October, `node scripts/ucode/verify.mjs --rows`: all 39 tables, 398 fields with their exact ucode type (batches T–3 included), visible, with their options, all 41 relations to the right tables, no extra fields, rows 11 + 6 + 8 + 1 and every other table empty. Only those 3 pick lists without options are reported.
+- 18 October, pick-list options set with `node scripts/ucode/fields.mjs options all --write`, then `options 1 --write --with-rows` for the three on tables with rows (`industries.mandate`, `stage_norms.stage`, `stage_norms.escalate_to`): all 50 pick lists have their options (value = the batch's value, label readable). The rows kept their values.
+- 18 October, `node scripts/ucode/verify.mjs --rows`: all 39 tables, 398 fields with their exact ucode type (batches T–3 included), visible, all 50 pick lists with their options, all 41 relations to the right tables, no extra fields, rows 11 + 6 + 8 + 1 and every other table empty. **No problems.**
+- 18 October, the application flow end to end, on this environment: the website's Pitch Us form (repo `sqb-ventures-website`, branch `application-intake`) opened deal SQBV-2026-0001 in the inbox with its deck, facts and journal and set the application to `submitted`; the panel's Deals service on ucode (`src/modules/Deals/services/ucode.ts`) took it into screening, scored a criterion, asked for a document and declined it, which set the application to `rejected` with `resubmit_after` six months on, and the website then refused a new application from that email until that date and accepted it once the date had passed. A deal entered in the panel took the next number (SQBV-2026-0002) and moved to the meeting stage with its history. Every test row and the test deck were deleted afterwards.
 - 18 October, `node scripts/ucode/smoke.mjs --write-test-rows`: the EasyTap deal of the panel's sample, one linked row in each of the 35 tables without reference rows (the deal points to the existing fintech industry and no_demand reason). All 362 fields read back with the value and type written, all 41 relations stored, returned with `with_relations` and found by filtering on the parent's id; every test row deleted and every row count back to the above. What it showed is in «Reading and writing rows».
 - Folder ids: Admin `60e0336b-5017-49ca-8c96-123aa5e2c9db` (the only folder named Admin), Landing page `39d78d3e-d0dc-49ef-9e99-5491b0968a41`, Startup cabinet `21a20661-d27b-43a4-98ed-37604fe83833`. All three sit under ucode's main menu, `c57eedc3-a954-4262-a0af-376c65b5a284`.
 - The tables of batches 2 and 3 were created outside the Admin folder and moved into it by hand; all of them, `votes` and `decisions` included, now have an entry in Admin.
@@ -854,7 +855,19 @@ What the backend that replaces the panel's `services/` needs to know, from `smok
 - **JSON fields are text columns.** Send `JSON.stringify(value)`; an array or object sent as is is refused (HTTP 500, "cannot find encode plan … for varchar"). Parse them when reading.
 - **ucode does not check pick-list values.** A row with `status: "not_an_option"` was stored. The options only drive ucode's own admin, so the backend checks values against the batches' lists.
 - A DATE comes back as `2026-10-18T00:00:00Z`; take its first ten characters.
+- **A DATE_TIME is kept to the second.** Rows made within one second have the same `at`; order them by ucode's own `created_at` as well, which has microseconds.
+- `PUT /v2/items/{table}` with `{data: {guid, …}}` changes only the fields sent; the others keep their values.
+- A `guid` sent with a new row is kept, so the panel creates rows under its own ids.
 - Links to employees (`owner_id`, `assignee_id`, …) are plain text holding the employee row's guid, as decided in A; ucode does not join them.
+- Files: `GET /v1/files` lists them; `DELETE /v1/files` with `{objects: [{object_id: <the file's id>}]}` removes one (`DELETE /v1/files/{id}` expects the storage path and removes only the stored object).
+
+Who writes what, as of 18 October:
+
+| Step | Written by |
+| --- | --- |
+| a Pitch Us application, its deal in the inbox, the deck, the first journal entry, `public_status = submitted` | the website's server (`src/modules/PitchUs/services/intake.server.ts` there) |
+| everything done to a deal in Сделки, its stage history, the applicant's `public_status` and `resubmit_after` | the panel (`src/modules/Deals/services/ucode.ts`), through the dev server's key until staff sign in |
+| whether an email may apply again | the website, from `public_status` and `resubmit_after` |
 
 ## What stays empty or open
 

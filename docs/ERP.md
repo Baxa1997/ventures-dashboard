@@ -295,7 +295,7 @@ wd = working days. The clock stands while the fund waits for the applicant (an o
 
 ### 5.2 Functions: Сделки
 
-**on_application_created** runs after a row is created in `applications`. The website already creates rows with functions switched on (`disable_faas: false`).
+**on_application_created** runs after a row is created in `applications`. The website already creates rows with functions switched on (`disable_faas: false`). Until ucode functions are set up, the website's server does steps 2–4 itself right after creating the row, and checks step 1 before it (docs/ucode-migration.md, «Reading and writing rows»).
 1. Refuses a second application from the same email before its `resubmit_after` date. The website checks this too, but a direct call must not get around it.
 2. Creates the deal: the next number of the year, status review, stage inbox, channel site, company, contact, amount, industry and round stage from the form, `received_at = submitted_at`, `stage_due` = 2 wd later, and a proposed owner (§8, question 5).
 3. Adds the pitch deck to `deal_documents` (accepted, version 1).

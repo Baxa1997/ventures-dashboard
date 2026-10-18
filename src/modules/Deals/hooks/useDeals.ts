@@ -24,6 +24,11 @@ const useDeals = () => {
             ([loaded, summary]) => {
                if (active) setState({ deals: loaded, summary, loading: false });
             },
+            (error: unknown) => {
+               // ucode could not be read: show what is there and say why in the console
+               console.error(error);
+               if (active) setState((state) => ({ ...state, loading: false }));
+            },
          );
       load();
       const unsubscribe = deals.subscribe(load);

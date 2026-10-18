@@ -1,4 +1,5 @@
 import settings from '@modules/Settings/services';
+import { ucodeEnabled } from '@shared/api/ucode';
 import { addWorkingDays, todayISO } from '@shared/helpers';
 import type {
    Criterion,
@@ -19,12 +20,18 @@ import dayjs from 'dayjs';
 import { CRITERIA } from '../constants';
 import { nextStageOf, stageNorm } from '../helpers';
 import { SAMPLE_DEALS, SAMPLE_SUMMARY } from './sample';
+import { insertDeal, loadDeals, saveDeal, summarize } from './ucode';
 
-/* There is no backend yet. Everything starts from the sample data in ./sample;
-   what a person changes is kept in this browser's localStorage. Every method
-   returns a promise, so the bodies can be replaced with API calls without
-   changing the hooks that call them. The register's figures cover deals that
-   are not in the sample, so they are stored and adjusted with each change. */
+/* Without ucode everything starts from the sample data in ./sample; what a
+   person changes is kept in this browser's localStorage. The register's figures
+   cover deals that are not in the sample, so they are stored and adjusted with
+   each change.
+
+   With ucode (the dev server's UCODE_API_KEY, see @shared/api/ucode) the deals
+   come from its tables, applications from the website among them. Each change
+   is worked out here as before, then written to ucode by ./ucode; if ucode
+   refuses it, the change is undone and the error goes to the page. The
+   register's figures are counted from the deals. */
 
 const STORAGE_KEY = 'sqbv_dashboard_deals_v1';
 
@@ -38,8 +45,25 @@ let cache: Stored | null = null;
 
 const listeners = new Set<() => void>();
 
+// ucode's deals are read once, then kept in memory.
+let loading: Promise<void> | null = null;
+const ready = () => {
+   if (!ucodeEnabled) return Promise.resolve();
+   loading ??= loadDeals().then(
+      (deals) => {
+         cache = { deals, summary: summarize(deals) };
+      },
+      (error: unknown) => {
+         loading = null; // the next page load tries again
+         throw error;
+      },
+   );
+   return loading;
+};
+
 const read = (): Stored => {
    if (cache) return cache;
+   if (ucodeEnabled) return { deals: [], summary: summarize([]) };
    try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -54,11 +78,14 @@ const read = (): Stored => {
 };
 
 const write = (next: Stored) => {
-   cache = next;
-   try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-   } catch {
-      // storage unavailable: changes last until the page is reloaded
+   if (ucodeEnabled) cache = { deals: next.deals, summary: summarize(next.deals) };
+   else {
+      cache = next;
+      try {
+         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+         // storage unavailable: changes last until the page is reloaded
+      }
    }
    listeners.forEach((listener) => listener());
 };
@@ -79,12 +106,14 @@ type EntryInput = JournalEntry extends infer E
 const entry = (input: EntryInput): JournalEntry =>
    ({ id: newId(), date: todayISO(), ...input }) as JournalEntry;
 
-// Applies a change to one deal and, when given, to the register's figures.
-const change = (
+// Applies a change to one deal and, when given, to the register's figures;
+// with ucode, writes it there and undoes it if ucode refuses.
+const change = async (
    id: string,
    apply: (deal: Deal) => Deal,
    adjust?: (summary: DealsSummary, before: Deal) => DealsSummary,
 ) => {
+   await ready();
    const state = read();
    const before = state.deals.find((deal) => deal.id === id);
    if (!before) throw new Error(`Deal ${id} does not exist`);
@@ -93,6 +122,13 @@ const change = (
       deals: state.deals.map((deal) => (deal.id === id ? after : deal)),
       summary: adjust ? adjust(state.summary, before) : state.summary,
    });
+   if (ucodeEnabled)
+      try {
+         await saveDeal(before, after);
+      } catch (error) {
+         write(state);
+         throw error;
+      }
    return after;
 };
 
@@ -187,23 +223,29 @@ class Deals {
    }
 
    async getDeals(): Promise<Deal[]> {
+      await ready();
       return read().deals;
    }
 
    async getSummary(): Promise<DealsSummary> {
+      await ready();
       return read().summary;
    }
 
    // An application entered by hand goes to the incoming ones.
    async createDeal(input: NewDealInput, userId: string): Promise<Deal> {
+      await ready();
       const state = read();
       const today = todayISO();
       const deal: Deal = {
          ...input,
-         id: slug(
-            input.company,
-            state.deals.map(({ id }) => id),
-         ),
+         // a ucode row's id is a guid; the sample's are readable slugs
+         id: ucodeEnabled
+            ? newId()
+            : slug(
+                 input.company,
+                 state.deals.map(({ id }) => id),
+              ),
          number: nextNumber(state.deals, today.slice(0, 4)),
          tags: '',
          receivedAt: `${today} ${nowTime()}`,
@@ -228,11 +270,18 @@ class Deals {
             },
          },
       });
+      if (ucodeEnabled)
+         try {
+            await insertDeal(deal);
+         } catch (error) {
+            write(state);
+            throw error;
+         }
       return deal;
    }
 
    async takeToScreening(id: string, ownerId: string) {
-      change(
+      await change(
          id,
          (deal) =>
             logged(
@@ -249,7 +298,7 @@ class Deals {
    }
 
    async rejectDeal(id: string, input: RejectInput, userId: string) {
-      change(
+      await change(
          id,
          (deal) =>
             logged(
@@ -282,7 +331,7 @@ class Deals {
 
    // Moves a deal to the next stage; after "Закрытие" it joins the portfolio.
    async transferDeal(id: string) {
-      change(
+      await change(
          id,
          (deal) => {
             const stage = nextStageOf(deal.stage);
@@ -315,8 +364,8 @@ class Deals {
       );
    }
 
-   private updateScreening(id: string, apply: (value: Screening) => Screening) {
-      change(id, (deal) => ({
+   private async updateScreening(id: string, apply: (value: Screening) => Screening) {
+      await change(id, (deal) => ({
          ...deal,
          screening: {
             ...apply(deal.screening ?? emptyScreening()),
@@ -326,7 +375,7 @@ class Deals {
    }
 
    async setCriterion(id: string, key: string, patch: Partial<Criterion>) {
-      this.updateScreening(id, (screening) => ({
+      await this.updateScreening(id, (screening) => ({
          ...screening,
          criteria: screening.criteria.map((item) =>
             item.key === key ? { ...item, ...patch } : item,
@@ -338,16 +387,16 @@ class Deals {
       id: string,
       patch: Partial<Pick<Screening, 'decision' | 'secondId'>>,
    ) {
-      this.updateScreening(id, (screening) => ({ ...screening, ...patch }));
+      await this.updateScreening(id, (screening) => ({ ...screening, ...patch }));
    }
 
    async setScreeningNote(id: string, note: Record<ScreeningNoteKey, string>) {
-      this.updateScreening(id, (screening) => ({ ...screening, note }));
+      await this.updateScreening(id, (screening) => ({ ...screening, note }));
    }
 
    // Closes the screening with an invitation to a meeting.
    async completeScreening(id: string, userId: string) {
-      change(
+      await change(
          id,
          (deal) =>
             logged(
@@ -370,7 +419,7 @@ class Deals {
    // A request to the applicant stops the stage clock until it is answered.
    async addRequest(id: string, input: RequestInput, userId: string) {
       const today = todayISO();
-      change(id, (deal) =>
+      await change(id, (deal) =>
          logged(
             {
                ...deal,
@@ -414,7 +463,7 @@ class Deals {
       userId: string,
    ) {
       const result = accepted ? 'accepted' : 'rejected';
-      change(id, (deal) => {
+      await change(id, (deal) => {
          const title =
             deal.documents?.find((item) => item.id === documentId)?.title ?? '';
          return logged(
@@ -443,7 +492,7 @@ class Deals {
    // Records a file the fund adds itself. Only its name is kept: there is no
    // file storage yet.
    async uploadDocument(id: string, title: string, userId: string) {
-      change(id, (deal) =>
+      await change(id, (deal) =>
          logged(
             {
                ...deal,
@@ -470,14 +519,14 @@ class Deals {
    }
 
    async setRecommendation(id: string, recommendation: Recommendation) {
-      change(id, (deal) => ({
+      await change(id, (deal) => ({
          ...deal,
          memo: deal.memo && { ...deal.memo, recommendation },
       }));
    }
 
    async approveMemo(id: string, userId: string) {
-      change(id, (deal) =>
+      await change(id, (deal) =>
          logged(
             {
                ...deal,
@@ -492,7 +541,7 @@ class Deals {
       id: string,
       input: { name: string; executor: string; dueDate: string },
    ) {
-      change(id, (deal) =>
+      await change(id, (deal) =>
          logged(
             {
                ...deal,
@@ -517,7 +566,7 @@ class Deals {
       workstreamId: string,
       executor: string,
    ) {
-      change(id, (deal) => {
+      await change(id, (deal) => {
          const name =
             deal.workstreams?.find((item) => item.id === workstreamId)?.name ??
             '';
@@ -542,7 +591,7 @@ class Deals {
 
    // A decision of the committee or the board, from its protocol.
    async addDecision(id: string, decision: Omit<Decision, 'id'>) {
-      change(id, (deal) => ({
+      await change(id, (deal) => ({
          ...deal,
          decisions: [{ id: newId(), ...decision }, ...(deal.decisions ?? [])],
       }));
