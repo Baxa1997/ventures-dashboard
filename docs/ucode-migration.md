@@ -37,6 +37,8 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
 - 18 October, `node scripts/ucode/verify.mjs --rows`: all 39 tables, 398 fields with their exact ucode type (batches T–3 included), visible, all 50 pick lists with their options, all 41 relations to the right tables, no extra fields, rows 11 + 6 + 8 + 1 and every other table empty. **No problems.**
 - 18 October, the application flow end to end, on this environment: the website's Pitch Us form (repo `sqb-ventures-website`, branch `application-intake`) opened deal SQBV-2026-0001 in the inbox with its deck, facts and journal and set the application to `submitted`; the panel's Deals service on ucode (`src/modules/Deals/services/ucode.ts`) took it into screening, scored a criterion, asked for a document and declined it, which set the application to `rejected` with `resubmit_after` six months on, and the website then refused a new application from that email until that date and accepted it once the date had passed. A deal entered in the panel took the next number (SQBV-2026-0002) and moved to the meeting stage with its history. Every test row and the test deck were deleted afterwards.
 - 18 October, `node scripts/ucode/smoke.mjs --write-test-rows`: the EasyTap deal of the panel's sample, one linked row in each of the 35 tables without reference rows (the deal points to the existing fintech industry and no_demand reason). All 362 fields read back with the value and type written, all 41 relations stored, returned with `with_relations` and found by filtering on the parent's id; every test row deleted and every row count back to the above. What it showed is in «Reading and writing rows».
+- 18 October, staff sign-in started: login table `staff_users`, client type STAFF and nine roles made; no users yet. See «Staff sign-in».
+- The ucode environment of this project is named "Production" in ucode (its only environment, `9f012d7a-0eb0-4a3a-87c7-16661eafce08`), though it is used for testing; the website's live deployment does not use it (its tables did not exist here until batch T).
 - Folder ids: Admin `60e0336b-5017-49ca-8c96-123aa5e2c9db` (the only folder named Admin), Landing page `39d78d3e-d0dc-49ef-9e99-5491b0968a41`, Startup cabinet `21a20661-d27b-43a4-98ed-37604fe83833`. All three sit under ucode's main menu, `c57eedc3-a954-4262-a0af-376c65b5a284`.
 - The tables of batches 2 and 3 were created outside the Admin folder and moved into it by hand; all of them, `votes` and `decisions` included, now have an entry in Admin.
 - The pick lists were made without options (the agent's field tool cannot set them; batches 4–5 left them out on purpose) and got them in the separate step above. The agent's read-backs confirmed field names only, not types (see «The ucode agent, from its code»); `verify.mjs` has since read every field's type from ucode.
@@ -866,8 +868,32 @@ Who writes what, as of 18 October:
 | Step | Written by |
 | --- | --- |
 | a Pitch Us application, its deal in the inbox, the deck, the first journal entry, `public_status = submitted` | the website's server (`src/modules/PitchUs/services/intake.server.ts` there) |
-| everything done to a deal in Сделки, its stage history, the applicant's `public_status` and `resubmit_after` | the panel (`src/modules/Deals/services/ucode.ts`), through the dev server's key until staff sign in |
+| everything done to a deal in Сделки, its stage history, the applicant's `public_status` and `resubmit_after` | the panel (`src/modules/Deals/services/ucode.ts`), with the signed-in person's token, or the dev server's key |
 | whether an email may apply again | the website, from `public_status` and `resubmit_after` |
+
+## Staff sign-in
+
+ERP.md §2 and §4.1: a staff member is a ucode user, signs in with work email and password, and the panel sends their token; their profile is the `employees` row whose `user_id` is that user. `scripts/ucode/auth.mjs` does the ucode side.
+
+What exists in the test environment (18 October):
+
+| Piece | Id / slug | Made by |
+| --- | --- | --- |
+| login table `staff_users` (Admin): login, email, password, role_id, client_type_id, user_id_auth, added by ucode | `66eff581-758d-48ec-82c6-072790b674a4` | the MCP's `create_table` with `is_login_table: true`, `auth_info.login_strategy: ["email", "login"]` |
+| client type `STAFF`, on `staff_users` | `730fcd15-19e9-4822-8bb5-758965fedf95` | `auth.mjs setup` |
+| roles under STAFF: director, deputy, analyst, manager, accountant, ic_secretary, assistant, lawyer, other (the values of `employees.role`) | — | `auth.mjs setup`, with `grant_access: true` |
+| staff users | none yet | `auth.mjs user <email> <role> "<Full name>"` (open, below) |
+
+- **ucode bug:** a client type made without a table makes ucode create `<name>_users` for it, and that fails with "error getting project info" (the auth service leaves out the project the builder's check wants, `services/object-builder/grpc/service/table.go`). So the login table is made first and the client type points to it, as the admin UI does.
+- STAFF came back from the create call without `project_id` and client platform; filling them in with `PUT /v2/client-type` was not done (below).
+- Sign-in: `POST https://api.auth.u-code.io/v2/login?project-id=<project>`, header `Environment-Id`, body `{username: <email>, password, client_type: <STAFF id>, project_id, type: "default"}`; the reply has `token.access_token`, `token.refresh_token` and `user_id_auth`. Refresh: `PUT /v2/refresh` with the refresh token. Calls to the admin API then carry `Authorization: Bearer <token>` and `Environment-Id`; its CORS allows any origin, so the browser calls it directly. A made-up user is refused with HTTP 400 ("invalid hash type"), which the panel shows as a wrong email or password.
+- Users, client types and roles are made through the auth service with the same API key (`Authorization: API-KEY`, `X-API-KEY`, `?project-id=`). **A user may take a paid seat**: the auth service reserves one when the project has a per-user price, and otherwise checks the plan's user limit.
+- The panel: `.env.example` and the README («Сделки on ucode»).
+
+Open:
+1. **Permissions.** The nine roles were made with `grant_access: true`, which gives them broad access; they are to be narrowed to ERP.md §6 (`/v2/role-permission/detailed`, `/v2/menu-permission/detailed`) before real people get them. Changing roles and client types was stopped by Claude Code's safety check («Permission Grant») and waits for the owner's decision.
+2. **The first staff users**, each a possible paid seat: the owner's decision.
+3. Signing in end to end has not been tried: it needs a user.
 
 ## What stays empty or open
 

@@ -89,18 +89,16 @@ Each module's `services` folder starts from the sample data in its `sample.ts` (
 
 ### Сделки on ucode
 
-The fund's backend is a ucode project (`docs/ERP.md`, `docs/ucode-migration.md`). Сделки can run on its test environment:
+The fund's backend is a ucode project (`docs/ERP.md`, `docs/ucode-migration.md`). Сделки run on it in one of two ways, set in `.env.local` (see `.env.example`):
 
-```bash
-echo "UCODE_API_KEY=<the test project's API key>" >> .env.local   # git-ignored
-yarn dev
-```
+- **Staff sign-in**: `VITE_UCODE_PROJECT_ID`, `VITE_UCODE_ENVIRONMENT_ID` and `VITE_UCODE_CLIENT_TYPE_ID` (the client type STAFF; `node scripts/ucode/auth.mjs list` prints the ids). The sign-in page then checks the work email and password with ucode (`src/shared/api/ucode`), the session keeps the person's token and refreshes it, and every call to ucode carries it, so ucode applies their role. Who is signed in is their `employees` row (`employees.user_id` = their ucode user), and the employees rows replace the sample's people everywhere. This works in builds too; the person switch in the sidebar goes away. Staff users are made with `node scripts/ucode/auth.mjs user`.
+- **The dev server's key**, for work before anyone has a user: `UCODE_API_KEY` makes `yarn dev` forward `/ucode` to the ucode admin API with the key (`vite.config.ts`), so the browser never holds it.
 
-- The dev server forwards `/ucode` to the ucode admin API and adds the key (`vite.config.ts`), so the browser never holds it. Without the key, and in every `yarn build`, the panel runs on the sample data as before.
+Without either, and in a build without the sign-in ids, the panel runs on the sample data as before.
 - The deals then come from ucode's tables (`src/modules/Deals/services/ucode.ts`), applications from the website among them: the website's Pitch Us form opens a deal in the inbox, with the pitch deck and the «Из заявки» facts. Every change in Сделки — a deal entered by hand, taken, screened, moved, asked for a document, declined — is worked out by the same service as before and then written to ucode; if ucode refuses it, it is undone. The register's figures are counted from the deals.
 - A deal from the website carries the applicant's status: taking, moving and declining it set `applications.public_status`, which never goes back, and declining sets `resubmit_after` (at once for a mandate reason, otherwise in 6 or 12 months), after which the website accepts a new application from the same email.
 - "Today" is the real date with ucode, not `SAMPLE_TODAY`.
-- Still on sample data: the other sections, the employees (the ids written as owners are the sample's `e1`…), and signing in. ERP.md §9 has the order; staff signing in to ucode then replaces the dev server's key.
+- Still on sample data: the other sections. With the dev server's key the owners written are the sample's ids (`e1`…); with staff sign-in they are the employees rows' ids. ERP.md §9 has the order of the rest.
 
 - The sample data is a snapshot of the fund on 2 October 2026, and its texts name dates around that day. The pages therefore treat that day as "today": see `SAMPLE_TODAY` in `src/shared/constants/system/sample.ts` and `todayISO` in `src/shared/helpers`, the one place to change when the data becomes live.
 - Deals: the register holds 486 deals, of which the sample has 32: the ones the design shows, plus three assigned applications that its counters imply (the design names 9 of the 12 incoming ones). The register's figures (tab counters, the bar, conversion, rejection reasons) are stored and adjusted with every change, so they stay right for deals that are not loaded. Content of a deal's card exists where the design has it: EasyTap (overview, memorandum), Apicore (screening), NeuroFin (requests and documents), MoonAI (due diligence), Toklaps (exit conditions). Other deals show what follows from their basic data.
@@ -111,8 +109,8 @@ yarn dev
 - There is no file storage: uploading "от имени фонда" records only the file's name, and the download links are switched off.
 - Closing a recurring task creates its next occurrence, a month or a quarter later.
 - A task without an assignee goes to the director.
-- Signing in is a stand-in as well: any email and password are accepted, and the form opens filled in (`src/shared/hooks/useSession.ts`). "Не выходить на этом устройстве" keeps the sign-in in localStorage; without it, it lasts until the tab is closed.
-- Who the signed-in person is does not depend on the email yet: the user block at the bottom of the sidebar opens a menu to switch between the director, an analyst, the project manager and the committee's secretary (`src/shared/hooks/useCurrentUser.ts`, `SIGN_IN_IDS` in `src/shared/constants/system/user.ts`). The same menu holds the interface language.
+- Without staff sign-in (above), signing in is a stand-in: any email and password are accepted, and the form opens filled in (`src/shared/hooks/useSession.ts`). Either way, "Не выходить на этом устройстве" keeps the sign-in in localStorage; without it, it lasts until the tab is closed.
+- Without staff sign-in, who the signed-in person is does not depend on the email: the user block at the bottom of the sidebar opens a menu to switch between the director, an analyst, the project manager and the committee's secretary (`src/shared/hooks/useCurrentUser.ts`, `SIGN_IN_IDS` in `src/shared/constants/system/user.ts`). The same menu holds the interface language.
 - To start again from the sample data, clear the site's localStorage (keys starting with `sqbv_dashboard_`). The stores of the new sections are made with `createStore` in `src/shared/helpers/store.ts` and loaded with `useServiceData` in `src/shared/hooks`.
 
 ## Translations

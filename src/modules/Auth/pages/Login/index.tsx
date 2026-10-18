@@ -4,6 +4,7 @@ import {
    EMAIL_MAX,
    PASSWORD_MAX,
 } from '@modules/Auth/constants';
+import { UcodeError, ucodeSignIn } from '@shared/api/ucode';
 import { OVERVIEW_PATH } from '@shared/constants';
 import { signIn, useSession } from '@shared/hooks';
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
@@ -38,16 +39,21 @@ const Field = ({ label, error, children }: FieldProps) => (
 );
 
 /* The sign-in page, in the brandbook's look rather than the platform's: it is
-   the fund's front door. Any email and password are accepted until
-   authentication is connected. */
+   the fund's front door. With staff sign-in (@shared/api/ucode) ucode checks
+   the work email and password; without it any email and password open the
+   panel, and the form opens filled in. */
 const Login = () => {
    const { t } = useTranslation('auth');
    const { t: tValidation } = useTranslation('validation');
    const session = useSession();
    const location = useLocation();
-   const [values, setValues] = useState<LoginValues>(DEMO_CREDENTIALS);
+   const [values, setValues] = useState<LoginValues>(
+      ucodeSignIn ? { email: '', password: '' } : DEMO_CREDENTIALS,
+   );
    const [remember, setRemember] = useState(true);
    const [errors, setErrors] = useState<LoginErrors>({});
+   const [busy, setBusy] = useState(false);
+   const [failure, setFailure] = useState('');
    const title = t('Вход');
 
    useEffect(() => {
@@ -63,6 +69,7 @@ const Login = () => {
    const setValue = (key: keyof LoginValues, value: string) => {
       setValues((prev) => ({ ...prev, [key]: value }));
       setErrors((prev) => ({ ...prev, [key]: undefined }));
+      setFailure('');
    };
 
    const errorOf = (key: keyof LoginValues) => {
@@ -70,14 +77,30 @@ const Login = () => {
       return message && tValidation(message);
    };
 
-   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const result = loginSchema.safeParse(values);
       if (!result.success) {
          setErrors(getFieldErrors(result.error));
          return;
       }
-      signIn(result.data.email, remember);
+      setBusy(true);
+      try {
+         await signIn(result.data.email, result.data.password, remember);
+      } catch (error) {
+         // ucode answers a wrong email or password with 400 or 404, a blocked user with 403
+         const refused =
+            error instanceof UcodeError &&
+            error.status >= 400 &&
+            error.status < 500;
+         setFailure(
+            refused
+               ? t('Неверная почта или пароль')
+               : t('Не удалось войти. Попробуйте ещё раз.'),
+         );
+      } finally {
+         setBusy(false);
+      }
    };
 
    return (
@@ -147,15 +170,23 @@ const Login = () => {
                   />
                   {t('Не выходить на этом устройстве')}
                </label>
+               {failure && (
+                  <p role='alert' className='text-danger text-[15px]'>
+                     {failure}
+                  </p>
+               )}
                <button
                   type='submit'
-                  className='bg-brand-sky hover:bg-brand-sky-deep focus-visible:outline-brand-sky rounded-[10px] px-4 py-3.5 text-base font-bold text-white transition-colors'
+                  disabled={busy}
+                  className='bg-brand-sky hover:bg-brand-sky-deep focus-visible:outline-brand-sky rounded-[10px] px-4 py-3.5 text-base font-bold text-white transition-colors disabled:opacity-70'
                >
-                  {t('Войти')}
+                  {busy ? t('Вход…') : t('Войти')}
                </button>
-               <p className='text-brand-ink-soft text-[13px] leading-normal'>
-                  {t('Прототип: войти можно с любой почтой и паролем.')}
-               </p>
+               {!ucodeSignIn && (
+                  <p className='text-brand-ink-soft text-[13px] leading-normal'>
+                     {t('Прототип: войти можно с любой почтой и паролем.')}
+                  </p>
+               )}
             </form>
          </main>
       </div>

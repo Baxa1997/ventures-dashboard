@@ -1,3 +1,4 @@
+import { ucodeSignIn } from '@shared/api/ucode';
 import { Avatar } from '@shared/components';
 import { ROLE_LABELS, SIGN_IN_IDS, TEAM } from '@shared/constants';
 import { setCurrentUser, signOut, useCurrentUser } from '@shared/hooks';
@@ -12,8 +13,8 @@ const ACCOUNTS = TEAM.filter(({ id }) => SIGN_IN_IDS.includes(id));
 const HEADING = 'text-on-dark-faint px-2.5 pt-1.5 pb-1 text-xs';
 
 // The signed-in person. The block opens a menu with the interface language,
-// signing out and, until authentication is connected, a short list of people
-// to look at the pages as.
+// signing out and, without staff sign-in, a short list of people to look at
+// the pages as.
 const UserMenu = () => {
    const { t } = useTranslation('layout');
    const user = useCurrentUser();
@@ -44,10 +45,12 @@ const UserMenu = () => {
                <div className='px-1 pb-1.5'>
                   <Language />
                </div>
-               <div className={clsx(HEADING, 'border-t border-white/10')}>
-                  {t('Войти как')}
-               </div>
-               {ACCOUNTS.map((account) => (
+               {!ucodeSignIn && (
+                  <div className={clsx(HEADING, 'border-t border-white/10')}>
+                     {t('Войти как')}
+                  </div>
+               )}
+               {(ucodeSignIn ? [] : ACCOUNTS).map((account) => (
                   <button
                      key={account.id}
                      type='button'

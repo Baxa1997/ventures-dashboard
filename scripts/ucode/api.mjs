@@ -11,6 +11,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const BASE = 'https://api.admin.u-code.io';
+const AUTH_BASE = 'https://api.auth.u-code.io';
 const PROJECT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 const readKey = () => {
@@ -31,9 +32,14 @@ let key;
 
 // Returns { status, ok, data } where data is the parsed reply (ucode wraps the
 // payload in { status, description, data }).
-export const ucode = async (method, path, body) => {
+export const ucode = (method, path, body) => call(BASE, method, path, body);
+
+// The same against ucode's auth service: users, client types, roles, sign-in.
+export const ucodeAuth = (method, path, body) => call(AUTH_BASE, method, path, body);
+
+const call = async (base, method, path, body) => {
    key ??= readKey();
-   const response = await fetch(`${BASE}${path}`, {
+   const response = await fetch(`${base}${path}`, {
       method,
       headers: {
          Authorization: 'API-KEY',

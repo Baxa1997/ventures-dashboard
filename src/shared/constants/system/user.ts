@@ -8,9 +8,13 @@ export const ROLE_LABELS = {
    manager: 'Проектный менеджер',
    accountant: 'Главный бухгалтер',
    assistant: 'Ассистент директора',
+   ic_secretary: 'Секретарь ИК',
+   lawyer: 'Юрист',
+   other: 'Сотрудник',
 } as const satisfies Record<Role, string>;
 
-// The fund's team, a stand-in until employees come from the backend.
+// The fund's team: the sample's people, or with staff sign-in the employees
+// rows from ucode, put in their place after signing in (useCurrentUser).
 export const TEAM: Employee[] = [
    { id: 'e1', name: 'Тигран Бекмуллин', role: 'director' },
    { id: 'e2', name: 'Ш. Юлдашев', role: 'deputy' },

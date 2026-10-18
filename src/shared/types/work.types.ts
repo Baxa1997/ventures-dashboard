@@ -1,5 +1,14 @@
+// employees.role in ucode; the last three come with real staff, not the sample.
 export type Role =
-   'director' | 'deputy' | 'analyst' | 'manager' | 'accountant' | 'assistant';
+   | 'director'
+   | 'deputy'
+   | 'analyst'
+   | 'manager'
+   | 'accountant'
+   | 'assistant'
+   | 'ic_secretary'
+   | 'lawyer'
+   | 'other';
 
 export interface Employee {
    id: string;

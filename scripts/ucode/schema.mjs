@@ -33,6 +33,7 @@ const SYSTEM_TABLES = new Set([
    'client_type',
    'role',
    'sms_template',
+   'staff_users', // staff sign-in: the login table of the client type STAFF (auth.mjs)
 ]);
 
 // The column type get_dbml prints for each field type of the batches.
