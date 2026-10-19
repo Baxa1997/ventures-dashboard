@@ -155,7 +155,6 @@
    "Нужны 7 обоснований и второй оценщик": "7 ta asos va ikkinchi baholovchi kerak",
    "Обзор": "Umumiy ko‘rinish",
    "Обоснование": "Asos",
-   "Обоснование обязательно: факты из заявки, документов или звонка. Без него балл не сохраняется.": "Asos majburiy: ariza, hujjatlar yoki qo‘ng‘iroqdan faktlar. Usiz ball saqlanmaydi.",
    "Осталось {{days}} р.д.": "{{days}} ish kuni qoldi",
    "Ответ до {{date}}": "Javob {{date}}gacha",
    "Ответить до": "Javob muddati",
@@ -194,7 +193,6 @@
    "Передано": "Topshirilgan",
    "Передать": "Topshirish",
    "Передать исполнителю": "Ijrochiga topshirish",
-   "Переход в стадию «Встреча», заявитель видит дату и участников": "«Uchrashuv» bosqichiga o‘tish, ariza beruvchi sana va ishtirokchilarni ko‘radi",
    "Переход попадёт в журнал сделки": "O‘tish bitim jurnaliga yoziladi",
    "Период": "Davr",
    "Письмо заявителю": "Ariza beruvchiga xat",
@@ -210,7 +208,6 @@
    "Почему сейчас": "Nega hozir",
    "Пояснение для заявителя": "Ariza beruvchi uchun tushuntirish",
    "Правила проверки не оценивают качество проекта — только соответствие опубликованному мандату.": "Tekshiruv qoidalari loyiha sifatini baholamaydi — faqat e’lon qilingan mandatga muvofiqlikni.",
-   "Правило фонда: решение по скринингу подтверждает второй сотрудник. Кнопка «Завершить скрининг» станет активной после 7 обоснований.": "Fond qoidasi: skrining bo‘yicha qarorni ikkinchi xodim tasdiqlaydi. «Skriningni yakunlash» tugmasi 7 ta asosdan keyin faol bo‘ladi.",
    "Пригласить на встречу": "Uchrashuvga taklif qilish",
    "Принят": "Qabul qilingan",
    "Принять": "Qabul qilish",
@@ -457,5 +454,9 @@
    "Что сделать перед переводом": "O‘tkazishdan oldin nima qilish kerak",
    "Ничего — сделку можно перевести сразу.": "Hech narsa — bitimni darhol o‘tkazish mumkin.",
    "Кнопка «Перевести» включится, когда всё будет готово": "«O‘tkazish» tugmasi hammasi tayyor bo‘lganda yoqiladi",
-   "Срок на стадии «{{stage}}»": "«{{stage}}» bosqichidagi muddat"
+   "Срок на стадии «{{stage}}»": "«{{stage}}» bosqichidagi muddat",
+   "Обоснование: факты из заявки, документов или звонка": "Asoslash: arizadagi, hujjatlardagi yoki qo‘ng‘iroqdagi faktlar",
+   "Напишите обоснование — без него балл не засчитывается": "Asoslashni yozing — usiz ball hisobga olinmaydi",
+   "Переход в стадию «Встреча»": "«Uchrashuv» bosqichiga o‘tish",
+   "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "Fond qoidasi: bahoni ikkinchi xodim tekshiradi. «Skriningni yakunlash» barcha 7 mezonda ball va asoslash bo‘lganda hamda ikkinchi baholovchi tanlanganda yoqiladi."
 }

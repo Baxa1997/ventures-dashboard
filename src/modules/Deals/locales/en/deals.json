@@ -155,7 +155,6 @@
    "Нужны 7 обоснований и второй оценщик": "7 rationales and a second evaluator are needed",
    "Обзор": "Overview",
    "Обоснование": "Rationale",
-   "Обоснование обязательно: факты из заявки, документов или звонка. Без него балл не сохраняется.": "A rationale is required: facts from the application, documents or a call. Without it the score is not saved.",
    "Осталось {{days}} р.д.": "{{days}} w.d. left",
    "Ответ до {{date}}": "Reply by {{date}}",
    "Ответить до": "Reply by",
@@ -194,7 +193,6 @@
    "Передано": "Handed over",
    "Передать": "Hand over",
    "Передать исполнителю": "Hand over to executor",
-   "Переход в стадию «Встреча», заявитель видит дату и участников": "Moves to the “Meeting” stage; the applicant sees the date and participants",
    "Переход попадёт в журнал сделки": "The move will be recorded in the deal journal",
    "Период": "Period",
    "Письмо заявителю": "Letter to the applicant",
@@ -210,7 +208,6 @@
    "Почему сейчас": "Why now",
    "Пояснение для заявителя": "Explanation for the applicant",
    "Правила проверки не оценивают качество проекта — только соответствие опубликованному мандату.": "The check rules do not judge the quality of the project — only whether it fits the published mandate.",
-   "Правило фонда: решение по скринингу подтверждает второй сотрудник. Кнопка «Завершить скрининг» станет активной после 7 обоснований.": "Fund rule: a second employee confirms the screening decision. The “Complete screening” button becomes active after 7 rationales.",
    "Пригласить на встречу": "Invite to a meeting",
    "Принят": "Accepted",
    "Принять": "Accept",
@@ -457,5 +454,9 @@
    "Что сделать перед переводом": "What to do before the move",
    "Ничего — сделку можно перевести сразу.": "Nothing — the deal can move right away.",
    "Кнопка «Перевести» включится, когда всё будет готово": "“Move” turns on once everything is done",
-   "Срок на стадии «{{stage}}»": "Time for “{{stage}}”"
+   "Срок на стадии «{{stage}}»": "Time for “{{stage}}”",
+   "Обоснование: факты из заявки, документов или звонка": "Reasons: facts from the application, documents or a call",
+   "Напишите обоснование — без него балл не засчитывается": "Write the reasons — without them the score does not count",
+   "Переход в стадию «Встреча»": "Moves to the “Meeting” stage",
+   "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "The fund’s rule: a second employee checks the scoring. “Complete screening” turns on once all 7 criteria have a score and reasons and a second evaluator is chosen."
 }

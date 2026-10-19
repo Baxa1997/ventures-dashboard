@@ -47,9 +47,6 @@ const CriterionRow = ({
    const [rationale, setRationale] = useState(criterion.rationale);
    const [source, setSource] = useState(criterion.source);
    const empty = !rationale.trim();
-   const required = t(
-      'Обоснование обязательно: факты из заявки, документов или звонка. Без него балл не сохраняется.',
-   );
 
    return (
       <li className='py-5'>
@@ -80,9 +77,7 @@ const CriterionRow = ({
                               ? 'border-accent bg-accent font-semibold text-white'
                               : 'border-line-strong text-ink-soft enabled:hover:border-accent bg-white',
                         )}
-                        // without the reasons a score is not saved
-                        disabled={locked || empty}
-                        title={empty ? required : undefined}
+                        disabled={locked}
                         onClick={() => onChange({ score })}
                      >
                         {score}
@@ -93,26 +88,26 @@ const CriterionRow = ({
          </div>
          <textarea
             aria-label={`${t('Обоснование')}: ${t(title)}`}
-            className={clsx(
-               'text-meta placeholder:text-ink-soft field-sizing-content mt-3 block w-full resize-none rounded-lg border px-4 py-3',
-               empty
-                  ? 'bg-ground border-transparent'
-                  : 'border-line-strong bg-white',
-            )}
+            aria-invalid={criterion.score !== null && empty}
+            className='field-input text-meta field-sizing-content mt-3 min-h-11 resize-none py-2.5 disabled:bg-ground'
             disabled={locked}
-            placeholder={required}
-            rows={empty ? 1 : 2}
+            placeholder={t(
+               'Обоснование: факты из заявки, документов или звонка',
+            )}
+            rows={2}
             value={rationale}
             onBlur={() =>
                rationale !== criterion.rationale &&
-               onChange({
-                  rationale: rationale.trim(),
-                  // a score cannot stand without its reasons
-                  score: rationale.trim() ? criterion.score : null,
-               })
+               onChange({ rationale: rationale.trim() })
             }
             onChange={(event) => setRationale(event.target.value)}
          />
+         {/* a score counts only with its reasons (isScored) */}
+         {criterion.score !== null && empty && (
+            <p className='text-danger mt-1.5 text-xs'>
+               {t('Напишите обоснование — без него балл не засчитывается')}
+            </p>
+         )}
          {!empty && (
             <label className='text-ink-soft mt-2 flex items-center gap-2 text-xs'>
                {t('Источник')}:
@@ -232,9 +227,7 @@ const Screening = ({ deal }: ScreeningProps) => {
                         {
                            value: 'meeting',
                            label: t('Пригласить на встречу'),
-                           note: t(
-                              'Переход в стадию «Встреча», заявитель видит дату и участников',
-                           ),
+                           note: t('Переход в стадию «Встреча»'),
                         },
                         {
                            value: 'request',
@@ -262,7 +255,7 @@ const Screening = ({ deal }: ScreeningProps) => {
                   </div>
                   <p className='text-ink-soft mt-3 text-xs'>
                      {t(
-                        'Правило фонда: решение по скринингу подтверждает второй сотрудник. Кнопка «Завершить скрининг» станет активной после 7 обоснований.',
+                        'Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.',
                      )}
                   </p>
                </div>
