@@ -392,7 +392,7 @@ const committeeCondition = (t: T, deal: Deal): CheckItem => {
    };
    return {
       id: 'committee',
-      text: t('{{body}} одобрил сделку', {
+      text: t('Получить одобрение: {{body}}', {
          body: t(STAGE_LABELS[deal.stage]),
       }),
       note: note(),
@@ -413,7 +413,7 @@ export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
    return [
       {
          id: 'score',
-         text: t('Оценка по 7 критериям заполнена'),
+         text: t('Оценить стартап по 7 критериям'),
          note: t('заполнено {{done}} из {{total}}', {
             done: scored,
             total: CRITERIA.length,
@@ -422,7 +422,7 @@ export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
       },
       {
          id: 'second',
-         text: t('Решение подтверждает второй сотрудник'),
+         text: t('Выбрать коллегу, который проверит оценку'),
          note: secondId ? personName(secondId) : t('не выбран'),
          state: secondId ? 'done' : 'blocking',
       },

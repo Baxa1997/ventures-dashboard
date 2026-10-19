@@ -93,7 +93,7 @@ Needs the three committee members of step 0.
 
 ## 9. ИК-2, board, closing, portfolio
 
-A committee stage is left only after its committee's approval: before step 8, «Перевести в «Детальный DD»» on `ZZ Startup A` shows «ИК-1 одобрил сделку — Решения пока нет» with a link to Инвесткомитет, and «Перевести» is off.
+A committee stage is left only after its committee's approval: before step 8, «Перевести в «Детальный DD»» on `ZZ Startup A` shows «Получить одобрение: ИК-1 — Решения пока нет» with a link to Инвесткомитет, and «Перевести» is off.
 
 1. On the deal: «Перевести в «Детальный DD»» (the ИК-1 approval of step 8 meets its condition), then «Перевести в «ИК-2»» → `public_status` = `committee`.
 2. Repeat step 8 with Тип **ИК-2** (no conditions this time) → «Одобрено». Only then «Перевести в «Наблюдательный совет»» is on.

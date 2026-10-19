@@ -88,7 +88,7 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
       >
          <ModalBody>
             <div className='font-semibold'>
-               {t('Условия выхода из стадии «{{stage}}»', { stage })}
+               {t('Что сделать перед переводом')}
                {exit.length > 0 && (
                   <span className='text-ink-soft text-meta ml-2 font-normal'>
                      {t('выполнено {{done}} из {{total}}', {
@@ -106,9 +106,7 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
                />
             ) : (
                <p className='text-ink-soft text-meta mt-2'>
-                  {t(
-                     'У этой стадии нет условий выхода — сделку можно перевести сразу.',
-                  )}
+                  {t('Ничего — сделку можно перевести сразу.')}
                </p>
             )}
             {deal && (
@@ -122,7 +120,9 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
                         value: personName(deal.ownerId) || t('не назначен'),
                      },
                      {
-                        label: t('Норма стадии «{{stage}}»', { stage: target }),
+                        label: t('Срок на стадии «{{stage}}»', {
+                           stage: target,
+                        }),
                         value: norm
                            ? `${t('{{count}} рабочий день', { count: norm })} · ${t(
                                 'до {{date}}',
@@ -142,7 +142,7 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
             note={
                ready
                   ? t('Переход попадёт в журнал сделки')
-                  : t('Перевести можно, когда выполнены все условия')
+                  : t('Кнопка «Перевести» включится, когда всё будет готово')
             }
          >
             <Button variant='text' onClick={onClose}>
