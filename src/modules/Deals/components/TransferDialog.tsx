@@ -7,6 +7,7 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { SECTION_PATHS } from '@shared/constants';
 import { addWorkingDays, formatDate, todayISO } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
@@ -46,18 +47,24 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
       onClose();
    };
 
-   const scored = exit.find(({ id }) => id === 'score')?.state === 'done';
-   const actions =
-      deal?.stage === 'screening'
-         ? {
-              score: !scored && (
-                 <Link className='link' to='?tab=screening' onClick={onClose}>
-                    {t('Открыть оценку')}
-                 </Link>
-              ),
-              second: <SecondReviewer showLabel deal={deal} />,
-           }
-         : undefined;
+   // where a condition that is not met yet is met
+   const open = (id: string) =>
+      exit.some((item) => item.id === id && item.state !== 'done');
+   const actions = deal && {
+      score: open('score') && (
+         <Link className='link' to='?tab=screening' onClick={onClose}>
+            {t('Открыть оценку')}
+         </Link>
+      ),
+      second: deal.stage === 'screening' && (
+         <SecondReviewer showLabel deal={deal} />
+      ),
+      committee: open('committee') && (
+         <Link className='link' to={SECTION_PATHS.committee}>
+            {t('Открыть «Инвесткомитет»')}
+         </Link>
+      ),
+   };
 
    return (
       <Modal
@@ -92,7 +99,11 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
                )}
             </div>
             {exit.length ? (
-               <CheckList actions={actions} className='mt-3' items={exit} />
+               <CheckList
+                  actions={actions ?? undefined}
+                  className='mt-3'
+                  items={exit}
+               />
             ) : (
                <p className='text-ink-soft text-meta mt-2'>
                   {t(

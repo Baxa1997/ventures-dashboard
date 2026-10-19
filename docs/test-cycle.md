@@ -56,7 +56,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 2. «Второй оценщик» → choose «Администратор» (the owner is `ZZ Аналитик`, so you can).
 3. Open Мой день → «Подтвердить решение по скринингу» for `ZZ Startup A` is in your list (you are its second reviewer).
 4. Back on the deal, the decision is «Встреча»; «Завершить скрининг» → the deal moves to Встреча; the history tab has the screening and the stage move. In ucode, `public_status` = `meeting`.
-5. (The same move is possible from Обзор → «Перевести в «Встреча»»: the window lists the exit conditions, and «Перевести» stays off until both are ticked.)
+5. (The same move is possible from Обзор → «Перевести в «Встреча»»: the window lists the exit conditions, and «Перевести» stays off until both are met. An unmet score links to the scoring tab; the second reviewer is chosen in the window itself, and with nobody else in the team the window links to Настройки to invite someone.)
 
 ## 5. Through the stages
 
@@ -93,9 +93,11 @@ Needs the three committee members of step 0.
 
 ## 9. ИК-2, board, closing, portfolio
 
-1. On the deal: «Перевести в «Детальный DD»», then «Перевести в «ИК-2»» → `public_status` = `committee`.
-2. Repeat step 8 with Тип **ИК-2** (no conditions this time) → «Одобрено».
-3. «Перевести в «Наблюдательный совет»»; optionally hold a board meeting the same way with Орган «Наблюдательный совет».
+A committee stage is left only after its committee's approval: before step 8, «Перевести в «Детальный DD»» on `ZZ Startup A` shows «ИК-1 одобрил сделку — Решения пока нет» with a link to Инвесткомитет, and «Перевести» is off.
+
+1. On the deal: «Перевести в «Детальный DD»» (the ИК-1 approval of step 8 meets its condition), then «Перевести в «ИК-2»» → `public_status` = `committee`.
+2. Repeat step 8 with Тип **ИК-2** (no conditions this time) → «Одобрено». Only then «Перевести в «Наблюдательный совет»» is on.
+3. «Перевести в «Наблюдательный совет»», then hold a board meeting the same way with Орган «Наблюдательный совет» → «Одобрено».
 4. «Перевести в «Закрытие»» → `public_status` = `closing`.
 5. «Перевести в портфель» → the deal's status is «В портфеле», `public_status` = `portfolio`. (The portfolio company is not created yet: see «Known gaps».)
 

@@ -374,11 +374,40 @@ export const checkMandate = (
 export const isScored = ({ score, rationale }: Criterion) =>
    score !== null && !!rationale.trim();
 
-// What has to be true before a deal leaves its stage. A stage may have its
-// own list; screening always asks for the full score and a second opinion.
+// The stages a committee decides on.
+const COMMITTEE_STAGES: DealStage[] = ['ic1', 'ic2', 'board'];
+
+// A committee stage ends with the committee's approval. A refusal does not
+// reject the deal by itself: the owner rejects it with a reason.
+const committeeCondition = (t: T, deal: Deal): CheckItem => {
+   const decisions = (deal.decisions ?? []).filter(
+      ({ stage }) => stage === deal.stage,
+   );
+   const approval = decisions.find(({ verdict }) => verdict === 'approved');
+   const refused = decisions.some(({ verdict }) => verdict === 'rejected');
+   const note = () => {
+      if (approval) return approval.detail;
+      if (refused) return t('Комитет отказал — откажите сделке с причиной');
+      return t('Решения пока нет — вынесите сделку на заседание');
+   };
+   return {
+      id: 'committee',
+      text: t('{{body}} одобрил сделку', {
+         body: t(STAGE_LABELS[deal.stage]),
+      }),
+      note: note(),
+      state: approval ? 'done' : 'blocking',
+   };
+};
+
+// What has to be true before a deal leaves its stage: on screening, the full
+// score and a second opinion; on a committee stage, the committee's approval;
+// and whatever list the stage has of its own.
 export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
-   if (deal.exit) return deal.exit;
-   if (deal.stage !== 'screening') return [];
+   const own = deal.exit ?? [];
+   if (COMMITTEE_STAGES.includes(deal.stage))
+      return [committeeCondition(t, deal), ...own];
+   if (deal.stage !== 'screening' || deal.exit) return own;
    const scored = (deal.screening?.criteria ?? []).filter(isScored).length;
    const secondId = deal.screening?.secondId ?? '';
    return [

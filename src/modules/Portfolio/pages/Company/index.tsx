@@ -320,7 +320,7 @@ const Overview = ({ data, company, onSelect }: OverviewProps) => {
                   {cycle.requestedAt && (
                      <p className='text-ink-soft mt-3 text-xs'>
                         {t(
-                           'Запрос отправлен {{date}} в кабинет компании. Напоминание уйдёт автоматически {{auto}}.',
+                           'Отчёт запрошен {{date}}. Напомните компании {{auto}} сами — автоматических писем пока нет.',
                            {
                               date: formatDate(cycle.requestedAt),
                               auto: formatDate(cycle.autoReminderAt),
@@ -528,7 +528,7 @@ const DocumentsTab = ({ company }: { company: PortfolioCompany }) => {
             <NoData>{t('Компания ещё не загружала документы')}</NoData>
          )}
          <p className='border-line text-ink-soft mt-auto border-t px-5 py-3 text-xs'>
-            {t('Файлы лежат в кабинете компании.')}
+            {t('Файлы хранятся в ucode.')}
          </p>
       </Card>
    );

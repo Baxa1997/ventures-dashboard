@@ -156,6 +156,8 @@ export interface Decision {
    body: string; // ИК-1, ИК-2, Набсовет
    detail: string;
    outcome: string;
+   stage: string; // the stage it decides on: ic1, ic2, board
+   verdict: 'approved' | 'rejected' | 'other'; // postponed, or only noted
 }
 
 interface JournalBase {

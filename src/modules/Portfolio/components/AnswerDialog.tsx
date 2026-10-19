@@ -62,7 +62,11 @@ const AnswerDialog = ({ request, onClose }: AnswerDialogProps) => {
                   />
                </Field>
             </ModalBody>
-            <ModalFooter note={t('Компания увидит ответ в своём кабинете')}>
+            <ModalFooter
+               note={t(
+                  'Ответ сохранится в карточке компании — передайте его компании сами',
+               )}
+            >
                <Button variant='ghost' onClick={close}>
                   {t('Отмена')}
                </Button>

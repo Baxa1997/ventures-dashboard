@@ -146,7 +146,9 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
                </div>
                <Field
                   strong
-                  aside={t('увидит в кабинете и получит на почту')}
+                  aside={t(
+                     'сохранится в сделке — отправьте его заявителю сами',
+                  )}
                   error={
                      tried && !letter.trim()
                         ? t('Напишите, что увидит заявитель')
@@ -211,11 +213,15 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
                </div>
             </div>
          </ModalBody>
-         <ModalFooter note={t('Статус в кабинете: «Отказ» с причиной')}>
+         <ModalFooter
+            note={t(
+               'Сайт примет новую заявку с этой почты после даты повторной подачи',
+            )}
+         >
             <Button variant='text' onClick={onClose}>
                {t('Отмена')}
             </Button>
-            <Button type='submit'>{t('Отказать и уведомить')}</Button>
+            <Button type='submit'>{t('Отказать')}</Button>
          </ModalFooter>
       </form>
    );

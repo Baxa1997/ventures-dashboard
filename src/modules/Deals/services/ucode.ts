@@ -207,6 +207,11 @@ const toWorkstream = (row: Row): Workstream => ({
 
 // A decision of the register (written by Инвесткомитет) as the deal's card shows it.
 const DECISION_BODY: Record<string, string> = { ic1: 'ИК-1', ic2: 'ИК-2', board: 'Набсовет' };
+const APPROVALS = new Set(['approved', 'approved_conditions', 'sponsor_approved']);
+const verdictOf = (outcome: string): Decision['verdict'] => {
+   if (APPROVALS.has(outcome)) return 'approved';
+   return outcome === 'rejected' ? 'rejected' : 'other';
+};
 const toDecision = (row: Row): Decision => ({
    id: row.guid,
    body: DECISION_BODY[str(row.stage)] ?? 'ИК',
@@ -216,6 +221,8 @@ const toDecision = (row: Row): Decision => ({
    outcome: [OUTCOMES[str(row.outcome) as keyof typeof OUTCOMES]?.label, str(row.note)]
       .filter(Boolean)
       .join(' · '),
+   stage: str(row.stage),
+   verdict: verdictOf(str(row.outcome)),
 });
 
 const toMemo = (rows: Row[], checks: Row[]): Memo | undefined => {

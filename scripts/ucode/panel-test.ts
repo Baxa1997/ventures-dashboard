@@ -187,6 +187,11 @@ try {
    check('…and shows in Задачи linked to the deal and the decision', conditionTask && conditionTask.origin === 'ic_condition' && conditionTask.relationId === deal.id && conditionTask.decisionId === decision?.id, conditionTask && { origin: conditionTask.origin, relation: conditionTask.relation });
    const reread = (await deals.getDeals()).find((d) => d.id === deal.id);
    check("the deal's card shows the decision", reread?.decisions?.some((d) => d.outcome.startsWith('Одобрено с условиями')), reread?.decisions);
+   // a committee stage is left only after its committee's approval
+   const { exitConditions } = await import('@modules/Deals/helpers');
+   const keys = ((key: string) => key) as never;
+   const atStage = (stage: 'ic1' | 'ic2') => exitConditions(keys, { ...reread!, stage, exit: undefined }).find((c) => c.id === 'committee')?.state;
+   check('the ИК-1 approval opens the way out of ИК-1, not out of ИК-2', atStage('ic1') === 'done' && atStage('ic2') === 'blocking', { ic1: atStage('ic1'), ic2: atStage('ic2') });
    await committee.setTaskDone(condition!.id, true, me.id);
    check('marking the condition done', (await committee.getState()).tasks.find((t) => t.id === condition?.id)?.done === true);
 
