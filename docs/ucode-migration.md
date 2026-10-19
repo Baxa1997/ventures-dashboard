@@ -27,6 +27,7 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
 | 3 — Инвесткомитет | created, checked with `get_dbml` | not started |
 | 4 — Портфель | created by Claude Code, checked with `get_dbml` | not started |
 | 5 — Работа, money, downloads | created by Claude Code, checked with `get_dbml` | not started |
+| 6 — Документы фонда | created by Claude Code, checked with `verify.mjs` | not started |
 
 - 18 October: the schema read through the MCP (`get_dbml`) and compared with `node scripts/ucode/schema.mjs check`: all 27 tables, every field with its column type and all 25 relations match batches T–3, with no extra fields.
 - 18 October, batches 4 and 5: tables made with the MCP's `create_table` in Admin, fields with `POST /v2/fields/{table}` (see «The ucode MCP»), relations with `update_table`. After them, `check` on `get_dbml`'s output: 39 tables and all 41 relations, every table of batches 4 and 5 ✓ except three fields of `portfolio_companies`, fixed the same day (below).
@@ -45,6 +46,8 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
   - The folders, the 40 tables and 389 columns have Russian and Uzbek names (`attributes.label_ru`, `label_uz`; the ucode admin falls back to the English label without them). A relation column also has the name its table shows from the other side (`label_to_ru`, `label_to_uz`). The fields' own labels, which `verify.mjs` reads relations from, are unchanged; the login table's columns are left alone. Names set by hand (`Заявки`, `Веб сайт`) were kept.
   - The Deals table view shows 13 main columns instead of 63; each record still has every field.
   - Afterwards: a second dry run found nothing to change, `verify.mjs` no problems, and `panel-test.mjs` passed all 34 checks.
+- 19 October, batch 6 (Документы фонда): `fund_documents` and `governance_issues` made with the MCP's `create_table`, their 14 fields with `fields.mjs create 6`, the 4 pick lists with `fields.mjs options 6 --write`, then put in Admin → Fund and named with `admin-ui.mjs`. `verify.mjs`: 412 fields and 41 relations, no problems. The panel's Документы runs on them; `panel-test.mjs` checks a document, its edit, the orders' numbering and a governance question (37 checks, all passed).
+- Files uploaded to ucode Files are public: a pitch deck the website stored opens at `https://cdn.u-code.io/<its path>` without a token (checked 19 October). Документы therefore keeps links, not files; the decks need the private folder and §7 of ERP.md.
 - The ucode environment of this project is named "Production" in ucode (its only environment, `9f012d7a-0eb0-4a3a-87c7-16661eafce08`), though it is used for testing; the website's live deployment does not use it (its tables did not exist here until batch T).
 - Folder ids: Admin `60e0336b-5017-49ca-8c96-123aa5e2c9db` (the only folder named Admin), Landing page `39d78d3e-d0dc-49ef-9e99-5491b0968a41`, Startup cabinet `21a20661-d27b-43a4-98ed-37604fe83833`. All three sit under ucode's main menu, `c57eedc3-a954-4262-a0af-376c65b5a284`. Admin's sub-folders are found by their English name (`admin-ui.mjs`).
 - The tables of batches 2 and 3 were created outside the Admin folder and moved into it by hand; all of them, `votes` and `decisions` included, now have an entry in Admin.
@@ -766,6 +769,32 @@ Relations (Many2One, from table → target table; ucode names the field {target}
 - tasks → meetings
 - task_checklist → tasks
 - task_events → tasks
+```
+
+## Batch 6 — Документы фонда (phase 3)
+
+The register of the fund's own documents: charter documents, regulations and policies, orders, HR documents and templates, the current version of each; and the open questions of corporate governance. A document holds a link to its file where the fund keeps it, not the file: ucode Files are public by link (§7 of ERP.md).
+
+```
+Batch 6. Same rules: every new table inside the folder "Admin". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table fund_documents
+- category: PICK_LIST [corporate, orders, hr, templates]
+- title: SINGLE_LINE
+- note: MULTI_LINE
+- approved_by: PICK_LIST [participant, board, director]
+- status: PICK_LIST [active, reregistration, updating, draft, archived]
+- doc_date: DATE
+- link: SINGLE_LINE
+- created_by_id: SINGLE_LINE
+
+Table governance_issues
+- title: SINGLE_LINE
+- note: MULTI_LINE
+- status: PICK_LIST [awaiting_reply, in_work, resolved]
+- opened_at: DATE
+- resolved_at: DATE
+- owner_id: SINGLE_LINE
 ```
 
 ## Checking what was created

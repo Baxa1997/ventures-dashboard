@@ -13,7 +13,8 @@ Sources: the system map «Операционная платформа фонда
 | 1 | **Admin: Инвестиции** — Сделки, Инвесткомитет, Портфель | On ucode |
 | 1 | **Admin: Настройки** — mandate, stage norms, staff and roles | On ucode. Сделки take the mandate and the norms from it |
 | 2 | **Startup cabinet** — the applicant's status, the fund's requests and documents; the portfolio company's quarterly reports and requests | Not built |
-| 3 | Финансы, Договоры, Закупки, Корреспонденция, Документы | Screens built, hidden from the panel until their tables exist (they come back from the repo's history) |
+| 3 | **Fund: Документы** — the register of the fund's documents and the open governance questions | On ucode (§4.9). A document links to its file where the fund keeps it |
+| 3 | Финансы, Договоры, Закупки, Корреспонденция | Screens built, hidden from the panel until their tables exist (they come back from the repo's history) |
 
 ## 2. How the parts connect
 
@@ -264,6 +265,14 @@ The conditions somebody has to carry out become **tasks** (§4.7) with `origin =
 ### 4.8 Обзор: money, until Финансы are connected
 
 Обзор shows the fund's money, which Финансы count from bank statements. Until Финансы are connected (phase 3), **fund_money** holds one row the chief accountant keeps up to date: as_of, capital, direct_allocation (the part of the capital the fund invests itself, $5M of $10M; the rest is with external managers), on_accounts, plan_year, plan_direct_deals, approved_unpaid, approved_note, follow_on_reserve, follow_on_note, operating_left, operating_note. Money free for deals is counted from it, as `moneyParts` does now: on accounts, less approved payments, the follow-on reserve and the operating budget.
+
+### 4.9 Документы фонда (phase 3)
+
+**fund_documents**: category (PICK_LIST: corporate, orders, hr, templates), title (an order's title is its number, «№ 4Р»), note (an order's subject), approved_by (PICK_LIST: participant, board, director), status (PICK_LIST: active, reregistration, updating, draft, archived), doc_date (the version in force; an order's date), link (where the fund keeps the file), created_by_id. One row per document: its version in force. Orders are numbered within the year by the panel.
+
+**governance_issues**: title, note, status (PICK_LIST: awaiting_reply, in_work, resolved), opened_at, resolved_at, owner_id.
+
+A document holds a link, not the file: what is uploaded to ucode Files opens for anyone who has its address (checked on 19 October with a pitch deck), and the fund's documents include HR papers. They can move into ucode once files are private and downloaded through §7.
 
 ## 5. Logic
 

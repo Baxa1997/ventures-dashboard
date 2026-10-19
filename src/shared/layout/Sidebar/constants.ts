@@ -9,6 +9,7 @@ import type { Section, SectionCounters } from '@shared/types/work.types';
 import {
    Briefcase,
    CalendarCheck,
+   Folder,
    Funnel,
    Landmark,
    LayoutGrid,
@@ -22,6 +23,7 @@ const SECTION_ICONS: Record<Section, LucideIcon> = {
    deals: Funnel,
    committee: Landmark,
    portfolio: Briefcase,
+   documents: Folder,
 };
 
 const section = (id: Section) => ({
@@ -50,6 +52,12 @@ export const NAV_GROUPS = [
    {
       label: 'Инвестиции',
       items: [section('deals'), section('committee'), section('portfolio')],
+   },
+   // Финансы, Договоры, Закупки and Корреспонденция join it as their tables
+   // are made in ucode (docs/ERP.md §1).
+   {
+      label: 'Фонд',
+      items: [section('documents')],
    },
 ] as const;
 

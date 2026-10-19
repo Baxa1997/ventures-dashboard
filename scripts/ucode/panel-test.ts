@@ -2,7 +2,7 @@
    panel-test.mjs: signs in through the panel's sign-in (the login and password
    of UCODE_LOGIN and UCODE_PASSWORD; the user needs an employees row with the
    director's role, auth.mjs link) and works through Настройки, Сделки, Работа,
-   Портфель and Инвесткомитет, reading back from ucode what each step wrote.
+   Портфель, Инвесткомитет and Документы, reading back from ucode what each step wrote.
    Every row the run creates is recorded from its request and deleted at the
    end, so rows others write meanwhile are left alone; the settings it changes
    are put back. */
@@ -45,6 +45,7 @@ const deals = (await import('@modules/Deals/services')).default;
 const work = (await import('@modules/Work/services')).default;
 const portfolio = (await import('@modules/Portfolio/services')).default;
 const committee = (await import('@modules/Committee/services')).default;
+const documents = (await import('@modules/Documents/services')).default;
 const { addWorkingDays, todayISO } = await import('@shared/helpers');
 
 let failures = 0;
@@ -194,6 +195,23 @@ try {
    check('the ИК-1 approval opens the way out of ИК-1, not out of ИК-2', atStage('ic1') === 'done' && atStage('ic2') === 'blocking', { ic1: atStage('ic1'), ic2: atStage('ic2') });
    await committee.setTaskDone(condition!.id, true, me.id);
    check('marking the condition done', (await committee.getState()).tasks.find((t) => t.id === condition?.id)?.done === true);
+
+   // ---- Документы
+   const docId = await documents.addDocument({ category: 'corporate', title: 'ZZ Положение', note: 'ZZ проект', approvedBy: 'board', status: 'draft', date: today, link: 'https://example.com/zz' }, me.id);
+   const firstOrder = await documents.nextOrderNumber();
+   const firstNumber = Number(firstOrder.match(/\d+/)?.[0]);
+   await documents.addDocument({ category: 'orders', title: `${firstOrder} от ZZ`, note: 'ZZ О комиссии', approvedBy: 'director', status: 'active', date: today, link: '' }, me.id);
+   const secondOrder = await documents.nextOrderNumber();
+   check('orders are numbered in the year: the next one after a new order', secondOrder === `№ ${firstNumber + 1}Р`, { firstOrder, secondOrder });
+   await documents.updateDocument(docId, { category: 'corporate', title: 'ZZ Положение', note: 'ZZ утверждено', approvedBy: 'board', status: 'active', date: today, link: 'https://example.com/zz2' });
+   const issueId = await documents.addIssue({ title: 'ZZ Вопрос управления', note: 'ZZ ждём ответа банка', ownerId: me.id });
+   await documents.setIssueStatus(issueId, 'resolved');
+   clearStores();
+   const docsState = await documents.getState();
+   const doc = docsState.documents.find((d) => d.id === docId);
+   const issue = docsState.issues.find((i) => i.id === issueId);
+   check('a document read back from ucode, changed', doc && doc.status === 'active' && doc.note === 'ZZ утверждено' && doc.link === 'https://example.com/zz2' && doc.approvedBy === 'board' && doc.date === today && doc.createdById === me.id, doc);
+   check('a governance question added and resolved', issue && issue.status === 'resolved' && issue.resolvedAt === today && issue.ownerId === me.id, issue);
 
    // ---- sign-in refusal
    const { login } = api;

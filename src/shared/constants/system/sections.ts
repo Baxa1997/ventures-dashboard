@@ -6,6 +6,7 @@ export const SECTION_LABELS = {
    deals: 'Сделки',
    committee: 'Инвесткомитет',
    portfolio: 'Портфель',
+   documents: 'Документы',
 } as const satisfies Record<Section, string>;
 
 export const SECTION_PATHS = {
@@ -13,6 +14,7 @@ export const SECTION_PATHS = {
    deals: '/deals',
    committee: '/committee',
    portfolio: '/portfolio',
+   documents: '/documents',
 } as const satisfies Record<Section, string>;
 
 export const OVERVIEW_PATH = '/work/overview';

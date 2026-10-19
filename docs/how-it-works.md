@@ -36,11 +36,12 @@ says so where it matters.
 - **Задачи**: tasks, linked to a deal or a company if needed; committee conditions land here.
 - **Инвесткомитет**: meetings, agenda, votes, protocol, the register of decisions.
 - **Портфель**: companies, quarterly reports (the analyst enters and confirms the figures), requests from companies.
+- **Документы** (under «Фонд»): the fund's own documents and orders, each with its status and a link to its file, and open governance questions.
 - **Настройки**: the mandate, stage norms, risk flags, committee rules, staff.
 
 ## Where the data is in ucode
 
-Admin → **Сделки**, **Инвесткомитет**, **Портфель**, **Задачи**,
+Admin → **Сделки**, **Инвесткомитет**, **Портфель**, **Задачи**, **Фонд**,
 **Настройки и справочники**; the website's tables are in **Сайт**. Names are in
 Russian, Uzbek and English. Most tables are details of a deal (its requests,
 documents, scores, journal…): the panel shows them together on the deal's card.

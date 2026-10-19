@@ -18,7 +18,8 @@ export interface Employee {
 
 // Sections of the platform that work items point to. Финансы, Договоры,
 // Закупки, Корреспонденция and Документы join in phase 3.
-export type Section = 'tasks' | 'deals' | 'committee' | 'portfolio';
+export type Section =
+   'tasks' | 'deals' | 'committee' | 'portfolio' | 'documents';
 
 export type TaskStatus =
    'assigned' | 'in_progress' | 'waiting' | 'postponed' | 'review' | 'done';

@@ -1,6 +1,7 @@
 import auth from '@modules/Auth/locales/ru';
 import committee from '@modules/Committee/locales/ru';
 import deals from '@modules/Deals/locales/ru';
+import documents from '@modules/Documents/locales/ru';
 import portfolio from '@modules/Portfolio/locales/ru';
 import settings from '@modules/Settings/locales/ru';
 import work from '@modules/Work/locales/ru';
@@ -12,6 +13,7 @@ const ru = {
    ...auth,
    ...committee,
    ...deals,
+   ...documents,
    ...portfolio,
    ...settings,
    ...work,

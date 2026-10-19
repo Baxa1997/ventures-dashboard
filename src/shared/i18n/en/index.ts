@@ -1,6 +1,7 @@
 import auth from '@modules/Auth/locales/en';
 import committee from '@modules/Committee/locales/en';
 import deals from '@modules/Deals/locales/en';
+import documents from '@modules/Documents/locales/en';
 import portfolio from '@modules/Portfolio/locales/en';
 import settings from '@modules/Settings/locales/en';
 import work from '@modules/Work/locales/en';
@@ -14,6 +15,7 @@ const en: RuTranslation = {
    ...auth,
    ...committee,
    ...deals,
+   ...documents,
    ...portfolio,
    ...settings,
    ...work,

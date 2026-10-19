@@ -7,6 +7,7 @@ import { Navigate, Outlet, useLocation, useRoutes } from 'react-router';
 import Auth from './Auth';
 import Committee from './Committee';
 import Deals from './Deals';
+import Documents from './Documents';
 import NotFound from './NotFound/NotFound';
 import Portfolio from './Portfolio';
 import Settings from './Settings';
@@ -52,8 +53,8 @@ const SignedIn = () => {
    );
 };
 
-// Финансы, Договоры, Закупки, Корреспонденция and Документы (phase 3) come
-// back when their tables exist in ucode (docs/ERP.md §1).
+// Финансы, Договоры, Закупки and Корреспонденция (phase 3) come back when
+// their tables exist in ucode (docs/ERP.md §1); Документы is on ucode.
 const Modules = () => {
    const routes = useRoutes([
       { path: '/', element: <Navigate to={OVERVIEW_PATH} replace /> },
@@ -65,6 +66,7 @@ const Modules = () => {
             { path: 'deals', element: <Outlet />, children: Deals },
             { path: 'committee', element: <Outlet />, children: Committee },
             { path: 'portfolio', element: <Outlet />, children: Portfolio },
+            { path: 'documents', element: <Outlet />, children: Documents },
             { path: 'settings', element: <Outlet />, children: Settings },
             { path: '*', element: <NotFound /> },
          ],

@@ -33,7 +33,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 2. Enter `Sqb-admin` and a wrong password, «Войти» → «Неверный логин или пароль».
 3. Enter the right password, keep «Не выходить на этом устройстве» ticked → you land on Сделки (the page you asked for); the sidebar shows «Администратор · Директор».
 4. Reload the page → still signed in.
-5. The sidebar shows only Обзор, Мой день, Задачи, Сделки, Инвесткомитет, Портфель and Настройки. Open http://localhost:3000/finance → «Страница не найдена».
+5. The sidebar shows Обзор, Мой день, Задачи, Сделки, Инвесткомитет, Портфель, Документы (under «Фонд») and Настройки. Open http://localhost:3000/finance → «Страница не найдена».
 
 ## 2. A startup applies (website)
 
@@ -147,9 +147,18 @@ Needs the company of step 0.
 4. «Пользователи и роли»: «Администратор» (Директор, Полный); `ZZ Аналитик` «добавлен <date>, ещё не входил».
 5. «Справочники»: the 11 industries with their place in the mandate, the rejection reasons, the sources.
 
-## 15. Languages and signing out
+## 15. Документы
 
-1. User menu → Язык → O‘zbek, then English → every page you visited reads in that language. (Known: the meeting «Формат» choices stay in Russian.)
+1. Фонд → Документы → four tabs: Корпоративные, Приказы, HR, Шаблоны, each with its count.
+2. «Добавить документ»: save with no name → refused; name `ZZ Устав`, a note, «Кем утверждается» Участник, a link that is not a link (`abc`) → refused; a real link (`https://…`) → saved → it is on Корпоративные as «Черновик», with «Открыть файл».
+3. Click its name → change Статус to «Действует» → «Сохранить» → the badge changes.
+4. «Новый приказ»: the window shows the next number of the year («№ 1Р от <today>») → write `ZZ О составе комиссии` → «Создать приказ» → the Приказы tab opens with it, and «Последние приказы» lists it. The next new order gets the following number.
+5. «Открытые вопросы управления» → «Добавить»: `ZZ Конфликт интересов`, what is being done, the person responsible → it is listed «В работе»; set it to «Решён» → it leaves the list.
+6. In ucode, Admin → Фонд: `fund_documents` and `governance_issues` hold what you entered.
+
+## 16. Languages and signing out
+
+1. User menu → Язык → O‘zbek, then English → every page you visited reads in that language; only what people typed (names, notes) stays as written.
 2. User menu → «Выйти» → the sign-in page; opening a page again asks to sign in.
 3. Sign in without «Не выходить на этом устройстве», close the tab, open the panel again → you are asked to sign in.
 
@@ -158,7 +167,7 @@ Needs the company of step 0.
 - The founder has no cabinet yet: no status page, cannot answer requests or upload documents; no emails are sent (rejection letters, reminders).
 - A deal moved to the portfolio does not create its portfolio company; companies, committee members and the fund's money are added in ucode.
 - Staff are invited in Настройки, but a ucode user for them is made with `scripts/ucode/auth.mjs`; only `Sqb-admin` can sign in today, so roles other than the director cannot be tested.
-- No file storage: documents uploaded by the fund keep their name only.
+- No file storage: documents uploaded by the fund on a deal keep their name only, and Документы keeps a link to where the fund stores the file. Files in ucode Files would be open to anyone with the link.
 - Deadlines skip weekends, not holidays; the working-day clock is recounted when a deal changes, not every night.
 - The memorandum tab is empty for a new deal (memorandums are not written in the panel yet).
 - The fund's rules (stage conditions, who may save the settings) are checked in the panel, not yet on the server.
@@ -170,6 +179,6 @@ For each problem write: the step number, what you did, what you expected, what y
 
 ## Cleaning up
 
-Delete the `ZZ` records in the ucode admin when you are done: the deals with their rows (`deal_events`, `deal_stage_history`, `screening_scores`, `deal_documents`, `deal_requests`, `workstreams`), the meetings with `meeting_attendance`, `agenda_items` and `votes`, the `decisions`, the tasks with `task_checklist` and `task_events`, the website applications, the committee members, the portfolio company with its rows, the `fund_money` and `reporting_cycles` rows, and the `ZZ Аналитик` employee. Keep «Администратор» in `employees`.
+Delete the `ZZ` records in the ucode admin when you are done: the `fund_documents` and `governance_issues` rows, the deals with their rows (`deal_events`, `deal_stage_history`, `screening_scores`, `deal_documents`, `deal_requests`, `workstreams`), the meetings with `meeting_attendance`, `agenda_items` and `votes`, the `decisions`, the tasks with `task_checklist` and `task_events`, the website applications, the committee members, the portfolio company with its rows, the `fund_money` and `reporting_cycles` rows, and the `ZZ Аналитик` employee. Keep «Администратор» in `employees`.
 
 The automated version of this cycle, `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows`, runs the panel's services through the same flows and deletes what it made; `node scripts/ucode/verify.mjs --rows` then checks the schema and the row counts.

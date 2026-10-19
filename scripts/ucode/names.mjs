@@ -62,6 +62,13 @@ export const FOLDERS = [
       tables: ['tasks', 'task_checklist', 'task_events'],
    },
    {
+      en: 'Fund',
+      ru: 'Фонд',
+      uz: 'Fond',
+      icon: 'https://api.iconify.design/mdi:folder-outline.svg',
+      tables: ['fund_documents', 'governance_issues'],
+   },
+   {
       en: 'Settings and lists',
       ru: 'Настройки и справочники',
       uz: 'Sozlamalar va ma’lumotnomalar',
@@ -126,6 +133,8 @@ export const TABLES = {
    settings_journal: ['Журнал настроек', 'Sozlamalar jurnali'],
    file_downloads: ['Скачивания файлов', 'Fayl yuklab olishlar'],
    staff_users: ['Учётные записи сотрудников', 'Xodimlar hisoblari'],
+   fund_documents: ['Документы фонда', 'Fond hujjatlari'],
+   governance_issues: ['Вопросы управления', 'Boshqaruv masalalari'],
    // the website's tables, in Landing page
    applications: ['Заявки', 'Arizalar'],
    partner_requests: ['Заявки партнёров', 'Hamkorlik so‘rovlari'],
@@ -481,6 +490,18 @@ export const TABLE_FIELDS = {
       direct_allocation: ['Прямые инвестиции', 'To‘g‘ridan-to‘g‘ri investitsiyalar'],
       capital: ['Капитал', 'Kapital'],
       as_of: ['На дату', 'Sana holatiga'],
+   },
+   fund_documents: {
+      category: ['Раздел', 'Bo‘lim'],
+      approved_by: ['Кем утверждён', 'Kim tasdiqlagan'],
+      doc_date: ['Дата редакции', 'Tahrir sanasi'],
+      link: ['Ссылка на файл', 'Faylga havola'],
+      created_by_id: ['Кто добавил', 'Kim qo‘shgan'],
+   },
+   governance_issues: {
+      opened_at: ['Открыт', 'Ochilgan sana'],
+      resolved_at: ['Решён', 'Hal qilingan sana'],
+      owner_id: ['Ответственный', 'Mas’ul'],
    },
    file_downloads: {
       download_no: ['Номер скачивания', 'Yuklab olish raqami'],
