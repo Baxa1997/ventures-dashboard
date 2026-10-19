@@ -13,6 +13,25 @@ yarn build
 
 Node 22.23.1 and Yarn 1.22.22, as in `.nvmrc` and `package.json`.
 
+## Deploy
+
+**https://admin.sqbvc.uz** — ucode prod cluster, namespace `ucode-prod`. A push to `main` runs
+`.github/workflows/ci-cd.yaml`, which calls the shared `Ucode-io/ci-cd` workflow:
+
+1. `make build-image` builds `ghcr.io/ucode-io/sqb-ventures-dashboard:<run number>`: `yarn build`, then
+   nginx serves `dist` (`nginx.conf`: every path falls back to `index.html`, `/assets` is cached for good,
+   `index.html` never, and the panel is kept out of search results). Where staff sign in —
+   `VITE_UCODE_PROJECT_ID`, `VITE_UCODE_ENVIRONMENT_ID`, `VITE_UCODE_CLIENT_TYPE_IDS` — is set in the
+   `Makefile`: Vite writes it into the bundle, so changing it needs a new build. The build stops if one
+   of them is empty.
+2. The tag is written to `Ucode-io/deployments` →
+   `clusters/cluster-prod/ucode-prod/sqb-ventures-dashboard/values.yaml` (ingress, resources).
+3. ArgoCD rolls the new image out. TLS: cert-manager, Let's Encrypt. DNS: an `admin` A record in the
+   `sqbvc.uz` Cloudflare zone, proxied, like the website.
+
+The panel has no secrets and no Vault: it holds only public ids, and every call carries the signed-in
+person's token.
+
 ## Structure
 
 - `src/main.tsx` — entry point
