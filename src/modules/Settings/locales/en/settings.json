@@ -152,5 +152,6 @@
    "Допустима": "Allowed",
    "Нужна лицензия": "Licence needed",
    "Исключена": "Excluded",
-   "добавлен {{date}}, ещё не входил": "added {{date}}, has not signed in yet"
+   "добавлен {{date}}, ещё не входил": "added {{date}}, has not signed in yet",
+   "Напишите две суммы, от и до: $50 000 – $300 000": "Write two amounts, from and to: $50 000 – $300 000"
 }

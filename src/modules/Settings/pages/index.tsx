@@ -8,7 +8,7 @@ import {
    TAB_LABELS,
    TABS,
 } from '@modules/Settings/constants';
-import settings from '@modules/Settings/services';
+import settings, { parseCheck } from '@modules/Settings/services';
 import {
    Button,
    Loading,
@@ -63,6 +63,12 @@ const SettingsPage = () => {
          </>
       );
 
+   // a check the panel cannot read would be saved as no check at all
+   const checkError =
+      draft.mandate.check.trim() && !parseCheck(draft.mandate.check)
+         ? t('Напишите две суммы, от и до: $50 000 – $300 000')
+         : '';
+
    const dirty =
       JSON.stringify(draft) !==
       JSON.stringify({
@@ -97,7 +103,7 @@ const SettingsPage = () => {
                {t('Журнал изменений')}
             </Button>
             <Button
-               disabled={!dirty || !director}
+               disabled={!dirty || !director || !!checkError}
                title={
                   director
                      ? undefined
@@ -153,7 +159,12 @@ const SettingsPage = () => {
          </PageHeader>
          <PageBody className='flex flex-col'>
             {tab === 'rules' && (
-               <Rules draft={draft} editable={director} onChange={setDraft} />
+               <Rules
+                  draft={draft}
+                  editable={director}
+                  errors={{ check: checkError }}
+                  onChange={setDraft}
+               />
             )}
             {tab === 'users' && <Users data={data} />}
             {tab === 'lists' && <Lists data={data} />}

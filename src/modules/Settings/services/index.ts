@@ -57,16 +57,22 @@ const ROLES: Role[] = [
    'other',
 ];
 
-// "$50 000 – $300 000" → [50000, 300000]; null when the text has no range.
+// "$50 000 – $300 000", "$50,000 - $300,000", "50K–300K", "от 50 000 до
+// 300 000" → [50000, 300000]; null unless the text has two amounts, the
+// smaller first. A comma or a dot before three digits groups thousands;
+// otherwise it is the decimal point ("1,5M").
 export const parseCheck = (text: string): [number, number] | null => {
    const values = [
-      ...text.replace(/\s/g, '').matchAll(/\$?(\d+(?:[.,]\d+)?)([KkMmКкМм]?)/g),
+      ...text
+         .replace(/\s/g, '')
+         .replace(/(\d)[.,](?=\d{3}(?!\d))/g, '$1')
+         .matchAll(/(\d+(?:[.,]\d+)?)([KkMmКкМм]?)/g),
    ].map(
       ([, value, unit]) =>
          Number(value.replace(',', '.')) *
          (/[KkКк]/.test(unit) ? 1_000 : /[MmМм]/.test(unit) ? 1_000_000 : 1),
    );
-   return values.length >= 2 && values[0] < values[1]
+   return values.length === 2 && values[0] < values[1]
       ? [values[0], values[1]]
       : null;
 };

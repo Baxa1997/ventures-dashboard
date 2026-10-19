@@ -152,5 +152,6 @@
    "Допустима": "Ruxsat etilgan",
    "Нужна лицензия": "Litsenziya kerak",
    "Исключена": "Chiqarilgan",
-   "добавлен {{date}}, ещё не входил": "{{date}} qo‘shilgan, hali kirmagan"
+   "добавлен {{date}}, ещё не входил": "{{date}} qo‘shilgan, hali kirmagan",
+   "Напишите две суммы, от и до: $50 000 – $300 000": "Ikki summani yozing, dan va gacha: $50 000 – $300 000"
 }

@@ -5,6 +5,7 @@ import {
    NORM_STAGE_LABELS,
 } from '@modules/Settings/constants';
 import { Card, FactList, STACK, Table, TD, TH } from '@shared/components';
+import type { MandateField } from '@shared/types/settings.types';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { Draft } from '..';
@@ -12,13 +13,14 @@ import type { Draft } from '..';
 interface RulesProps {
    draft: Draft;
    editable: boolean;
+   errors: Partial<Record<MandateField, string>>; // fields that cannot be saved as written
    onChange: (draft: Draft) => void;
 }
 
 /* The investment mandate, the stage norms, the portfolio's risk flags and the
    committee's voting rules. The mandate's check and the stage norms are what
    Сделки check applications and count deadlines by. */
-const Rules = ({ draft, editable, onChange }: RulesProps) => {
+const Rules = ({ draft, editable, errors, onChange }: RulesProps) => {
    const { t } = useTranslation('settings');
    const input =
       'field-input text-meta h-9 disabled:bg-ground disabled:text-ink-soft';
@@ -32,35 +34,54 @@ const Rules = ({ draft, editable, onChange }: RulesProps) => {
                   title={t('Инвестиционный мандат')}
                >
                   <div className='divide-line divide-y px-5'>
-                     {MANDATE_FIELDS.map(({ key, label, hint }) => (
-                        <label
-                           key={key}
-                           className='grid items-center gap-x-5 gap-y-1.5 py-3 sm:grid-cols-[7rem_minmax(0,1.2fr)_minmax(0,1fr)]'
-                        >
-                           <span className='text-ink-soft'>{t(label)}</span>
-                           <textarea
-                              className={clsx(
-                                 input,
-                                 'field-sizing-content h-auto min-h-9 resize-none py-1.5',
+                     {MANDATE_FIELDS.map((field) => {
+                        const { key, label, hint } = field;
+                        const error = errors[key];
+                        return (
+                           <label
+                              key={key}
+                              className='grid items-center gap-x-5 gap-y-1.5 py-3 sm:grid-cols-[7rem_minmax(0,1.2fr)_minmax(0,1fr)]'
+                           >
+                              <span className='text-ink-soft'>{t(label)}</span>
+                              <textarea
+                                 aria-invalid={!!error}
+                                 className={clsx(
+                                    input,
+                                    'field-sizing-content h-auto min-h-9 resize-none py-1.5',
+                                 )}
+                                 disabled={!editable}
+                                 placeholder={
+                                    'placeholder' in field
+                                       ? field.placeholder
+                                       : undefined
+                                 }
+                                 rows={1}
+                                 value={draft.mandate[key]}
+                                 onChange={(event) =>
+                                    onChange({
+                                       ...draft,
+                                       mandate: {
+                                          ...draft.mandate,
+                                          [key]: event.target.value,
+                                       },
+                                    })
+                                 }
+                              />
+                              {error ? (
+                                 <span
+                                    role='alert'
+                                    className='text-danger text-xs'
+                                 >
+                                    {error}
+                                 </span>
+                              ) : (
+                                 <span className='text-ink-soft text-xs'>
+                                    {t(hint)}
+                                 </span>
                               )}
-                              disabled={!editable}
-                              rows={1}
-                              value={draft.mandate[key]}
-                              onChange={(event) =>
-                                 onChange({
-                                    ...draft,
-                                    mandate: {
-                                       ...draft.mandate,
-                                       [key]: event.target.value,
-                                    },
-                                 })
-                              }
-                           />
-                           <span className='text-ink-soft text-xs'>
-                              {t(hint)}
-                           </span>
-                        </label>
-                     ))}
+                           </label>
+                        );
+                     })}
                   </div>
                </Card>
                <Card hint={t('рабочие дни')} title={t('Нормативы стадий')}>

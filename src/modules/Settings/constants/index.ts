@@ -21,11 +21,17 @@ export const TAB_LABELS = {
 } as const satisfies Record<SettingsTab, string>;
 
 export const MANDATE_FIELDS = [
-   { key: 'check', label: 'Чек', hint: 'Проверка входящих, письмо отказа' },
+   {
+      key: 'check',
+      label: 'Чек',
+      hint: 'Проверка входящих, письмо отказа',
+      placeholder: '$50 000 – $300 000',
+   },
    {
       key: 'stages',
       label: 'Стадии',
       hint: 'Проверка входящих; исключение — только с обоснованием в меморандуме',
+      placeholder: 'Pre-seed, Seed',
    },
    { key: 'focus', label: 'Фокус', hint: 'Пометка «в фокусе» во входящих' },
    { key: 'geography', label: 'География', hint: 'Проверка входящих' },
@@ -38,6 +44,7 @@ export const MANDATE_FIELDS = [
    key: MandateField;
    label: string;
    hint: string;
+   placeholder?: string; // the format the field is read in
 }[];
 
 export const NORM_STAGE_LABELS = {
