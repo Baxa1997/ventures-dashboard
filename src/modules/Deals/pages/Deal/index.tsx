@@ -168,7 +168,8 @@ const DealCard = () => {
                onClick={() =>
                   deals.takeToScreening(
                      deal.id,
-                     deal.ownerId || deal.proposedOwnerId,
+                     // a website application is offered to nobody: the person taking it owns it
+                     deal.ownerId || deal.proposedOwnerId || user.id,
                   )
                }
             >

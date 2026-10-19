@@ -7,6 +7,7 @@ import {
 import {
    checkMandate,
    dayOf,
+   factRows,
    formatAmount,
    formatStamp,
    type MandateState,
@@ -28,6 +29,7 @@ import {
 } from '@shared/components';
 import { TEAM } from '@shared/constants';
 import { formatDay, shortName } from '@shared/helpers';
+import { useCurrentUser } from '@shared/hooks';
 import type { Deal, DealSource, DealsSummary } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
@@ -71,6 +73,7 @@ const Inbox = ({
    onReject,
 }: InboxProps) => {
    const { t, i18n } = useTranslation('deals');
+   const user = useCurrentUser();
    const language = i18n.resolvedLanguage ?? i18n.language;
    const [search, setSearch] = useState('');
    const [source, setSource] = useState<DealSource | typeof ALL>(ALL);
@@ -104,9 +107,14 @@ const Inbox = ({
    const selected = rows.find(({ id }) => id === selectedId) ?? rows[0];
 
    useEffect(() => onVisible(rows), [rows, onVisible]);
-   // each application starts with the owner it was offered to
+   // each application starts with the owner it was offered to; the website
+   // offers it to nobody, so then the person deciding takes it
    useEffect(() => {
-      setOwnerId(selected ? selected.ownerId || selected.proposedOwnerId : '');
+      setOwnerId(
+         selected
+            ? selected.ownerId || selected.proposedOwnerId || user.id
+            : '',
+      );
    }, [selected?.id]);
 
    const showAll = () => {
@@ -349,10 +357,7 @@ const Inbox = ({
                         <FactList
                            className='mt-1'
                            labelWidth='6rem'
-                           rows={selected.facts.map(([label, value]) => ({
-                              label,
-                              value,
-                           }))}
+                           rows={factRows(t, selected.facts)}
                         />
                      </div>
                   )}

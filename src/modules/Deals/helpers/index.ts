@@ -10,6 +10,7 @@ import type {
    CheckItem,
    Criterion,
    Deal,
+   Fact,
    PathStep,
    Tone,
 } from '@shared/types/deals.types';
@@ -22,6 +23,7 @@ import {
    parseNorm,
 } from '@modules/Settings/services';
 import {
+   APPLICATION_PHRASES,
    CLOSED_STATUSES,
    CRITERIA,
    MANDATE,
@@ -228,6 +230,26 @@ export const outcomeOf = (t: T, deal: Deal) => {
       late: isLate(deal),
    };
 };
+
+// ---- what the application said
+
+type ApplicationPhrase = (typeof APPLICATION_PHRASES)[number];
+
+const isApplicationPhrase = (text: string): text is ApplicationPhrase =>
+   APPLICATION_PHRASES.some((phrase) => phrase === text);
+
+// A phrase the website writes, in the interface language; the applicant's
+// own words as they are.
+export const applicationText = (t: T, text: string) =>
+   isApplicationPhrase(text) ? t(text) : text;
+
+// «Из заявки» as rows of a FactList.
+export const factRows = (t: T, facts: Fact[]) =>
+   facts.map(([label, value, note]) => ({
+      label: applicationText(t, label),
+      value: applicationText(t, value),
+      note,
+   }));
 
 // ---- mandate check of an incoming application
 

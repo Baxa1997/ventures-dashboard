@@ -8,46 +8,56 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { addWorkingDays, formatDate, todayISO } from '@shared/helpers';
+import { useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { STAGE_LABELS } from '../constants';
 import { exitConditions, nextStageOf, personName, stageNorm } from '../helpers';
 import deals from '../services';
+import SecondReviewer from './SecondReviewer';
 
 interface TransferDialogProps {
    deal: Deal | null; // null: the dialog is closed
    onClose: () => void;
 }
 
-// What the applicant sees in the cabinet once the deal is on a stage.
-// Keys of the "deals" translations.
-const APPLICANT_VIEW = {
-   meeting: 'дату и участников встречи',
-   analysis: '«Due diligence» и чек-лист документов',
-} as const;
-
 /* Moving a deal to the next stage. The stage it leaves may have exit
-   conditions; the move is possible only when all of them are met. */
+   conditions; the move is possible only when all of them are met, and each
+   one that is not says where it is met. */
 const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
    const { t } = useTranslation('deals');
+   const user = useCurrentUser();
    const next = deal && nextStageOf(deal.stage);
    const norm = next ? stageNorm(next) : null;
    const exit = deal ? exitConditions(t, deal) : [];
    const met = exit.filter((item) => item.state === 'done').length;
+   const ready = met === exit.length;
    const stage = deal ? t(STAGE_LABELS[deal.stage]) : '';
    const target = next ? t(STAGE_LABELS[next]) : t('Портфель');
 
    const transfer = async () => {
       if (!deal) return;
-      await deals.transferDeal(deal.id);
+      // leaving screening also closes it, as «Завершить скрининг» does
+      if (deal.stage === 'screening')
+         await deals.completeScreening(deal.id, user.id);
+      else await deals.transferDeal(deal.id);
       onClose();
    };
 
-   const sees =
-      next && next in APPLICANT_VIEW
-         ? t(APPLICANT_VIEW[next as keyof typeof APPLICANT_VIEW])
-         : t('новый статус заявки');
+   const scored = exit.find(({ id }) => id === 'score')?.state === 'done';
+   const actions =
+      deal?.stage === 'screening'
+         ? {
+              score: !scored && (
+                 <Link className='link' to='?tab=screening' onClick={onClose}>
+                    {t('Открыть оценку')}
+                 </Link>
+              ),
+              second: <SecondReviewer showLabel deal={deal} />,
+           }
+         : undefined;
 
    return (
       <Modal
@@ -82,11 +92,11 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
                )}
             </div>
             {exit.length ? (
-               <CheckList className='mt-3' items={exit} />
+               <CheckList actions={actions} className='mt-3' items={exit} />
             ) : (
                <p className='text-ink-soft text-meta mt-2'>
                   {t(
-                     'Для этой стадии условия выхода не заданы — они настраиваются в Настройках.',
+                     'У этой стадии нет условий выхода — сделку можно перевести сразу.',
                   )}
                </p>
             )}
@@ -96,9 +106,12 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
                   className='border-line text-meta mt-5 border-t border-b'
                   labelWidth='34%'
                   rows={[
-                     { label: t('Владелец'), value: personName(deal.ownerId) },
                      {
-                        label: t('Норма стадии'),
+                        label: t('Владелец'),
+                        value: personName(deal.ownerId) || t('не назначен'),
+                     },
+                     {
+                        label: t('Норма стадии «{{stage}}»', { stage: target }),
                         value: norm
                            ? `${t('{{count}} рабочий день', { count: norm })} · ${t(
                                 'до {{date}}',
@@ -110,16 +123,21 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
                              )}`
                            : t('по графику заседаний'),
                      },
-                     { label: t('Заявитель увидит'), value: sees },
                   ]}
                />
             )}
          </ModalBody>
-         <ModalFooter note={t('Переход попадёт в журнал сделки')}>
+         <ModalFooter
+            note={
+               ready
+                  ? t('Переход попадёт в журнал сделки')
+                  : t('Перевести можно, когда выполнены все условия')
+            }
+         >
             <Button variant='text' onClick={onClose}>
                {t('Отмена')}
             </Button>
-            <Button disabled={met < exit.length} onClick={transfer}>
+            <Button disabled={!ready} onClick={transfer}>
                {t('Перевести')}
             </Button>
          </ModalFooter>

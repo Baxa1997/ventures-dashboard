@@ -94,4 +94,5 @@ export const BODY_LABELS = {
    board: 'НС',
 } as const;
 
-export const FORMAT_OPTIONS = ['Очно и по видео', 'Очно', 'По видео'];
+// Stored on the meeting as written here; keys of the "committee" translations.
+export const FORMAT_OPTIONS = ['Очно и по видео', 'Очно', 'По видео'] as const;

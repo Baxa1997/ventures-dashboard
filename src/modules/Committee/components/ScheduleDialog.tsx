@@ -62,7 +62,7 @@ const ScheduleDialog = ({
    const [stage, setStage] = useState<CommitteeStage>('ic2');
    const [date, setDate] = useState(() => nextFriday(data));
    const [time, setTime] = useState('15:00');
-   const [format, setFormat] = useState(FORMAT_OPTIONS[0]);
+   const [format, setFormat] = useState<string>(FORMAT_OPTIONS[0]);
    const [dealIds, setDealIds] = useState<string[]>([]);
    const [error, setError] = useState('');
 
@@ -176,7 +176,7 @@ const ScheduleDialog = ({
                      >
                         {FORMAT_OPTIONS.map((option) => (
                            <option key={option} value={option}>
-                              {option}
+                              {t(option)}
                            </option>
                         ))}
                      </select>

@@ -189,5 +189,8 @@
    "просрочено {{count}} день_many": "{{count}} kun kechikdi",
    "просрочено {{count}} день_other": "{{count}} kun kechikdi",
    "Материалы по этому вопросу не внесены.": "Bu masala bo‘yicha materiallar kiritilmagan.",
-   "Голоса этого заседания не записаны.": "Bu majlis ovozlari yozib olinmagan."
+   "Голоса этого заседания не записаны.": "Bu majlis ovozlari yozib olinmagan.",
+   "Очно и по видео": "Yuzma-yuz va video orqali",
+   "Очно": "Yuzma-yuz",
+   "По видео": "Video orqali"
 }

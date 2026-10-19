@@ -1,6 +1,7 @@
 import type { CheckItem } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface CheckListProps {
@@ -8,6 +9,8 @@ interface CheckListProps {
    // when given, a person ticks the items here; otherwise the system closes
    // them when something happens (a report is uploaded, a request is sent)
    onToggle?: (id: string) => void;
+   // what a person does to meet an item, by the item's id: a link, a field
+   actions?: Partial<Record<string, ReactNode>>;
    className?: string;
 }
 
@@ -27,15 +30,17 @@ const NOTES: Record<CheckItem['state'], string> = {
    blocking: 'text-danger',
 };
 
-const CheckList = ({ items, onToggle, className }: CheckListProps) => {
+const CheckList = ({ items, onToggle, actions, className }: CheckListProps) => {
    const { t } = useTranslation('components');
 
    return (
       <ul className={clsx('flex flex-col gap-3', className)}>
          {items.map((item) => {
             const done = item.state === 'done';
+            // a box to tick; a round mark when the system keeps the state
             const box = clsx(
-               'mt-px grid size-4.5 shrink-0 place-items-center rounded-[5px] border transition-colors',
+               'mt-px grid size-4.5 shrink-0 place-items-center border transition-colors',
+               onToggle ? 'rounded-[5px]' : 'rounded-full',
                BOXES[item.state],
             );
             return (
@@ -83,6 +88,9 @@ const CheckList = ({ items, onToggle, className }: CheckListProps) => {
                         >
                            {item.note}
                         </div>
+                     )}
+                     {actions?.[item.id] && (
+                        <div className='mt-2'>{actions[item.id]}</div>
                      )}
                   </div>
                </li>

@@ -10,7 +10,7 @@ import type {
 } from '@shared/types/committee.types';
 import type { Deal } from '@shared/types/deals.types';
 import type { TFunction } from 'i18next';
-import { BODY_LABELS, IC_RULES } from '../constants';
+import { BODY_LABELS, FORMAT_OPTIONS, IC_RULES } from '../constants';
 
 type T = TFunction<'committee'>;
 
@@ -22,6 +22,12 @@ export const meetingName = (t: T, meeting: Pick<Meeting, 'body' | 'number'>) =>
    });
 
 export const isUpcoming = ({ status }: Meeting) => status !== 'held';
+
+// "Очно и по видео" in the interface language; a format typed in ucode as it is.
+export const formatName = (t: T, format: string) => {
+   const known = FORMAT_OPTIONS.find((option) => option === format);
+   return known ? t(known) : format;
+};
 
 // The members who take part: those who confirmed, before the meeting opens;
 // those not marked absent, once it is open.

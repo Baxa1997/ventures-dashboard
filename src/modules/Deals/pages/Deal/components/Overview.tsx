@@ -1,5 +1,6 @@
 import { RiskList } from '@modules/Deals/components';
 import {
+   FIELD_FACTS,
    ROUND_STAGE_NAMES,
    SOURCE_LABELS,
    STAGE_LABELS,
@@ -7,6 +8,7 @@ import {
 import {
    defaultPath,
    dueText,
+   factRows,
    formatAmount,
    formatStamp,
    nextTitle,
@@ -229,7 +231,12 @@ const Overview = ({ deal }: OverviewProps) => {
                                  label: t('Поступила'),
                                  value: formatStamp(deal.receivedAt),
                               },
-                              ...toRows(deal.facts ?? []),
+                              ...factRows(
+                                 t,
+                                 (deal.facts ?? []).filter(
+                                    ([label]) => !FIELD_FACTS.includes(label),
+                                 ),
+                              ),
                            ]}
                         />
                      </div>

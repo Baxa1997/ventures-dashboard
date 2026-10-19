@@ -3,19 +3,17 @@ import {
    SCORES,
    SCREENING_NOTE_FIELDS,
 } from '@modules/Deals/constants';
-import { isScored } from '@modules/Deals/helpers';
+import { SecondReviewer } from '@modules/Deals/components';
+import { applicationText, factRows, isScored } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import {
    Button,
    Card,
    ChoiceCards,
    FactList,
-   FilterSelect,
    NoData,
    STACK,
 } from '@shared/components';
-import { TEAM } from '@shared/constants';
-import { shortName } from '@shared/helpers';
 import type {
    Criterion,
    Deal,
@@ -260,24 +258,7 @@ const Screening = ({ deal }: ScreeningProps) => {
                      <span className='text-ink-soft'>
                         {t('Второй оценщик')}:
                      </span>
-                     <FilterSelect
-                        accent
-                        label={t('Второй оценщик')}
-                        options={[
-                           { value: '', label: t('не выбран') },
-                           ...TEAM.filter(({ id }) => id !== deal.ownerId).map(
-                              ({ id, name }) => ({
-                                 value: id,
-                                 label: shortName(name),
-                              }),
-                           ),
-                        ]}
-                        showLabel={false}
-                        value={screening.secondId}
-                        onChange={(secondId) =>
-                           !locked && deals.setScreening(deal.id, { secondId })
-                        }
-                     />
+                     <SecondReviewer deal={deal} disabled={locked} />
                   </div>
                   <p className='text-ink-soft mt-3 text-xs'>
                      {t(
@@ -342,14 +323,14 @@ const Screening = ({ deal }: ScreeningProps) => {
             </Card>
 
             {deal.facts && (
-               <Card hint={deal.factsHint} title={t('Из заявки')}>
+               <Card
+                  hint={deal.factsHint && applicationText(t, deal.factsHint)}
+                  title={t('Из заявки')}
+               >
                   <div className='text-meta px-5 py-3'>
                      <FactList
                         labelWidth='6.5rem'
-                        rows={deal.facts.map(([label, value]) => ({
-                           label,
-                           value,
-                        }))}
+                        rows={factRows(t, deal.facts)}
                      />
                   </div>
                </Card>

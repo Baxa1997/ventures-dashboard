@@ -189,5 +189,8 @@
    "просрочено {{count}} день_many": "{{count}} days overdue",
    "просрочено {{count}} день_other": "{{count}} days overdue",
    "Материалы по этому вопросу не внесены.": "No materials have been entered for this item.",
-   "Голоса этого заседания не записаны.": "The votes of this meeting were not recorded."
+   "Голоса этого заседания не записаны.": "The votes of this meeting were not recorded.",
+   "Очно и по видео": "In person and by video",
+   "Очно": "In person",
+   "По видео": "By video"
 }

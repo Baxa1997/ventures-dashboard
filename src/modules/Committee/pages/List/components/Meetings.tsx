@@ -7,6 +7,7 @@ import {
    STAGE_LABELS,
 } from '@modules/Committee/constants';
 import {
+   formatName,
    isUpcoming,
    materialsOf,
    meetingName,
@@ -245,7 +246,7 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                </h2>
                <p className='text-ink-soft text-meta mt-1'>
                   {[
-                     meeting.format,
+                     formatName(t, meeting.format),
                      t('секретарь {{name}}', {
                         name: personName(meeting.secretaryId),
                      }),

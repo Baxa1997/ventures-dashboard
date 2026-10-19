@@ -144,6 +144,26 @@ export const SOURCE_LABELS = {
    accelerator: 'Акселератор',
 } as const satisfies Record<DealSource, string>;
 
+// What the website writes into a deal's «Из заявки»: the row labels, the
+// deck's name and the note "с сайта". They are in Russian, as the panel's
+// translation keys are, so the card shows them in the interface language.
+export const APPLICATION_PHRASES = [
+   'Контакт',
+   'Сайт',
+   'Запрос',
+   'Стадия',
+   'Отрасль',
+   'Откуда узнали',
+   'Документы',
+   'Презентация',
+   'Номер заявки',
+   'с сайта',
+] as const;
+
+// Rows of «Из заявки» the deal's card already shows from the deal's own
+// fields (amount, industry, round stage), so it leaves them out.
+export const FIELD_FACTS: string[] = ['Запрос', 'Отрасль', 'Стадия'];
+
 // "с сайта", as in "SQBV-2026-0172 · с сайта · 2 октября".
 export const SOURCE_FROM_LABELS = {
    site: 'с сайта',
