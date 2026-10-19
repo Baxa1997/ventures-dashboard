@@ -1,0 +1,21 @@
+name: CI/CD
+
+# Push to main → image ghcr.io/ucode-io/sqb-ventures-dashboard:<run number> → the tag is written to
+# Ucode-io/deployments (clusters/cluster-prod/ucode-prod/sqb-ventures-dashboard) → ArgoCD rolls it out.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  ci-cd-prod:
+    if: github.ref_name == 'main'
+    uses: Ucode-io/ci-cd/.github/workflows/ci_cd.yml@main
+    with:
+      ENVIRONMENT: production
+      ENV_TAG: latest
+    secrets: inherit
