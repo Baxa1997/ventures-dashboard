@@ -12,7 +12,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 
 - Panel: `yarn dev` in this repo, then http://localhost:3000. `.env.local` must hold the test project's ids (see `.env.example`).
 - Website: the `sqb-ventures-website` repo, run locally against the same test project: in its `.env.local` set `UCODE_API_KEY` to the test project's API key (ucode → Settings → API keys), then `yarn dev -p 3100`. The application form is at http://localhost:3100/ru/apply. Do **not** use the live site (sqbvc.uz): it runs the old code and another ucode project.
-- ucode admin: https://app.u-code.io, project SQB Ventures, folder Admin, to look at the rows the panel writes and to add what has no screen yet.
+- ucode admin: https://app.u-code.io, project SQB Ventures, to look at the rows the panel writes and to add what has no screen yet. The panel's tables are in Admin (Админ-панель), split into Сделки, Инвесткомитет, Портфель, Задачи and Настройки и справочники; the website's are in Сайт (Landing page). Names show in the language chosen in the ucode admin.
 
 **Who**
 
@@ -20,12 +20,12 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 
 **Data that has no screen yet**: add it in the ucode admin before the steps that need it. Name every test record with `ZZ` so it is easy to find and delete afterwards.
 
-| Needed for | Table (folder Admin) | What to add |
+| Needed for | Table (folder in Admin) | What to add |
 | --- | --- | --- |
 | step 4, the second reviewer | — | done in the panel: Настройки → Пользователи и роли → «Пригласить пользователя», name `ZZ Аналитик`, any email, role «Аналитик» |
-| step 8, a quorum of 3 | `committee_members` | three rows: `name` (ZZ Член 1…3), `role` = `chair` for one, `independent` for the others, `is_active` ticked |
-| step 12, the fund's money | `fund_money` | one row: `as_of` today, `capital` 10000000, `on_accounts` 3000000, `approved_unpaid` 300000, `follow_on_reserve` 500000, `operating_left` 400000, `plan_year` 2026, `plan_direct_deals` 1500000 |
-| step 13, a portfolio company | `portfolio_companies` and its tables | a company `ZZ Portfolio Co` (`owner_id` = the guid of «Администратор» in `employees`, `instrument` safe, `since` 2025, `current_note` any text); in `investments` two rows for it (`amount` 100000 and 50000); in `quarter_reports` one row (`quarter` 2026-Q3, `fund_template_at` and `form1_at` some October dates, `metrics_state` check, `mrr` 12000, `runway` 9); in `company_requests` one row (`title`, `opened_at`, `status` waiting_fund); in `pilots` one row (`title`, `customer` SQB, `status` in_progress) |
+| step 8, a quorum of 3 | Инвесткомитет → `committee_members` (Члены комитетов) | three rows: `name` (ZZ Член 1…3), `role` = `chair` for one, `independent` for the others, `is_active` ticked |
+| step 12, the fund's money | Настройки и справочники → `fund_money` (Деньги фонда) | one row: `as_of` today, `capital` 10000000, `on_accounts` 3000000, `approved_unpaid` 300000, `follow_on_reserve` 500000, `operating_left` 400000, `plan_year` 2026, `plan_direct_deals` 1500000 |
+| step 13, a portfolio company | Портфель → `portfolio_companies` (Компании портфеля) and its tables | a company `ZZ Portfolio Co` (`owner_id` = the guid of «Администратор» in `employees`, `instrument` safe, `since` 2025, `current_note` any text); in `investments` two rows for it (`amount` 100000 and 50000); in `quarter_reports` one row (`quarter` 2026-Q3, `fund_template_at` and `form1_at` some October dates, `metrics_state` check, `mrr` 12000, `runway` 9); in `company_requests` one row (`title`, `opened_at`, `status` waiting_fund); in `pilots` one row (`title`, `customer` SQB, `status` in_progress) |
 
 ## 1. Sign-in
 
