@@ -124,7 +124,7 @@ The fund's backend is a ucode project (`docs/ERP.md` is the model, `docs/ucode-m
 
 ### Checking against ucode
 
-`docs/how-it-works.md` explains on one page how a deal moves and what the founder sees. `docs/test-cycle.md` is the full manual test: a startup applies on the website, the deal goes through screening, due diligence and the committee into the portfolio, and the tasks, Мой день, Обзор, Портфель and Настройки follow, step by step with what each step should show.
+`docs/how-it-works.md` explains on one page how a deal moves and what the founder sees. `docs/easy-test.md` is a short test: one deal from «Новая сделка» to the portfolio on admin.sqbvc.uz, in about 30 minutes. `docs/test-cycle.md` is the full manual test: a startup applies on the website, the deal goes through screening, due diligence and the committee into the portfolio, and the tasks, Мой день, Обзор, Портфель and Настройки follow, step by step with what each step should show.
 
 `UCODE_LOGIN=<login> UCODE_PASSWORD=<password> node scripts/ucode/panel-test.mjs --write-test-rows` signs in through the panel's own sign-in and runs every section's service against the project of `.env.local`, reading back what each step wrote; it deletes every row it made and puts the settings back. The user needs an employees row with the director's role. Run it against the test project only.
 

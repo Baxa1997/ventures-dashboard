@@ -98,7 +98,7 @@ A committee stage is left only after its committee's approval: before step 8, «
 2. Repeat step 8 from 2 with Тип **ИК-2** (no conditions this time) → «Одобрено». «Перевести в «Набсовет»» now lists a second condition, «Получить одобрение директора»: the director presses «Одобряю» in that window (other roles see «Попросите директора…») → both done, «Перевести» is on, and «История» has «Директор одобрил переход».
 3. «Перевести в «Наблюдательный совет»», then hold a board meeting the same way with Орган «Наблюдательный совет» → «Одобрено».
 4. «Перевести в «Закрытие»» → `public_status` = `closing`.
-5. «Перевести в портфель» → the deal's status is «В портфеле», `public_status` = `portfolio`. (The portfolio company is not created yet: see «Known gaps».)
+5. «Перевести в портфель» → the deal's status is «Портфель», `public_status` = `portfolio`. (The portfolio company is not created yet: see «Known gaps».)
 
 ## 10. Rejection and applying again
 
