@@ -1,4 +1,4 @@
-import { CommitteeLink, RiskList } from '@modules/Deals/components';
+import { RiskList } from '@modules/Deals/components';
 import {
    FIELD_FACTS,
    ROUND_STAGE_NAMES,
@@ -6,13 +6,10 @@ import {
    STAGE_LABELS,
 } from '@modules/Deals/constants';
 import {
-   COMMITTEE_STAGES,
    defaultPath,
-   dueText,
    factRows,
    formatAmount,
    formatStamp,
-   nextTitle,
    pathState,
 } from '@modules/Deals/helpers';
 import {
@@ -30,6 +27,7 @@ import clsx from 'clsx';
 import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import NextStep from './NextStep';
 
 interface OverviewProps {
    deal: Deal;
@@ -278,22 +276,10 @@ const Overview = ({ deal }: OverviewProps) => {
                   </Card>
                )}
 
-               {deal.next && !deal.readiness && (
-                  <Card title={t('Следующий шаг')}>
-                     <div className='px-5 py-4'>
-                        <div className='font-medium'>{nextTitle(t, deal)}</div>
-                        <div className='text-ink-soft text-meta mt-1'>
-                           {dueText(t, deal.next)}
-                        </div>
-                        {deal.status === 'active' &&
-                           COMMITTEE_STAGES.includes(deal.stage) && (
-                              <div className='text-meta mt-3'>
-                                 <CommitteeLink deal={deal} />
-                              </div>
-                           )}
-                     </div>
-                  </Card>
-               )}
+               {!deal.readiness &&
+                  (deal.next ||
+                     deal.status === 'active' ||
+                     deal.status === 'review') && <NextStep deal={deal} />}
 
                {team.length > 0 && (
                   <Card title={t('Команда сделки')}>

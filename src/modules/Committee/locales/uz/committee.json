@@ -227,5 +227,8 @@
    "выполнено {{done}} из {{total}}": "{{total}} tadan {{done}} tasi bajarildi",
    "Подготовка к заседанию": "Majlisga tayyorgarlik",
    "Всё готово: откройте заседание — секретарь запишет голоса, правила фонда дадут итог, протокол передаст решение в карточку сделки.": "Hammasi tayyor: majlisni oching — kotib ovozlarni yozadi, fond qoidalari natijani beradi, bayonnoma qarorni bitim kartasiga o‘tkazadi.",
-   "Кнопка «Открыть заседание» включится, когда первые три пункта выполнены.": "«Majlisni ochish» tugmasi birinchi uch band bajarilgach yoqiladi."
+   "Кнопка «Открыть заседание» включится, когда первые три пункта выполнены.": "«Majlisni ochish» tugmasi birinchi uch band bajarilgach yoqiladi.",
+   "Ждут заседания:": "Majlisni kutmoqda:",
+   "Сделка попадает на заседание, когда доходит до стадии ИК-1, ИК-2 или «Набсовет».": "Bitim IQ-1, IQ-2 yoki «Kuzatuv kengashi» bosqichiga yetganda majlisga chiqariladi.",
+   "На этом заседании не было вопросов — решений по нему нет.": "Bu majlisda masalalar bo‘lmagan — u bo‘yicha qarorlar yo‘q."
 }

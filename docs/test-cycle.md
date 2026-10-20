@@ -77,7 +77,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 ## 8. Инвесткомитет: ИК-1
 
 1. Инвесткомитет → «Состав и договоры» → «Состав пока пуст». «Добавить члена ИК» three times: `ZZ Член 1` with Роль «председатель ИК», `ZZ Член 2` and `ZZ Член 3` «независимый член» → the three are listed, the chair first. Clicking a name opens it again; «Вывести из состава» takes a member off the list.
-2. On `ZZ Startup A` (at ИК-1): «Следующий шаг» has «Вынести на заседание» → it opens «Назначить заседание» with Тип **ИК-1** and `ZZ Startup A` ticked → pick a date from today on → «Назначить» → the meeting page.
+2. On `ZZ Startup A` (at ИК-1): «Следующий шаг» explains the stage and has «Вынести на заседание» (Инвесткомитет → «Заседания ИК» also lists it under «Ждут заседания» when no meeting is planned) → it opens «Назначить заседание» with Тип **ИК-1** and `ZZ Startup A` ticked → pick a date from today on → «Назначить» → the meeting page.
 3. → «Подготовка к заседанию» lists four steps: the agenda (done), at least 3 members (done), who will come (not done), the materials (until the date shown). «Открыть заседание» is off.
 4. Under «Отметить, кто из них будет» set each member to «Будет» → 3 of 4 done, «Открыть заседание» is on. «Добавить сделку» adds another deal waiting for ИК-1 to the agenda.
 5. Back on the deal → the next step now says «Открыть ИК № N · date» and leads to the meeting. Обзор → «Сроки на неделю» shows the meeting if it is this week.

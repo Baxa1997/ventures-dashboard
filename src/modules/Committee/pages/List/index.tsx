@@ -86,7 +86,9 @@ const CommitteeList = () => {
             />
          </PageHeader>
          <PageBody className='flex flex-col'>
-            {tab === 'meetings' && <Meetings data={data} />}
+            {tab === 'meetings' && (
+               <Meetings data={data} onSchedule={() => setScheduling(true)} />
+            )}
             {tab === 'board' && <Board data={data} />}
             {tab === 'decisions' && <Decisions data={data} />}
             {tab === 'members' && <Members data={data} />}

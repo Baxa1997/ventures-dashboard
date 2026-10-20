@@ -335,6 +335,15 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                      onAddDeals={() => setAddingDeals(true)}
                   />
                )}
+               {!planned && meeting.agenda.length === 0 && (
+                  <Card className='grid min-h-48 place-items-center'>
+                     <NoData>
+                        {t(
+                           'На этом заседании не было вопросов — решений по нему нет.',
+                        )}
+                     </NoData>
+                  </Card>
+               )}
                {selected && (
                   <ItemCard
                      data={data}

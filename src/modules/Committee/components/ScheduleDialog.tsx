@@ -89,17 +89,23 @@ const ScheduleDialog = ({
       const waitingFor = (value: CommitteeStage) =>
          waitingDeals(data.meetings, data.deals, 'ic', value).length;
       setBody(deal?.stage === 'board' ? 'board' : 'ic');
-      setStage(
-         deal
-            ? deal.stage === 'ic2'
-               ? 'ic2'
-               : 'ic1'
-            : waitingFor('ic2') && !waitingFor('ic1')
-              ? 'ic2'
-              : 'ic1',
-      );
+      const first: CommitteeStage = deal
+         ? deal.stage === 'ic2'
+            ? 'ic2'
+            : 'ic1'
+         : waitingFor('ic2') && !waitingFor('ic1')
+           ? 'ic2'
+           : 'ic1';
+      setStage(first);
       setDate(nextFriday(data));
-      setDealIds(deal ? [deal.id] : []);
+      // the deal it was opened for, or every deal waiting for that meeting
+      setDealIds(
+         deal
+            ? [deal.id]
+            : waitingDeals(data.meetings, data.deals, 'ic', first).map(
+                 ({ id }) => id,
+              ),
+      );
       setError('');
       // the dialog starts afresh each time it opens, not as the data changes
    }, [open, dealId]);

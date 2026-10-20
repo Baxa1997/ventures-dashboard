@@ -460,5 +460,17 @@
    "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "Fond qoidasi: bahoni ikkinchi xodim tekshiradi. «Skriningni yakunlash» barcha 7 mezonda ball va asoslash bo‘lganda hamda ikkinchi baholovchi tanlanganda yoqiladi.",
    "Вынести на заседание": "Majlisga chiqarish",
    "Открыть ИК № {{number}} · {{date}}": "IQ № {{number}} · {{date}} ni ochish",
-   "Открыть НС № {{number}} · {{date}}": "KK № {{number}} · {{date}} ni ochish"
+   "Открыть НС № {{number}} · {{date}}": "KK № {{number}} · {{date}} ni ochish",
+   "Изучите заявку. Подходит — «Взять в скрининг», и вы станете владельцем сделки. Не подходит — «Отказать с причиной».": "Arizani o‘rganing. Mos kelsa — «Skriningga olish», shunda siz bitim egasi bo‘lasiz. Mos kelmasa — «Sabab bilan rad etish».",
+   "Оцените стартап по 7 критериям, у каждого балла — обоснование. Выберите второго оценщика и нажмите «Завершить скрининг».": "Startapni 7 mezon bo‘yicha baholang, har bir ballga asos yozing. Ikkinchi baholovchini tanlang va «Skriningni yakunlash»ni bosing.",
+   "Встретьтесь с командой стартапа. После встречи — «Перевести в «Анализ»».": "Startap jamoasi bilan uchrashing. Uchrashuvdan keyin — «Tahlil»ga o‘tkazish.",
+   "Запросите недостающие данные («Запросить данные») и проверьте документы. Когда всё собрано — «Перевести в «ИК-1»».": "Yetishmayotgan ma’lumotlarni so‘rang («Ma’lumot so‘rash») va hujjatlarni tekshiring. Hammasi yig‘ilgach — «IQ-1»ga o‘tkazish.",
+   "Инвесткомитет решает, стоит ли делать детальный DD. Вынесите сделку на заседание ИК-1; после одобрения откроется «Перевести в «Детальный DD»».": "Investitsiya qo‘mitasi batafsil DD qilishga arziydimi, shuni hal qiladi. Bitimni IQ-1 majlisiga chiqaring; ma’qullangandan keyin «Batafsil DD»ga o‘tkazish ochiladi.",
+   "Передайте направления DD исполнителям и соберите их заключения. Затем — «Перевести в «ИК-2»».": "DD yo‘nalishlarini ijrochilarga topshiring va ularning xulosalarini yig‘ing. Keyin — «IQ-2»ga o‘tkazish.",
+   "Инвесткомитет принимает решение об инвестиции. Вынесите сделку на заседание ИК-2; после одобрения откроется «Перевести в «Набсовет»».": "Investitsiya qo‘mitasi investitsiya to‘g‘risida qaror qabul qiladi. Bitimni IQ-2 majlisiga chiqaring; ma’qullangandan keyin «Kuzatuv kengashi»ga o‘tkazish ochiladi.",
+   "Наблюдательный совет утверждает сделку. Вынесите её на заседание НС; после одобрения откроется «Перевести в «Закрытие»».": "Kuzatuv kengashi bitimni tasdiqlaydi. Uni KK majlisiga chiqaring; ma’qullangandan keyin «Yopilish»ga o‘tkazish ochiladi.",
+   "Подпишите документы и проведите платёж, затем — «Перевести в портфель».": "Hujjatlarni imzolang va to‘lovni o‘tkazing, keyin — «Portfelga o‘tkazish».",
+   "Открыть «Запросы и документы»": "«So‘rovlar va hujjatlar»ni ochish",
+   "Открыть «Due diligence»": "«Due diligence»ni ochish",
+   "Назначьте владельца: он ведёт сделку и докладывает её на комитете.": "Bitim egasini tayinlang: u bitimni olib boradi va qo‘mitada ma’ruza qiladi."
 }

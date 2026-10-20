@@ -171,6 +171,11 @@ class Deals {
       );
    }
 
+   // Who leads the deal: presents it at the committee and gets its tasks.
+   async setOwner(id: string, ownerId: string) {
+      await change(id, (deal) => ({ ...deal, ownerId }));
+   }
+
    async rejectDeal(id: string, input: RejectInput, userId: string) {
       await change(id, (deal) =>
          logged(

@@ -460,5 +460,17 @@
    "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "The fund’s rule: a second employee checks the scoring. “Complete screening” turns on once all 7 criteria have a score and reasons and a second evaluator is chosen.",
    "Вынести на заседание": "Put on a meeting",
    "Открыть ИК № {{number}} · {{date}}": "Open committee meeting No. {{number}} · {{date}}",
-   "Открыть НС № {{number}} · {{date}}": "Open board meeting No. {{number}} · {{date}}"
+   "Открыть НС № {{number}} · {{date}}": "Open board meeting No. {{number}} · {{date}}",
+   "Изучите заявку. Подходит — «Взять в скрининг», и вы станете владельцем сделки. Не подходит — «Отказать с причиной».": "Read the application. If it fits — «Take into screening», and you become the deal’s owner. If not — «Reject with a reason».",
+   "Оцените стартап по 7 критериям, у каждого балла — обоснование. Выберите второго оценщика и нажмите «Завершить скрининг».": "Score the startup on 7 criteria, each score with its reason. Choose a second reviewer and press «Complete screening».",
+   "Встретьтесь с командой стартапа. После встречи — «Перевести в «Анализ»».": "Meet the startup’s team. After the meeting — «Move to “Analysis”».",
+   "Запросите недостающие данные («Запросить данные») и проверьте документы. Когда всё собрано — «Перевести в «ИК-1»».": "Request the missing data («Request data») and check the documents. When everything is in — «Move to “IC-1”».",
+   "Инвесткомитет решает, стоит ли делать детальный DD. Вынесите сделку на заседание ИК-1; после одобрения откроется «Перевести в «Детальный DD»».": "The investment committee decides whether a detailed DD is worth doing. Put the deal on an IC-1 meeting; once approved, «Move to “Detailed DD”» turns on.",
+   "Передайте направления DD исполнителям и соберите их заключения. Затем — «Перевести в «ИК-2»».": "Hand the DD workstreams to their executors and collect their conclusions. Then — «Move to “IC-2”».",
+   "Инвесткомитет принимает решение об инвестиции. Вынесите сделку на заседание ИК-2; после одобрения откроется «Перевести в «Набсовет»».": "The investment committee decides on the investment. Put the deal on an IC-2 meeting; once approved, «Move to “Board”» turns on.",
+   "Наблюдательный совет утверждает сделку. Вынесите её на заседание НС; после одобрения откроется «Перевести в «Закрытие»».": "The supervisory board approves the deal. Put it on a board meeting; once approved, «Move to “Closing”» turns on.",
+   "Подпишите документы и проведите платёж, затем — «Перевести в портфель».": "Sign the documents and make the payment, then «Move to the portfolio».",
+   "Открыть «Запросы и документы»": "Open «Requests and documents»",
+   "Открыть «Due diligence»": "Open «Due diligence»",
+   "Назначьте владельца: он ведёт сделку и докладывает её на комитете.": "Assign an owner: they lead the deal and present it to the committee."
 }

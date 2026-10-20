@@ -14,6 +14,7 @@ import {
    meetingName,
    preparationOf,
    taskDue,
+   waitingDeals,
 } from '@modules/Committee/helpers';
 import type { CommitteeData } from '@modules/Committee/hooks';
 import committee from '@modules/Committee/services';
@@ -43,11 +44,12 @@ import { Link, useNavigate } from 'react-router';
 
 interface MeetingsProps {
    data: CommitteeData;
+   onSchedule: () => void;
 }
 
 // The next meeting with its agenda and who confirmed, the register of the
 // committee's meetings and the decisions still to be carried out.
-const Meetings = ({ data }: MeetingsProps) => {
+const Meetings = ({ data, onSchedule }: MeetingsProps) => {
    const { t } = useTranslation('committee');
    const user = useCurrentUser();
    const navigate = useNavigate();
@@ -87,9 +89,7 @@ const Meetings = ({ data }: MeetingsProps) => {
          {next ? (
             <NextMeeting data={data} meeting={next} />
          ) : (
-            <Card>
-               <NoData>{t('Ближайших заседаний нет')}</NoData>
-            </Card>
+            <NoMeeting data={data} onSchedule={onSchedule} />
          )}
 
          <div className='mt-section gap-section grid flex-1 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]'>
@@ -138,7 +138,11 @@ const Meetings = ({ data }: MeetingsProps) => {
                               ? t(STAGE_LABELS[meeting.stage])
                               : '—'}
                         </td>
-                        <td className={TD}>{meeting.summary}</td>
+                        <td className={TD}>
+                           {meeting.summary || (
+                              <span className='text-ink-faint'>—</span>
+                           )}
+                        </td>
                         <td className={TD}>
                            <Badge tone={RESULTS[meeting.result].tone}>
                               {t(RESULTS[meeting.result].label)}
@@ -193,6 +197,54 @@ const Meetings = ({ data }: MeetingsProps) => {
             </Card>
          </div>
       </>
+   );
+};
+
+// No meeting is planned: the deals waiting for one, and where to plan it.
+const NoMeeting = ({ data, onSchedule }: MeetingsProps) => {
+   const { t } = useTranslation('committee');
+   const waiting = [
+      ...(['ic1', 'ic2'] as const).flatMap((stage) =>
+         waitingDeals(data.meetings, data.deals, 'ic', stage).map((deal) => ({
+            deal,
+            stage: t(STAGE_LABELS[stage]),
+         })),
+      ),
+      ...waitingDeals(data.meetings, data.deals, 'board', null).map((deal) => ({
+         deal,
+         stage: t('НС'),
+      })),
+   ];
+
+   return (
+      <Card>
+         <div className='flex flex-wrap items-center justify-between gap-4 px-5 py-4'>
+            <div className='min-w-0'>
+               <p className='font-semibold'>{t('Ближайших заседаний нет')}</p>
+               {waiting.length ? (
+                  <p className='text-meta mt-1'>
+                     {t('Ждут заседания:')}{' '}
+                     {waiting.map(({ deal, stage }, index) => (
+                        <span key={deal.id}>
+                           {index > 0 && ', '}
+                           <Link className='link' to={`/deals/${deal.id}`}>
+                              {deal.company}
+                           </Link>{' '}
+                           <span className='text-ink-soft'>· {stage}</span>
+                        </span>
+                     ))}
+                  </p>
+               ) : (
+                  <p className='text-ink-soft text-meta mt-1'>
+                     {t(
+                        'Сделка попадает на заседание, когда доходит до стадии ИК-1, ИК-2 или «Набсовет».',
+                     )}
+                  </p>
+               )}
+            </div>
+            <Button onClick={onSchedule}>{t('Назначить заседание')}</Button>
+         </div>
+      </Card>
    );
 };
 

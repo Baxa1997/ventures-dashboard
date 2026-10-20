@@ -227,5 +227,8 @@
    "выполнено {{done}} из {{total}}": "{{done}} of {{total}} done",
    "Подготовка к заседанию": "Preparing the meeting",
    "Всё готово: откройте заседание — секретарь запишет голоса, правила фонда дадут итог, протокол передаст решение в карточку сделки.": "All set: open the meeting — the secretary records the votes, the fund’s rules give the result, and the protocol passes the decision to the deal’s card.",
-   "Кнопка «Открыть заседание» включится, когда первые три пункта выполнены.": "The «Open the meeting» button turns on once the first three steps are done."
+   "Кнопка «Открыть заседание» включится, когда первые три пункта выполнены.": "The «Open the meeting» button turns on once the first three steps are done.",
+   "Ждут заседания:": "Waiting for a meeting:",
+   "Сделка попадает на заседание, когда доходит до стадии ИК-1, ИК-2 или «Набсовет».": "A deal goes to a meeting once it reaches IC-1, IC-2 or the board stage.",
+   "На этом заседании не было вопросов — решений по нему нет.": "This meeting had no questions — it made no decisions."
 }

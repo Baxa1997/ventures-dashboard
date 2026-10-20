@@ -17,6 +17,7 @@ logic; in ucode a table is just a table.
 | **Закрытие** | Signing and payment. | — |
 | **Портфель** | The company is followed quarter by quarter in «Портфель». | |
 
+- The deal's card says what to do now: «Следующий шаг» names the step, its deadline, what the stage asks for, a link to where it is done, and the owner (a deal without one gets one there).
 - The owner moves a deal with «Перевести в …» on its card. The window lists what is still missing and where to do it.
 - A committee's refusal does not close the deal by itself: the owner presses «Отказать с причиной».
 - A rejection, at any stage, needs a reason. The website then takes a new application from that email only after the resubmission date (at once for a mandate reason, otherwise 6 or 12 months).
