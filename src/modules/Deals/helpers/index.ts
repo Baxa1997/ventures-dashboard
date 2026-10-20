@@ -403,10 +403,37 @@ const committeeCondition = (t: T, deal: Deal): CheckItem => {
 // What has to be true before a deal leaves its stage: on screening, the full
 // score and a second opinion; on a committee stage, the committee's approval;
 // and whatever list the stage has of its own.
+// After ИК-2 the director approves the investment too; an approval counts
+// for the stage it was given on, so it is looked for since the deal entered it.
+const directorCondition = (t: T, deal: Deal): CheckItem => {
+   const entered = deal.journal.findIndex(
+      ({ kind }) => kind === 'stage' || kind === 'taken',
+   );
+   const approval = (
+      entered === -1 ? deal.journal : deal.journal.slice(0, entered)
+   ).find((entry) => entry.kind === 'approved');
+   return {
+      id: 'director',
+      text: t('Получить одобрение директора'),
+      note:
+         approval && 'userId' in approval
+            ? t('{{name}}, {{date}}', {
+                 name: personName(approval.userId),
+                 date: formatDate(approval.date),
+              })
+            : t('Директор подтверждает инвестицию после решения ИК-2'),
+      state: approval ? 'done' : 'blocking',
+   };
+};
+
 export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
    const own = deal.exit ?? [];
    if (COMMITTEE_STAGES.includes(deal.stage))
-      return [committeeCondition(t, deal), ...own];
+      return [
+         committeeCondition(t, deal),
+         ...(deal.stage === 'ic2' ? [directorCondition(t, deal)] : []),
+         ...own,
+      ];
    if (deal.stage !== 'screening' || deal.exit) return own;
    const scored = (deal.screening?.criteria ?? []).filter(isScored).length;
    const secondId = deal.screening?.secondId ?? '';

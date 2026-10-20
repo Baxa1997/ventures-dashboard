@@ -160,6 +160,7 @@ const toMeeting = (
    summary: str(row.summary),
    result: (str(row.result) || 'planned') as Meeting['result'],
    protocol: (str(row.protocol_state) || 'none') as Meeting['protocol'],
+   protocolFile: str(row.protocol_file),
 });
 
 const toDecision = (row: Row): CommitteeDecision => ({
@@ -316,6 +317,7 @@ const meetingFields = (meeting: Meeting) => ({
    break_at: meeting.breakAt ?? '',
    result: meeting.result,
    protocol_state: meeting.protocol,
+   protocol_file: meeting.protocolFile,
    materials_sent_at: meeting.materialsSentAt,
 });
 
@@ -462,6 +464,7 @@ class Committee {
          summary: summaryOf(agenda),
          result: 'planned',
          protocol: 'none',
+         protocolFile: '',
       };
       await apply(
          (current) => ({
@@ -888,11 +891,17 @@ class Committee {
       );
    }
 
-   // The members signed the protocol, on paper or with their e-signatures;
-   // the secretary marks it.
-   async signProtocol(id: string) {
+   /* The members signed the protocol, on paper or with their e-signatures;
+      the secretary marks it with a link to the signed copy, kept where the
+      fund keeps its files (ucode Files would be open to anyone with the
+      link). */
+   async signProtocol(id: string, link: string) {
       await apply(
-         withMeeting(id, (meeting) => ({ ...meeting, protocol: 'signed' })),
+         withMeeting(id, (meeting) => ({
+            ...meeting,
+            protocol: 'signed',
+            protocolFile: link,
+         })),
          (_, after) =>
             updateRow('meetings', {
                guid: id,

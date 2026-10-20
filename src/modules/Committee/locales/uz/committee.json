@@ -232,6 +232,13 @@
    "Сделка попадает на заседание, когда доходит до стадии ИК-1, ИК-2 или «Набсовет».": "Bitim IQ-1, IQ-2 yoki «Kuzatuv kengashi» bosqichiga yetganda majlisga chiqariladi.",
    "На этом заседании не было вопросов — решений по нему нет.": "Bu majlisda masalalar bo‘lmagan — u bo‘yicha qarorlar yo‘q.",
    "Отметить протокол подписанным": "Bayonnomani imzolangan deb belgilash",
-   "Нажмите, когда все члены подписали протокол — на бумаге или электронной подписью": "Barcha a’zolar bayonnomani qog‘ozda yoki elektron imzo bilan imzolagach bosing",
-   "подписан": "imzolangan"
+   "подписан": "imzolangan",
+   "Протокол подписан": "Bayonnoma imzolandi",
+   "Отметьте, когда все члены подписали протокол — на бумаге или электронной подписью.": "Barcha a’zolar bayonnomani qog‘ozda yoki elektron imzo bilan imzolagach belgilang.",
+   "Ссылка на подписанный протокол": "Imzolangan bayonnomaga havola",
+   "Где лежит подписанный скан: диск, SharePoint, Notion": "Imzolangan skan qayerda saqlanadi: disk, SharePoint, Notion",
+   "Вставьте ссылку на подписанный протокол": "Imzolangan bayonnomaga havolani qo‘ying",
+   "Ссылка должна начинаться с https://": "Havola https:// bilan boshlanishi kerak",
+   "Файл остаётся там, где его хранит фонд: в ucode Files он был бы открыт любому, у кого есть ссылка": "Fayl fond uni saqlaydigan joyda qoladi: ucode Files’da u havolasi bor har kimga ochiq bo‘lardi",
+   "Открыть подписанный протокол": "Imzolangan bayonnomani ochish"
 }

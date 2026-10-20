@@ -63,6 +63,10 @@ const History = ({ deal }: HistoryProps) => {
             return t('Меморандум утверждён спонсором · {{name}}', {
                name: personName(entry.userId),
             });
+         case 'approved':
+            return t('Директор одобрил переход · {{name}}', {
+               name: personName(entry.userId),
+            });
          case 'workstream':
             return entry.handed
                ? t('Направление DD передано исполнителю: {{name}}', {

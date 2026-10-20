@@ -85,7 +85,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 7. «Открыть заседание» → «Кворум есть: 3 из 3 членов»; the votes appear.
 8. For `ZZ Startup A` record three «За», fill «Условия одобрения» (`ZZ Предоставить отчётность`) → the result box says the question is approved → «Зафиксировать одобрение» → «Решение зафиксировано: одобрено с условиями».
 9. Try the rules on a copy if you have a second item: one «Против» → the decision goes to the sponsor (a window asks the sponsor's decision); two «Против» → refusal; one «Особое мнение» → veto. «Изменить решение» takes a decision back while the meeting is open.
-10. «Сформировать протокол» → the meeting is held, protocol «на подписи». «Скачать протокол» prints it for the members to sign; once they have, «Отметить протокол подписанным» → «Проведено · протокол подписан», and «Подписан» in «Реестр заседаний».
+10. «Сформировать протокол» → the meeting is held, protocol «на подписи». «Скачать протокол» prints it for the members to sign; once they have, «Отметить протокол подписанным» asks for the link to the signed scan (a link not starting with https:// is refused) → «Проведено · протокол подписан», «Открыть подписанный протокол» opens the link, and «Подписан» in «Реестр заседаний».
 11. → «Реестр решений» has the decision (ИК № N, the subject with the amount, «Одобрено с условиями»).
 12. → the deal's tab «Решения ИК и НС» shows it.
 13. → Задачи has a task `ZZ Startup A: ZZ Предоставить отчётность` for the deal's owner, due «до ИК-2», linked to the deal; Инвесткомитет → «Исполнение решений» lists it. «Отметить выполненным» closes it in both places.
@@ -95,7 +95,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 A committee stage is left only after its committee's approval: before step 8, «Перевести в «Детальный DD»» on `ZZ Startup A` shows «Получить одобрение: ИК-1 — Решения пока нет» with a link to the deal's meeting (or «Вынести на заседание»), and «Перевести» is off.
 
 1. On the deal: «Перевести в «Детальный DD»» (the ИК-1 approval of step 8 meets its condition), then «Перевести в «ИК-2»» → `public_status` = `committee`.
-2. Repeat step 8 from 2 with Тип **ИК-2** (no conditions this time) → «Одобрено». Only then «Перевести в «Наблюдательный совет»» is on.
+2. Repeat step 8 from 2 with Тип **ИК-2** (no conditions this time) → «Одобрено». «Перевести в «Набсовет»» now lists a second condition, «Получить одобрение директора»: the director presses «Одобряю» in that window (other roles see «Попросите директора…») → both done, «Перевести» is on, and «История» has «Директор одобрил переход».
 3. «Перевести в «Наблюдательный совет»», then hold a board meeting the same way with Орган «Наблюдательный совет» → «Одобрено».
 4. «Перевести в «Закрытие»» → `public_status` = `closing`.
 5. «Перевести в портфель» → the deal's status is «В портфеле», `public_status` = `portfolio`. (The portfolio company is not created yet: see «Known gaps».)

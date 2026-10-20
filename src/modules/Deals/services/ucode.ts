@@ -112,6 +112,7 @@ const toEntry = (row: Row): JournalEntry => {
       case 'taken':
       case 'screening':
       case 'memo':
+      case 'approved':
          return { ...base, kind: row.kind, userId };
       case 'stage':
          return { ...base, kind: 'stage', stage: str(row.stage) as DealStage };

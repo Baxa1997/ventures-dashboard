@@ -472,5 +472,12 @@
    "Подпишите документы и проведите платёж, затем — «Перевести в портфель».": "Sign the documents and make the payment, then «Move to the portfolio».",
    "Открыть «Запросы и документы»": "Open «Requests and documents»",
    "Открыть «Due diligence»": "Open «Due diligence»",
-   "Назначьте владельца: он ведёт сделку и докладывает её на комитете.": "Assign an owner: they lead the deal and present it to the committee."
+   "Назначьте владельца: он ведёт сделку и докладывает её на комитете.": "Assign an owner: they lead the deal and present it to the committee.",
+   "Получить одобрение директора": "Get the director’s approval",
+   "{{name}}, {{date}}": "{{name}}, {{date}}",
+   "Директор подтверждает инвестицию после решения ИК-2": "The director confirms the investment after the IC-2 decision",
+   "Директор одобрил переход · {{name}}": "The director approved moving on · {{name}}",
+   "Сначала нужно одобрение ИК-2": "The IC-2 approval comes first",
+   "Одобряю": "Approve",
+   "Попросите директора открыть это окно и подтвердить.": "Ask the director to open this window and confirm."
 }

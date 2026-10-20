@@ -25,6 +25,7 @@ import {
    Badge,
    BadgeSelect,
    Button,
+   buttonClass,
    Card,
    CheckList,
    FactList,
@@ -51,6 +52,7 @@ import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import AgendaDialog from './components/AgendaDialog';
+import SignDialog from './components/SignDialog';
 import SponsorDialog from './components/SponsorDialog';
 import VoteSelect from './components/VoteSelect';
 
@@ -118,6 +120,7 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
    const [selectedId, setSelectedId] = useState(firstOpen?.id ?? '');
    const [sponsorItem, setSponsorItem] = useState<AgendaItem | null>(null);
    const [addingDeals, setAddingDeals] = useState(false);
+   const [signing, setSigning] = useState(false);
    const selected =
       meeting.agenda.find((item) => item.id === selectedId) ??
       meeting.agenda[0];
@@ -191,14 +194,19 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                   {t('Скачать протокол')}
                </Button>
                {meeting.protocol === 'signing' && canRecord && (
-                  <Button
-                     title={t(
-                        'Нажмите, когда все члены подписали протокол — на бумаге или электронной подписью',
-                     )}
-                     onClick={() => committee.signProtocol(meeting.id)}
-                  >
+                  <Button onClick={() => setSigning(true)}>
                      {t('Отметить протокол подписанным')}
                   </Button>
+               )}
+               {meeting.protocol === 'signed' && meeting.protocolFile && (
+                  <a
+                     className={buttonClass('ghost')}
+                     href={meeting.protocolFile}
+                     rel='noreferrer'
+                     target='_blank'
+                  >
+                     {t('Открыть подписанный протокол')}
+                  </a>
                )}
             </>
          );
@@ -377,6 +385,11 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                />
             )}
          </PageBody>
+         <SignDialog
+            meeting={meeting}
+            open={signing}
+            onClose={() => setSigning(false)}
+         />
          <AgendaDialog
             data={data}
             meeting={meeting}

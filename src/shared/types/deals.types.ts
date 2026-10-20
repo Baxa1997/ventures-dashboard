@@ -182,6 +182,8 @@ export type JournalEntry =
      })
    | (JournalBase & { kind: 'screening'; userId: string })
    | (JournalBase & { kind: 'memo'; userId: string })
+   // the director approved moving on from the stage the deal was on
+   | (JournalBase & { kind: 'approved'; userId: string })
    | (JournalBase & { kind: 'workstream'; name: string; handed: boolean });
 
 export interface Deal {

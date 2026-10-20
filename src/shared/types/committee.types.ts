@@ -89,6 +89,7 @@ export interface Meeting {
    summary: string; // the questions as the register lists them
    result: MeetingResult;
    protocol: ProtocolState;
+   protocolFile: string; // where the signed protocol is kept; '' until signed
 }
 
 // A decision in the register: what was decided, by which body and when.

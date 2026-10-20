@@ -472,5 +472,12 @@
    "Подпишите документы и проведите платёж, затем — «Перевести в портфель».": "Hujjatlarni imzolang va to‘lovni o‘tkazing, keyin — «Portfelga o‘tkazish».",
    "Открыть «Запросы и документы»": "«So‘rovlar va hujjatlar»ni ochish",
    "Открыть «Due diligence»": "«Due diligence»ni ochish",
-   "Назначьте владельца: он ведёт сделку и докладывает её на комитете.": "Bitim egasini tayinlang: u bitimni olib boradi va qo‘mitada ma’ruza qiladi."
+   "Назначьте владельца: он ведёт сделку и докладывает её на комитете.": "Bitim egasini tayinlang: u bitimni olib boradi va qo‘mitada ma’ruza qiladi.",
+   "Получить одобрение директора": "Direktor ma’qullashini olish",
+   "{{name}}, {{date}}": "{{name}}, {{date}}",
+   "Директор подтверждает инвестицию после решения ИК-2": "Direktor IQ-2 qaroridan keyin investitsiyani tasdiqlaydi",
+   "Директор одобрил переход · {{name}}": "Direktor o‘tkazishni ma’qulladi · {{name}}",
+   "Сначала нужно одобрение ИК-2": "Avval IQ-2 ma’qullashi kerak",
+   "Одобряю": "Ma’qullayman",
+   "Попросите директора открыть это окно и подтвердить.": "Direktordan shu oynani ochib, tasdiqlashini so‘rang."
 }

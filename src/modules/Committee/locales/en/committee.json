@@ -232,6 +232,13 @@
    "Сделка попадает на заседание, когда доходит до стадии ИК-1, ИК-2 или «Набсовет».": "A deal goes to a meeting once it reaches IC-1, IC-2 or the board stage.",
    "На этом заседании не было вопросов — решений по нему нет.": "This meeting had no questions — it made no decisions.",
    "Отметить протокол подписанным": "Mark the protocol signed",
-   "Нажмите, когда все члены подписали протокол — на бумаге или электронной подписью": "Press once every member has signed the protocol — on paper or with an e-signature",
-   "подписан": "signed"
+   "подписан": "signed",
+   "Протокол подписан": "Protocol signed",
+   "Отметьте, когда все члены подписали протокол — на бумаге или электронной подписью.": "Mark it once every member has signed the protocol — on paper or with an e-signature.",
+   "Ссылка на подписанный протокол": "Link to the signed protocol",
+   "Где лежит подписанный скан: диск, SharePoint, Notion": "Where the signed scan is kept: a drive, SharePoint, Notion",
+   "Вставьте ссылку на подписанный протокол": "Paste the link to the signed protocol",
+   "Ссылка должна начинаться с https://": "The link must start with https://",
+   "Файл остаётся там, где его хранит фонд: в ucode Files он был бы открыт любому, у кого есть ссылка": "The file stays where the fund keeps it: in ucode Files anyone with the link could open it",
+   "Открыть подписанный протокол": "Open the signed protocol"
 }

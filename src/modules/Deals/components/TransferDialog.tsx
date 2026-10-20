@@ -62,6 +62,27 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
       committee: open('committee') && (
          <CommitteeLink deal={deal} onClick={onClose} />
       ),
+      // the director confirms here, once the committee has approved
+      director:
+         open('director') &&
+         (user.role === 'director' ? (
+            <Button
+               disabled={open('committee')}
+               title={
+                  open('committee')
+                     ? t('Сначала нужно одобрение ИК-2')
+                     : undefined
+               }
+               variant='ghost'
+               onClick={() => deals.approveTransfer(deal.id, user.id)}
+            >
+               {t('Одобряю')}
+            </Button>
+         ) : (
+            <span className='text-ink-soft text-xs'>
+               {t('Попросите директора открыть это окно и подтвердить.')}
+            </span>
+         )),
    };
 
    return (

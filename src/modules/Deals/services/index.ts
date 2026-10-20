@@ -389,6 +389,11 @@ class Deals {
       }));
    }
 
+   // The director's approval to move on after ИК-2 (docs/ERP.md, the stages).
+   async approveTransfer(id: string, userId: string) {
+      await change(id, (deal) => logged(deal, { kind: 'approved', userId }));
+   }
+
    async approveMemo(id: string, userId: string) {
       await change(id, (deal) =>
          logged(

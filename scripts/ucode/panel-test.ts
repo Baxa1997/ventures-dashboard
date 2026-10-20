@@ -195,9 +195,10 @@ try {
    const heldItem = held?.agenda[0];
    check('the member who did not confirm is absent from the vote', heldItem?.votes[lateId]?.choice === 'absent', heldItem?.votes[lateId]);
    check('meeting held, attendance, vote and protocol stored', held && held.status === 'held' && held.protocol === 'signing' && held.result === 'approved_conditions' && held.attendance[memberId] === 'confirmed' && !!held.materialsSentAt && heldItem?.votes[memberId]?.choice === 'for' && heldItem?.votes[memberId]?.note === 'Поддерживаю' && heldItem?.protocol.conditions.startsWith('Предоставить'), held && { status: held.status, result: held.result, votes: heldItem?.votes, chair: held.chairId });
-   await committee.signProtocol(meeting.id);
+   await committee.signProtocol(meeting.id, 'https://example.com/zz-protocol');
    clearStores();
-   check('the secretary marks the protocol signed', (await committee.getState()).meetings.find((m) => m.id === meeting.id)?.protocol === 'signed');
+   const signed = (await committee.getState()).meetings.find((m) => m.id === meeting.id);
+   check('the secretary marks the protocol signed, with the link to the signed copy', signed?.protocol === 'signed' && signed.protocolFile === 'https://example.com/zz-protocol', signed && { protocol: signed.protocol, file: signed.protocolFile });
    const decision = state.decisions.find((d) => d.meetingId === meeting.id);
    check('the decision is in the register', decision && decision.outcome === 'approved_conditions' && decision.dealId === deal.id && decision.meetingLabel === `ИК № ${meeting.number}`, decision);
    const condition = state.tasks.find((t) => t.basis === `Условие ИК № ${meeting.number}`);
@@ -213,9 +214,17 @@ try {
    check('the ИК-1 approval opens the way out of ИК-1, not out of ИК-2', atStage('ic1') === 'done' && atStage('ic2') === 'blocking', { ic1: atStage('ic1'), ic2: atStage('ic2') });
    await committee.setTaskDone(condition!.id, true, me.id);
    check('marking the condition done', (await committee.getState()).tasks.find((t) => t.id === condition?.id)?.done === true);
+   // after ИК-2 the director approves too, for the stage the approval was given on
+   const directorAt = async () => exitConditions(keys, { ...(await deals.getDeals()).find((d) => d.id === deal.id)!, stage: 'ic2', exit: undefined }).find((c) => c.id === 'director')?.state;
+   const beforeApproval = await directorAt();
+   await deals.approveTransfer(deal.id, me.id);
+   clearStores();
+   const approvedDeal = (await deals.getDeals()).find((d) => d.id === deal.id);
+   check('ИК-2 also needs the director: blocking, then approved and read back from the journal', beforeApproval === 'blocking' && (await directorAt()) === 'done' && approvedDeal?.journal[0]?.kind === 'approved', { beforeApproval, journal: approvedDeal?.journal.slice(0, 2).map((e) => e.kind) });
    await committee.retireMember(lateId);
    await deals.transferDeal(deal.id);
    clearStores();
+   check("the director's approval belongs to the stage it was given on", (await directorAt()) === 'blocking');
    check('a member who left is no longer in the committee', !(await committee.getState()).members.some((m) => m.id === lateId));
    check('a new stage takes the deal off its meeting', !(await deals.getDeals()).find((d) => d.id === deal.id)?.committee);
 
