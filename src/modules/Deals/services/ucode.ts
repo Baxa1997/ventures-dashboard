@@ -358,7 +358,7 @@ const toDeal = (
               }
             : null,
       ...(meeting && {
-         committee: { number: num(meeting.number), date: day(meeting.date), time: str(meeting.time) },
+         committee: { id: meeting.guid, number: num(meeting.number), date: day(meeting.date), time: str(meeting.time) },
       }),
       ...((Boolean(closedAt) || Boolean(reason)) && {
          closed: {
@@ -515,6 +515,8 @@ const dealFields = (deal: Deal): Record<string, unknown> => ({
    stage: deal.stage,
    owner_id: deal.ownerId,
    proposed_owner_id: deal.proposedOwnerId,
+   // set by the committee when it puts the deal on an agenda; a new stage clears it
+   meetings_id: deal.committee?.id ?? null,
    stage_norm_days: deal.days?.norm ?? null,
    days_used: deal.days?.used ?? null,
    waiting: deal.waiting,

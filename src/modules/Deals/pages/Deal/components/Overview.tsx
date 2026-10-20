@@ -1,4 +1,4 @@
-import { RiskList } from '@modules/Deals/components';
+import { CommitteeLink, RiskList } from '@modules/Deals/components';
 import {
    FIELD_FACTS,
    ROUND_STAGE_NAMES,
@@ -6,6 +6,7 @@ import {
    STAGE_LABELS,
 } from '@modules/Deals/constants';
 import {
+   COMMITTEE_STAGES,
    defaultPath,
    dueText,
    factRows,
@@ -284,6 +285,12 @@ const Overview = ({ deal }: OverviewProps) => {
                         <div className='text-ink-soft text-meta mt-1'>
                            {dueText(t, deal.next)}
                         </div>
+                        {deal.status === 'active' &&
+                           COMMITTEE_STAGES.includes(deal.stage) && (
+                              <div className='text-meta mt-3'>
+                                 <CommitteeLink deal={deal} />
+                              </div>
+                           )}
                      </div>
                   </Card>
                )}

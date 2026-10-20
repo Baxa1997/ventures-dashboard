@@ -203,7 +203,8 @@ export interface Deal {
    days: { used: number; norm: number } | null; // working days on the stage
    waiting: boolean; // the stage clock stands: the fund waits for the applicant
    next: { title: string; dueDate: string; time?: string } | null;
-   committee?: { number: number; date: string; time: string };
+   // the meeting of the committee or the board the deal is on the agenda of
+   committee?: { id: string; number: number; date: string; time: string };
    closed?: {
       reason?: RejectReason;
       note: string; // why it is paused or withdrawn; the fund's comment on a rejection

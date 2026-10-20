@@ -2,7 +2,9 @@ import type { BadgeTone } from '@shared/components';
 import { daysUntil, formatDate } from '@shared/helpers';
 import type {
    AgendaItem,
+   CommitteeBody,
    CommitteeMember,
+   CommitteeStage,
    DecisionTask,
    ItemOutcome,
    Meeting,
@@ -43,6 +45,39 @@ export const presentMembers = (
    );
 
 export const hasQuorum = (present: number) => present >= IC_RULES.quorum;
+
+// What a planned meeting needs before it opens: questions on its agenda, and
+// enough members confirmed for a quorum.
+export const preparationOf = (meeting: Meeting, members: CommitteeMember[]) => {
+   const confirmed = presentMembers(meeting, members).length;
+   return {
+      questions: meeting.agenda.length,
+      members: members.length,
+      confirmed,
+      ready: meeting.agenda.length > 0 && hasQuorum(confirmed),
+   };
+};
+
+// The active deals waiting for a meeting of this body and stage that no
+// planned meeting has on its agenda yet.
+export const waitingDeals = (
+   meetings: Meeting[],
+   deals: Deal[],
+   body: CommitteeBody,
+   stage: CommitteeStage | null,
+) => {
+   const planned = new Set(
+      meetings
+         .filter(({ status }) => status !== 'held')
+         .flatMap(({ agenda }) => agenda.map(({ dealId }) => dealId)),
+   );
+   return deals.filter(
+      (deal) =>
+         deal.status === 'active' &&
+         !planned.has(deal.id) &&
+         deal.stage === (body === 'board' ? 'board' : stage),
+   );
+};
 
 export type VoteState =
    'pending' | 'no_quorum' | 'approved' | 'discussion' | 'rejected' | 'veto';
@@ -103,6 +138,20 @@ export const materialsOf = (item: AgendaItem, deal?: Deal) => {
       };
    return item.materials ?? null;
 };
+
+// Whether every question of a meeting has all its materials, so they can go
+// out to the members.
+export const materialsReady = (meeting: Meeting, deals: Deal[]) =>
+   meeting.agenda.every((item) => {
+      const value =
+         item.kind === 'decision'
+            ? materialsOf(
+                 item,
+                 deals.find(({ id }) => id === item.dealId),
+              )
+            : null;
+      return value === null || value.ready === value.total;
+   });
 
 export const isDecided = (item: AgendaItem) =>
    item.kind === 'info' || item.outcome !== null;

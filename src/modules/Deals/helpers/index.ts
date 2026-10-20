@@ -375,7 +375,7 @@ export const isScored = ({ score, rationale }: Criterion) =>
    score !== null && !!rationale.trim();
 
 // The stages a committee decides on.
-const COMMITTEE_STAGES: DealStage[] = ['ic1', 'ic2', 'board'];
+export const COMMITTEE_STAGES: DealStage[] = ['ic1', 'ic2', 'board'];
 
 // A committee stage ends with the committee's approval. A refusal does not
 // reject the deal by itself: the owner rejects it with a reason.

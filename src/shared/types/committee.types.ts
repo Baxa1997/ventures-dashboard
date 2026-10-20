@@ -122,3 +122,5 @@ export interface NewMeetingInput {
    format: string;
    dealIds: string[];
 }
+
+export type MemberInput = Omit<CommitteeMember, 'id'>;

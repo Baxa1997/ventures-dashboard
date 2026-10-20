@@ -19,14 +19,17 @@ import type {
    Attendance,
    CommitteeDecision,
    CommitteeMember,
+   CommitteeStage,
    DecisionTask,
    ItemOutcome,
    Meeting,
+   MemberInput,
    MemberVote,
    NewMeetingInput,
    Protocol,
    VoteChoice,
 } from '@shared/types/committee.types';
+import type { Deal } from '@shared/types/deals.types';
 import type { Task } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import { IC_RULES } from '../constants';
@@ -56,6 +59,17 @@ let rowIds = {
    votes: new Map<string, string>(),
 };
 const pair = (a: string, b: string) => `${a}/${b}`;
+
+// The chair first, then the bank's representatives, then the others.
+const ROLE_ORDER: CommitteeMember['role'][] = [
+   'chair',
+   'bank',
+   'international',
+   'independent',
+];
+const byRole = (a: CommitteeMember, b: CommitteeMember) =>
+   ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role) ||
+   a.name.localeCompare(b.name);
 
 const toMember = (row: Row): CommitteeMember => ({
    id: row.guid,
@@ -220,7 +234,10 @@ const store = createStore<Omit<CommitteeState, 'tasks'>>(async () => {
       .map(toDecision)
       .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
    return {
-      members: members.filter((row) => row.is_active !== false).map(toMember),
+      members: members
+         .filter((row) => row.is_active !== false)
+         .map(toMember)
+         .sort(byRole),
       meetings: allMeetings,
       decisions: register,
       totals: {
@@ -302,6 +319,84 @@ const meetingFields = (meeting: Meeting) => ({
    materials_sent_at: meeting.materialsSentAt,
 });
 
+// The questions for the deals put on a meeting's agenda; the deal's owner
+// presents it.
+const agendaFor = (
+   all: Deal[],
+   dealIds: string[],
+   stage: CommitteeStage | null,
+): AgendaItem[] =>
+   dealIds.flatMap((dealId) => {
+      const deal = all.find(({ id }) => id === dealId);
+      if (!deal) return [];
+      return [
+         {
+            id: newId(),
+            kind: 'decision',
+            title: deal.company,
+            dealId,
+            stage: stage ?? undefined,
+            amount: deal.amount,
+            speakerId: deal.ownerId,
+            votes: {},
+            protocol: { pros: '', cons: '', conditions: '', next: '' },
+            outcome: null,
+            outcomeNote: '',
+         },
+      ];
+   });
+
+const summaryOf = (agenda: AgendaItem[]) =>
+   agenda.map(({ title }) => title).join(', ');
+
+// Writes a meeting's new questions, after the `from` it already has, and
+// links each deal to the meeting.
+const writeAgenda = (
+   meetingId: string,
+   items: AgendaItem[],
+   all: Deal[],
+   from: number,
+) =>
+   Promise.all(
+      items.flatMap((item, index) => {
+         const memo = all.find(({ id }) => id === item.dealId)?.memo;
+         return [
+            // the memorandum's current version is the one put to the vote
+            createRow('agenda_items', {
+               guid: item.id,
+               sort_order: from + index + 1,
+               kind: item.kind,
+               title: item.title,
+               stage: item.stage ?? '',
+               amount: item.amount ?? null,
+               speaker_id: item.speakerId,
+               meetings_id: meetingId,
+               deals_id: item.dealId ?? null,
+               memos_id:
+                  (memo &&
+                     item.dealId &&
+                     memoRowOf(item.dealId, memo.version)) ||
+                  null,
+            }),
+            ...(item.dealId
+               ? [
+                    updateRow('deals', {
+                       guid: item.dealId,
+                       meetings_id: meetingId,
+                    }),
+                 ]
+               : []),
+         ];
+      }),
+   );
+
+const memberFields = (input: MemberInput) => ({
+   name: input.name,
+   role: input.role,
+   remote: input.remote,
+   contract: input.contract,
+});
+
 const itemOf = (state: Stored, meetingId: string, itemId: string) => {
    const item = meetingOf(state, meetingId).agenda.find(
       ({ id }) => id === itemId,
@@ -340,25 +435,7 @@ class Committee {
             .filter(({ body }) => body === input.body)
             .map(({ number }) => Math.floor(Number(number)) || 0),
       );
-      const agenda: AgendaItem[] = input.dealIds.flatMap((dealId) => {
-         const deal = all.find(({ id }) => id === dealId);
-         if (!deal) return [];
-         return [
-            {
-               id: newId(),
-               kind: 'decision',
-               title: deal.company,
-               dealId,
-               stage: input.stage ?? undefined,
-               amount: deal.amount,
-               speakerId: deal.ownerId,
-               votes: {},
-               protocol: { pros: '', cons: '', conditions: '', next: '' },
-               outcome: null,
-               outcomeNote: '',
-            },
-         ];
-      });
+      const agenda = agendaFor(all, input.dealIds, input.stage);
       const meeting: Meeting = {
          id: newId(),
          body: input.body,
@@ -382,7 +459,7 @@ class Committee {
             state.members.map(({ id }) => [id, 'no_answer' as const]),
          ),
          agenda,
-         summary: agenda.map(({ title }) => title).join(', '),
+         summary: summaryOf(agenda),
          result: 'planned',
          protocol: 'none',
       };
@@ -422,31 +499,78 @@ class Committee {
                      committee_members_id: memberId,
                   });
                }),
-               ...agenda.map((item, index) => {
-                  const memo = all.find(({ id }) => id === item.dealId)?.memo;
-                  // the memorandum's current version is the one put to the vote
-                  return createRow('agenda_items', {
-                     guid: item.id,
-                     sort_order: index + 1,
-                     kind: item.kind,
-                     title: item.title,
-                     stage: item.stage ?? '',
-                     amount: item.amount ?? null,
-                     speaker_id: item.speakerId,
-                     meetings_id: meeting.id,
-                     deals_id: item.dealId ?? null,
-                     memos_id:
-                        (memo &&
-                           item.dealId &&
-                           memoRowOf(item.dealId, memo.version)) ||
-                        null,
-                  });
-               }),
+               writeAgenda(meeting.id, agenda, all, 0),
             ]);
-            await work.reloadMeetings();
+            await Promise.all([deals.reload(), work.reloadMeetings()]);
          },
       );
       return meeting;
+   }
+
+   // Puts deals on the agenda of a meeting that has not opened yet.
+   async addToAgenda(meetingId: string, dealIds: string[]) {
+      const [state, all] = await Promise.all([store.get(), deals.getDeals()]);
+      const from = meetingOf(state, meetingId).agenda.length;
+      const items = agendaFor(all, dealIds, meetingOf(state, meetingId).stage);
+      await apply(
+         withMeeting(meetingId, (meeting) => {
+            const agenda = [...meeting.agenda, ...items];
+            return { ...meeting, agenda, summary: summaryOf(agenda) };
+         }),
+         async (_, after) => {
+            await Promise.all([
+               writeAgenda(meetingId, items, all, from),
+               updateRow('meetings', {
+                  guid: meetingId,
+                  summary: meetingOf(after, meetingId).summary,
+               }),
+            ]);
+            await Promise.all([deals.reload(), work.reloadMeetings()]);
+         },
+      );
+   }
+
+   async addMember(input: MemberInput) {
+      const id = newId();
+      await apply(
+         (state) => ({
+            ...state,
+            members: [...state.members, { id, ...input }].sort(byRole),
+         }),
+         () =>
+            createRow('committee_members', {
+               guid: id,
+               ...memberFields(input),
+               is_active: true,
+            }),
+      );
+   }
+
+   async updateMember(id: string, input: MemberInput) {
+      await apply(
+         (state) => ({
+            ...state,
+            members: state.members
+               .map((member) => (member.id === id ? { id, ...input } : member))
+               .sort(byRole),
+         }),
+         () =>
+            updateRow('committee_members', {
+               guid: id,
+               ...memberFields(input),
+            }),
+      );
+   }
+
+   // A member who leaves the committee stays in the old protocols.
+   async retireMember(id: string) {
+      await apply(
+         (state) => ({
+            ...state,
+            members: state.members.filter((member) => member.id !== id),
+         }),
+         () => updateRow('committee_members', { guid: id, is_active: false }),
+      );
    }
 
    // Whether a member confirmed, before the meeting opens.
@@ -487,38 +611,38 @@ class Committee {
       );
    }
 
-   // Opens the meeting: those who did not confirm are marked absent.
+   // Opens the meeting: the members who did not confirm are marked absent.
    async startMeeting(id: string) {
       await apply(
-         withMeeting(id, (meeting) => ({
-            ...meeting,
-            status: 'live',
-            startedAt: meeting.startedAt ?? nowTime(),
-            result: 'live',
-            agenda: meeting.agenda.map((item) =>
-               item.kind === 'info'
-                  ? item
-                  : {
-                       ...item,
-                       votes: Object.fromEntries(
-                          Object.entries(meeting.attendance).map(
-                             ([memberId, attendance]) => [
+         (state) =>
+            withMeeting(id, (meeting) => ({
+               ...meeting,
+               status: 'live',
+               startedAt: meeting.startedAt ?? nowTime(),
+               result: 'live',
+               agenda: meeting.agenda.map((item) =>
+                  item.kind === 'info'
+                     ? item
+                     : {
+                          ...item,
+                          votes: Object.fromEntries(
+                             state.members.map(({ id: memberId }) => [
                                 memberId,
                                 item.votes[memberId]?.choice
                                    ? item.votes[memberId]
                                    : {
                                         choice:
-                                           attendance === 'confirmed'
+                                           meeting.attendance[memberId] ===
+                                           'confirmed'
                                               ? null
                                               : ('absent' as const),
                                         note: item.votes[memberId]?.note ?? '',
                                      },
-                             ],
+                             ]),
                           ),
-                       ),
-                    },
-            ),
-         })),
+                       },
+               ),
+            }))(state),
          async (before, after) => {
             const meeting = meetingOf(after, id);
             const previous = meetingOf(before, id);

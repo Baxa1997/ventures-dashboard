@@ -440,7 +440,6 @@
    "не назначен": "tayinlanmagan",
    "Комитет отказал — откажите сделке с причиной": "Qo‘mita rad etdi — bitimni sabab bilan rad eting",
    "Решения пока нет — вынесите сделку на заседание": "Hali qaror yo‘q — bitimni majlisga chiqaring",
-   "Открыть «Инвесткомитет»": "«Investitsiya qo‘mitasi»ni ochish",
    "сохранится в сделке — отправьте его заявителю сами": "bitimda saqlanadi — ariza beruvchiga o‘zingiz yuboring",
    "Сайт примет новую заявку с этой почты после даты повторной подачи": "Sayt bu pochtadan yangi arizani qayta topshirish sanasidan keyin qabul qiladi",
    "Отказать": "Rad etish",
@@ -458,5 +457,8 @@
    "Обоснование: факты из заявки, документов или звонка": "Asoslash: arizadagi, hujjatlardagi yoki qo‘ng‘iroqdagi faktlar",
    "Напишите обоснование — без него балл не засчитывается": "Asoslashni yozing — usiz ball hisobga olinmaydi",
    "Переход в стадию «Встреча»": "«Uchrashuv» bosqichiga o‘tish",
-   "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "Fond qoidasi: bahoni ikkinchi xodim tekshiradi. «Skriningni yakunlash» barcha 7 mezonda ball va asoslash bo‘lganda hamda ikkinchi baholovchi tanlanganda yoqiladi."
+   "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "Fond qoidasi: bahoni ikkinchi xodim tekshiradi. «Skriningni yakunlash» barcha 7 mezonda ball va asoslash bo‘lganda hamda ikkinchi baholovchi tanlanganda yoqiladi.",
+   "Вынести на заседание": "Majlisga chiqarish",
+   "Открыть ИК № {{number}} · {{date}}": "IQ № {{number}} · {{date}} ni ochish",
+   "Открыть НС № {{number}} · {{date}}": "KK № {{number}} · {{date}} ni ochish"
 }

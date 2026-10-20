@@ -46,7 +46,7 @@ const work = (await import('@modules/Work/services')).default;
 const portfolio = (await import('@modules/Portfolio/services')).default;
 const committee = (await import('@modules/Committee/services')).default;
 const documents = (await import('@modules/Documents/services')).default;
-const { addWorkingDays, todayISO } = await import('@shared/helpers');
+const { addWorkingDays, clearStores, todayISO } = await import('@shared/helpers');
 
 let failures = 0;
 const check = (label: string, ok: unknown, detail: unknown = '') => {
@@ -85,7 +85,9 @@ try {
    );
    const saved = await settings.getSettings();
    check('settings saved and read back', saved.mandate.check === '$50 000 – $300 000' && saved.mandate.stages === 'Pre-seed, Seed' && saved.flags.churn === 6 && saved.norms.find((n) => n.stage === 'screening')?.norm === '6 · публично', saved.mandate);
-   check('settings journal has the 4 changes', saved.journal.length - initial.journal.length === 4, saved.journal.slice(0, 4).map((j) => `${j.field}: ${j.from} → ${j.to}`));
+   // only the values that differ from what the fund has saved go to the journal
+   const changed = [initial.mandate.check !== '$50 000 – $300 000', initial.mandate.stages !== 'Pre-seed, Seed', initial.norms.find((n) => n.stage === 'screening')?.norm !== '6 · публично', initial.flags.churn !== 6].filter(Boolean).length;
+   check(`settings journal has the ${changed} changes`, saved.journal.length - initial.journal.length === changed, saved.journal.slice(0, changed).map((j) => `${j.field}: ${j.from} → ${j.to}`));
    const { stageNorm, mandateLimits } = await import('@modules/Deals/helpers');
    check('Сделки follow the saved rules', stageNorm('screening') === 6 && mandateLimits().maxCheck === 300000, { screening: stageNorm('screening'), limits: mandateLimits() });
 
@@ -157,11 +159,24 @@ try {
    check('overview: no money row yet, the portfolio and the funnel', overview.money === null && overview.portfolio.companies.some((c) => c.id === companyId && c.invested === 150000) && overview.funnel.find((f) => f.stage === 'screening')!.count >= 1, { quarter: overview.portfolio.quarter, funnel: overview.funnel.map((f) => `${f.stage}:${f.count}`) });
 
    // ---- Инвесткомитет
-   const memberId = crypto.randomUUID();
-   await api.createRow('committee_members', { guid: memberId, name: 'ZZ Член ИК', role: 'chair', is_active: true, remote: false });
+   const { preparationOf } = await import('@modules/Committee/helpers');
+   await committee.addMember({ name: 'ZZ Член ИК', role: 'chair', remote: false, contract: 'ZZ договор' });
+   const memberId = (await committee.getState()).members.find((m) => m.name === 'ZZ Член ИК')?.id ?? '';
+   // a meeting scheduled with no questions is not ready to open; a deal is added to it after
+   const meeting = await committee.scheduleMeeting({ body: 'ic', stage: 'ic1', date: addWorkingDays(today, 3), time: '10:00', format: 'Очно', dealIds: [] });
+   check('a meeting with no questions is not ready to open', !preparationOf(meeting, (await committee.getState()).members).ready);
+   await committee.addToAgenda(meeting.id, [deal.id]);
+   // a member who joins after the meeting was scheduled, and does not confirm
+   await committee.addMember({ name: 'ZZ Второй член', role: 'independent', remote: true, contract: '' });
+   clearStores();
    const committeeState0 = await committee.getState();
-   check('committee members read', committeeState0.members.some((m) => m.id === memberId && m.role === 'chair'));
-   const meeting = await committee.scheduleMeeting({ body: 'ic', stage: 'ic1', date: addWorkingDays(today, 3), time: '10:00', format: 'Очно', dealIds: [deal.id] });
+   const lateId = committeeState0.members.find((m) => m.name === 'ZZ Второй член')?.id ?? '';
+   const scheduled = committeeState0.meetings.find((m) => m.id === meeting.id);
+   check('committee members added and read back', committeeState0.members.some((m) => m.id === memberId && m.role === 'chair' && m.contract === 'ZZ договор') && committeeState0.members.some((m) => m.id === lateId && m.remote));
+   check('the deal added to the agenda of the meeting', scheduled?.agenda.length === 1 && scheduled.agenda[0].dealId === deal.id && scheduled.agenda[0].stage === 'ic1' && scheduled.summary === 'ZZ Test Co', scheduled && { agenda: scheduled.agenda.map((i) => i.title), summary: scheduled.summary });
+   const onAgenda = (await deals.getDeals()).find((d) => d.id === deal.id);
+   check("the deal's card points at its meeting", onAgenda?.committee?.id === meeting.id && onAgenda.committee.date === meeting.date, onAgenda?.committee);
+   meeting.agenda = scheduled!.agenda;
    const weekAhead = await work.getDeadlines();
    check('the meeting is a key event of the week', weekAhead.some((d) => d.kind === 'meeting' && d.keyEvent && d.date === meeting.date), weekAhead.filter((d) => d.kind === 'meeting'));
    await committee.setAttendance(meeting.id, memberId, 'confirmed');
@@ -174,11 +189,11 @@ try {
    await committee.decide(meeting.id, item.id, 'approved_conditions');
    await committee.formProtocol(meeting.id, me.id);
    // read everything again from ucode
-   const { clearStores } = await import('@shared/helpers');
    clearStores();
    const state = await committee.getState();
    const held = state.meetings.find((m) => m.id === meeting.id);
    const heldItem = held?.agenda[0];
+   check('the member who did not confirm is absent from the vote', heldItem?.votes[lateId]?.choice === 'absent', heldItem?.votes[lateId]);
    check('meeting held, attendance, vote and protocol stored', held && held.status === 'held' && held.protocol === 'signing' && held.result === 'approved_conditions' && held.attendance[memberId] === 'confirmed' && !!held.materialsSentAt && heldItem?.votes[memberId]?.choice === 'for' && heldItem?.votes[memberId]?.note === 'Поддерживаю' && heldItem?.protocol.conditions.startsWith('Предоставить'), held && { status: held.status, result: held.result, votes: heldItem?.votes, chair: held.chairId });
    const decision = state.decisions.find((d) => d.meetingId === meeting.id);
    check('the decision is in the register', decision && decision.outcome === 'approved_conditions' && decision.dealId === deal.id && decision.meetingLabel === `ИК № ${meeting.number}`, decision);
@@ -195,6 +210,11 @@ try {
    check('the ИК-1 approval opens the way out of ИК-1, not out of ИК-2', atStage('ic1') === 'done' && atStage('ic2') === 'blocking', { ic1: atStage('ic1'), ic2: atStage('ic2') });
    await committee.setTaskDone(condition!.id, true, me.id);
    check('marking the condition done', (await committee.getState()).tasks.find((t) => t.id === condition?.id)?.done === true);
+   await committee.retireMember(lateId);
+   await deals.transferDeal(deal.id);
+   clearStores();
+   check('a member who left is no longer in the committee', !(await committee.getState()).members.some((m) => m.id === lateId));
+   check('a new stage takes the deal off its meeting', !(await deals.getDeals()).find((d) => d.id === deal.id)?.committee);
 
    // ---- Документы
    const docId = await documents.addDocument({ category: 'corporate', title: 'ZZ Положение', note: 'ZZ проект', approvedBy: 'board', status: 'draft', date: today, link: 'https://example.com/zz' }, me.id);

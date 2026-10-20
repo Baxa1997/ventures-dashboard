@@ -24,7 +24,8 @@ const toTab = (value: string | null): ListTab =>
 
 /* Инвесткомитет и наблюдательный совет: the committee's meetings, the board,
    the register of decisions and who sits on the committee. The address keeps
-   the tab (?tab=decisions). */
+   the tab (?tab=decisions); a deal's card opens a new meeting for the deal
+   with ?schedule=<deal id>. */
 const CommitteeList = () => {
    const { t } = useTranslation('committee');
    const { t: tLayout } = useTranslation('layout');
@@ -32,6 +33,7 @@ const CommitteeList = () => {
    const data = useCommittee();
    const [params, setParams] = useSearchParams();
    const tab = toTab(params.get('tab'));
+   const scheduleFor = params.get('schedule') ?? undefined;
    const [scheduling, setScheduling] = useState(false);
    const title = t('Инвесткомитет и наблюдательный совет');
 
@@ -91,8 +93,12 @@ const CommitteeList = () => {
          </PageBody>
          <ScheduleDialog
             data={data}
-            open={scheduling}
-            onClose={() => setScheduling(false)}
+            dealId={scheduleFor}
+            open={scheduling || !!scheduleFor}
+            onClose={() => {
+               setScheduling(false);
+               if (scheduleFor) setParams({}, { replace: true });
+            }}
             onScheduled={(meeting) =>
                navigate(`${COMMITTEE_PATH}/${meeting.id}`)
             }

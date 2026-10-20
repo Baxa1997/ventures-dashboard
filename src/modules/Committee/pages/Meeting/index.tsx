@@ -1,4 +1,6 @@
 import {
+   ATTENDANCE,
+   ATTENDANCE_ORDER,
    COMMITTEE_PATH,
    IC_RULES,
    MEMBER_ROLE_LABELS,
@@ -10,7 +12,9 @@ import {
 import {
    hasQuorum,
    isDecided,
+   materialsReady,
    meetingName,
+   preparationOf,
    tallyVotes,
    type VoteTally,
 } from '@modules/Committee/helpers';
@@ -19,8 +23,10 @@ import committee from '@modules/Committee/services';
 import {
    Avatar,
    Badge,
+   BadgeSelect,
    Button,
    Card,
+   CheckList,
    FactList,
    Loading,
    NoData,
@@ -30,14 +36,21 @@ import {
    type BadgeTone,
 } from '@shared/components';
 import { directorId } from '@shared/constants';
+import { formatDate, formatUsd, personName } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
-import type { AgendaItem, Meeting } from '@shared/types/committee.types';
+import type {
+   AgendaItem,
+   Attendance,
+   Meeting,
+} from '@shared/types/committee.types';
+import type { CheckItem } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
+import AgendaDialog from './components/AgendaDialog';
 import SponsorDialog from './components/SponsorDialog';
 import VoteSelect from './components/VoteSelect';
 
@@ -104,9 +117,11 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
       meeting.agenda.find((item) => !isDecided(item)) ?? meeting.agenda[0];
    const [selectedId, setSelectedId] = useState(firstOpen?.id ?? '');
    const [sponsorItem, setSponsorItem] = useState<AgendaItem | null>(null);
+   const [addingDeals, setAddingDeals] = useState(false);
    const selected =
       meeting.agenda.find((item) => item.id === selectedId) ??
       meeting.agenda[0];
+   const planned = meeting.status === 'planned';
    const live = meeting.status === 'live';
    const held = meeting.status === 'held';
    const canRecord =
@@ -116,6 +131,7 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
    ).length;
    const chair = data.members.find(({ id }) => id === meeting.chairId);
    const allDecided = meeting.agenda.every(isDecided);
+   const prepared = preparationOf(meeting, data.members).ready;
    const name = meetingName(t, meeting);
    const date = dayjs(meeting.date).format('D MMMM YYYY');
 
@@ -173,10 +189,15 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                {t('Скачать протокол')}
             </Button>
          );
-      if (meeting.status === 'planned')
+      if (planned)
          return (
             <Button
-               disabled={!canRecord}
+               disabled={!canRecord || !prepared}
+               title={
+                  prepared
+                     ? undefined
+                     : t('Откроется, когда подготовка к заседанию закончена')
+               }
                onClick={() => committee.startMeeting(meeting.id)}
             >
                {t('Открыть заседание')}
@@ -289,9 +310,31 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                      );
                   })}
                </ol>
+               {meeting.agenda.length === 0 && (
+                  <p className='text-ink-soft px-2 py-1.5'>
+                     {t('Повестка пуста')}
+                  </p>
+               )}
+               {planned && canRecord && (
+                  <button
+                     type='button'
+                     className='link mt-1 px-2 py-1.5'
+                     onClick={() => setAddingDeals(true)}
+                  >
+                     {t('Добавить сделку')}
+                  </button>
+               )}
             </Card>
 
             <div className={STACK}>
+               {planned && (
+                  <Preparation
+                     data={data}
+                     editable={canRecord}
+                     meeting={meeting}
+                     onAddDeals={() => setAddingDeals(true)}
+                  />
+               )}
                {selected && (
                   <ItemCard
                      data={data}
@@ -312,6 +355,12 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                />
             )}
          </PageBody>
+         <AgendaDialog
+            data={data}
+            meeting={meeting}
+            open={addingDeals}
+            onClose={() => setAddingDeals(false)}
+         />
          <SponsorDialog
             item={sponsorItem}
             meetingId={meeting.id}
@@ -345,6 +394,160 @@ const itemState = (
       .join(' · ');
 };
 
+interface PreparationProps {
+   data: CommitteeData;
+   meeting: Meeting;
+   editable: boolean; // the secretary or the director
+   onAddDeals: () => void;
+}
+
+/* What a planned meeting needs before it opens, each step with where it is
+   done: deals on the agenda, enough members for a quorum, who of them will
+   come, and the materials sent out. «Открыть заседание» turns on once the
+   first three are met; the materials are a reminder of the fund's rule. */
+const Preparation = ({
+   data,
+   meeting,
+   editable,
+   onAddDeals,
+}: PreparationProps) => {
+   const { t } = useTranslation('committee');
+   const prep = preparationOf(meeting, data.members);
+   const quorum = IC_RULES.quorum;
+   const items: CheckItem[] = [
+      {
+         id: 'agenda',
+         text: t('Внести сделки в повестку'),
+         note: prep.questions
+            ? t('В повестке: {{titles}}', { titles: meeting.summary })
+            : t('Повестка пуста'),
+         state: prep.questions ? 'done' : 'blocking',
+      },
+      {
+         id: 'members',
+         text: t('Состав ИК — не меньше {{quorum}} членов', { quorum }),
+         note: t('В составе {{members}} из {{quorum}} нужных', {
+            members: prep.members,
+            quorum,
+         }),
+         state: prep.members >= quorum ? 'done' : 'blocking',
+      },
+      {
+         id: 'attendance',
+         text: t('Отметить, кто из них будет'),
+         note: t('Подтвердили {{confirmed}}, для кворума нужно {{quorum}}', {
+            confirmed: prep.confirmed,
+            quorum,
+         }),
+         state: hasQuorum(prep.confirmed) ? 'done' : 'blocking',
+      },
+      {
+         id: 'materials',
+         text: t('Разослать материалы членам ИК'),
+         note: meeting.materialsSentAt
+            ? t('материалы разосланы {{date}}', {
+                 date: formatDate(meeting.materialsSentAt),
+              })
+            : t('до {{date}}', { date: formatDate(meeting.materialsDue) }),
+         state: meeting.materialsSentAt ? 'done' : 'attention',
+      },
+   ];
+   const done = items.filter(({ state }) => state === 'done').length;
+   const canSend = prep.questions > 0 && materialsReady(meeting, data.deals);
+
+   const actions = {
+      agenda: editable && (
+         <button type='button' className='link' onClick={onAddDeals}>
+            {t('Добавить сделку')}
+         </button>
+      ),
+      members: prep.members < quorum && (
+         <Link className='link' to={`${COMMITTEE_PATH}?tab=members`}>
+            {t('Открыть «Состав и договоры»')}
+         </Link>
+      ),
+      attendance: data.members.length > 0 && (
+         <ul className='flex flex-col gap-1'>
+            {data.members.map((member) => {
+               const value = meeting.attendance[member.id] ?? 'no_answer';
+               return (
+                  <li key={member.id} className='flex items-center gap-3'>
+                     <span className='min-w-0 flex-1'>
+                        {member.name}
+                        <span className='text-ink-soft ml-2 text-xs'>
+                           {t(MEMBER_ROLE_LABELS[member.role])}
+                        </span>
+                     </span>
+                     {editable ? (
+                        <BadgeSelect<Attendance>
+                           label={t('Участие: {{name}}', { name: member.name })}
+                           options={ATTENDANCE_ORDER.map((option) => ({
+                              value: option,
+                              label: t(ATTENDANCE[option].label),
+                              tone: ATTENDANCE[option].tone,
+                           }))}
+                           value={value}
+                           onChange={(next) =>
+                              committee.setAttendance(
+                                 meeting.id,
+                                 member.id,
+                                 next,
+                              )
+                           }
+                        />
+                     ) : (
+                        <Badge tone={ATTENDANCE[value].tone}>
+                           {t(ATTENDANCE[value].label)}
+                        </Badge>
+                     )}
+                  </li>
+               );
+            })}
+         </ul>
+      ),
+      materials: editable && !meeting.materialsSentAt && (
+         <button
+            type='button'
+            className='link disabled:text-ink-faint disabled:no-underline'
+            disabled={!canSend}
+            title={
+               canSend
+                  ? undefined
+                  : t(
+                       'Разослать можно, когда у всех вопросов готовы все материалы',
+                    )
+            }
+            onClick={() => committee.sendMaterials(meeting.id)}
+         >
+            {t('Разослать материалы')}
+         </button>
+      ),
+   };
+
+   return (
+      <Card
+         hint={t('выполнено {{done}} из {{total}}', {
+            done,
+            total: items.length,
+         })}
+         title={t('Подготовка к заседанию')}
+      >
+         <div className='px-5 py-4'>
+            <CheckList actions={actions} items={items} />
+            <p className='text-ink-soft border-line mt-4 border-t pt-3 text-xs'>
+               {prep.ready
+                  ? t(
+                       'Всё готово: откройте заседание — секретарь запишет голоса, правила фонда дадут итог, протокол передаст решение в карточку сделки.',
+                    )
+                  : t(
+                       'Кнопка «Открыть заседание» включится, когда первые три пункта выполнены.',
+                    )}
+            </p>
+         </div>
+      </Card>
+   );
+};
+
 interface ItemCardProps {
    data: CommitteeData;
    meeting: Meeting;
@@ -363,7 +566,23 @@ const ItemCard = ({
    editable,
    onSponsor,
 }: ItemCardProps) => {
-   const { t } = useTranslation('committee');
+   const { t, i18n } = useTranslation('committee');
+   const language = i18n.resolvedLanguage ?? i18n.language;
+   const deal = data.deals.find(({ id }) => id === item.dealId);
+   // what the members are asked; until it is written, the deal's own facts
+   const facts = item.facts?.length
+      ? item.facts
+      : deal
+        ? [
+             { label: t('Чем занимается'), value: deal.about },
+             { label: t('Отрасль'), value: deal.industry },
+             { label: t('Запрос'), value: formatUsd(deal.amount, language) },
+             {
+                label: t('Докладчик'),
+                value: personName(item.speakerId) || t('не назначен'),
+             },
+          ].filter(({ value }) => value)
+        : [];
    const title =
       item.kind === 'info'
          ? t('{{index}}. {{title}} — информация', { index, title: item.title })
@@ -385,15 +604,12 @@ const ItemCard = ({
    return (
       <>
          <Card action={memoLink || dealLink || undefined} title={title}>
-            {item.facts?.length ? (
+            {facts.length ? (
                <FactList
                   className='px-5 py-1'
                   divided
                   labelWidth='minmax(8rem, 36%)'
-                  rows={item.facts.map(({ label, value }) => ({
-                     label,
-                     value,
-                  }))}
+                  rows={facts}
                />
             ) : (
                <p className='text-ink-soft px-5 py-4'>
@@ -401,7 +617,7 @@ const ItemCard = ({
                </p>
             )}
          </Card>
-         {item.kind === 'info' ? (
+         {meeting.status === 'planned' ? null : item.kind === 'info' ? (
             <Card title={t('Информация')}>
                <div className='flex flex-wrap items-center justify-between gap-3 px-5 py-4'>
                   <p className='text-ink-soft'>
@@ -444,7 +660,6 @@ const Voting = ({
    onSponsor,
 }: Omit<ItemCardProps, 'index'>) => {
    const { t } = useTranslation('committee');
-   const planned = meeting.status === 'planned';
    const recorded = Object.values(item.votes).some(({ choice }) => choice);
    const tally = tallyVotes(meeting, data.members, item);
 
@@ -466,14 +681,10 @@ const Voting = ({
 
    return (
       <Card
-         hint={
-            planned
-               ? t('откроется вместе с заседанием')
-               : t(
-                    '{{voted}} из {{present}} присутствующих проголосовали',
-                    tally,
-                 )
-         }
+         hint={t(
+            '{{voted}} из {{present}} присутствующих проголосовали',
+            tally,
+         )}
          title={t('Голосование')}
       >
          <ul className='divide-line divide-y px-5'>
@@ -534,18 +745,6 @@ const Voting = ({
                               )
                            }
                         />
-                     ) : planned ? (
-                        <Badge
-                           tone={
-                              meeting.attendance[member.id] === 'confirmed'
-                                 ? 'success'
-                                 : 'warning'
-                           }
-                        >
-                           {meeting.attendance[member.id] === 'confirmed'
-                              ? t('Будет')
-                              : t('Не ответил')}
-                        </Badge>
                      ) : vote.choice ? (
                         <Badge tone={VOTES[vote.choice].tone}>
                            {t(VOTES[vote.choice].label)}
@@ -557,15 +756,13 @@ const Voting = ({
                );
             })}
          </ul>
-         {!planned && (
-            <ResultBox
-               editable={editable}
-               item={item}
-               meeting={meeting}
-               tally={tally}
-               onSponsor={onSponsor}
-            />
-         )}
+         <ResultBox
+            editable={editable}
+            item={item}
+            meeting={meeting}
+            tally={tally}
+            onSponsor={onSponsor}
+         />
       </Card>
    );
 };

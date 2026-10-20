@@ -11,7 +11,7 @@ logic; in ucode a table is just a table.
 | **Входящие** (2 working days) | A founder applies on the website, and the deal appears here. Someone presses «Взять в скрининг» and becomes its owner, or rejects it with a reason. | — |
 | **Скрининг** (5 working days) | The owner scores 7 criteria, each with a reason, and names a second reviewer (anyone in the team but the owner). | All 7 scored, a second reviewer named |
 | **Встреча**, **Анализ** | The owner meets the team and asks for documents («Запросить данные» stops the clock until the answer). | — |
-| **ИК-1** | The deal is put on an Инвесткомитет meeting; the members vote, the protocol records the decision. | ИК-1 approved the deal |
+| **ИК-1** | «Вынести на заседание» on the deal puts it on an Инвесткомитет meeting. Before the meeting opens, «Подготовка к заседанию» needs the deal on the agenda and at least 3 members (Инвесткомитет → «Состав и договоры») who confirmed. The secretary records the votes, the fund's rules give the result, the protocol passes the decision to the deal. | ИК-1 approved the deal |
 | **Детальный DD** | Workstreams: commercial, legal, financial. | — |
 | **ИК-2**, **Набсовет** | The same as ИК-1, with ИК-2 and then the supervisory board. | Each approved the deal |
 | **Закрытие** | Signing and payment. | — |

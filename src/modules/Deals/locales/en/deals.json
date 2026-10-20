@@ -440,7 +440,6 @@
    "не назначен": "not assigned",
    "Комитет отказал — откажите сделке с причиной": "The committee refused — reject the deal with a reason",
    "Решения пока нет — вынесите сделку на заседание": "No decision yet — put the deal on a meeting’s agenda",
-   "Открыть «Инвесткомитет»": "Open “Investment committee”",
    "сохранится в сделке — отправьте его заявителю сами": "kept on the deal — send it to the applicant yourself",
    "Сайт примет новую заявку с этой почты после даты повторной подачи": "The website takes a new application from this email after the resubmission date",
    "Отказать": "Reject",
@@ -458,5 +457,8 @@
    "Обоснование: факты из заявки, документов или звонка": "Reasons: facts from the application, documents or a call",
    "Напишите обоснование — без него балл не засчитывается": "Write the reasons — without them the score does not count",
    "Переход в стадию «Встреча»": "Moves to the “Meeting” stage",
-   "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "The fund’s rule: a second employee checks the scoring. “Complete screening” turns on once all 7 criteria have a score and reasons and a second evaluator is chosen."
+   "Правило фонда: оценку проверяет второй сотрудник. «Завершить скрининг» включится, когда у всех 7 критериев есть балл и обоснование и выбран второй оценщик.": "The fund’s rule: a second employee checks the scoring. “Complete screening” turns on once all 7 criteria have a score and reasons and a second evaluator is chosen.",
+   "Вынести на заседание": "Put on a meeting",
+   "Открыть ИК № {{number}} · {{date}}": "Open committee meeting No. {{number}} · {{date}}",
+   "Открыть НС № {{number}} · {{date}}": "Open board meeting No. {{number}} · {{date}}"
 }

@@ -10,7 +10,9 @@ import {
    formatName,
    isUpcoming,
    materialsOf,
+   materialsReady,
    meetingName,
+   preparationOf,
    taskDue,
 } from '@modules/Committee/helpers';
 import type { CommitteeData } from '@modules/Committee/hooks';
@@ -217,16 +219,16 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
            )
          : null,
    );
-   const ready = materials.every(
-      (value) => value === null || value.ready === value.total,
-   );
+   const ready = materialsReady(meeting, data.deals);
    const started = meeting.status !== 'planned';
+   // a meeting that is not ready to open is prepared on its own page
+   const prepared = preparationOf(meeting, data.members).ready;
    // the secretary marks who confirmed, until the meeting opens
    const canEdit =
       !started && (user.id === meeting.secretaryId || user.role === 'director');
 
    const open = async () => {
-      if (!started) await committee.startMeeting(meeting.id);
+      if (!started && prepared) await committee.startMeeting(meeting.id);
       navigate(`${COMMITTEE_PATH}/${meeting.id}`);
    };
 
@@ -278,7 +280,11 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                   </Button>
                )}
                <Button onClick={open}>
-                  {started ? t('Перейти к заседанию') : t('Открыть заседание')}
+                  {started
+                     ? t('Перейти к заседанию')
+                     : prepared
+                       ? t('Открыть заседание')
+                       : t('Подготовить заседание')}
                </Button>
             </div>
          </div>
@@ -335,6 +341,9 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                      );
                   })}
                </ol>
+               {meeting.agenda.length === 0 && (
+                  <p className='text-ink-soft py-3'>{t('Повестка пуста')}</p>
+               )}
             </div>
             <div>
                <h3 className='text-ink-soft text-meta'>
@@ -396,6 +405,17 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                      );
                   })}
                </ul>
+               {data.members.length === 0 && (
+                  <p className='text-ink-soft py-2'>
+                     {t('В составе ИК пока никого нет.')}{' '}
+                     <Link
+                        className='link'
+                        to={`${COMMITTEE_PATH}?tab=members`}
+                     >
+                        {t('Добавить членов')}
+                     </Link>
+                  </p>
+               )}
             </div>
          </div>
       </section>

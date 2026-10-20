@@ -7,7 +7,6 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
-import { SECTION_PATHS } from '@shared/constants';
 import { addWorkingDays, formatDate, todayISO } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
@@ -17,6 +16,7 @@ import { Link } from 'react-router';
 import { STAGE_LABELS } from '../constants';
 import { exitConditions, nextStageOf, personName, stageNorm } from '../helpers';
 import deals from '../services';
+import CommitteeLink from './CommitteeLink';
 import SecondReviewer from './SecondReviewer';
 
 interface TransferDialogProps {
@@ -60,9 +60,7 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
          <SecondReviewer showLabel deal={deal} />
       ),
       committee: open('committee') && (
-         <Link className='link' to={SECTION_PATHS.committee}>
-            {t('Открыть «Инвесткомитет»')}
-         </Link>
+         <CommitteeLink deal={deal} onClick={onClose} />
       ),
    };
 

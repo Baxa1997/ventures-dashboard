@@ -1,37 +1,36 @@
+import DealPicker from '@modules/Committee/components/DealPicker';
 import {
+   COMMITTEE_PATH,
    FORMAT_OPTIONS,
    IC_RULES,
    STAGE_LABELS,
 } from '@modules/Committee/constants';
+import { meetingName, waitingDeals } from '@modules/Committee/helpers';
 import type { CommitteeData } from '@modules/Committee/hooks';
 import committee from '@modules/Committee/services';
 import {
    Button,
-   Checkbox,
    Field,
    Modal,
    MODAL_FORM,
    ModalBody,
    ModalFooter,
 } from '@shared/components';
-import {
-   addWorkingDays,
-   formatDate,
-   formatUsd,
-   todayISO,
-} from '@shared/helpers';
+import { addWorkingDays, formatDate, todayISO } from '@shared/helpers';
 import type {
    CommitteeBody,
    CommitteeStage,
    Meeting,
 } from '@shared/types/committee.types';
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 interface ScheduleDialogProps {
    data: CommitteeData;
    open: boolean;
+   dealId?: string; // a deal to put on the agenda, from its card
    onClose: () => void;
    onScheduled: (meeting: Meeting) => void;
 }
@@ -49,41 +48,61 @@ const nextFriday = (data: CommitteeData) => {
 };
 
 /* A new meeting of the committee or the board. The agenda offers the deals
-   waiting for that stage which no planned meeting has on its agenda yet. */
+   waiting for that stage which no planned meeting has on its agenda yet; the
+   type of meeting starts at the one deals are waiting for, or at the deal the
+   dialog was opened for. */
 const ScheduleDialog = ({
    data,
    open,
+   dealId,
    onClose,
    onScheduled,
 }: ScheduleDialogProps) => {
-   const { t, i18n } = useTranslation('committee');
-   const language = i18n.resolvedLanguage ?? i18n.language;
+   const { t } = useTranslation('committee');
    const [body, setBody] = useState<CommitteeBody>('ic');
-   const [stage, setStage] = useState<CommitteeStage>('ic2');
+   const [stage, setStage] = useState<CommitteeStage>('ic1');
    const [date, setDate] = useState(() => nextFriday(data));
    const [time, setTime] = useState('15:00');
    const [format, setFormat] = useState<string>(FORMAT_OPTIONS[0]);
    const [dealIds, setDealIds] = useState<string[]>([]);
    const [error, setError] = useState('');
 
-   const planned = new Set(
-      data.meetings
-         .filter(({ status }) => status !== 'held')
-         .flatMap(({ agenda }) => agenda.map(({ dealId }) => dealId)),
+   const waiting = waitingDeals(
+      data.meetings,
+      data.deals,
+      body,
+      body === 'ic' ? stage : null,
    );
-   const waiting = data.deals.filter(
-      (deal) =>
-         deal.status === 'active' &&
-         !planned.has(deal.id) &&
-         (body === 'board' ? deal.stage === 'board' : deal.stage === stage),
-   );
+   // a meeting of this type that is already planned can take the deals too
+   const planned = data.meetings
+      .filter(
+         (meeting) =>
+            meeting.status === 'planned' &&
+            meeting.body === body &&
+            (body === 'board' || meeting.stage === stage),
+      )
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
 
-   const close = () => {
+   useEffect(() => {
+      if (!open) return;
+      const deal = data.deals.find(({ id }) => id === dealId);
+      const waitingFor = (value: CommitteeStage) =>
+         waitingDeals(data.meetings, data.deals, 'ic', value).length;
+      setBody(deal?.stage === 'board' ? 'board' : 'ic');
+      setStage(
+         deal
+            ? deal.stage === 'ic2'
+               ? 'ic2'
+               : 'ic1'
+            : waitingFor('ic2') && !waitingFor('ic1')
+              ? 'ic2'
+              : 'ic1',
+      );
       setDate(nextFriday(data));
-      setDealIds([]);
+      setDealIds(deal ? [deal.id] : []);
       setError('');
-      onClose();
-   };
+      // the dialog starts afresh each time it opens, not as the data changes
+   }, [open, dealId]);
 
    const submit = async () => {
       if (!date || date < todayISO()) {
@@ -98,12 +117,12 @@ const ScheduleDialog = ({
          format,
          dealIds,
       });
-      close();
+      onClose();
       onScheduled(meeting);
    };
 
    return (
-      <Modal open={open} title={t('Назначить заседание')} onClose={close}>
+      <Modal open={open} title={t('Назначить заседание')} onClose={onClose}>
          <form
             className={MODAL_FORM}
             onSubmit={(event) => {
@@ -187,46 +206,34 @@ const ScheduleDialog = ({
                      {t('Повестка')}
                   </legend>
                   {waiting.length ? (
-                     <ul className='mt-2 flex flex-col gap-2.5'>
-                        {waiting.map((deal) => {
-                           const checked = dealIds.includes(deal.id);
-                           const toggle = () =>
-                              setDealIds((prev) =>
-                                 checked
-                                    ? prev.filter((value) => value !== deal.id)
-                                    : [...prev, deal.id],
-                              );
-                           return (
-                              <li
-                                 key={deal.id}
-                                 className='flex items-center gap-3'
-                              >
-                                 <Checkbox
-                                    checked={checked}
-                                    label={deal.company}
-                                    onChange={toggle}
-                                 />
-                                 <button
-                                    type='button'
-                                    className='text-left'
-                                    onClick={toggle}
-                                 >
-                                    <span className='font-medium'>
-                                       {deal.company}
-                                    </span>
-                                    <span className='text-ink-soft ml-2 text-xs'>
-                                       {formatUsd(deal.amount, language)}
-                                    </span>
-                                 </button>
-                              </li>
-                           );
-                        })}
-                     </ul>
+                     <DealPicker
+                        deals={waiting}
+                        value={dealIds}
+                        onChange={setDealIds}
+                     />
                   ) : (
                      <p className='text-ink-soft mt-2'>
                         {t(
                            'Сделок, которые ждут этого заседания, сейчас нет — вопросы можно добавить позже.',
                         )}
+                     </p>
+                  )}
+                  {planned && (
+                     <p className='text-ink-soft mt-4 text-xs'>
+                        {t(
+                           '{{name}} на {{date}} уже назначено — сделки можно добавить в его повестку.',
+                           {
+                              name: meetingName(t, planned),
+                              date: formatDate(planned.date),
+                           },
+                        )}{' '}
+                        <Link
+                           className='link'
+                           to={`${COMMITTEE_PATH}/${planned.id}`}
+                           onClick={onClose}
+                        >
+                           {t('Открыть заседание')}
+                        </Link>
                      </p>
                   )}
                </fieldset>
@@ -241,7 +248,7 @@ const ScheduleDialog = ({
                   })
                }
             >
-               <Button variant='ghost' onClick={close}>
+               <Button variant='ghost' onClick={onClose}>
                   {t('Отмена')}
                </Button>
                <Button type='submit'>{t('Назначить')}</Button>

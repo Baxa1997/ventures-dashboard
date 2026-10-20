@@ -4,7 +4,7 @@ One pass through everything the website and the panel can do today: a startup ap
 
 Each step says what to do and, after →, what you should see. Write down every step where you see something else (see «Reporting» at the end).
 
-Button names are given as the panel shows them in Russian. The panel can be switched to Uzbek or English in the user menu (bottom left); step 15 checks that.
+Button names are given as the panel shows them in Russian. The panel can be switched to Uzbek or English in the user menu (bottom left); step 16 checks that.
 
 ## 0. Before you start
 
@@ -23,7 +23,6 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 | Needed for | Table (folder in Admin) | What to add |
 | --- | --- | --- |
 | step 4, the second reviewer | — | done in the panel: Настройки → Пользователи и роли → «Пригласить пользователя», name `ZZ Аналитик`, any email, role «Аналитик» |
-| step 8, a quorum of 3 | Инвесткомитет → `committee_members` (Члены комитетов) | three rows: `name` (ZZ Член 1…3), `role` = `chair` for one, `independent` for the others, `is_active` ticked |
 | step 12, the fund's money | Настройки и справочники → `fund_money` (Деньги фонда) | one row: `as_of` today, `capital` 10000000, `on_accounts` 3000000, `approved_unpaid` 300000, `follow_on_reserve` 500000, `operating_left` 400000, `plan_year` 2026, `plan_direct_deals` 1500000 |
 | step 13, a portfolio company | Портфель → `portfolio_companies` (Компании портфеля) and its tables | a company `ZZ Portfolio Co` (`owner_id` = the guid of «Администратор» in `employees`, `instrument` safe, `since` 2025, `current_note` any text); in `investments` two rows for it (`amount` 100000 and 50000); in `quarter_reports` one row (`quarter` 2026-Q3, `fund_template_at` and `form1_at` some October dates, `metrics_state` check, `mrr` 12000, `runway` 9); in `company_requests` one row (`title`, `opened_at`, `status` waiting_fund); in `pilots` one row (`title`, `customer` SQB, `status` in_progress) |
 
@@ -77,26 +76,26 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 
 ## 8. Инвесткомитет: ИК-1
 
-Needs the three committee members of step 0.
-
-1. Инвесткомитет → «Назначить заседание»: Орган «Инвестиционный комитет», Тип **ИК-1**, a date from today on, a time → under «Повестка» `ZZ Startup A` is offered (deals on ИК-1 not yet on a meeting) → tick it → «Назначить» → the meeting is the next one on «Заседания ИК», with its agenda and «материалы членам ИК — до …» (3 working days before).
-2. Обзор → «Сроки на неделю» shows the meeting if it is this week.
-3. In the next-meeting card, mark each of the three members as confirmed.
-4. «Разослать материалы» → «материалы разосланы» with today's date.
-5. «Открыть заседание» → the meeting page: «Кворум есть: 3 из 3 членов».
-6. For `ZZ Startup A` record three «За», fill «Условия одобрения» (`ZZ Предоставить отчётность`) → the result box says the question is approved → «Одобрить» → «Решение зафиксировано: одобрено с условиями».
-7. Try the rules on a copy if you have a second item: one «Против» → the decision goes to the sponsor (a window asks the sponsor's decision); two «Против» → refusal; one «Особое мнение» → veto. «Изменить решение» takes a decision back while the meeting is open.
-8. «Сформировать протокол» → the meeting is held, protocol «на подписи».
-9. → «Реестр решений» has the decision (ИК № N, the subject with the amount, «Одобрено с условиями»).
-10. → the deal's tab «Решения ИК и НС» shows it.
-11. → Задачи has a task `ZZ Startup A: ZZ Предоставить отчётность` for the deal's owner, due «до ИК-2», linked to the deal; Инвесткомитет → «Исполнение решений» lists it. «Отметить выполненным» closes it in both places.
+1. Инвесткомитет → «Состав и договоры» → «Состав пока пуст». «Добавить члена ИК» three times: `ZZ Член 1` with Роль «председатель ИК», `ZZ Член 2` and `ZZ Член 3` «независимый член» → the three are listed, the chair first. Clicking a name opens it again; «Вывести из состава» takes a member off the list.
+2. On `ZZ Startup A` (at ИК-1): «Следующий шаг» has «Вынести на заседание» → it opens «Назначить заседание» with Тип **ИК-1** and `ZZ Startup A` ticked → pick a date from today on → «Назначить» → the meeting page.
+3. → «Подготовка к заседанию» lists four steps: the agenda (done), at least 3 members (done), who will come (not done), the materials (until the date shown). «Открыть заседание» is off.
+4. Under «Отметить, кто из них будет» set each member to «Будет» → 3 of 4 done, «Открыть заседание» is on. «Добавить сделку» adds another deal waiting for ИК-1 to the agenda.
+5. Back on the deal → the next step now says «Открыть ИК № N · date» and leads to the meeting. Обзор → «Сроки на неделю» shows the meeting if it is this week.
+6. «Разослать материалы» → «материалы разосланы» with today's date.
+7. «Открыть заседание» → «Кворум есть: 3 из 3 членов»; the votes appear.
+8. For `ZZ Startup A` record three «За», fill «Условия одобрения» (`ZZ Предоставить отчётность`) → the result box says the question is approved → «Зафиксировать одобрение» → «Решение зафиксировано: одобрено с условиями».
+9. Try the rules on a copy if you have a second item: one «Против» → the decision goes to the sponsor (a window asks the sponsor's decision); two «Против» → refusal; one «Особое мнение» → veto. «Изменить решение» takes a decision back while the meeting is open.
+10. «Сформировать протокол» → the meeting is held, protocol «на подписи».
+11. → «Реестр решений» has the decision (ИК № N, the subject with the amount, «Одобрено с условиями»).
+12. → the deal's tab «Решения ИК и НС» shows it.
+13. → Задачи has a task `ZZ Startup A: ZZ Предоставить отчётность` for the deal's owner, due «до ИК-2», linked to the deal; Инвесткомитет → «Исполнение решений» lists it. «Отметить выполненным» closes it in both places.
 
 ## 9. ИК-2, board, closing, portfolio
 
-A committee stage is left only after its committee's approval: before step 8, «Перевести в «Детальный DD»» on `ZZ Startup A` shows «Получить одобрение: ИК-1 — Решения пока нет» with a link to Инвесткомитет, and «Перевести» is off.
+A committee stage is left only after its committee's approval: before step 8, «Перевести в «Детальный DD»» on `ZZ Startup A` shows «Получить одобрение: ИК-1 — Решения пока нет» with a link to the deal's meeting (or «Вынести на заседание»), and «Перевести» is off.
 
 1. On the deal: «Перевести в «Детальный DD»» (the ИК-1 approval of step 8 meets its condition), then «Перевести в «ИК-2»» → `public_status` = `committee`.
-2. Repeat step 8 with Тип **ИК-2** (no conditions this time) → «Одобрено». Only then «Перевести в «Наблюдательный совет»» is on.
+2. Repeat step 8 from 2 with Тип **ИК-2** (no conditions this time) → «Одобрено». Only then «Перевести в «Наблюдательный совет»» is on.
 3. «Перевести в «Наблюдательный совет»», then hold a board meeting the same way with Орган «Наблюдательный совет» → «Одобрено».
 4. «Перевести в «Закрытие»» → `public_status` = `closing`.
 5. «Перевести в портфель» → the deal's status is «В портфеле», `public_status` = `portfolio`. (The portfolio company is not created yet: see «Known gaps».)
@@ -165,7 +164,8 @@ Needs the company of step 0.
 ## Known gaps (not bugs)
 
 - The founder has no cabinet yet: no status page, cannot answer requests or upload documents; no emails are sent (rejection letters, reminders).
-- A deal moved to the portfolio does not create its portfolio company; companies, committee members and the fund's money are added in ucode.
+- A deal moved to the portfolio does not create its portfolio company; companies and the fund's money are added in ucode.
+- A deal cannot be taken off a meeting's agenda before the meeting; at the meeting the question can be postponed («Отложить вопрос»).
 - Staff are invited in Настройки, but a ucode user for them is made with `scripts/ucode/auth.mjs`; only `Sqb-admin` can sign in today, so roles other than the director cannot be tested.
 - No file storage: documents uploaded by the fund on a deal keep their name only, and Документы keeps a link to where the fund stores the file. Files in ucode Files would be open to anyone with the link.
 - Deadlines skip weekends, not holidays; the working-day clock is recounted when a deal changes, not every night.
