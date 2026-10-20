@@ -195,6 +195,9 @@ try {
    const heldItem = held?.agenda[0];
    check('the member who did not confirm is absent from the vote', heldItem?.votes[lateId]?.choice === 'absent', heldItem?.votes[lateId]);
    check('meeting held, attendance, vote and protocol stored', held && held.status === 'held' && held.protocol === 'signing' && held.result === 'approved_conditions' && held.attendance[memberId] === 'confirmed' && !!held.materialsSentAt && heldItem?.votes[memberId]?.choice === 'for' && heldItem?.votes[memberId]?.note === 'Поддерживаю' && heldItem?.protocol.conditions.startsWith('Предоставить'), held && { status: held.status, result: held.result, votes: heldItem?.votes, chair: held.chairId });
+   await committee.signProtocol(meeting.id);
+   clearStores();
+   check('the secretary marks the protocol signed', (await committee.getState()).meetings.find((m) => m.id === meeting.id)?.protocol === 'signed');
    const decision = state.decisions.find((d) => d.meetingId === meeting.id);
    check('the decision is in the register', decision && decision.outcome === 'approved_conditions' && decision.dealId === deal.id && decision.meetingLabel === `ИК № ${meeting.number}`, decision);
    const condition = state.tasks.find((t) => t.basis === `Условие ИК № ${meeting.number}`);

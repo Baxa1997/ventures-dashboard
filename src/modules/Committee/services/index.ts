@@ -888,6 +888,19 @@ class Committee {
       );
    }
 
+   // The members signed the protocol, on paper or with their e-signatures;
+   // the secretary marks it.
+   async signProtocol(id: string) {
+      await apply(
+         withMeeting(id, (meeting) => ({ ...meeting, protocol: 'signed' })),
+         (_, after) =>
+            updateRow('meetings', {
+               guid: id,
+               ...meetingFields(meetingOf(after, id)),
+            }),
+      );
+   }
+
    async setTaskDone(id: string, done: boolean, userId: string) {
       await work.updateTask(
          id,

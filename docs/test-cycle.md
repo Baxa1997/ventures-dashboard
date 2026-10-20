@@ -85,7 +85,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 7. «Открыть заседание» → «Кворум есть: 3 из 3 членов»; the votes appear.
 8. For `ZZ Startup A` record three «За», fill «Условия одобрения» (`ZZ Предоставить отчётность`) → the result box says the question is approved → «Зафиксировать одобрение» → «Решение зафиксировано: одобрено с условиями».
 9. Try the rules on a copy if you have a second item: one «Против» → the decision goes to the sponsor (a window asks the sponsor's decision); two «Против» → refusal; one «Особое мнение» → veto. «Изменить решение» takes a decision back while the meeting is open.
-10. «Сформировать протокол» → the meeting is held, protocol «на подписи».
+10. «Сформировать протокол» → the meeting is held, protocol «на подписи». «Скачать протокол» prints it for the members to sign; once they have, «Отметить протокол подписанным» → «Проведено · протокол подписан», and «Подписан» in «Реестр заседаний».
 11. → «Реестр решений» has the decision (ИК № N, the subject with the amount, «Одобрено с условиями»).
 12. → the deal's tab «Решения ИК и НС» shows it.
 13. → Задачи has a task `ZZ Startup A: ZZ Предоставить отчётность` for the deal's owner, due «до ИК-2», linked to the deal; Инвесткомитет → «Исполнение решений» lists it. «Отметить выполненным» closes it in both places.

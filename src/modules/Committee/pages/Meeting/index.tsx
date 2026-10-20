@@ -183,11 +183,24 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
       .join(' · ');
 
    const actions = (() => {
+      // the members sign the printed protocol; the secretary marks it here
       if (held)
          return (
-            <Button variant='ghost' onClick={() => window.print()}>
-               {t('Скачать протокол')}
-            </Button>
+            <>
+               <Button variant='ghost' onClick={() => window.print()}>
+                  {t('Скачать протокол')}
+               </Button>
+               {meeting.protocol === 'signing' && canRecord && (
+                  <Button
+                     title={t(
+                        'Нажмите, когда все члены подписали протокол — на бумаге или электронной подписью',
+                     )}
+                     onClick={() => committee.signProtocol(meeting.id)}
+                  >
+                     {t('Отметить протокол подписанным')}
+                  </Button>
+               )}
+            </>
          );
       if (planned)
          return (
@@ -908,9 +921,11 @@ const ProtocolCard = ({ meeting, item, editable }: ProtocolCardProps) => {
    return (
       <Card
          hint={
-            meeting.status === 'held'
-               ? t('на подписи у членов ИК')
-               : t('черновик')
+            meeting.status !== 'held'
+               ? t('черновик')
+               : meeting.protocol === 'signed'
+                 ? t('подписан')
+                 : t('на подписи у членов ИК')
          }
          title={t('В протокол')}
       >
