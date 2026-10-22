@@ -78,7 +78,11 @@ export const FOLDERS = [
          'fund_settings',
          'stage_norms',
          'industries',
+         'round_stages',
+         'lead_sources',
+         'countries',
          'reject_reasons',
+         'task_types',
          'holidays',
          'fund_money',
          'settings_journal',
@@ -127,6 +131,10 @@ export const TABLES = {
    fund_settings: ['Настройки фонда', 'Fond sozlamalari'],
    stage_norms: ['Нормативы стадий', 'Bosqich me’yorlari'],
    industries: ['Отрасли', 'Sohalar'],
+   round_stages: ['Раунды', 'Raundlar'],
+   lead_sources: ['Источники', 'Manbalar'],
+   countries: ['Регионы (страны)', 'Hududlar (davlatlar)'],
+   task_types: ['Типы задач', 'Vazifa turlari'],
    reject_reasons: ['Причины отказа', 'Rad etish sabablari'],
    holidays: ['Праздники', 'Bayram kunlari'],
    fund_money: ['Деньги фонда', 'Fond mablag‘lari'],
@@ -146,6 +154,10 @@ export const ONE_OF = {
    deals: ['Сделка', 'Bitim'],
    applications: ['Заявка', 'Ariza'],
    industries: ['Отрасль', 'Soha'],
+   round_stages: ['Раунд', 'Raund'],
+   lead_sources: ['Источник', 'Manba'],
+   countries: ['Страна', 'Davlat'],
+   task_types: ['Тип задачи', 'Vazifa turi'],
    reject_reasons: ['Причина отказа', 'Rad etish sababi'],
    meetings: ['Заседание', 'Majlis'],
    deal_requests: ['Запрос', 'So‘rov'],
@@ -296,6 +308,20 @@ export const TABLE_FIELDS = {
    },
    industries: {
       mandate: ['Мандат', 'Mandat'],
+      slug: ['Код', 'Kod'],
+   },
+   round_stages: {
+      slug: ['Код', 'Kod'],
+      in_mandate: ['В мандате', 'Mandatda'],
+   },
+   lead_sources: {
+      slug: ['Код', 'Kod'],
+      on_site: ['В форме на сайте', 'Saytdagi shaklda'],
+   },
+   countries: {
+      in_mandate: ['В мандате', 'Mandatda'],
+   },
+   task_types: {
       slug: ['Код', 'Kod'],
    },
    reject_reasons: {
@@ -522,11 +548,150 @@ export const DEALS_COLUMNS = [
    'stage',
    'stage_due',
    'amount',
-   'round_stage',
+   'round_stages_id',
    'industries_id',
-   'channel',
+   'lead_sources_id',
    'applicant_name',
    'applicant_email',
    'applicant_phone',
    'received_at',
 ];
+
+// The options of the STATUS fields (batch 7), by "table.field" and value:
+// [ru, uz, en, tone]. The names and tones are the panel's, so the ucode
+// admin shows a status the way the panel does. fields.mjs writes them.
+export const TONE_COLORS = {
+   accent: '#3750d8',
+   success: '#2a7250',
+   warning: '#86621c',
+   danger: '#a23142',
+   neutral: '#5d647c',
+};
+
+const DECIDED = {
+   postponed: ['Отложено', 'Qoldirildi', 'Postponed', 'warning'],
+   approved: ['Одобрено', 'Ma’qullandi', 'Approved', 'success'],
+   approved_conditions: ['Одобрено с условиями', 'Shartlar bilan ma’qullandi', 'Approved with conditions', 'success'],
+   sponsor_approved: ['Одобрено спонсором', 'Homiy tomonidan ma’qullandi', 'Approved by the sponsor', 'success'],
+   rejected: ['Отказ', 'Rad etilgan', 'Rejected', 'danger'],
+   noted: ['Принято к сведению', 'Ma’lumot uchun qabul qilindi', 'Noted', 'neutral'],
+};
+
+export const STATUS_OPTIONS = {
+   'applications.public_status': {
+      submitted: ['Заявка отправлена', 'Ariza yuborildi', 'Submitted', 'neutral'],
+      screening: ['Скрининг', 'Skrining', 'Screening', 'accent'],
+      meeting: ['Встреча', 'Uchrashuv', 'Meeting', 'accent'],
+      due_diligence: ['Due diligence', 'Due diligence', 'Due diligence', 'accent'],
+      committee: ['Инвесткомитет', 'Investitsiya qo‘mitasi', 'Investment committee', 'accent'],
+      closing: ['Оформление', 'Rasmiylashtirish', 'Closing', 'accent'],
+      portfolio: ['Портфель', 'Portfel', 'Portfolio', 'success'],
+      rejected: ['Отказ', 'Rad etilgan', 'Rejected', 'danger'],
+      withdrawn: ['Отозвана', 'Chaqirib olingan', 'Withdrawn', 'neutral'],
+   },
+   'partner_requests.status': {
+      new: ['Новая', 'Yangi', 'New', 'neutral'],
+      in_work: ['В работе', 'Jarayonda', 'In progress', 'accent'],
+      closed: ['Закрыта', 'Yopilgan', 'Closed', 'success'],
+   },
+   'deals.status': {
+      review: ['Разбор', 'Ko‘rib chiqish', 'Triage', 'neutral'],
+      active: ['В работе', 'Jarayonda', 'In progress', 'accent'],
+      paused: ['Пауза', 'Pauza', 'Paused', 'warning'],
+      portfolio: ['Портфель', 'Portfel', 'Portfolio', 'success'],
+      withdrawn: ['Отозвана', 'Chaqirib olingan', 'Withdrawn', 'neutral'],
+      rejected: ['Отказ', 'Rad etilgan', 'Rejected', 'danger'],
+   },
+   'deal_requests.status': {
+      waiting: ['Ждём ответа', 'Javob kutyapmiz', 'Awaiting an answer', 'warning'],
+      answered: ['Ответ получен', 'Javob olindi', 'Answered', 'accent'],
+      accepted: ['Принят', 'Qabul qilingan', 'Accepted', 'success'],
+   },
+   'deal_documents.status': {
+      required: ['Требуется', 'Talab qilinadi', 'Required', 'neutral'],
+      review: ['На проверке', 'Tekshiruvda', 'In review', 'accent'],
+      accepted: ['Принят', 'Qabul qilingan', 'Accepted', 'success'],
+      rejected: ['Отклонён', 'Rad etilgan', 'Rejected', 'danger'],
+   },
+   'deal_checklists.state': {
+      open: ['Не выполнено', 'Bajarilmagan', 'Open', 'neutral'],
+      blocking: ['Блокирует', 'To‘sqinlik qiladi', 'Blocking', 'danger'],
+      waiting: ['Ждём', 'Kutilmoqda', 'Waiting', 'warning'],
+      attention: ['Внимание', 'Diqqat', 'Attention', 'warning'],
+      done: ['Выполнено', 'Bajarildi', 'Done', 'success'],
+   },
+   'workstreams.status': {
+      not_started: ['Не начат', 'Boshlanmagan', 'Not started', 'neutral'],
+      in_progress: ['В работе', 'Jarayonda', 'In progress', 'accent'],
+      rework: ['На доработке', 'Qayta ishlashda', 'Returned for rework', 'warning'],
+      done: ['Завершён', 'Yakunlangan', 'Completed', 'success'],
+   },
+   'meetings.status': {
+      planned: ['Запланировано', 'Rejalashtirilgan', 'Planned', 'accent'],
+      live: ['Идёт заседание', 'Majlis davom etmoqda', 'Meeting in progress', 'accent'],
+      break: ['Перерыв', 'Tanaffus', 'Break', 'warning'],
+      held: ['Проведено', 'O‘tkazildi', 'Held', 'success'],
+   },
+   'meetings.result': {
+      planned: ['Запланировано', 'Rejalashtirilgan', 'Planned', 'accent'],
+      live: ['Идёт заседание', 'Majlis davom etmoqda', 'Meeting in progress', 'accent'],
+      approved: DECIDED.approved,
+      approved_conditions: DECIDED.approved_conditions,
+      postponed: DECIDED.postponed,
+      rejected: DECIDED.rejected,
+      mixed: ['Решения приняты', 'Qarorlar qabul qilindi', 'Decisions taken', 'success'],
+   },
+   'meetings.protocol_state': {
+      none: ['Нет протокола', 'Bayonnoma yo‘q', 'No protocol', 'neutral'],
+      signing: ['На подписи', 'Imzolashda', 'Being signed', 'warning'],
+      signed: ['Подписан', 'Imzolangan', 'Signed', 'success'],
+   },
+   'meeting_attendance.attendance': {
+      no_answer: ['Не ответил', 'Javob bermagan', 'No answer', 'warning'],
+      confirmed: ['Будет', 'Qatnashadi', 'Attending', 'success'],
+      declined: ['Не будет', 'Qatnashmaydi', 'Not attending', 'neutral'],
+   },
+   'agenda_items.outcome': DECIDED,
+   'decisions.outcome': DECIDED,
+   'portfolio_companies.status': {
+      active: ['Активна', 'Faol', 'Active', 'success'],
+      exit: ['Выход', 'Chiqish', 'Exit', 'accent'],
+      written_off: ['Списана', 'Hisobdan chiqarilgan', 'Written off', 'danger'],
+   },
+   'quarter_reports.metrics_state': {
+      none: ['Не заполнены', 'To‘ldirilmagan', 'Not filled in', 'neutral'],
+      check: ['На проверке', 'Tekshiruvda', 'To be checked', 'warning'],
+      confirmed: ['Подтверждены', 'Tasdiqlangan', 'Confirmed', 'success'],
+   },
+   'pilots.status': {
+      planned: ['Запланирован', 'Rejalashtirilgan', 'Planned', 'neutral'],
+      in_progress: ['Идёт', 'Davom etmoqda', 'Running', 'accent'],
+      success: ['Успешно', 'Muvaffaqiyatli', 'Successful', 'success'],
+      failed: ['Не принят', 'Qabul qilinmagan', 'Not accepted', 'danger'],
+   },
+   'company_requests.status': {
+      waiting_fund: ['Ждёт ответа фонда', 'Fond javobini kutmoqda', 'Waiting for the fund', 'warning'],
+      in_work: ['В работе', 'Jarayonda', 'In progress', 'accent'],
+      closed: ['Закрыт', 'Yopilgan', 'Closed', 'success'],
+   },
+   'tasks.status': {
+      assigned: ['Назначена', 'Tayinlangan', 'Assigned', 'neutral'],
+      in_progress: ['В работе', 'Jarayonda', 'In progress', 'accent'],
+      waiting: ['Ждёт ответа', 'Javob kutilmoqda', 'Waiting for reply', 'warning'],
+      review: ['На проверке', 'Tekshiruvda', 'In review', 'accent'],
+      postponed: ['Отложена', 'Kechiktirilgan', 'Postponed', 'neutral'],
+      done: ['Завершена', 'Yakunlangan', 'Done', 'success'],
+   },
+   'fund_documents.status': {
+      draft: ['Черновик', 'Qoralama', 'Draft', 'neutral'],
+      updating: ['Обновляется', 'Yangilanmoqda', 'Being updated', 'accent'],
+      reregistration: ['На перерегистрации', 'Qayta ro‘yxatdan o‘tkazilmoqda', 'Being re-registered', 'warning'],
+      active: ['Действует', 'Amalda', 'In force', 'success'],
+      archived: ['Утратил силу', 'Kuchini yo‘qotgan', 'No longer in force', 'neutral'],
+   },
+   'governance_issues.status': {
+      awaiting_reply: ['Ждём ответа', 'Javob kutyapmiz', 'Awaiting an answer', 'warning'],
+      in_work: ['В работе', 'Jarayonda', 'In progress', 'accent'],
+      resolved: ['Решён', 'Hal qilingan', 'Resolved', 'success'],
+   },
+};

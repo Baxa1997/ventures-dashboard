@@ -6,16 +6,24 @@
         makes the batch's fields that its tables do not have yet
      node scripts/ucode/fields.mjs options <batch|all> [--write] [--with-rows]
         sets each pick list's options to the values written in the batch
+     node scripts/ucode/fields.mjs status [--write] [--with-rows] [--only table.field]
+        makes the batches' status fields ucode STATUS fields: the pick list's
+        values in ucode's groups, with their names and colours (names.mjs)
 
    Tables come first (the MCP's create_table, into Admin) and relations after
    (the MCP's update_table). `create` checks each reply's slug and type and
-   stops at the first difference. `options` only prints what it would change
-   unless given --write. A field update replaces the whole field, so it also
-   skips tables that have rows unless given --with-rows. */
+   stops at the first difference. `options` and `status` only print what they
+   would change unless given --write. A field update replaces the whole field,
+   so they also skip tables that have rows unless given --with-rows. `status`
+   refuses a change that would drop a value the pick list has. */
 
 import { randomUUID } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ucode } from './api.mjs';
-import { readBatches } from './schema.mjs';
+import { STATUS_OPTIONS, TONE_COLORS } from './names.mjs';
+import { readBatches, readTables } from './schema.mjs';
 
 // The batches' types that ucode names differently.
 const TYPES = { BOOLEAN: 'CHECKBOX' };
@@ -129,12 +137,34 @@ const create = async (id) => {
    console.log(`Done. ${created} created.`);
 };
 
+// The whole field as the update takes it, with the given type and attributes.
+const fieldBody = (field, type, attributes) => ({
+   id: field.id,
+   table_id: field.table_id,
+   slug: field.slug,
+   label: field.label,
+   type,
+   index: field.index || 'string',
+   default: field.default ?? '',
+   is_visible: field.is_visible ?? true,
+   required: field.required ?? false,
+   unique: field.unique ?? false,
+   automatic: field.automatic ?? false,
+   show_label: field.show_label ?? false,
+   enable_multilanguage: field.enable_multilanguage ?? false,
+   attributes,
+});
+
 const options = async (id, { write, withRows }) => {
    const counts = { set: 0, unchanged: 0, skipped: 0, problems: 0 };
+   const final = readTables();
    for (const batch of batchesOf(id))
       for (const table of batch.tables)
          for (const spec of table.fields.filter((field) => field.options)) {
             const name = `${table.name}.${spec.slug}`;
+            // a later batch made it a STATUS field (`status`)
+            const type = final.get(table.name).fields.find(({ slug }) => slug === spec.slug).type;
+            if (type !== 'PICK_LIST') continue;
             const field = (await fieldsOf(table.name)).get(spec.slug);
             if (!field || field.type !== 'PICK_LIST') {
                console.log(`✗ ${name}: ${field ? `is ${field.type}` : 'missing'}, not a PICK_LIST`);
@@ -165,27 +195,16 @@ const options = async (id, { write, withRows }) => {
                counts.set++;
                continue;
             }
-            const { ok, status, data } = await ucode('PUT', `/v2/fields/${table.name}`, {
-               id: field.id,
-               table_id: field.table_id,
-               slug: field.slug,
-               label: field.label,
-               type: field.type,
-               index: field.index || 'string',
-               default: field.default ?? '',
-               is_visible: field.is_visible ?? true,
-               required: field.required ?? false,
-               unique: field.unique ?? false,
-               automatic: field.automatic ?? false,
-               show_label: field.show_label ?? false,
-               enable_multilanguage: field.enable_multilanguage ?? false,
-               attributes: {
+            const { ok, status, data } = await ucode(
+               'PUT',
+               `/v2/fields/${table.name}`,
+               fieldBody(field, field.type, {
                   ...field.attributes,
                   options: next,
                   is_multiselect: false,
                   has_color: false,
-               },
-            });
+               }),
+            );
             const stored = data?.data?.attributes?.options?.map((option) => option.value);
             if (!ok || stored?.join() !== spec.options.join()) {
                console.log(`✗ ${name}: HTTP ${status} ${JSON.stringify(data).slice(0, 400)}`);
@@ -201,8 +220,143 @@ const options = async (id, { write, withRows }) => {
    if (counts.problems) process.exitCode = 1;
 };
 
+const GROUPS = ['todo', 'progress', 'complete'];
+
+// A status field's options in ucode's groups: each value with its names and colour.
+const statusGroups = (key, groups) =>
+   Object.fromEntries(
+      GROUPS.map((group) => [
+         group,
+         {
+            options: groups[group].map((value) => {
+               const [ru, uz, en, tone] = STATUS_OPTIONS[key][value];
+               return { value, label: en, label_ru: ru, label_uz: uz, label_en: en, color: TONE_COLORS[tone] };
+            }),
+         },
+      ]),
+   );
+
+// ucode returns an option's keys in its own order
+const optionText = ({ value, label, label_ru, label_uz, label_en, color }) =>
+   [value, label, label_ru, label_uz, label_en, color].join('|');
+
+const sameStatus = (field, wanted) =>
+   field.type === 'STATUS' &&
+   GROUPS.every(
+      (group) =>
+         (field.attributes?.[group]?.options ?? []).map(optionText).join() ===
+         wanted[group].options.map(optionText).join(),
+   );
+
+// Every row's value of one field, also saved to a file in the system's
+// temporary folder, so they survive a run that stops halfway.
+const keepValues = async (table, slug) => {
+   const values = [];
+   for (let offset = 0; ; offset += 200) {
+      const query = encodeURIComponent(JSON.stringify({ limit: 200, offset }));
+      const { ok, status, data } = await ucode('GET', `/v2/items/${table}?data=${query}`);
+      if (!ok) throw new Error(`${table}: cannot read its rows (HTTP ${status})`);
+      const page = data?.data?.data?.response ?? [];
+      values.push(...page.filter((row) => row[slug] != null && row[slug] !== '').map((row) => [row.guid, row[slug]]));
+      if (page.length < 200) break;
+   }
+   const file = join(tmpdir(), `ucode-${table}-${slug}-${Date.now()}.json`);
+   writeFileSync(file, JSON.stringify(values));
+   console.log(`  ${table}.${slug}: ${values.length} values kept in ${file}`);
+   return values;
+};
+
+const restoreValues = async (table, slug, values) => {
+   for (const [guid, value] of values) {
+      const { ok, status } = await ucode('PUT', `/v2/items/${table}`, { data: { guid, [slug]: value } });
+      if (!ok) throw new Error(`${table} ${guid}: ${slug} not written back (HTTP ${status})`);
+   }
+   for (const [guid, value] of values) {
+      const { data } = await ucode('GET', `/v2/items/${table}/${guid}`);
+      const now = data?.data?.data?.response?.[slug];
+      if (now !== value) throw new Error(`${table} ${guid}: ${slug} reads "${now}" after writing "${value}" back`);
+   }
+};
+
+const status = async ({ write, withRows, only }) => {
+   const counts = { set: 0, unchanged: 0, skipped: 0, problems: 0 };
+   for (const table of readTables().values())
+      for (const spec of table.fields.filter((field) => field.type === 'STATUS')) {
+         const name = `${table.name}.${spec.slug}`;
+         if (only && only !== name) continue;
+         const field = (await fieldsOf(table.name)).get(spec.slug);
+         if (!field || !['PICK_LIST', 'STATUS'].includes(field.type)) {
+            console.log(`✗ ${name}: ${field ? `is ${field.type}` : 'missing'}, not a PICK_LIST or STATUS`);
+            counts.problems++;
+            continue;
+         }
+         const wanted = statusGroups(name, spec.groups);
+         if (sameStatus(field, wanted)) {
+            counts.unchanged++;
+            continue;
+         }
+         const values = GROUPS.flatMap((group) => spec.groups[group]);
+         const had =
+            field.type === 'PICK_LIST'
+               ? (field.attributes?.options ?? []).map((option) => option?.value ?? option)
+               : GROUPS.flatMap((group) => (field.attributes?.[group]?.options ?? []).map((option) => option.value));
+         const dropped = had.filter((value) => !values.includes(value));
+         if (dropped.length) {
+            console.log(`✗ ${name}: would drop [${dropped.join(', ')}]`);
+            counts.problems++;
+            continue;
+         }
+         const rows = await rowsOf(table.name);
+         if (rows && !withRows) {
+            console.log(`– ${name}: skipped, the table has ${rows} rows (--with-rows to include)`);
+            counts.skipped++;
+            continue;
+         }
+         const groupsText = GROUPS.map((group) => `${group} [${spec.groups[group].join(', ')}]`).join(' ');
+         if (!write) {
+            console.log(`· ${name}: would make ${field.type} → STATUS ${groupsText}`);
+            counts.set++;
+            continue;
+         }
+         // A type change makes the column anew and empties it (checked on 22
+         // October), so the rows' values are kept in a file first and written back.
+         const kept = rows ? await keepValues(table.name, spec.slug) : [];
+         // the pick list's own settings go; ucode keeps a status's options in its groups
+         const { options: _options, is_multiselect: _multi, has_color: _color, ...attributes } = field.attributes ?? {};
+         const { ok, status: code, data } = await ucode(
+            'PUT',
+            `/v2/fields/${table.name}`,
+            fieldBody(field, 'STATUS', { ...attributes, ...wanted }),
+         );
+         const stored = data?.data;
+         if (!ok || stored?.type !== 'STATUS' || !sameStatus(stored, wanted)) {
+            console.log(`✗ ${name}: HTTP ${code} ${JSON.stringify(data).slice(0, 400)}`);
+            console.log('Stopped.');
+            process.exit(1);
+         }
+         if (kept.length) await restoreValues(table.name, spec.slug, kept);
+         console.log(`✓ ${name}: STATUS ${groupsText}${rows ? ` (${rows} rows, ${kept.length} values written back)` : ''}`);
+         counts.set++;
+      }
+   console.log(
+      `${write ? 'Made' : 'Would make'} ${counts.set}, already set ${counts.unchanged}, skipped ${counts.skipped}, problems ${counts.problems}.`,
+   );
+   if (counts.problems) process.exitCode = 1;
+};
+
 const [command, target, ...flags] = process.argv.slice(2);
+const flagValue = (name) => {
+   const all = [target, ...flags];
+   const index = all.indexOf(name);
+   return index === -1 ? undefined : all[index + 1];
+};
 if (command === 'create' && target) await create(target);
+else if (command === 'status')
+   await status({
+      write: [target, ...flags].includes('--write'),
+      withRows: [target, ...flags].includes('--with-rows'),
+      only: flagValue('--only'),
+   });
 else if (command === 'options' && target)
    await options(target, {
       write: flags.includes('--write'),
@@ -210,7 +364,7 @@ else if (command === 'options' && target)
    });
 else {
    console.error(
-      'Usage: node scripts/ucode/fields.mjs create <batch> | options <batch|all> [--write] [--with-rows]',
+      'Usage: node scripts/ucode/fields.mjs create <batch> | options <batch|all> [--write] [--with-rows] | status [--write] [--with-rows] [--only table.field]',
    );
    process.exitCode = 2;
 }

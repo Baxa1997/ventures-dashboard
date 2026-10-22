@@ -130,7 +130,7 @@ const VALUES = {
 };
 
 let employeeId = null;
-const valueOf = (table, { slug, type, options }) => {
+const valueOf = (table, { slug, type, options, groups }) => {
    const key = `${table}.${slug}`;
    if (key in VALUES) return VALUES[key];
    if (type === 'SINGLE_LINE' && slug.endsWith('_id'))
@@ -138,6 +138,8 @@ const valueOf = (table, { slug, type, options }) => {
    switch (type) {
       case 'PICK_LIST':
          return options[0];
+      case 'STATUS':
+         return [...groups.todo, ...groups.progress, ...groups.complete][0];
       case 'NUMBER':
          return 7.5;
       case 'BOOLEAN':

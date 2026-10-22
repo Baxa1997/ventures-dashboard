@@ -3,12 +3,14 @@
    field by field, through the ucode admin API (api.mjs). Stricter than
    `schema.mjs check`, which sees get_dbml's column types only: this reads
    ucode's own field types, so a MULTI_LINE or PICK_LIST made as SINGLE_LINE
-   shows, and it checks each pick list's options and each field's visibility.
+   shows, and it checks each pick list's options, each STATUS field's groups
+   and each field's visibility.
 
      node scripts/ucode/verify.mjs [--rows]
 
    --rows also checks the row counts of the test environment: industries 11,
-   reject_reasons 6, stage_norms 8, fund_settings 1, employees 1 (Sqb-admin's
+   reject_reasons 6, stage_norms 8, fund_settings 1, round_stages 4,
+   lead_sources 13, countries 12, task_types 8, employees 1 (Sqb-admin's
    profile, auth.mjs link), every other table empty. */
 
 import { ucode } from './api.mjs';
@@ -16,7 +18,17 @@ import { readTables } from './schema.mjs';
 
 const TYPES = { BOOLEAN: 'CHECKBOX' };
 const SYSTEM = new Set(['guid', 'created_at', 'updated_at', 'deleted_at', 'folder_id']);
-const ROWS = { industries: 11, reject_reasons: 6, stage_norms: 8, fund_settings: 1, employees: 1 };
+const ROWS = {
+   industries: 11,
+   reject_reasons: 6,
+   stage_norms: 8,
+   fund_settings: 1,
+   round_stages: 4,
+   lead_sources: 13,
+   countries: 12,
+   task_types: 8,
+   employees: 1,
+};
 const withRows = process.argv.includes('--rows');
 
 // "FROM investments TO decisions" → "decisions"
@@ -43,6 +55,12 @@ for (const table of readTables().values()) {
       else {
          if (field.type !== type) issues.push(`${spec.slug} is ${field.type}, expected ${type}`);
          if (field.is_visible === false) issues.push(`${spec.slug} is hidden`);
+         if (spec.groups && field.type === 'STATUS')
+            for (const [group, values] of Object.entries(spec.groups)) {
+               const actual = (field.attributes?.[group]?.options ?? []).map((option) => option?.value ?? option?.label);
+               if (actual.join() !== values.join())
+                  issues.push(`${spec.slug} ${group} is [${actual.join(', ')}], expected [${values.join(', ')}]`);
+            }
          if (spec.options) {
             const values = (field.attributes?.options ?? []).map((option) => option?.value ?? option);
             if (values.join() !== spec.options.join())

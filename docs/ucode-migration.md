@@ -28,6 +28,7 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
 | 4 — Портфель | created by Claude Code, checked with `get_dbml` | not started |
 | 5 — Работа, money, downloads | created by Claude Code, checked with `get_dbml` | not started |
 | 6 — Документы фонда | created by Claude Code, checked with `verify.mjs` | not started |
+| 7 — Справочники and status fields | created by Claude Code, checked with `verify.mjs`; rows 4 + 13 + 12 + 8 | not started |
 
 - 18 October: the schema read through the MCP (`get_dbml`) and compared with `node scripts/ucode/schema.mjs check`: all 27 tables, every field with its column type and all 25 relations match batches T–3, with no extra fields.
 - 18 October, batches 4 and 5: tables made with the MCP's `create_table` in Admin, fields with `POST /v2/fields/{table}` (see «The ucode MCP»), relations with `update_table`. After them, `check` on `get_dbml`'s output: 39 tables and all 41 relations, every table of batches 4 and 5 ✓ except three fields of `portfolio_companies`, fixed the same day (below).
@@ -47,6 +48,12 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
   - The Deals table view shows 13 main columns instead of 63; each record still has every field.
   - Afterwards: a second dry run found nothing to change, `verify.mjs` no problems, and `panel-test.mjs` passed all 34 checks.
 - 19 October, batch 6 (Документы фонда): `fund_documents` and `governance_issues` made with the MCP's `create_table`, their 14 fields with `fields.mjs create 6`, the 4 pick lists with `fields.mjs options 6 --write`, then put in Admin → Fund and named with `admin-ui.mjs`. `verify.mjs`: 412 fields and 41 relations, no problems. The panel's Документы runs on them; `panel-test.mjs` checks a document, its edit, the orders' numbering and a governance question (37 checks, all passed).
+- 22 October, batch 7 (Справочники and status fields):
+  - `round_stages`, `lead_sources`, `countries` and `task_types` made with the MCP's `create_table` in Admin → Settings and lists, their fields and `is_active` on industries and reject_reasons with `fields.mjs create 7`, the 8 relations with `update_table`, the rows with `rows.mjs insert 7 --write`.
+  - The 20 status fields made STATUS with `fields.mjs status --write --with-rows`. **A type change empties the column**: a probe row's `fund_documents.status` read null after PICK_LIST → STATUS, its other fields kept. So `status` keeps each row's value in a file in the system's temporary folder, changes the type, writes the values back and reads them back: 5 applications, 5 deals, 3 requests, 6 documents, 4 meetings (status, result, protocol), 2 attendance rows and 9 tasks came through.
+  - The 5 applications, 5 deals and 9 tasks made before it were linked to the lists from their text fields with `rows.mjs link --write` (19 rows).
+  - The new tables and columns named with `admin-ui.mjs all --write`; the Deals view shows «Раунд» and «Источник» instead of `round_stage` and `channel`.
+  - `verify.mjs` afterwards: 441 fields and 49 relations, no problems.
 - Files uploaded to ucode Files are public: a pitch deck the website stored opens at `https://cdn.u-code.io/<its path>` without a token (checked 19 October). Документы therefore keeps links, not files; the decks need the private folder and §7 of ERP.md.
 - The ucode environment of this project is named "Production" in ucode (its only environment, `9f012d7a-0eb0-4a3a-87c7-16661eafce08`), though it is used for testing; the website's live deployment does not use it (its tables did not exist here until batch T).
 - Folder ids: Admin `60e0336b-5017-49ca-8c96-123aa5e2c9db` (the only folder named Admin), Landing page `39d78d3e-d0dc-49ef-9e99-5491b0968a41`, Startup cabinet `21a20661-d27b-43a4-98ed-37604fe83833`. All three sit under ucode's main menu, `c57eedc3-a954-4262-a0af-376c65b5a284`. Admin's sub-folders are found by their English name (`admin-ui.mjs`).
@@ -77,8 +84,8 @@ ucode's AI agent is Claude connected to ucode's MCP server. Claude Code can conn
 - `update_table` can delete fields and relations. It is never used with `action: delete` here: a deleted field takes its data with it.
 - `update_table` reads `type` as a database type (`UpdateTableByMCP` in the gateway's `api/handlers/v1/table.go`): `varchar` → SINGLE_LINE, `text` → MULTI_LINE, `date`, `timestamp` → DATE_TIME, `boolean` → CHECKBOX, `json`, any number type → FLOAT, `enum` → MULTISELECT, and anything else → SINGLE_LINE. It cannot make NUMBER or PICK_LIST, ignores the labels given, and answers "Table updated successfully" even when a field or relation failed, so every call needs a read-back. Never use it to `update` a field: the same mapping would turn a PICK_LIST into SINGLE_LINE.
 - Fields are made instead with the request the ucode admin sends: `POST https://api.admin.u-code.io/v2/fields/{table}`, headers `Authorization: API-KEY` and `X-API-KEY: <the same key>`, body `{id: <new uuid>, table_id: <table slug>, slug, label, type, index: "string", is_visible: true, required: false, attributes: {label: "", label_en: <label>}}`, with ucode's own types (BOOLEAN of the batches → CHECKBOX). ucode answers 201 with the field as stored, so the type can be checked from the reply. The UI and the in-app agent both send a new `id`; the MCP's `create_field` has no such parameter, which is the likely reason it fails.
-- A field is changed with `PUT https://api.admin.u-code.io/v2/fields/{table}`. The gateway replaces the field with what is sent, so the body is the whole field: the body above with the field's own `id` and `table_id` (the table's guid), plus `default: ""`, `unique`, `automatic` and `show_label` false. A type change changes the column too (`since` went from VARCHAR to FLOAT). An update that keeps the type keeps the rows' values: on 18 October a test row's `pilots.status` = `planned` was still there after the field got its options. A type change on a table with rows was not tried. `fields.mjs` still skips tables with rows unless given `--with-rows`.
-- `scripts/ucode/` holds these requests as commands, with the key read from `UCODE_API_KEY` or from the MCP entry in `~/.claude.json` (`UCODE_MCP_SERVER=ucode-prod` for production): `fields.mjs create <batch>` makes a batch's missing fields, `fields.mjs options <batch|all>` sets the pick lists' options (a dry run unless given `--write`), `menus.mjs move` moves a table to a folder, `admin-ui.mjs` groups Admin into sub-folders, names folders, tables and columns in Russian and Uzbek and sets the Deals table's columns (a dry run unless given `--write`), `verify.mjs` compares the live project with the batches field by field, `smoke.mjs --write-test-rows` runs a deal through every table and deletes its rows again (it refuses `ucode-prod`), and `panel-test.mjs --write-test-rows` runs the panel's own services against the project of `.env.local`, signed in as `UCODE_LOGIN` with `UCODE_PASSWORD`.
+- A field is changed with `PUT https://api.admin.u-code.io/v2/fields/{table}`. The gateway replaces the field with what is sent, so the body is the whole field: the body above with the field's own `id` and `table_id` (the table's guid), plus `default: ""`, `unique`, `automatic` and `show_label` false. A type change changes the column too (`since` went from VARCHAR to FLOAT). An update that keeps the type keeps the rows' values: on 18 October a test row's `pilots.status` = `planned` was still there after the field got its options. A type change makes the column anew and empties it, also on a table with rows (22 October, PICK_LIST → STATUS): `fields.mjs status` keeps the values and writes them back. `fields.mjs` skips tables with rows unless given `--with-rows`.
+- `scripts/ucode/` holds these requests as commands, with the key read from `UCODE_API_KEY` or from the MCP entry in `~/.claude.json` (`UCODE_MCP_SERVER=ucode-prod` for production): `fields.mjs create <batch>` makes a batch's missing fields, `fields.mjs options <batch|all>` sets the pick lists' options and `fields.mjs status` makes the status fields STATUS (both a dry run unless given `--write`), `rows.mjs insert <batch>` adds a batch's reference rows and `rows.mjs link` points rows made before batch 7 to its lists (a dry run unless given `--write`), `menus.mjs move` moves a table to a folder, `admin-ui.mjs` groups Admin into sub-folders, names folders, tables and columns in Russian and Uzbek and sets the Deals table's columns (a dry run unless given `--write`), `verify.mjs` compares the live project with the batches field by field, `smoke.mjs --write-test-rows` runs a deal through every table and deletes its rows again (it refuses `ucode-prod`), and `panel-test.mjs --write-test-rows` runs the panel's own services against the project of `.env.local`, signed in as `UCODE_LOGIN` with `UCODE_PASSWORD`.
 - `menu_id` is the sidebar folder. ucode's agent passes the main menu, which is why its tables landed outside Admin; passing the Admin folder's id puts them inside.
 - No MCP tool moves a table to another folder. The ucode admin's «move to folder» sends `PUT https://api.admin.u-code.io/v3/menus` with the table's sidebar entry and its new `parent_id` (`FolderModalComponent.jsx` in the admin frontend); the same key works with `Authorization: API-KEY`. The gateway replaces the entry with what is sent, so the body carries all of it: `{id: <the entry's id from get_menus>, parent_id: <folder id>, type: "TABLE", label, table_id, attributes: {label: "", label_en: <label>}}`. The entry keeps its id and permissions.
 - Connect once per machine. The key stays in `~/.claude.json`, not in the repo. Make a key for this work (ucode: Settings → API keys) and revoke it when the migration is done.
@@ -129,8 +136,8 @@ Either way uses the batch messages below.
 1. Make an API key for the production environment and connect the MCP with it, as a second server (`ucode-prod`) so the two cannot be confused.
 2. Read the schema with `get_dbml` first. If the website's tables exist there, skip batch T and let the check compare their fields; if not, run batch T, and also make `news`, `team` and `pages` if the website will read from this project (their fields are in the website's README).
 3. Make the folders Landing page, Admin and Startup cabinet under the main menu if they are missing (`get_menus` first), and put the website's tables in Landing page.
-4. Batches 1 to 5, in order, into Admin, as in «Running the remaining batches» with `UCODE_MCP_SERVER=ucode-prod`, then the rows of batch 1.
-5. Pick-list options: `node scripts/ucode/fields.mjs options all --write --with-rows`.
+4. Batches 1 to 7, in order, into Admin, as in «Running the remaining batches» with `UCODE_MCP_SERVER=ucode-prod`, then the rows of batch 1.
+5. Pick-list options: `node scripts/ucode/fields.mjs options all --write --with-rows`; then the status fields, `fields.mjs status --write --with-rows`, and batch 7's rows, `rows.mjs insert 7 --write` and `rows.mjs link --write`.
 6. Check with `UCODE_MCP_SERVER=ucode-prod node scripts/ucode/verify.mjs` (without `--rows`: production has its own rows). `smoke.mjs` does not run there.
 
 ## How the platform shaped the model
@@ -795,6 +802,140 @@ Table governance_issues
 - opened_at: DATE
 - resolved_at: DATE
 - owner_id: SINGLE_LINE
+```
+
+## Batch 7 — Справочники and status fields
+
+The lists the fund changes itself, in Настройки: rounds, sources, countries and task types join industries and rejection reasons as tables. Their rows are turned off (`is_active` false), never deleted, because applications, deals and tasks point to them. The website's form offers the active rows: the industries, the rounds, the sources marked `on_site`, and the countries.
+
+- **One list of sources.** «Откуда вы о нас узнали?» on the website and the fund's own channels (network, conference, partner fund, accelerator, a follow-on from the portfolio) are one list, so «where deals come from» is one report. A website deal is told apart by its application, not by its source.
+- **Countries** are the mandate's geography: `in_mandate` marks the countries the inbox check accepts. The client's «Регионы».
+- **The mandate becomes structured.** The stages the fund invests at are `round_stages.in_mandate`, the geography is `countries.in_mandate` and the sectors are `industries.mandate`, replacing the free text of `fund_settings.round_stages` and `geography_text`, which stay unused.
+- **The old text fields stay.** `applications.industry`, `stage` and `source` (the form's values) and `deals.round_stage`, `channel`, `heard_from` and `country` keep what earlier rows hold; new rows get the relation as well.
+- **Status fields.** Every field that holds a status changes from PICK_LIST to ucode's STATUS type: the same values, grouped as ucode groups them (To-do, In progress, Complete), each with its name in three languages and a colour, as the panel shows it (`STATUS_OPTIONS` in `scripts/ucode/names.mjs`). Statuses stay fixed options, not tables: the panel's logic depends on each of them.
+
+```
+Batch 7. Same rules: every new table inside the folder "Admin", sub-folder "Settings and lists".
+
+Table round_stages
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- in_mandate: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table lead_sources
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- on_site: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table countries
+- code: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- in_mandate: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table task_types
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+New fields in the existing table industries
+- is_active: BOOLEAN
+
+New fields in the existing table reject_reasons
+- is_active: BOOLEAN
+
+Relations (Many2One, from table → target table; ucode names the field {target}_id)
+- applications → industries
+- applications → round_stages
+- applications → lead_sources
+- applications → countries
+- deals → round_stages
+- deals → lead_sources
+- deals → countries
+- tasks → task_types
+
+Status fields (existing fields whose type changes from PICK_LIST to STATUS; the values stay)
+- applications.public_status: STATUS todo [submitted] progress [screening, meeting, due_diligence, committee, closing] complete [portfolio, rejected, withdrawn]
+- partner_requests.status: STATUS todo [new] progress [in_work] complete [closed]
+- deals.status: STATUS todo [review] progress [active, paused] complete [portfolio, withdrawn, rejected]
+- deal_requests.status: STATUS todo [waiting] progress [answered] complete [accepted]
+- deal_documents.status: STATUS todo [required] progress [review] complete [accepted, rejected]
+- deal_checklists.state: STATUS todo [open, blocking] progress [waiting, attention] complete [done]
+- workstreams.status: STATUS todo [not_started] progress [in_progress, rework] complete [done]
+- meetings.status: STATUS todo [planned] progress [live, break] complete [held]
+- meetings.result: STATUS todo [planned] progress [live] complete [approved, approved_conditions, postponed, rejected, mixed]
+- meetings.protocol_state: STATUS todo [none] progress [signing] complete [signed]
+- meeting_attendance.attendance: STATUS todo [no_answer] complete [confirmed, declined]
+- agenda_items.outcome: STATUS progress [postponed] complete [approved, approved_conditions, sponsor_approved, rejected, noted]
+- decisions.outcome: STATUS progress [postponed] complete [approved, approved_conditions, sponsor_approved, rejected, noted]
+- portfolio_companies.status: STATUS progress [active] complete [exit, written_off]
+- quarter_reports.metrics_state: STATUS todo [none] progress [check] complete [confirmed]
+- pilots.status: STATUS todo [planned] progress [in_progress] complete [success, failed]
+- company_requests.status: STATUS todo [waiting_fund] progress [in_work] complete [closed]
+- tasks.status: STATUS todo [assigned] progress [in_progress, waiting, review, postponed] complete [done]
+- fund_documents.status: STATUS todo [draft] progress [updating, reregistration] complete [active, archived]
+- governance_issues.status: STATUS todo [awaiting_reply] progress [in_work] complete [resolved]
+
+Rows for round_stages (slug | name_ru | name_uz | name_en | in_mandate | sort_order | is_active)
+- pre_seed | Pre-seed | Pre-seed | Pre-seed | true | 1 | true
+- seed | Seed | Seed | Seed | true | 2 | true
+- pre_series_a | Pre-Series A | Pre-Series A | Pre-Series A | false | 3 | true
+- series_a | Series A | Series A | Series A | false | 4 | true
+
+Rows for lead_sources (slug | name_ru | name_uz | name_en | on_site | sort_order | is_active)
+- telegram | Telegram | Telegram | Telegram | true | 1 | true
+- social_media | Соцсети | Ijtimoiy tarmoqlar | Social media | true | 2 | true
+- search | Поиск | Qidiruv | Search | true | 3 | true
+- ai_assistant | ИИ-ассистент | AI yordamchi | AI assistant | true | 4 | true
+- media | СМИ | OAV | Media | true | 5 | true
+- event | Мероприятие | Tadbir | Event | true | 6 | true
+- recommendation | Рекомендация | Tavsiya | Recommendation | true | 7 | true
+- network | Нетворк | Netvork | Network | false | 8 | true
+- conference | Конференция | Konferensiya | Conference | false | 9 | true
+- partner_fund | Партнёрский фонд | Hamkor fond | Partner fund | false | 10 | true
+- accelerator | Акселератор | Akselerator | Accelerator | false | 11 | true
+- portfolio | Портфель (follow-on) | Portfel (follow-on) | Portfolio (follow-on) | false | 12 | true
+- other | Другое | Boshqa | Other | true | 13 | true
+
+Rows for countries (code | name_ru | name_uz | name_en | in_mandate | sort_order | is_active)
+- UZ | Узбекистан | O‘zbekiston | Uzbekistan | true | 1 | true
+- KZ | Казахстан | Qozog‘iston | Kazakhstan | true | 2 | true
+- KG | Кыргызстан | Qirg‘iziston | Kyrgyzstan | true | 3 | true
+- TJ | Таджикистан | Tojikiston | Tajikistan | true | 4 | true
+- TM | Туркменистан | Turkmaniston | Turkmenistan | true | 5 | true
+- AZ | Азербайджан | Ozarbayjon | Azerbaijan | false | 6 | true
+- GE | Грузия | Gruziya | Georgia | false | 7 | true
+- RU | Россия | Rossiya | Russia | false | 8 | true
+- TR | Турция | Turkiya | Türkiye | false | 9 | true
+- AE | ОАЭ | BAA | UAE | false | 10 | true
+- US | США | AQSH | USA | false | 11 | true
+- XX | Другая страна | Boshqa davlat | Other country | false | 12 | true
+
+Rows for task_types (slug | name_ru | name_uz | name_en | sort_order | is_active)
+- acceleration | Акселерация | Akseleratsiya | Acceleration | 1 | true
+- correspondence | Корреспонденция | Yozishmalar | Correspondence | 2 | true
+- reporting | Отчётность | Hisobot | Reporting | 3 | true
+- portfolio | Портфель | Portfel | Portfolio | 4 | true
+- regions | Регионы | Hududlar | Regions | 5 | true
+- finance | Финансы | Moliya | Finance | 6 | true
+- legal | Юридическое | Yuridik | Legal | 7 | true
+- other | Другое | Boshqa | Other | 8 | true
+
+Every existing row of industries and reject_reasons: is_active true
 ```
 
 ## Checking what was created

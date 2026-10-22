@@ -2,7 +2,7 @@
 /* The ucode schema of docs/ucode-migration.md, read from its batch messages so
    the file stays the one place it is written.
 
-     node scripts/ucode/schema.mjs spec [batch]      the batch (T, 1–5) as JSON, or all of them
+     node scripts/ucode/schema.mjs spec [batch]      the batch (T, 1–7) as JSON, or all of them
      node scripts/ucode/schema.mjs check <file.dbml> compares ucode's get_dbml export with the batches
 
    `check` exits with 1 when a table that exists is missing something or has a
@@ -41,6 +41,7 @@ const COLUMN_TYPES = {
    SINGLE_LINE: ['VARCHAR', 'TEXT'],
    MULTI_LINE: ['VARCHAR', 'TEXT'],
    PICK_LIST: ['VARCHAR', 'TEXT'],
+   STATUS: ['VARCHAR', 'TEXT'],
    EMAIL: ['VARCHAR', 'TEXT'],
    PHONE: ['VARCHAR', 'TEXT'],
    PHOTO: ['VARCHAR', 'TEXT'],
@@ -89,7 +90,9 @@ export const readBatches = () => {
             section = 'fields';
          } else if (/^Relations/.test(line)) {
             section = 'relations';
-         } else if (/^(Rows|One row)/.test(line)) {
+         } else if (/^Status fields/.test(line)) {
+            section = 'status';
+         } else if (/^(Rows|One row|Every)/.test(line)) {
             section = 'rows';
          } else if (
             section === 'fields' &&
@@ -115,6 +118,26 @@ export const readBatches = () => {
             };
             if (!tableOf(from)) batch.tables.push(owner);
             owner.relations.push({ target: to, field: `${to}_id` });
+         } else if (
+            section === 'status' &&
+            (match = line.match(/^- (\w+)\.(\w+): STATUS (.*)/))
+         ) {
+            // an earlier batch's pick list, now a STATUS field: its values in
+            // ucode's groups, "todo [a, b] progress [c] complete [d]"
+            const [, from, slug, rest] = match;
+            const owner = tableOf(from) ?? {
+               name: from,
+               existing: true,
+               fields: [],
+               relations: [],
+            };
+            if (!tableOf(from)) batch.tables.push(owner);
+            const groups = { todo: [], progress: [], complete: [] };
+            for (const [, group, values] of rest.matchAll(
+               /(todo|progress|complete) \[([^\]]*)\]/g,
+            ))
+               groups[group] = values.split(/,\s*/);
+            owner.fields.push({ slug, type: 'STATUS', groups });
          }
       }
       batches.push(batch);
@@ -123,13 +146,19 @@ export const readBatches = () => {
 };
 
 // Every table of the batches with all its fields and relations, merged across
-// batches (deals gets fields in batches 2 and 5 and a relation in batch 3).
+// batches (deals gets fields in batches 2 and 5 and a relation in batch 3). A
+// field a later batch lists again replaces the earlier one (batch 7 makes pick
+// lists STATUS fields).
 export const readTables = () => {
    const tables = new Map();
    for (const batch of readBatches())
       for (const { name, fields, relations } of batch.tables) {
          const table = tables.get(name) ?? { name, fields: [], relations: [] };
-         table.fields.push(...fields);
+         for (const field of fields) {
+            const index = table.fields.findIndex(({ slug }) => slug === field.slug);
+            if (index === -1) table.fields.push(field);
+            else table.fields[index] = field;
+         }
          table.relations.push(...relations);
          tables.set(name, table);
       }
