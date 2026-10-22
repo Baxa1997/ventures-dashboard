@@ -1,4 +1,3 @@
-import { ROUND_STAGE_NAMES } from '@modules/Deals/constants';
 import {
    createRow,
    day,
@@ -12,20 +11,27 @@ import {
 } from '@shared/api/ucode';
 import { createStore, newId, shortName, todayISO } from '@shared/helpers';
 import { reloadTeam } from '@shared/hooks';
+// the instance @shared/i18n sets up; imported directly, so the services run
+// without the browser setup (scripts/ucode/panel-test.ts runs them in Node)
+import i18n from 'i18next';
 import type {
    Access,
-   Industry,
    IndustryMandate,
+   ListItem,
+   ListItemInput,
+   ListKind,
    NormStage,
    SettingsState,
    StaffMember,
    StaffRole,
 } from '@shared/types/settings.types';
+import type { SupportedLanguageType } from '@shared/types/system/language.types';
 import type { Role } from '@shared/types/work.types';
 
-/* Настройки in ucode (docs/ucode-migration.md, batch 1): the mandate and the
-   portfolio flags are the one row of fund_settings, the norms are stage_norms,
-   the journal is settings_journal and the staff are employees. */
+/* Настройки in ucode (docs/ucode-migration.md, batches 1 and 7): the mandate
+   and the portfolio flags are the one row of fund_settings, the norms are
+   stage_norms, the journal is settings_journal, the staff are employees, and
+   each reference list is a table of its own. */
 
 const NORM_ORDER: NormStage[] = [
    'inbox',
@@ -91,27 +97,62 @@ const formatCheck = (min: unknown, max: unknown) =>
       ? `$${thousands(num(min))} – $${thousands(num(max))}`
       : '';
 
-// fund_settings.round_stages holds the values (["pre_seed","seed"]); the form
-// shows their names.
-const formatStages = (value: unknown) =>
-   fromJson<string[]>(value, [])
-      .map(
-         (stage) =>
-            ROUND_STAGE_NAMES[stage as keyof typeof ROUND_STAGE_NAMES] ?? stage,
-      )
-      .join(', ');
+// Each list's table, the column that holds its key, and how its names are
+// called there (reject_reasons has label_ru, the others name_ru).
+const LIST_TABLES: Record<
+   ListKind,
+   { table: string; key: 'slug' | 'code'; names: 'name' | 'label' }
+> = {
+   industries: { table: 'industries', key: 'slug', names: 'name' },
+   rounds: { table: 'round_stages', key: 'slug', names: 'name' },
+   sources: { table: 'lead_sources', key: 'slug', names: 'name' },
+   countries: { table: 'countries', key: 'code', names: 'name' },
+   reasons: { table: 'reject_reasons', key: 'code', names: 'label' },
+   taskTypes: { table: 'task_types', key: 'slug', names: 'name' },
+};
 
-const parseStages = (text: string) =>
-   text
-      .split(/[,;]/)
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map(
-         (part) =>
-            Object.entries(ROUND_STAGE_NAMES).find(
-               ([, name]) => name.toLowerCase() === part.toLowerCase(),
-            )?.[0] ?? part,
-      );
+export const LIST_KINDS = Object.keys(LIST_TABLES) as ListKind[];
+
+const toItem = (kind: ListKind, row: Row): ListItem => {
+   const { key, names } = LIST_TABLES[kind];
+   return {
+      id: row.guid,
+      key: str(row[key]),
+      names: {
+         ru: str(row[`${names}_ru`]),
+         uz: str(row[`${names}_uz`]),
+         en: str(row[`${names}_en`]),
+      },
+      sortOrder: num(row.sort_order),
+      // a row from before batch 7 has no mark: it is in use
+      active: row.is_active !== false,
+      ...(kind === 'industries' && {
+         mandate: (str(row.mandate) || 'allowed') as IndustryMandate,
+      }),
+      ...((kind === 'rounds' || kind === 'countries') && {
+         inMandate: Boolean(row.in_mandate),
+      }),
+      ...(kind === 'sources' && { onSite: Boolean(row.on_site) }),
+      ...(kind === 'reasons' && { isMandate: Boolean(row.is_mandate) }),
+   };
+};
+
+const itemFields = (kind: ListKind, item: ListItemInput) => {
+   const { key, names } = LIST_TABLES[kind];
+   return {
+      [key]: item.key,
+      [`${names}_ru`]: item.names.ru,
+      [`${names}_uz`]: item.names.uz,
+      [`${names}_en`]: item.names.en,
+      is_active: item.active,
+      ...(kind === 'industries' && { mandate: item.mandate ?? 'allowed' }),
+      ...((kind === 'rounds' || kind === 'countries') && {
+         in_mandate: Boolean(item.inMandate),
+      }),
+      ...(kind === 'sources' && { on_site: Boolean(item.onSite) }),
+      ...(kind === 'reasons' && { is_mandate: Boolean(item.isMandate) }),
+   };
+};
 
 const toStaff = (row: Row): StaffMember => {
    const role = str(row.role) as Role;
@@ -127,12 +168,6 @@ const toStaff = (row: Row): StaffMember => {
    };
 };
 
-const toIndustry = (row: Row): Industry => ({
-   id: row.guid,
-   name: str(row.name_ru || row.slug),
-   mandate: (str(row.mandate) || 'allowed') as IndustryMandate,
-});
-
 const byCreated = (a: Row, b: Row) =>
    str(b.date).localeCompare(str(a.date)) ||
    str(b.created_at).localeCompare(str(a.created_at));
@@ -141,14 +176,14 @@ const byCreated = (a: Row, b: Row) =>
 let rowIds = { settings: '', norms: new Map<NormStage, string>() };
 
 const store = createStore<SettingsState>(async () => {
-   const [settingsRows, normRows, journal, employees, industries] =
+   const [settingsRows, normRows, journal, employees, ...listRowsOf] =
       await Promise.all(
          [
             'fund_settings',
             'stage_norms',
             'settings_journal',
             'employees',
-            'industries',
+            ...LIST_KINDS.map((kind) => LIST_TABLES[kind].table),
          ].map((table) => listRows(table)),
       );
    const row: Partial<Row> = settingsRows[0] ?? {};
@@ -162,9 +197,7 @@ const store = createStore<SettingsState>(async () => {
    return {
       mandate: {
          check: formatCheck(row.check_min, row.check_max),
-         stages: formatStages(row.round_stages),
          focus: str(row.focus_text),
-         geography: str(row.geography_text),
          excluded: str(row.excluded_text),
       },
       norms: NORM_ORDER.flatMap((stage) => {
@@ -196,15 +229,47 @@ const store = createStore<SettingsState>(async () => {
          to: str(item.to_value),
       })),
       staff: employees.filter((item) => item.is_active !== false).map(toStaff),
-      industries: [...industries]
-         .sort((a, b) => num(a.sort_order) - num(b.sort_order))
-         .map(toIndustry),
+      lists: Object.fromEntries(
+         LIST_KINDS.map((kind, index) => [
+            kind,
+            listRowsOf[index]
+               .map((item) => toItem(kind, item))
+               .sort((a, b) => a.sortOrder - b.sortOrder),
+         ]),
+      ) as Record<ListKind, ListItem[]>,
    };
 });
 
 // Other sections read the rules as they are now, without waiting: undefined
-// until Настройки have been read (Сделки read them before their deals).
+// until Настройки have been read (Сделки and Работа read them first).
 export const currentSettings = () => store.peek();
+
+// ---- the lists, for the other sections
+
+// A list in its order; only the rows in use unless `all`.
+export const listOf = (kind: ListKind, all = false) =>
+   (currentSettings()?.lists[kind] ?? []).filter((item) => all || item.active);
+
+export const itemOf = (kind: ListKind, key: string) =>
+   listOf(kind, true).find((item) => item.key === key);
+
+const language = () => (i18n.resolvedLanguage ?? 'ru') as SupportedLanguageType;
+
+// An item's name in the interface language, then in Russian.
+export const nameOf = (item: ListItem) =>
+   item.names[language()] || item.names.ru || item.key;
+
+// The name of a key; the key itself (an old row's text) when no row has it.
+export const listName = (kind: ListKind, key: string) => {
+   const item = itemOf(kind, key);
+   return item ? nameOf(item) : key;
+};
+
+// A row's guid from its key and back, for the relation fields.
+export const listIdOf = (kind: ListKind, key: string) =>
+   itemOf(kind, key)?.id ?? null;
+export const listKeyOf = (kind: ListKind, id: unknown) =>
+   listOf(kind, true).find((item) => item.id === id)?.key;
 
 class Settings {
    subscribe(listener: () => void) {
@@ -254,9 +319,7 @@ class Settings {
       const settings = {
          check_min: check?.[0] ?? null,
          check_max: check?.[1] ?? null,
-         round_stages: toJson(parseStages(next.mandate.stages)),
          focus_text: next.mandate.focus,
-         geography_text: next.mandate.geography,
          excluded_text: next.mandate.excluded,
          flag_runway_months: next.flags.runway,
          flag_churn_pct: next.flags.churn,
@@ -291,6 +354,70 @@ class Settings {
             }),
          ),
       ]);
+      await store.reload();
+   }
+
+   /* Adds a list's row, or changes one: its names, marks, or whether it is
+      in use. A key stays as it was made, since records keep it. Each change
+      goes to the journal, under `field` (how the journal names the list and
+      the row) with what the row was and is (`describe`). */
+   async saveListItem(
+      kind: ListKind,
+      id: string | null,
+      item: ListItemInput,
+      userId: string,
+      field: string,
+      describe: (item: ListItemInput | null) => string,
+   ) {
+      const state = await store.get();
+      const list = state.lists[kind];
+      const before = id ? list.find((row) => row.id === id) : undefined;
+      if (id && !before) throw new Error(`No ${kind} row ${id}`);
+      if (list.some((row) => row.key === item.key && row.id !== id))
+         throw new Error(`${kind}: the key ${item.key} is taken`);
+      const { table } = LIST_TABLES[kind];
+      const fields = itemFields(
+         kind,
+         before ? { ...item, key: before.key } : item,
+      );
+      await Promise.all([
+         before
+            ? updateRow(table, { guid: before.id, ...fields })
+            : createRow(table, {
+                 guid: newId(),
+                 ...fields,
+                 sort_order:
+                    Math.max(0, ...list.map((row) => row.sortOrder)) + 1,
+              }),
+         createRow('settings_journal', {
+            guid: newId(),
+            date: todayISO(),
+            employee_id: userId,
+            field,
+            from_value: describe(before ?? null),
+            to_value: describe(item),
+         }),
+      ]);
+      await store.reload();
+   }
+
+   // Moves a row one place up or down the list: the order the forms show.
+   async moveListItem(kind: ListKind, id: string, step: -1 | 1) {
+      const list = (await store.get()).lists[kind];
+      const index = list.findIndex((row) => row.id === id);
+      const other = list[index + step];
+      if (index === -1 || !other) return;
+      const { table } = LIST_TABLES[kind];
+      // the rows' own numbers may repeat; the new order is numbered afresh
+      const order = list.map((row) => row.id);
+      [order[index], order[index + step]] = [order[index + step], order[index]];
+      await Promise.all(
+         order.flatMap((guid, position) =>
+            list.find((row) => row.id === guid)?.sortOrder === position + 1
+               ? []
+               : [updateRow(table, { guid, sort_order: position + 1 })],
+         ),
+      );
       await store.reload();
    }
 

@@ -1,3 +1,4 @@
+import { listName, listOf } from '@modules/Settings/services';
 import {
    TASK_PRIORITY_LABELS,
    TASK_PRIORITY_ORDER,
@@ -7,8 +8,6 @@ import {
    TASK_RELATION_ORDER,
    TASK_STATUS_LABELS,
    TASK_STATUS_ORDER,
-   TASK_TYPE_LABELS,
-   TASK_TYPE_ORDER,
    TITLE_MAX,
 } from '@modules/Work/constants';
 import { shortName } from '@modules/Work/helpers';
@@ -138,8 +137,18 @@ const TaskForm = ({
                   />
                </Field>
                <Field label={t('Тип')}>
-                  {select('type', TASK_TYPE_ORDER, (type) =>
-                     t(TASK_TYPE_LABELS[type]),
+                  {select(
+                     'type',
+                     // a type turned off in Настройки stays on the tasks that have it
+                     [
+                        ...listOf('taskTypes').map(({ key }) => key),
+                        ...(listOf('taskTypes').some(
+                           ({ key }) => key === values.type,
+                        )
+                           ? []
+                           : [values.type]),
+                     ],
+                     (type) => listName('taskTypes', type),
                   )}
                </Field>
                <Field label={t('Связано с')}>

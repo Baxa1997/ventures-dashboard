@@ -17,8 +17,7 @@ const required = (max: number) =>
 export const newDealSchema = z.object({
    company: required(COMPANY_MAX),
    about: text(TEXT_MAX),
-   industry: required(COMPANY_MAX),
-   country: required(COMPANY_MAX),
+   industry: text(COMPANY_MAX), // the niche; the sector is chosen from the list
    amount: z.coerce
       .number({ message: AMOUNT_INVALID })
       .positive(AMOUNT_INVALID),

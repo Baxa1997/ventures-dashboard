@@ -26,15 +26,8 @@ export type TaskStatus =
 
 export type TaskPriority = 'low' | 'medium' | 'high';
 
-export type TaskType =
-   | 'acceleration'
-   | 'finance'
-   | 'reporting'
-   | 'correspondence'
-   | 'legal'
-   | 'portfolio'
-   | 'regions'
-   | 'other';
+// A task_types key (Настройки → Типы задач): acceleration, finance, …
+export type TaskType = string;
 
 // What a task is attached to; "none" for a task that stands on its own.
 // Contracts, letters and procurements join in phase 3.

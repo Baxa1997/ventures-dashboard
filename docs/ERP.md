@@ -11,7 +11,7 @@ Sources: the system map «Операционная платформа фонда
 | 1 | **Website** — Pitch Us form, Become a partner form, public content | Built. Writes `applications` and `partner_requests` to ucode, reads `portfolio`, `news`, `team`, `pages` |
 | 1 | **Admin: Работа** — Обзор, Мой день, Задачи | On ucode (tasks; Мой день and Обзор counted from the tables, §5.7) |
 | 1 | **Admin: Инвестиции** — Сделки, Инвесткомитет, Портфель | On ucode |
-| 1 | **Admin: Настройки** — mandate, stage norms, staff and roles | On ucode. Сделки take the mandate and the norms from it |
+| 1 | **Admin: Настройки** — mandate, stage norms, staff and roles, the reference lists, integrations | On ucode. Сделки take the mandate, the norms and the lists from it; the website's form offers the same lists |
 | 2 | **Startup cabinet** — the applicant's status, the fund's requests and documents; the portfolio company's quarterly reports and requests | Not built |
 | 3 | **Fund: Документы** — the register of the fund's documents and the open governance questions | On ucode (§4.9). A document links to its file where the fund keeps it |
 | 3 | Финансы, Договоры, Закупки, Корреспонденция | Screens built, hidden from the panel until their tables exist (they come back from the repo's history) |
@@ -45,7 +45,7 @@ Sources: the system map «Операционная платформа фонда
 
 This section is the model. What is created in ucode — with the platform's type substitutions and field names — is [ucode-migration.md](ucode-migration.md), which wins where the two differ.
 
-Field types are ucode's (`SINGLE_LINE`, `PICK_LIST`, `FILE`, …). **→ table** is a link to another table, written here by its meaning (`deal_id`, `owner_id`). In ucode:
+Field types are ucode's (`SINGLE_LINE`, `PICK_LIST`, `FILE`, …). A field that holds a status — of a deal, a request, a document, a meeting, a task, … — is a ucode `STATUS` field (batch 7): fixed options in ucode's groups To-do, In progress and Complete, each with its names and colour; its options are written below as a pick list's. **→ table** is a link to another table, written here by its meaning (`deal_id`, `owner_id`). In ucode:
 
 - a link to `employees` is a plain text field holding the employee's guid, under the name written here (`owner_id`, `sponsor_id`);
 - every other link is a Many2One relation, and ucode names its field after the target table: `deal_id → deals` is created as `deals_id`, `company_id → portfolio_companies` as `portfolio_companies_id`. ucode allows one such relation per target in a table, which is why the links to employees are plain fields.
@@ -77,7 +77,11 @@ Field types are ucode's (`SINGLE_LINE`, `PICK_LIST`, `FILE`, …). **→ table**
 | mandate | PICK_LIST | focus, allowed, licensed (needs a Central Bank licence), excluded |
 | sort_order | NUMBER | |
 
-**reject_reasons** (Справочники): code, label_ru, label_uz, label_en, is_mandate (CHECKBOX: the applicant may apply again at once), sort_order.
+**reject_reasons** (Справочники): code, label_ru, label_uz, label_en, is_mandate (CHECKBOX: the applicant may apply again at once), sort_order, is_active.
+
+**round_stages**, **lead_sources**, **countries** and **task_types** (batch 7) are the other lists the fund keeps in Настройки, each with its key (slug; `code` for a country, ISO 3166), name_ru, name_uz, name_en, sort_order and is_active, and one mark: `round_stages.in_mandate` and `countries.in_mandate` (the stages and the geography the mandate accepts), `lead_sources.on_site` (offered by the website's form). One list of sources serves the founder's «Откуда вы о нас узнали?» and the fund's own channels (network, conference, partner fund, accelerator, a follow-on), so «where deals come from» is one report.
+
+Every list row is turned off (`is_active` false), never deleted: applications, deals and tasks point to it. industries and reject_reasons got `is_active` in batch 7 too.
 
 **holidays**: date, name, is_workday (CHECKBOX: a weekend day moved to a working day). The public holidays and moved working days of Uzbekistan, for every deadline counted in working days.
 
@@ -88,10 +92,10 @@ Field types are ucode's (`SINGLE_LINE`, `PICK_LIST`, `FILE`, …). **→ table**
 | Field | Type | Note |
 | --- | --- | --- |
 | check_min, check_max | FLOAT | |
-| round_stages | MULTISELECT | pre_seed, seed, pre_series_a, series_a |
+| round_stages | MULTISELECT | unused since batch 7: the stages are `round_stages.in_mandate` |
 | stake_min_pct, stake_max_pct | FLOAT | 5 and 15 |
 | instruments | MULTISELECT | safe, convertible, equity |
-| focus_text, geography_text, excluded_text | MULTI_LINE | as the pages show them |
+| focus_text, geography_text, excluded_text | MULTI_LINE | how the fund words its mandate; `geography_text` is unused since batch 7 (`countries.in_mandate`) |
 | ic_quorum, ic_materials_days, ic_discussion_at, ic_reject_at | NUMBER | 3, 3, 1, 2 — `IC_RULES` today |
 | flag_runway_months, flag_churn_pct, flag_revenue_drop_pct, flag_report_late_days | NUMBER | the portfolio's risk flags |
 | request_answer_days | NUMBER | 5: a company's request unanswered for longer turns red |
@@ -116,7 +120,8 @@ Field types are ucode's (`SINGLE_LINE`, `PICK_LIST`, `FILE`, …). **→ table**
 | source | SINGLE_LINE | how they heard of the fund: Telegram, Social media, … |
 | pitch_deck | FILE | |
 | locale, submitted_at | SINGLE_LINE, DATE_TIME | |
-| public_status | PICK_LIST | what the cabinet shows (§5.6) |
+| industries_id, round_stages_id, lead_sources_id, countries_id | → the lists | the rows chosen in the form (batch 7); `industry` keeps the slug, `stage` and `source` the English names, as before |
+| public_status | STATUS | what the cabinet shows (§5.6) |
 | public_status_at | DATE_TIME | |
 | founder_user_id | SINGLE_LINE | the cabinet's ucode user (phase 2) |
 | resubmit_after | DATE | set on rejection |
@@ -135,16 +140,17 @@ The application's deal is the deal whose `application_id` points to it; the appl
 | application_id | → applications | empty for a deal entered by hand |
 | company, about, website | SINGLE_LINE | |
 | industry_id | → industries | the sector |
-| niche | SINGLE_LINE | «Цифровые чеки» — what the panel shows as the industry today |
+| niche | SINGLE_LINE | «Цифровые чеки» — the analyst's words; the panel shows it, or else the sector |
 | tags | SINGLE_LINE | |
-| channel | PICK_LIST | site, network, conference, partner_fund, accelerator (`DealSource`), portfolio (a follow-on) |
+| lead_source_id | → lead_sources | where the deal came from: the founder's answer, or the fund's channel |
+| channel | PICK_LIST | `site` for a website deal; before batch 7 also the fund's channel |
 | heard_from | SINGLE_LINE | the application's `source` |
-| country | SINGLE_LINE | |
-| round_stage | PICK_LIST | pre_seed, seed, pre_series_a, series_a |
+| country_id, country | → countries, SINGLE_LINE | the country; the text keeps its Russian name |
+| round_stage_id, round_stage | → round_stages, PICK_LIST | the round; the pick list keeps its key |
 | amount | FLOAT | USD asked for |
 | applicant_name, applicant_email, applicant_phone | SINGLE_LINE, EMAIL, PHONE | |
 | received_at | DATE_TIME | |
-| status | PICK_LIST | review, active, paused, portfolio, withdrawn, rejected |
+| status | STATUS | review, active, paused, portfolio, withdrawn, rejected |
 | stage | PICK_LIST | inbox, screening, meeting, analysis, ic1, dd, ic2, board, closing |
 | owner_id, proposed_owner_id, second_reviewer_id, sponsor_id | → employees | |
 | stage_entered_at, stage_due | DATE | |
@@ -243,13 +249,13 @@ The conditions somebody has to carry out become **tasks** (§4.7) with `origin =
 | Field | Type | Note |
 | --- | --- | --- |
 | title, context, basis | SINGLE_LINE | basis is the document the task comes from |
-| type | PICK_LIST | acceleration, finance, reporting, correspondence, legal, portfolio, regions, other |
+| type_id, type | → task_types, PICK_LIST | the list's row (batch 7); `type` keeps its key: acceleration, finance, reporting, … |
 | deal_id, company_id, meeting_id | → deals, portfolio_companies, meetings | what the task is about, at most one of them; contract_id, letter_id and procurement_id are added in phase 3 |
 | assignee_id, reviewer_id, created_by_id | → employees | an empty assignee is set to the director |
 | due_date | DATE | |
 | due_label | SINGLE_LINE | «до ИК-2» when the deadline is an event, not a date |
 | priority | PICK_LIST | low, medium, high |
-| status | PICK_LIST | assigned, in_progress, waiting, postponed, review, done |
+| status | STATUS | assigned, in_progress, waiting, postponed, review, done |
 | recurrence | PICK_LIST | none, monthly, quarterly |
 | previous_id | → tasks | the earlier occurrence of a recurring task |
 | origin | PICK_LIST | manual, ic_condition, memo_approval, screening_confirm, company_request, report_check, data_request, letter |
@@ -337,7 +343,7 @@ wd = working days. The clock stands while the fund waits for the applicant (an o
 
 **memo_new_version**(deal, file, note) and **memo_approve**(memo): the sponsor approves; the approval closes the sponsor's `memo_approval` task.
 
-**The mandate check** stays in the panel (`checkMandate`): it only shows whether the application fits the rules. Its inputs move to the backend: the check range and the stages from `fund_settings`, excluded and licensed sectors from `industries.mandate`.
+**The mandate check** stays in the panel (`checkMandate`): it only shows whether the application fits the rules. Its inputs are in ucode: the check range in `fund_settings`, the stages in `round_stages.in_mandate`, the geography in `countries.in_mandate`, and focus, licensed and excluded sectors in `industries.mandate`.
 
 ### 5.3 Functions: Инвесткомитет
 

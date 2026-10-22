@@ -22,9 +22,9 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 ## 2. Create a deal
 
 1. Left menu → **Сделки** → **«Новая сделка»**.
-2. Fill in: Компания `ZZ Test Startup`, Чем занимается `Тест`, Отрасль `FinTech`, Запрос `150000`. Click **«Добавить»**.
+2. Fill in: Компания `ZZ Test Startup`, Чем занимается `Тест`, Отрасль — choose **FinTech**, Запрос `150000`. Источник, Стадия раунда and Страна are already chosen (Нетворк, Seed, Узбекистан). Click **«Добавить»**.
 
-✓ The deal is in the **«Входящие»** tab.
+✓ The deal is in the **«Входящие»** tab, and its mandate check says **«Соответствует»**.
 
 ## 3. Take it into screening
 
@@ -92,6 +92,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 - **Инвесткомитет → «Реестр решений»**: three decisions for `ZZ Test Startup`.
 - **The deal → «Решения ИК и НС»**: the same three.
 - **User menu → Язык → O‘zbek**: the pages read in Uzbek. Switch back to Русский.
+- **Настройки**: the menu on the left has Мандат, Этапы и нормативы, Отрасли, Раунды, Источники, Регионы, Причины отказа, Типы задач, Статусы задач and more. «Мандат» → «Из справочников» shows Pre-seed and Seed and the five Central Asian countries as the mandate.
 
 ## 11. Optional: a rejection
 

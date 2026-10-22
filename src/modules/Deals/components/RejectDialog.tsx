@@ -8,20 +8,18 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { itemOf, listOf, nameOf } from '@modules/Settings/services';
 import { useCurrentUser } from '@shared/hooks';
 import type { Deal, RejectReason, Resubmit } from '@shared/types/deals.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-   MANDATE_REASONS,
-   REJECT_REASON_LABELS,
-   REJECT_REASON_ORDER,
    RESUBMIT_LABELS,
    RESUBMIT_ORDER,
    STAGE_LABELS,
    TEXT_MAX,
 } from '../constants';
-import { formatAmount, mandateLimits } from '../helpers';
+import { formatAmount, mandateLimits, reasonText } from '../helpers';
 import deals from '../services';
 
 interface RejectDialogProps {
@@ -36,8 +34,10 @@ interface FormProps {
    onDone?: () => void;
 }
 
+// A rejection by mandate lets the applicant come back at once (Настройки →
+// Причины отказа, «по мандату»).
 const defaultResubmit = (reason: RejectReason): Resubmit =>
-   MANDATE_REASONS.includes(reason) ? 'now' : 'in_6_months';
+   itemOf('reasons', reason)?.isMandate ? 'now' : 'in_6_months';
 
 const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
    const { t, i18n } = useTranslation('deals');
@@ -73,13 +73,16 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
          );
       return t(
          'Спасибо за заявку. Мы внимательно её рассмотрели и сейчас не готовы идти дальше. Причина: {{reason}}.',
-         { reason: t(REJECT_REASON_LABELS[reason]).toLowerCase() },
+         { reason: reasonText(reason).toLowerCase() },
       );
    };
 
    // an application whose check is over the limit starts with that reason
    const [reason, setReason] = useState<RejectReason | null>(
-      deal.amount > mandateLimits().maxCheck ? 'mandate_check' : null,
+      deal.amount > mandateLimits().maxCheck &&
+         itemOf('reasons', 'mandate_check')
+         ? 'mandate_check'
+         : null,
    );
    const [letter, setLetter] = useState(() =>
       reason ? letterFor(reason) : '',
@@ -128,12 +131,12 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
                   <ChoiceCards
                      label={t('Причина')}
                      name='reason'
-                     options={REJECT_REASON_ORDER.map((value) => ({
-                        value,
+                     options={listOf('reasons').map((item) => ({
+                        value: item.key,
                         label:
-                           value === 'other'
+                           item.key === 'other'
                               ? t('Другое — потребуется комментарий')
-                              : t(REJECT_REASON_LABELS[value]),
+                              : nameOf(item),
                      }))}
                      value={reason}
                      onChange={chooseReason}

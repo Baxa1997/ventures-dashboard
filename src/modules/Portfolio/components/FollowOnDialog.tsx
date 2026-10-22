@@ -53,10 +53,12 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
                   {
                      company: `${company.name} · follow-on`,
                      about: company.about,
+                     industryKey: company.industryKey,
                      industry: company.tagline || company.about,
-                     source: 'network',
+                     // Настройки → Источники: «Портфель (follow-on)»
+                     source: 'portfolio',
                      amount: value,
-                     country: 'Узбекистан',
+                     country: 'UZ',
                      roundStage: 'seed',
                   },
                   user.id,

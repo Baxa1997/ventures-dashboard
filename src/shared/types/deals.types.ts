@@ -5,18 +5,12 @@ import type { DealStage } from './work.types';
 export type DealStatus =
    'review' | 'active' | 'paused' | 'portfolio' | 'withdrawn' | 'rejected';
 
-export type DealSource =
-   'site' | 'network' | 'conference' | 'partner_fund' | 'accelerator';
-
-export type RoundStage = 'pre_seed' | 'seed' | 'pre_series_a' | 'series_a';
-
-export type RejectReason =
-   | 'mandate_scope'
-   | 'mandate_check'
-   | 'no_demand'
-   | 'team'
-   | 'valuation'
-   | 'other';
+// Keys of the lists the fund keeps in Настройки (ListKind): a lead source
+// (telegram, network, …), a round (pre_seed, seed, …) and a rejection reason
+// (mandate_check, no_demand, …).
+export type DealSource = string;
+export type RoundStage = string;
+export type RejectReason = string;
 
 // When a rejected applicant may apply again.
 export type Resubmit = 'now' | 'in_6_months' | 'in_12_months';
@@ -191,11 +185,13 @@ export interface Deal {
    number: string; // SQBV-2026-0172
    company: string;
    about: string; // what the company does, in a line
-   industry: string;
+   industryKey: string; // the sector, an industries key; '' when not chosen
+   industry: string; // the niche as the analyst writes it; may be empty
    tags: string; // further descriptors shown after the industry
-   source: DealSource;
+   source: DealSource; // '' when not known
+   fromSite: boolean; // came through the website's form
    amount: number; // USD asked for
-   country: string;
+   country: string; // a countries code, or an older deal's own text
    roundStage: RoundStage;
    receivedAt: string; // YYYY-MM-DD, with " HH:mm" when the time is known
    status: DealStatus;
@@ -264,6 +260,7 @@ export interface DealsSummary {
 export interface NewDealInput {
    company: string;
    about: string;
+   industryKey: string;
    industry: string;
    source: DealSource;
    amount: number;

@@ -4,9 +4,6 @@ import {
    REACHED_LABELS,
    REGISTER_FIRST,
    REGISTER_STEP,
-   REJECT_REASON_LABELS,
-   SOURCE_LABELS,
-   SOURCE_ORDER,
    STATUS_FILLS,
    STATUS_LABELS,
    STATUS_ORDER,
@@ -14,7 +11,10 @@ import {
 import {
    dayOf,
    formatAmount,
+   industryText,
    outcomeOf,
+   reasonText,
+   sourceLine,
    statusOf,
 } from '@modules/Deals/helpers';
 import {
@@ -28,13 +28,7 @@ import {
    SearchField,
 } from '@shared/components';
 import { formatDayYear } from '@shared/helpers';
-import type {
-   Deal,
-   DealSource,
-   DealsSummary,
-   DealStatus,
-   RejectReason,
-} from '@shared/types/deals.types';
+import type { Deal, DealsSummary, DealStatus } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -43,7 +37,9 @@ import {
    industryOptions,
    matches,
    matchesSearch,
+   matchesSource,
    ownerOptions,
+   sourceOptions,
 } from '../helpers';
 
 interface RegistryProps {
@@ -76,7 +72,7 @@ const Registry = ({
    const [search, setSearch] = useState('');
    const [status, setStatus] = useState<DealStatus | typeof ALL>(ALL);
    const [industry, setIndustry] = useState<string>(ALL);
-   const [source, setSource] = useState<DealSource | typeof ALL>(ALL);
+   const [source, setSource] = useState<string>(ALL);
    const [ownerId, setOwnerId] = useState<string>(ALL);
    const [year, setYear] = useState<string>(ALL);
    const [limit, setLimit] = useState(REGISTER_FIRST);
@@ -95,8 +91,8 @@ const Registry = ({
             (deal) =>
                matchesSearch(deal, search) &&
                matches(status, deal.status) &&
-               matches(industry, deal.industry) &&
-               matches(source, deal.source) &&
+               matches(industry, industryText(deal)) &&
+               matchesSource(source, deal) &&
                matches(ownerId, deal.ownerId || deal.proposedOwnerId) &&
                matches(year, deal.receivedAt.slice(0, 4)),
          ),
@@ -121,7 +117,7 @@ const Registry = ({
    const portfolio = summary.byStatus.portfolio;
    const rejected = summary.byStatus.rejected;
    // by count, with "other" kept last
-   const reasons = (Object.entries(summary.reasons) as [RejectReason, number][])
+   const reasons = Object.entries(summary.reasons)
       .sort(([, a], [, b]) => b - a)
       .sort(([a], [b]) => Number(a === 'other') - Number(b === 'other'));
 
@@ -246,7 +242,7 @@ const Registry = ({
                         <li key={reason}>
                            <div className='text-meta flex justify-between gap-3'>
                               <span className='text-ink-soft'>
-                                 {t(REJECT_REASON_LABELS[reason])}
+                                 {reasonText(reason)}
                               </span>
                               <span className='font-semibold tabular-nums'>
                                  {count}
@@ -298,9 +294,9 @@ const Registry = ({
                label={t('Источник')}
                options={[
                   { value: ALL, label: t('все') },
-                  ...SOURCE_ORDER.map((value) => ({
-                     value,
-                     label: t(SOURCE_LABELS[value]).toLowerCase(),
+                  ...sourceOptions(t).map((option) => ({
+                     ...option,
+                     label: option.label.toLowerCase(),
                   })),
                ]}
                value={source}
@@ -367,7 +363,11 @@ const Registry = ({
                                        {deal.company}
                                     </Link>
                                     <div className='text-ink-soft mt-0.5 text-xs'>
-                                       {[deal.number, deal.industry, deal.tags]
+                                       {[
+                                          deal.number,
+                                          industryText(deal),
+                                          deal.tags,
+                                       ]
                                           .filter(Boolean)
                                           .join(' · ')}
                                     </div>
@@ -378,7 +378,7 @@ const Registry = ({
                                     </Badge>
                                  </td>
                                  <td className='text-ink-soft px-3 py-3'>
-                                    {t(SOURCE_LABELS[deal.source])}
+                                    {sourceLine(t, deal)}
                                  </td>
                                  <td className='px-3 py-3 text-right font-medium tabular-nums'>
                                     {formatAmount(deal.amount, language)}

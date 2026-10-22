@@ -21,7 +21,7 @@ logic; in ucode a table is just a table.
 - The owner moves a deal with «Перевести в …» on its card. The window lists what is still missing and where to do it.
 - A committee's refusal does not close the deal by itself: the owner presses «Отказать с причиной».
 - A rejection, at any stage, needs a reason. The website then takes a new application from that email only after the resubmission date (at once for a mandate reason, otherwise 6 or 12 months).
-- Each stage has a norm in working days (Настройки → «Мандат и нормативы»). Past it, the deal shows as late in Сделки, Мой день and Обзор.
+- Each stage has a norm in working days (Настройки → «Этапы и нормативы»). Past it, the deal shows as late in Сделки, Мой день and Обзор.
 - An approval with conditions gives the owner a task, «до ИК-2» or «до подписания».
 - The members sign the printed protocol; the secretary then marks it signed with a link to the signed scan, kept where the fund keeps its files.
 
@@ -39,7 +39,7 @@ says so where it matters.
 - **Инвесткомитет**: meetings, agenda, votes, protocol, the register of decisions.
 - **Портфель**: companies, quarterly reports (the analyst enters and confirms the figures), requests from companies.
 - **Документы** (under «Фонд»): the fund's own documents and orders, each with its status and a link to its file, and open governance questions.
-- **Настройки**: the mandate, stage norms, risk flags, committee rules, staff.
+- **Настройки**: the mandate, stage norms, risk flags, committee rules, staff, and the lists the forms offer — industries, rounds, sources, countries, rejection reasons, task types. The website's form reads the same lists, so a change there reaches it within five minutes. The director changes them; every change goes to the journal.
 
 ## Where the data is in ucode
 
@@ -47,3 +47,7 @@ Admin → **Сделки**, **Инвесткомитет**, **Портфель**
 **Настройки и справочники**; the website's tables are in **Сайт**. Names are in
 Russian, Uzbek and English. Most tables are details of a deal (its requests,
 documents, scores, journal…): the panel shows them together on the deal's card.
+
+An application and a deal point to the lists' rows (industry, round, source,
+country). A status — of a deal, a request, a document, a meeting, a task — is a
+fixed option shown in its colour, grouped as To-do, In progress and Complete.

@@ -1,15 +1,13 @@
-import {
-   ALL,
-   SOURCE_FROM_LABELS,
-   SOURCE_LABELS,
-   SOURCE_ORDER,
-} from '@modules/Deals/constants';
+import { ALL } from '@modules/Deals/constants';
 import {
    checkMandate,
    dayOf,
    factRows,
    formatAmount,
    formatStamp,
+   industryText,
+   sourceFrom,
+   sourceLine,
    type MandateState,
    mandateTone,
    timeOf,
@@ -30,14 +28,19 @@ import {
 import { TEAM } from '@shared/constants';
 import { formatDay, shortName } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
-import type { Deal, DealSource, DealsSummary } from '@shared/types/deals.types';
+import type { Deal, DealsSummary } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
 import { Check, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { matches, matchesSearch } from '../helpers';
+import {
+   matches,
+   matchesSearch,
+   matchesSource,
+   sourceOptions,
+} from '../helpers';
 
 interface InboxProps {
    deals: Deal[];
@@ -76,7 +79,7 @@ const Inbox = ({
    const user = useCurrentUser();
    const language = i18n.resolvedLanguage ?? i18n.language;
    const [search, setSearch] = useState('');
-   const [source, setSource] = useState<DealSource | typeof ALL>(ALL);
+   const [source, setSource] = useState<string>(ALL);
    const [mandate, setMandate] = useState<MandateState | typeof ALL>(ALL);
    const [assignment, setAssignment] = useState<Assignment>('unassigned');
    const [selectedId, setSelectedId] = useState('');
@@ -94,7 +97,7 @@ const Inbox = ({
          inbox.filter(
             (deal) =>
                matchesSearch(deal, search) &&
-               matches(source, deal.source) &&
+               matchesSource(source, deal) &&
                matches(
                   mandate,
                   checkMandate(t, deal, language).verdict.state,
@@ -146,10 +149,7 @@ const Inbox = ({
                label={t('Источник')}
                options={[
                   { value: ALL, label: t('Все источники') },
-                  ...SOURCE_ORDER.map((value) => ({
-                     value,
-                     label: t(SOURCE_LABELS[value]),
-                  })),
+                  ...sourceOptions(t),
                ]}
                showLabel={false}
                value={source}
@@ -232,7 +232,7 @@ const Inbox = ({
                                        <div className='text-ink-soft mt-0.5 text-xs'>
                                           {[
                                              deal.number,
-                                             deal.industry,
+                                             industryText(deal),
                                              [
                                                 formatDay(
                                                    dayOf(deal.receivedAt),
@@ -247,7 +247,7 @@ const Inbox = ({
                                        </div>
                                     </td>
                                     <td className='text-ink-soft px-3 py-3.5'>
-                                       {t(SOURCE_LABELS[deal.source])}
+                                       {sourceLine(t, deal)}
                                     </td>
                                     <td className='px-3 py-3.5 text-right font-medium tabular-nums'>
                                        {formatAmount(deal.amount, language)}
@@ -300,7 +300,7 @@ const Inbox = ({
                      <div className='text-ink-soft text-xs'>
                         {[
                            selected.number,
-                           t(SOURCE_FROM_LABELS[selected.source]),
+                           sourceFrom(t, selected),
                            formatStamp(selected.receivedAt),
                         ].join(' · ')}
                      </div>
@@ -313,7 +313,7 @@ const Inbox = ({
                         </Link>
                      </h2>
                      <p className='text-ink-soft text-meta mt-1.5'>
-                        {selected.about || selected.industry}
+                        {selected.about || industryText(selected)}
                      </p>
                   </div>
 

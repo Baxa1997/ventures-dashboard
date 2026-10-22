@@ -19,6 +19,9 @@ import type { TFunction } from 'i18next';
 import type { NormStage } from '@shared/types/settings.types';
 import {
    currentSettings,
+   itemOf,
+   listName,
+   nameOf,
    parseCheck,
    parseNorm,
 } from '@modules/Settings/services';
@@ -27,9 +30,6 @@ import {
    CLOSED_STATUSES,
    CRITERIA,
    MANDATE,
-   REJECT_REASON_LABELS,
-   ROUND_STAGE_NAMES,
-   SOURCE_LABELS,
    STAGE_LABELS,
    STAGE_NEXT_LABELS,
    STAGE_NORMS,
@@ -198,19 +198,41 @@ export const headerBadge = (t: T, deal: Deal) => {
    return { label: `${label} · ${detail}`, tone: deadlineTone(deadline) };
 };
 
+// ---- names from Настройки's lists, in the interface language
+
+// The niche the analyst wrote, or else the sector.
+export const industryText = (deal: Deal) =>
+   deal.industry || listName('industries', deal.industryKey);
+
+export const roundText = (deal: Deal) => listName('rounds', deal.roundStage);
+
+export const countryText = (deal: Deal) => listName('countries', deal.country);
+
+export const sourceText = (deal: Deal) => listName('sources', deal.source);
+
+export const reasonText = (reason: string) => listName('reasons', reason);
+
+// "с сайта" or "нетворк", as in "SQBV-2026-0172 · с сайта · 2 октября".
+export const sourceFrom = (t: T, deal: Deal) =>
+   deal.fromSite ? t('с сайта') : sourceText(deal).toLowerCase();
+
+// "Сайт · Telegram": the website's form and how the founder heard of the
+// fund, or the fund's own channel.
+export const sourceLine = (t: T, deal: Deal) =>
+   [deal.fromSite && t('Сайт'), sourceText(deal)].filter(Boolean).join(' · ');
+
 // "B2B SaaS · сайт": the industry and what else tells the deal apart.
 export const dealLine = (t: T, deal: Deal) =>
-   [
-      deal.industry,
-      deal.tags || t(SOURCE_LABELS[deal.source]).toLowerCase(),
-   ].join(' · ');
+   [industryText(deal), deal.tags || sourceFrom(t, deal)]
+      .filter(Boolean)
+      .join(' · ');
 
 // The last column of the register: what comes next, or how the deal ended.
 export const outcomeOf = (t: T, deal: Deal) => {
    const { status, closed } = deal;
    if (status === 'rejected' && closed?.reason)
       return {
-         text: `${t(REJECT_REASON_LABELS[closed.reason])} · ${formatDate(closed.date)}`,
+         text: `${reasonText(closed.reason)} · ${formatDate(closed.date)}`,
          late: false,
       };
    if (status === 'withdrawn' && closed)
@@ -268,8 +290,10 @@ const MANDATE_TONES: Record<MandateState, Tone> = {
 
 export const mandateTone = (state: MandateState) => MANDATE_TONES[state];
 
-// Applies the published mandate. It does not judge the project, only whether
-// the application fits the rules.
+// Applies the published mandate: the check range of Настройки, and the
+// marks on its lists — the rounds and countries in the mandate, and each
+// industry's place in it. It does not judge the project, only whether the
+// application fits the rules.
 export const checkMandate = (
    t: T,
    deal: Deal,
@@ -277,13 +301,18 @@ export const checkMandate = (
 ): MandateCheck => {
    const amount = (value: number) => formatAmount(value, language);
    const { minCheck, maxCheck } = mandateLimits();
-   const industry = deal.industry.trim().toLowerCase();
-   const excluded = MANDATE.excluded.includes(industry);
-   const licensed = MANDATE.licensed.includes(industry);
+   const sector = itemOf('industries', deal.industryKey);
+   const round = itemOf('rounds', deal.roundStage);
+   const country = itemOf('countries', deal.country);
+   const industry = industryText(deal) || t('не указана');
+   const excluded = sector?.mandate === 'excluded';
+   const licensed = sector?.mandate === 'licensed';
    const tooHigh = deal.amount > maxCheck;
    const tooLow = deal.amount < minCheck;
-   const stageFits = MANDATE.stages.includes(deal.roundStage);
-   const stage = ROUND_STAGE_NAMES[deal.roundStage];
+   const stageFits = Boolean(round?.inMandate);
+   const placeFits = Boolean(country?.inMandate);
+   const stage = round ? nameOf(round) : deal.roundStage || t('не указана');
+   const place = country ? nameOf(country) : deal.country || t('не указана');
    const range = `$${minCheck / 1000}–${maxCheck / 1000}K`;
 
    const check = () => {
@@ -303,6 +332,15 @@ export const checkMandate = (
       });
    };
 
+   const sectorText = () => {
+      if (!sector) return t('{{industry}} — отрасль не выбрана', { industry });
+      if (licensed) return t('{{industry}} — нужна лицензия ЦБ', { industry });
+      if (excluded) return industry;
+      if (sector.mandate === 'focus')
+         return t('{{industry}} — в фокусе', { industry });
+      return t('{{industry}} — допустима', { industry });
+   };
+
    const verdict = (): MandateCheck['verdict'] => {
       if (excluded) return { label: t('Исключённая отрасль'), state: 'fail' };
       if (tooHigh)
@@ -320,8 +358,14 @@ export const checkMandate = (
             label: t('Стадия: {{stage}}', { stage }),
             state: 'attention',
          };
+      if (!placeFits)
+         return {
+            label: t('География: {{country}}', { country: place }),
+            state: 'attention',
+         };
       if (licensed)
          return { label: t('Нужна лицензия ЦБ'), state: 'attention' };
+      if (!sector) return { label: t('Выберите отрасль'), state: 'attention' };
       return { label: t('Соответствует'), state: 'ok' };
    };
 
@@ -330,8 +374,14 @@ export const checkMandate = (
          {
             key: 'country',
             label: t('География'),
-            value: deal.country,
-            state: 'ok',
+            // a deal from before the country was asked has none: unknown, not outside
+            value:
+               placeFits || !deal.country
+                  ? place
+                  : t('{{country}} — вне географии мандата', {
+                       country: place,
+                    }),
+            state: placeFits ? 'ok' : 'attention',
          },
          {
             key: 'stage',
@@ -348,14 +398,8 @@ export const checkMandate = (
          {
             key: 'industry',
             label: t('Отрасль'),
-            value: licensed
-               ? t('{{industry}} — нужна лицензия ЦБ', {
-                    industry: deal.industry,
-                 })
-               : excluded
-                 ? deal.industry
-                 : t('{{industry}} — в фокусе', { industry: deal.industry }),
-            state: licensed ? 'attention' : 'ok',
+            value: sectorText(),
+            state: licensed || !sector ? 'attention' : 'ok',
          },
          {
             key: 'excluded',

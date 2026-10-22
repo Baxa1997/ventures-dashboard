@@ -13,13 +13,14 @@ import {
    DEALS_PATH,
    LIST_TAB_LABELS,
    type ListTab,
-   REJECT_REASON_LABELS,
    RESUBMIT_LABELS,
-   SOURCE_FROM_LABELS,
    STAGE_LABELS,
 } from '@modules/Deals/constants';
 import {
    dayOf,
+   industryText,
+   reasonText,
+   sourceFrom,
    formatAmount,
    headerBadge,
    isClosed,
@@ -147,8 +148,8 @@ const DealCard = () => {
               deal.number,
               deal.meta ??
                  [
-                    deal.about || deal.industry,
-                    `${t(SOURCE_FROM_LABELS[deal.source])} ${formatDate(dayOf(deal.receivedAt))}`,
+                    deal.about || industryText(deal),
+                    `${sourceFrom(t, deal)} ${formatDate(dayOf(deal.receivedAt))}`,
                     t('запрос {{amount}}', {
                        amount: formatAmount(deal.amount, language),
                     }),
@@ -350,8 +351,7 @@ const DealCard = () => {
                   </span>
                   {' — '}
                   {[
-                     deal.closed.reason &&
-                        t(REJECT_REASON_LABELS[deal.closed.reason]),
+                     deal.closed.reason && reasonText(deal.closed.reason),
                      deal.closed.note,
                      deal.closed.resubmit &&
                         `${t('Повторная подача')}: ${t(RESUBMIT_LABELS[deal.closed.resubmit]).toLowerCase()}`,

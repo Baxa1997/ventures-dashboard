@@ -1,11 +1,8 @@
 import type {
-   DealSource,
    DealStatus,
    DocumentStatus,
    Recommendation,
-   RejectReason,
    Resubmit,
-   RoundStage,
    ScreeningNoteKey,
    Tone,
    WorkstreamStatus,
@@ -145,22 +142,6 @@ export const CLOSED_STATUSES: DealStatus[] = [
    'withdrawn',
 ];
 
-export const SOURCE_ORDER: DealSource[] = [
-   'site',
-   'network',
-   'conference',
-   'partner_fund',
-   'accelerator',
-];
-
-export const SOURCE_LABELS = {
-   site: 'Сайт',
-   network: 'Нетворк',
-   conference: 'Конференция',
-   partner_fund: 'Партнёрский фонд',
-   accelerator: 'Акселератор',
-} as const satisfies Record<DealSource, string>;
-
 // What the website writes into a deal's «Из заявки»: the row labels, the
 // deck's name and the note "с сайта". They are in Russian, as the panel's
 // translation keys are, so the card shows them in the interface language.
@@ -170,6 +151,7 @@ export const APPLICATION_PHRASES = [
    'Запрос',
    'Стадия',
    'Отрасль',
+   'Страна',
    'Откуда узнали',
    'Документы',
    'Презентация',
@@ -181,64 +163,12 @@ export const APPLICATION_PHRASES = [
 // fields (amount, industry, round stage), so it leaves them out.
 export const FIELD_FACTS: string[] = ['Запрос', 'Отрасль', 'Стадия'];
 
-// "с сайта", as in "SQBV-2026-0172 · с сайта · 2 октября".
-export const SOURCE_FROM_LABELS = {
-   site: 'с сайта',
-   network: 'из нетворка',
-   conference: 'с конференции',
-   partner_fund: 'от партнёрского фонда',
-   accelerator: 'из акселератора',
-} as const satisfies Record<DealSource, string>;
-
-export const ROUND_STAGE_ORDER: RoundStage[] = [
-   'pre_seed',
-   'seed',
-   'pre_series_a',
-   'series_a',
-];
-
-// Written the same in every language.
-export const ROUND_STAGE_NAMES: Record<RoundStage, string> = {
-   pre_seed: 'Pre-seed',
-   seed: 'Seed',
-   pre_series_a: 'Pre-Series A',
-   series_a: 'Series A',
-};
-
-// The published mandate that incoming applications are checked against.
+// The check range while Настройки have none. The stages, the geography and
+// the sectors are marks on Настройки's lists (rounds, countries, industries).
 export const MANDATE = {
    minCheck: 50_000,
    maxCheck: 300_000,
-   stages: ['pre_seed', 'seed'] as RoundStage[],
-   // lower-case industry names
-   excluded: ['онлайн-ставки', 'азартные игры', 'беттинг'],
-   licensed: ['p2p-кредитование', 'микрофинансирование'],
 };
-
-// Order of the reasons in the rejection dialog.
-export const REJECT_REASON_ORDER: RejectReason[] = [
-   'mandate_check',
-   'mandate_scope',
-   'no_demand',
-   'team',
-   'valuation',
-   'other',
-];
-
-export const REJECT_REASON_LABELS = {
-   mandate_check: 'Вне мандата: чек выше $300 000',
-   mandate_scope: 'Вне мандата: стадия, отрасль или география',
-   no_demand: 'Нет подтверждённого спроса',
-   team: 'Команда не закрывает ключевые компетенции',
-   valuation: 'Оценка выше, чем готов платить фонд',
-   other: 'Другое',
-} as const satisfies Record<RejectReason, string>;
-
-// A rejection by mandate lets the applicant come back at once.
-export const MANDATE_REASONS: RejectReason[] = [
-   'mandate_check',
-   'mandate_scope',
-];
 
 export const RESUBMIT_ORDER: Resubmit[] = [
    'now',

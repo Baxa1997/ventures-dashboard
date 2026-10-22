@@ -1,5 +1,5 @@
 import { DueBadge, TaskCheck } from '@modules/Work/components';
-import { TASK_TYPE_LABELS } from '@modules/Work/constants';
+import { listName } from '@modules/Settings/services';
 import { queueWording } from '@modules/Work/helpers';
 import { SECTION_LABELS } from '@shared/constants';
 import clsx from 'clsx';
@@ -28,7 +28,7 @@ const TaskRow = ({ item, onToggle }: TaskRowProps) => {
            }
          : {
               origin: [
-                 t(TASK_TYPE_LABELS[item.task.type]),
+                 listName('taskTypes', item.task.type),
                  item.task.context,
                  tLayout(SECTION_LABELS.tasks),
               ],

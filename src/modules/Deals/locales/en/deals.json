@@ -479,5 +479,15 @@
    "Директор одобрил переход · {{name}}": "The director approved moving on · {{name}}",
    "Сначала нужно одобрение ИК-2": "The IC-2 approval comes first",
    "Одобряю": "Approve",
-   "Попросите директора открыть это окно и подтвердить.": "Ask the director to open this window and confirm."
+   "Попросите директора открыть это окно и подтвердить.": "Ask the director to open this window and confirm.",
+   "не указана": "not given",
+   "{{industry}} — отрасль не выбрана": "{{industry}} — no sector chosen",
+   "{{industry}} — допустима": "{{industry}} — allowed",
+   "География: {{country}}": "Geography: {{country}}",
+   "Выберите отрасль": "Choose the sector",
+   "{{country}} — вне географии мандата": "{{country}} — outside the mandate's geography",
+   "Ниша": "Niche",
+   "Страна": "Country",
+   "Не указан": "Not given",
+   "Например, «Цифровые чеки»": "E.g. «Digital receipts»"
 }

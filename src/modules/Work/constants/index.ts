@@ -5,7 +5,6 @@ import type {
    TaskRecurrence,
    TaskRelation,
    TaskStatus,
-   TaskType,
 } from '@shared/types/work.types';
 
 export { DATE_FORMAT } from '@shared/constants';
@@ -41,28 +40,6 @@ export const TASK_PRIORITY_LABELS = {
    medium: 'Средний',
    low: 'Низкий',
 } as const satisfies Record<TaskPriority, string>;
-
-export const TASK_TYPE_ORDER: TaskType[] = [
-   'acceleration',
-   'correspondence',
-   'reporting',
-   'portfolio',
-   'regions',
-   'finance',
-   'legal',
-   'other',
-];
-
-export const TASK_TYPE_LABELS = {
-   acceleration: 'Акселерация',
-   correspondence: 'Корреспонденция',
-   reporting: 'Отчётность',
-   portfolio: 'Портфель',
-   regions: 'Регионы',
-   finance: 'Финансы',
-   legal: 'Юридическое',
-   other: 'Другое',
-} as const satisfies Record<TaskType, string>;
 
 export const TASK_RELATION_ORDER: TaskRelation[] = [
    'deal',

@@ -479,5 +479,15 @@
    "Директор одобрил переход · {{name}}": "Direktor o‘tkazishni ma’qulladi · {{name}}",
    "Сначала нужно одобрение ИК-2": "Avval IQ-2 ma’qullashi kerak",
    "Одобряю": "Ma’qullayman",
-   "Попросите директора открыть это окно и подтвердить.": "Direktordan shu oynani ochib, tasdiqlashini so‘rang."
+   "Попросите директора открыть это окно и подтвердить.": "Direktordan shu oynani ochib, tasdiqlashini so‘rang.",
+   "не указана": "ko‘rsatilmagan",
+   "{{industry}} — отрасль не выбрана": "{{industry}} — soha tanlanmagan",
+   "{{industry}} — допустима": "{{industry}} — ruxsat etilgan",
+   "География: {{country}}": "Geografiya: {{country}}",
+   "Выберите отрасль": "Sohani tanlang",
+   "{{country}} — вне географии мандата": "{{country}} — mandat geografiyasidan tashqarida",
+   "Ниша": "Nisha",
+   "Страна": "Davlat",
+   "Не указан": "Ko‘rsatilmagan",
+   "Например, «Цифровые чеки»": "Masalan, «Raqamli cheklar»"
 }

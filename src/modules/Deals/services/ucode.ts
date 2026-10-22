@@ -1,5 +1,11 @@
 import { OUTCOMES } from '@modules/Committee/constants';
 import {
+   itemOf,
+   listIdOf,
+   listKeyOf,
+   listOf,
+} from '@modules/Settings/services';
+import {
    createRow,
    fromJson,
    listRows,
@@ -36,7 +42,8 @@ import { CRITERIA } from '../constants';
    application, whose public status and resubmit date follow the deal. */
 
 const STATUSES: DealStatus[] = ['review', 'active', 'paused', 'portfolio', 'withdrawn', 'rejected'];
-const REASONS: RejectReason[] = ['mandate_scope', 'mandate_check', 'no_demand', 'team', 'valuation', 'other'];
+// deals.channel, a pick list from before the sources were a list: "site" marks a website deal
+const CHANNELS = ['site', 'network', 'conference', 'partner_fund', 'accelerator', 'portfolio', 'other'];
 const REACHED: DealsSummary['reached'][number]['step'][] = [
    'received',
    'screening',
@@ -72,7 +79,6 @@ interface Links {
    openStage: { guid: string; norm: number | null } | null; // the deal_stage_history row without left_at
 }
 const links = new Map<string, Links>();
-let reasonIds = new Map<string, string>(); // reject reason code → reject_reasons row
 
 const str = (value: unknown) => (value === null || value === undefined ? '' : String(value));
 const num = (value: unknown) => (value === null || value === undefined || value === '' ? 0 : Number(value));
@@ -302,18 +308,37 @@ interface Children {
    decisions: Row[];
 }
 
+// "Social media" → "social_media": a source as an older row has it in text.
+const asKey = (text: string) =>
+   text
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '');
+
+// A deal from before the sources were a list: the fund's channel, or what the
+// founder answered on the website.
+const oldSource = (row: Row) => {
+   const channel = str(row.channel);
+   return channel && channel !== 'site' ? channel : asKey(str(row.heard_from));
+};
+
+// "Узбекистан" → "UZ" when the countries list has that name.
+const oldCountry = (text: string) =>
+   listOf('countries', true).find((item) =>
+      Object.values(item.names).some((name) => name.toLowerCase() === text.trim().toLowerCase()),
+   )?.key ?? text;
+
 const toDeal = (
    row: Row,
    children: Children,
-   industryNames: Map<string, string>,
    meetings: Map<string, Row>,
-   reasonCodes: Map<string, string>,
 ): Deal => {
    const today = todayISO();
    const status = (str(row.status) || 'review') as DealStatus;
    const norm = optional(row.stage_norm_days) === undefined ? null : num(row.stage_norm_days);
    const meeting = meetings.get(str(row.meetings_id));
-   const reason = reasonCodes.get(str(row.reject_reasons_id)) as RejectReason | undefined;
+   const reason = listKeyOf('reasons', row.reject_reasons_id);
    const closedAt = day(row.closed_at);
    const facts = fromJson<Fact[] | undefined>(row.facts, undefined);
    const terms = fromJson<Fact[] | undefined>(row.terms, undefined);
@@ -337,12 +362,14 @@ const toDeal = (
       number: str(row.number),
       company: str(row.company),
       about: str(row.about),
-      industry: str(row.niche) || industryNames.get(str(row.industries_id)) || '',
+      industryKey: listKeyOf('industries', row.industries_id) ?? '',
+      industry: str(row.niche),
       tags: str(row.tags),
-      source: (str(row.channel) || 'site') as Deal['source'],
+      source: listKeyOf('sources', row.lead_sources_id) ?? oldSource(row),
+      fromSite: str(row.channel) === 'site' || Boolean(row.applications_id),
       amount: num(row.amount),
-      country: str(row.country),
-      roundStage: (str(row.round_stage) || 'seed') as Deal['roundStage'],
+      country: listKeyOf('countries', row.countries_id) ?? oldCountry(str(row.country)),
+      roundStage: listKeyOf('rounds', row.round_stages_id) ?? str(row.round_stage),
       receivedAt: moment(row.received_at) || today,
       status,
       stage: (str(row.stage) || 'inbox') as DealStage,
@@ -428,8 +455,6 @@ export const loadDeals = async (): Promise<Deal[]> => {
       history,
       decisions,
       applications,
-      industries,
-      reasons,
       meetings,
    ] = await Promise.all(
       [
@@ -446,15 +471,10 @@ export const loadDeals = async (): Promise<Deal[]> => {
          'deal_stage_history',
          'decisions',
          'applications',
-         'industries',
-         'reject_reasons',
          'meetings',
       ].map((table) => listRows(table)),
    );
 
-   reasonIds = new Map(reasons.map((row) => [str(row.code), row.guid]));
-   const reasonCodes = new Map(reasons.map((row) => [row.guid, str(row.code)]));
-   const industryNames = new Map(industries.map((row) => [row.guid, str(row.name_ru)]));
    const meetingRows = new Map(meetings.map((row) => [row.guid, row]));
    const applicationRows = new Map(applications.map((row) => [row.guid, row]));
    const by = {
@@ -491,7 +511,7 @@ export const loadDeals = async (): Promise<Deal[]> => {
                ? { guid: open.guid, norm: optional(open.norm_days) === undefined ? null : num(open.norm_days) }
                : null,
          });
-         return toDeal(row, children, industryNames, meetingRows, reasonCodes);
+         return toDeal(row, children, meetingRows);
       })
       .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 };
@@ -506,11 +526,16 @@ const dealFields = (deal: Deal): Record<string, unknown> => ({
    number: deal.number,
    company: deal.company,
    about: deal.about,
+   industries_id: listIdOf('industries', deal.industryKey),
    niche: deal.industry,
    tags: deal.tags,
-   channel: deal.source,
-   country: deal.country,
+   // the old text fields keep what they always held, next to the relations
+   channel: deal.fromSite ? 'site' : CHANNELS.includes(deal.source) ? deal.source : 'other',
+   lead_sources_id: listIdOf('sources', deal.source),
+   country: itemOf('countries', deal.country)?.names.ru ?? deal.country,
+   countries_id: listIdOf('countries', deal.country),
    round_stage: deal.roundStage,
+   round_stages_id: listIdOf('rounds', deal.roundStage),
    amount: deal.amount,
    status: deal.status,
    stage: deal.stage,
@@ -528,7 +553,7 @@ const dealFields = (deal: Deal): Record<string, unknown> => ({
    closed_letter: deal.closed?.letter ?? '',
    closed_at: deal.closed?.date || null,
    resubmit: deal.closed?.resubmit ?? '',
-   reject_reasons_id: (deal.closed?.reason && reasonIds.get(deal.closed.reason)) || null,
+   reject_reasons_id: (deal.closed?.reason && listIdOf('reasons', deal.closed.reason)) || null,
    applicant_email: deal.applicantEmail ?? '',
    paused_days: deal.clock?.pausedDays ?? 0,
    paused_since: deal.clock?.pausedSince || null,
@@ -861,8 +886,8 @@ export const summarize = (deals: Deal[]): DealsSummary => {
          count: deals.filter((deal) => reachedIndex(deal) >= index).length,
       })),
       reasons: Object.fromEntries(
-         REASONS.map((reason) => [reason, deals.filter((deal) => deal.closed?.reason === reason).length]),
-      ) as Record<RejectReason, number>,
+         listOf('reasons', true).map(({ key }) => [key, deals.filter((deal) => deal.closed?.reason === key).length]),
+      ),
       lastMonth: {
          month: lastMonth,
          received: deals.filter((deal) => deal.receivedAt.startsWith(lastMonth)).length,

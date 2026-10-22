@@ -36,8 +36,8 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 
 ## 2. A startup applies (website)
 
-1. On http://localhost:3100/ru/apply fill in the form: company `ZZ Startup A`, a real email you can reuse (e.g. `zz.a@example.com`), industry FinTech, stage Seed, amount 150000, attach a small PDF as the pitch deck, send → the done screen shows a reference like `SQBV-2026-XXXXXX` and promises an answer by email (no login: the founder's cabinet comes later).
-2. In ucode, `applications` → the new row with that reference, `public_status` = `submitted`.
+1. On http://localhost:3100/ru/apply fill in the form: company `ZZ Startup A`, a real email you can reuse (e.g. `zz.a@example.com`), industry FinTech, stage Seed, amount 150000, country Узбекистан, attach a small PDF as the pitch deck, «Откуда вы о нас узнали?» Telegram, send → the done screen shows a reference like `SQBV-2026-XXXXXX` and promises an answer by email (no login: the founder's cabinet comes later). The industry, stage, country and source lists are the panel's (Настройки), in the page's language; the sources are those marked «На сайте».
+2. In ucode, `applications` → the new row with that reference, `public_status` = `submitted` (a coloured status), and Отрасль, Раунд, Источник and Страна filled as links to the lists.
 3. Fill in the form again with the same email → it is refused with a message that this email has already applied.
 4. «Стать партнёром» form (if you test it): the request appears in `partner_requests` in ucode. The panel does not show partner requests yet.
 
@@ -47,7 +47,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 2. Open its card → Обзор shows «Из заявки» with what the form sent; «Запросы и документы» shows the pitch deck «на проверке».
 3. Back in Входящие, choose the owner `ZZ Аналитик` in the card's owner select (so that step 4 can use «Администратор» as the second reviewer).
 4. «Взять в скрининг» → the deal leaves Входящие and appears in «Воронка» on Скрининг, with «Осталось 5 р.д.» (or the norm set in Настройки). In ucode `applications`, `public_status` = `screening`.
-5. Also enter one deal by hand: Сделки → «Новая сделка», company `ZZ Manual B`, fill the fields, «Добавить» → it appears in Входящие, offered to you; it will be used in step 10.
+5. Also enter one deal by hand: Сделки → «Новая сделка», company `ZZ Manual B`; Отрасль, Источник, Стадия раунда and Страна are chosen from Настройки's lists, Ниша is free text and may stay empty → «Добавить» → it appears in Входящие, offered to you; it will be used in step 10.
 
 ## 4. Скрининг
 
@@ -140,11 +140,17 @@ Needs the company of step 0.
 
 ## 14. Настройки
 
-1. «Мандат и нормативы»: set Чек `$50 000 – $300 000`, Стадии `Pre-seed, Seed`; change the screening norm to `6 · публично`; change «Churn за квартал выше» → «Сохранить» → «Журнал изменений» lists each change with old and new value.
+Настройки open on «Мандат» (`/settings/mandate`); the menu on the left groups the sections: Фонд, Сделки, Задачи, Команда, Система. On a narrow window it is a select above the page.
+
+1. «Мандат»: set Чек `$50 000 – $300 000`. Beside it, «Из справочников» lists the stages (Pre-seed, Seed), the geography (the five Central Asian countries) and the industries in focus, licensed and excluded, each with a link to its list. → «Этапы и нормативы»: change the screening norm to `6 · публично` → «Флаги портфеля»: change «Churn за квартал выше». The three sections are marked with a dot in the menu → «Сохранить» → «Журнал изменений» lists each change with old and new value.
 2. Сделки → Входящие: a deal asking more than $300 000 now gets «Чек выше $300K»; a new screening deadline counts 6 working days.
 3. Put the values back and save.
-4. «Пользователи и роли»: «Администратор» (Директор, Полный); `ZZ Аналитик` «добавлен <date>, ещё не входил».
-5. «Справочники»: the 11 industries with their place in the mandate, the rejection reasons, the sources.
+4. «Раунды» → «Добавить»: `ZZ Series B` in the three name fields; the code fills itself (`zz_series_b`); tick «В мандате» → «Добавить» → the row is last, «Используется». Move it up with the arrow and back. Open it again (pencil) → the code cannot be changed; untick «Используется» → «Сохранить» → it stays in the list, dimmed, «Отключён», and Сделки → «Новая сделка» no longer offers it. The journal has both changes. (Ask the developer to delete the `zz_series_b` row afterwards.)
+5. «Регионы»: a country not «в мандате» (e.g. Россия) → a deal from it gets «География: Россия» in Входящие. «Источники»: the website's options are the rows marked «На сайте»; the fund's channels (Нетворк, Конференция…) are not offered on the site. «Отрасли»: an industry set to «Исключена» makes its applications «Исключённая отрасль».
+6. «Типы задач»: the types of the task form. «Статусы задач»: the six statuses with their colour, group and what each means; they cannot be changed.
+7. «Пользователи и роли»: «Администратор» (Директор, Полный); `ZZ Аналитик` «добавлен <date>, ещё не входил».
+8. «Интеграции»: Почта, Telegram-бот, ИИ and Контент «Не подключено», with what each needs; the fund's systems below.
+9. An old link `/settings?tab=users` opens «Пользователи и роли».
 
 ## 15. Документы
 
@@ -172,6 +178,8 @@ Needs the company of step 0.
 - The memorandum tab is empty for a new deal (memorandums are not written in the panel yet).
 - The fund's rules (stage conditions, who may save the settings) are checked in the panel, not yet on the server.
 - Partner requests are not shown in the panel.
+- A change to a list reaches the website's form within five minutes (its cache), or at once after `POST /api/revalidate` with the tag `form-options`.
+- Mail, the Telegram bot, AI and the content sources are not connected (Настройки → Интеграции).
 
 ## Reporting
 
@@ -179,6 +187,6 @@ For each problem write: the step number, what you did, what you expected, what y
 
 ## Cleaning up
 
-Delete the `ZZ` records in the ucode admin when you are done: the `fund_documents` and `governance_issues` rows, the deals with their rows (`deal_events`, `deal_stage_history`, `screening_scores`, `deal_documents`, `deal_requests`, `workstreams`), the meetings with `meeting_attendance`, `agenda_items` and `votes`, the `decisions`, the tasks with `task_checklist` and `task_events`, the website applications, the committee members, the portfolio company with its rows, the `fund_money` and `reporting_cycles` rows, and the `ZZ Аналитик` employee. Keep «Администратор» in `employees`.
+Delete the `ZZ` records in the ucode admin when you are done: the `fund_documents` and `governance_issues` rows, the deals with their rows (`deal_events`, `deal_stage_history`, `screening_scores`, `deal_documents`, `deal_requests`, `workstreams`), the meetings with `meeting_attendance`, `agenda_items` and `votes`, the `decisions`, the tasks with `task_checklist` and `task_events`, the website applications, the committee members, the portfolio company with its rows, the `fund_money` and `reporting_cycles` rows, and the `ZZ Аналитик` employee, and the `zz_series_b` row of `round_stages` (Раунды, step 14). Keep «Администратор» in `employees`.
 
 The automated version of this cycle, `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows`, runs the panel's services through the same flows and deletes what it made; `node scripts/ucode/verify.mjs --rows` then checks the schema and the row counts.

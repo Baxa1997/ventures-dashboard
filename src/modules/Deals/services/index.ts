@@ -135,6 +135,7 @@ class Deals {
       const today = todayISO();
       const deal: Deal = {
          ...input,
+         fromSite: false,
          id: newId(),
          number: nextNumber(deals, today.slice(0, 4)),
          tags: '',

@@ -1,5 +1,5 @@
 import { DueDate, StatusBadge } from '@modules/Work/components';
-import { TASK_TYPE_LABELS } from '@modules/Work/constants';
+import { listName } from '@modules/Settings/services';
 import { getAssigneeId, getEmployee, shortName } from '@modules/Work/helpers';
 import { Avatar } from '@shared/components';
 import type { Employee, Task } from '@shared/types/work.types';
@@ -58,7 +58,7 @@ const TasksTable = ({
                            )}
                         >
                            <div className='text-ink-soft text-xs leading-4'>
-                              {[t(TASK_TYPE_LABELS[task.type]), task.context]
+                              {[listName('taskTypes', task.type), task.context]
                                  .filter(Boolean)
                                  .join(' · ')}
                            </div>

@@ -10,6 +10,7 @@ import {
    str,
    updateRow,
 } from '@shared/api/ucode';
+import settings, { listKeyOf } from '@modules/Settings/services';
 import { createStore, newId, todayISO } from '@shared/helpers';
 import type {
    CompanyRequest,
@@ -71,6 +72,7 @@ const toCompany = (
       name: str(row.name),
       tagline: str(row.tagline),
       about: str(row.about),
+      industryKey: listKeyOf('industries', row.industries_id) ?? '',
       countries: str(row.countries),
       instrument: (str(row.instrument) || 'safe') as Instrument,
       invested: investments.reduce((sum, item) => sum + num(item.amount), 0),
@@ -128,6 +130,8 @@ const reportKey = (companyId: string, quarter: string) =>
    `${companyId}/${quarter}`;
 
 const store = createStore<PortfolioState>(async () => {
+   // the companies' sectors are rows of Настройки's industries
+   await settings.getSettings();
    const [companies, investments, reports, pilots, requests, cycles] =
       await Promise.all(
          [

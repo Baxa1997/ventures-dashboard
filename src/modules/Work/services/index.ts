@@ -3,6 +3,7 @@ import { getDeadline, isLate, triageDue } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import { hasAllDocs } from '@modules/Portfolio/helpers';
 import portfolio from '@modules/Portfolio/services';
+import settings, { listIdOf, listKeyOf } from '@modules/Settings/services';
 import {
    createRow,
    day,
@@ -80,7 +81,7 @@ const newest = (a: Row, b: Row) =>
 const toTask = (row: Row, checklist: Row[], events: Row[]): Task => ({
    id: row.guid,
    title: str(row.title),
-   type: (str(row.type) || 'other') as Task['type'],
+   type: listKeyOf('taskTypes', row.task_types_id) ?? (str(row.type) || 'other'),
    context: str(row.context),
    relation: row.deals_id
       ? 'deal'
@@ -117,6 +118,7 @@ const toTask = (row: Row, checklist: Row[], events: Row[]): Task => ({
 const taskFields = (task: Task) => ({
    title: task.title,
    type: task.type,
+   task_types_id: listIdOf('taskTypes', task.type),
    context: task.context,
    basis: task.basis,
    assignee_id: task.assigneeId,
@@ -156,6 +158,8 @@ const eventRow = (taskId: string, event: TaskEvent) => ({
 });
 
 const store = createStore(async () => {
+   // the types are rows of Настройки's list
+   await settings.getSettings();
    const [tasks, checklist, events] = await Promise.all(
       ['tasks', 'task_checklist', 'task_events'].map((table) =>
          listRows(table),

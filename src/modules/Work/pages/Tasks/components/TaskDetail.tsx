@@ -3,8 +3,8 @@ import {
    TASK_RELATION_LABELS,
    TASK_RELATION_SECTIONS,
    TASK_STATUS_LABELS,
-   TASK_TYPE_LABELS,
 } from '@modules/Work/constants';
+import { listName } from '@modules/Settings/services';
 import {
    formatDate,
    formatDay,
@@ -70,7 +70,7 @@ const TaskDetail = ({
    const doneCount = task.checklist.filter((item) => item.done).length;
 
    const caption = [
-      t(TASK_TYPE_LABELS[task.type]),
+      listName('taskTypes', task.type),
       task.priority === 'high' && t('высокий приоритет'),
       task.priority === 'low' && t('низкий приоритет'),
    ]

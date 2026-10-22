@@ -1,8 +1,7 @@
+import { listOf, nameOf } from '@modules/Settings/services';
 import {
    TASK_RELATION_LABELS,
    TASK_RELATION_ORDER,
-   TASK_TYPE_LABELS,
-   TASK_TYPE_ORDER,
 } from '@modules/Work/constants';
 import { shortName } from '@modules/Work/helpers';
 import { FilterBar, FilterSelect } from '@shared/components';
@@ -57,9 +56,9 @@ const Toolbar = ({ filters, employees, onFilter }: ToolbarProps) => {
             label={t('Тип')}
             options={[
                all,
-               ...TASK_TYPE_ORDER.map((type) => ({
-                  value: type,
-                  label: t(TASK_TYPE_LABELS[type]),
+               ...listOf('taskTypes').map((item) => ({
+                  value: item.key,
+                  label: nameOf(item),
                })),
             ]}
             value={filters.type}

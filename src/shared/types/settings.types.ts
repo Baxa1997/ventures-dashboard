@@ -1,9 +1,11 @@
 // Настройки: the rules the system works by, and who may do what.
 
+import type { SupportedLanguageType } from './system/language.types';
 import type { Role } from './work.types';
 
-export type MandateField =
-   'check' | 'stages' | 'focus' | 'geography' | 'excluded';
+// The mandate's text fields. Its stages, geography and sectors are marks on
+// the lists (rounds, countries and industries in mandate).
+export type MandateField = 'check' | 'focus' | 'excluded';
 
 export type NormStage =
    | 'inbox'
@@ -71,11 +73,29 @@ export interface StaffMember {
 
 export type IndustryMandate = 'focus' | 'allowed' | 'licensed' | 'excluded';
 
-export interface Industry {
-   id: string;
-   name: string;
-   mandate: IndustryMandate;
+// The reference lists the fund keeps in Настройки, one ucode table each
+// (docs/ucode-migration.md, batches 1 and 7).
+export type ListKind =
+   | 'industries'
+   | 'rounds'
+   | 'sources'
+   | 'countries'
+   | 'reasons'
+   | 'taskTypes';
+
+export interface ListItem {
+   id: string; // the row's guid
+   key: string; // the slug or code that deals, tasks and the website keep
+   names: Record<SupportedLanguageType, string>;
+   sortOrder: number;
+   active: boolean; // a row is turned off, never deleted: records point to it
+   mandate?: IndustryMandate; // industries: its place in the mandate
+   inMandate?: boolean; // rounds and countries the mandate accepts
+   onSite?: boolean; // sources the website's form offers
+   isMandate?: boolean; // reasons: outside the mandate, the applicant may apply again at once
 }
+
+export type ListItemInput = Omit<ListItem, 'id' | 'sortOrder'>;
 
 export interface SettingsState {
    mandate: Record<MandateField, string>;
@@ -83,5 +103,5 @@ export interface SettingsState {
    flags: PortfolioFlags;
    journal: SettingsChange[];
    staff: StaffMember[];
-   industries: Industry[];
+   lists: Record<ListKind, ListItem[]>; // in their order, the turned-off ones too
 }

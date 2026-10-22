@@ -61,6 +61,7 @@ export interface PortfolioCompany {
    name: string;
    tagline: string; // the line under the name in the list
    about: string; // the line under the name on the card
+   industryKey: string; // an industries key; '' when not set
    countries: string;
    instrument: Instrument;
    invested: number; // USD

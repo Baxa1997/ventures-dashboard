@@ -6,18 +6,13 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { listOf, nameOf } from '@modules/Settings/services';
 import { useCurrentUser } from '@shared/hooks';
-import type { Deal, DealSource, RoundStage } from '@shared/types/deals.types';
+import type { Deal } from '@shared/types/deals.types';
+import type { ListKind } from '@shared/types/settings.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-   COMPANY_MAX,
-   ROUND_STAGE_NAMES,
-   ROUND_STAGE_ORDER,
-   SOURCE_LABELS,
-   SOURCE_ORDER,
-   TEXT_MAX,
-} from '../constants';
+import { COMPANY_MAX, TEXT_MAX } from '../constants';
 import deals from '../services';
 import { fieldErrors, newDealSchema, type ValidationKey } from '../validations';
 
@@ -27,14 +22,15 @@ interface NewDealDialogProps {
    onCreated: (deal: Deal) => void;
 }
 
-type TextKey = 'company' | 'about' | 'industry' | 'country' | 'amount';
+type TextKey = 'company' | 'about' | 'industry' | 'amount';
+type ListKey = 'industryKey' | 'source' | 'roundStage' | 'country';
 
-const INITIAL = {
-   company: '',
-   about: '',
-   industry: '',
-   country: 'Узбекистан',
-   amount: '',
+const INITIAL = { company: '', about: '', industry: '', amount: '' };
+
+// The list's row with this key if the list has it in use, else its first row.
+const preferred = (kind: ListKind, key: string) => {
+   const items = listOf(kind);
+   return (items.find((item) => item.key === key) ?? items[0])?.key ?? '';
 };
 
 const NewDealForm = ({
@@ -45,11 +41,16 @@ const NewDealForm = ({
    const { t: tValidation } = useTranslation('validation');
    const user = useCurrentUser();
    const [values, setValues] = useState(INITIAL);
-   // an application typed in by hand rarely comes from the website
-   const [source, setSource] = useState<DealSource>('network');
-   const [roundStage, setRoundStage] = useState<RoundStage>('seed');
+   // the lists of Настройки; an application typed in by hand rarely comes
+   // from the website's channels, so the source starts at the fund's network
+   const [choices, setChoices] = useState<Record<ListKey, string>>(() => ({
+      industryKey: '',
+      source: preferred('sources', 'network'),
+      roundStage: preferred('rounds', 'seed'),
+      country: preferred('countries', 'UZ'),
+   }));
    const [errors, setErrors] = useState<
-      Partial<Record<TextKey, ValidationKey>>
+      Partial<Record<TextKey | 'industryKey', ValidationKey>>
    >({});
 
    const setValue = (key: TextKey, value: string) => {
@@ -57,7 +58,7 @@ const NewDealForm = ({
       setErrors((prev) => ({ ...prev, [key]: undefined }));
    };
 
-   const errorOf = (key: TextKey) => {
+   const errorOf = (key: TextKey | 'industryKey') => {
       const message = errors[key];
       return message && tValidation(message);
    };
@@ -65,17 +66,40 @@ const NewDealForm = ({
    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const result = newDealSchema.safeParse(values);
-      if (!result.success) {
-         setErrors(fieldErrors(result.error));
+      const sectorMissing = !choices.industryKey;
+      if (!result.success || sectorMissing) {
+         setErrors({
+            ...(result.success ? {} : fieldErrors(result.error)),
+            ...(sectorMissing && { industryKey: 'Обязательное поле' }),
+         });
          return;
       }
       const deal = await deals.createDeal(
-         { ...result.data, source, roundStage },
+         { ...result.data, ...choices },
          user.id,
       );
       onClose();
       onCreated(deal);
    };
+
+   const select = (key: ListKey, kind: ListKind, empty?: string) => (
+      <select
+         aria-invalid={key === 'industryKey' && !!errors.industryKey}
+         className='field-input'
+         value={choices[key]}
+         onChange={(event) => {
+            setChoices((prev) => ({ ...prev, [key]: event.target.value }));
+            setErrors((prev) => ({ ...prev, [key]: undefined }));
+         }}
+      >
+         {empty !== undefined && <option value=''>{empty}</option>}
+         {listOf(kind).map((item) => (
+            <option key={item.key} value={item.key}>
+               {nameOf(item)}
+            </option>
+         ))}
+      </select>
+   );
 
    const input = (key: TextKey, extra?: { inputMode: 'numeric' }) => (
       <input
@@ -122,48 +146,27 @@ const NewDealForm = ({
                      onChange={(event) => setValue('about', event.target.value)}
                   />
                </Field>
-               <Field error={errorOf('industry')} label={t('Отрасль')}>
+               <Field error={errorOf('industryKey')} label={t('Отрасль')}>
+                  {select('industryKey', 'industries', t('Выберите отрасль'))}
+               </Field>
+               <Field
+                  error={errorOf('industry')}
+                  hint={t('Например, «Цифровые чеки»')}
+                  label={t('Ниша')}
+               >
                   {input('industry')}
                </Field>
                <Field label={t('Источник')}>
-                  <select
-                     className='field-input'
-                     value={source}
-                     onChange={(event) =>
-                        setSource(event.target.value as DealSource)
-                     }
-                  >
-                     {SOURCE_ORDER.map((value) => (
-                        <option key={value} value={value}>
-                           {t(SOURCE_LABELS[value])}
-                        </option>
-                     ))}
-                  </select>
+                  {select('source', 'sources')}
                </Field>
                <Field error={errorOf('amount')} label={t('Запрос, $')}>
                   {input('amount', { inputMode: 'numeric' })}
                </Field>
                <Field label={t('Стадия раунда')}>
-                  <select
-                     className='field-input'
-                     value={roundStage}
-                     onChange={(event) =>
-                        setRoundStage(event.target.value as RoundStage)
-                     }
-                  >
-                     {ROUND_STAGE_ORDER.map((value) => (
-                        <option key={value} value={value}>
-                           {ROUND_STAGE_NAMES[value]}
-                        </option>
-                     ))}
-                  </select>
+                  {select('roundStage', 'rounds')}
                </Field>
-               <Field
-                  className='sm:col-span-2'
-                  error={errorOf('country')}
-                  label={t('География')}
-               >
-                  {input('country')}
+               <Field label={t('Страна')}>
+                  {select('country', 'countries')}
                </Field>
             </div>
          </ModalBody>

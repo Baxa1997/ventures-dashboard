@@ -1,59 +1,83 @@
 import InviteDialog from '@modules/Settings/components/InviteDialog';
-import JournalDialog from '@modules/Settings/components/JournalDialog';
+import ListItemDialog from '@modules/Settings/components/ListItemDialog';
 import {
+   DEFAULT_SECTION,
    FLAG_FIELDS,
+   LIST_SECTIONS,
    MANDATE_FIELDS,
    NORM_STAGE_LABELS,
-   type SettingsTab,
-   TAB_LABELS,
-   TABS,
+   SETTINGS_SECTION_IDS,
+   sectionInfo,
+   type SettingsSection,
 } from '@modules/Settings/constants';
 import settings, { parseCheck } from '@modules/Settings/services';
-import {
-   Button,
-   Loading,
-   PageBody,
-   PageHeader,
-   Tabs,
-} from '@shared/components';
+import { Button, Loading, PageBody, PageHeader } from '@shared/components';
+import { SETTINGS_PATH } from '@shared/constants';
 import { useCurrentUser, useServiceData } from '@shared/hooks';
-import type { SettingsState } from '@shared/types/settings.types';
+import type { ListItem, SettingsState } from '@shared/types/settings.types';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
-import { Integrations, Lists, Rules, Users } from './components';
-
-const toTab = (value: string | null): SettingsTab =>
-   TABS.find((tab) => tab === value) ?? 'rules';
+import { Navigate, useParams } from 'react-router';
+import {
+   Committee,
+   Flags,
+   Integrations,
+   Journal,
+   ListSection,
+   Mandate,
+   SettingsNav,
+   Stages,
+   TaskStatuses,
+   Users,
+} from './components';
 
 const load = () => settings.getSettings();
 const subscribe = (listener: () => void) => settings.subscribe(listener);
 
 export type Draft = Pick<SettingsState, 'mandate' | 'norms' | 'flags'>;
 
-/* Настройки: the rules the system counts deadlines, checks applications and
-   raises flags by, and who may do what. Only the director changes the rules;
-   every change goes to the journal. The address keeps the tab. */
+const draftOf = (data: SettingsState): Draft => ({
+   mandate: data.mandate,
+   norms: data.norms,
+   flags: data.flags,
+});
+
+// The sections whose values are saved with «Сохранить», and the part of the
+// draft each holds.
+const DRAFT_PARTS: Partial<Record<SettingsSection, keyof Draft>> = {
+   mandate: 'mandate',
+   stages: 'norms',
+   flags: 'flags',
+};
+
+const isSection = (value: string | undefined): value is SettingsSection =>
+   SETTINGS_SECTION_IDS.some((id) => id === value);
+
+/* Настройки: the rules the platform works by — the mandate, the stage norms,
+   the portfolio's flags — and the lists its forms offer, the team, the
+   integrations and the journal of changes. The address keeps the section
+   (/settings/rounds). Only the director changes the rules and the lists; every
+   change goes to the journal. The rules keep one draft across their sections,
+   so moving between them does not lose what was typed. */
 const SettingsPage = () => {
    const { t } = useTranslation('settings');
    const user = useCurrentUser();
    const data = useServiceData(load, subscribe);
-   const [params, setParams] = useSearchParams();
-   const tab = toTab(params.get('tab'));
+   const { section: param } = useParams();
    const [draft, setDraft] = useState<Draft | null>(null);
-   const [journal, setJournal] = useState(false);
    const [inviting, setInviting] = useState(false);
+   // the list row being edited: null closed, 'new' a new row
+   const [editing, setEditing] = useState<ListItem | 'new' | null>(null);
    const title = t('Настройки');
    const director = user.role === 'director';
 
    useEffect(() => {
-      if (data && !draft)
-         setDraft({
-            mandate: data.mandate,
-            norms: data.norms,
-            flags: data.flags,
-         });
+      if (data && !draft) setDraft(draftOf(data));
    }, [data, draft]);
+
+   if (!isSection(param))
+      return <Navigate replace to={`${SETTINGS_PATH}/${DEFAULT_SECTION}`} />;
+   const section = param;
 
    if (!data || !draft)
       return (
@@ -63,19 +87,20 @@ const SettingsPage = () => {
          </>
       );
 
+   const info = sectionInfo(section);
+   const kind = LIST_SECTIONS[section as keyof typeof LIST_SECTIONS];
+
    // a check the panel cannot read would be saved as no check at all
    const checkError =
       draft.mandate.check.trim() && !parseCheck(draft.mandate.check)
          ? t('Напишите две суммы, от и до: $50 000 – $300 000')
          : '';
 
-   const dirty =
-      JSON.stringify(draft) !==
-      JSON.stringify({
-         mandate: data.mandate,
-         norms: data.norms,
-         flags: data.flags,
-      });
+   const changed = (part: keyof Draft) =>
+      JSON.stringify(draft[part]) !== JSON.stringify(data[part]);
+   const unsaved = (Object.keys(DRAFT_PARTS) as SettingsSection[]).filter(
+      (id) => changed(DRAFT_PARTS[id]!),
+   );
 
    const save = async () => {
       const labels: Record<string, string> = {};
@@ -96,86 +121,127 @@ const SettingsPage = () => {
       setDraft(null);
    };
 
-   const actions: Record<SettingsTab, ReactNode> = {
-      rules: (
-         <>
-            <Button variant='ghost' onClick={() => setJournal(true)}>
-               {t('Журнал изменений')}
+   const saveButton = (
+      <>
+         {unsaved.length > 0 && (
+            <Button variant='ghost' onClick={() => setDraft(draftOf(data))}>
+               {t('Отменить изменения')}
             </Button>
+         )}
+         <Button
+            disabled={!unsaved.length || !director || !!checkError}
+            title={
+               director ? undefined : t('Менять правила может только директор')
+            }
+            onClick={save}
+         >
+            {t('Сохранить')}
+         </Button>
+      </>
+   );
+
+   const actions = (): ReactNode => {
+      if (DRAFT_PARTS[section]) return saveButton;
+      if (kind)
+         return (
             <Button
-               disabled={!dirty || !director || !!checkError}
+               disabled={!director}
                title={
                   director
                      ? undefined
-                     : t('Менять правила может только директор')
+                     : t('Менять справочники может только директор')
                }
-               onClick={save}
+               onClick={() => setEditing('new')}
             >
-               {t('Сохранить')}
+               {t('Добавить')}
             </Button>
-         </>
-      ),
-      users: (
-         <Button
-            disabled={!director}
-            title={director ? undefined : t('Приглашает директор')}
-            onClick={() => setInviting(true)}
-         >
-            {t('Пригласить пользователя')}
-         </Button>
-      ),
-      lists: null,
-      integrations: null,
+         );
+      if (section === 'users')
+         return (
+            <Button
+               disabled={!director}
+               title={director ? undefined : t('Приглашает директор')}
+               onClick={() => setInviting(true)}
+            >
+               {t('Пригласить пользователя')}
+            </Button>
+         );
+      return null;
    };
 
-   const meta: Record<SettingsTab, string> = {
-      rules: t(
-         'Правила, по которым система считает сроки, проверяет заявки и поднимает флаги. Менять их может только директор, каждое изменение попадает в журнал',
-      ),
-      users: t(
-         'Роль задаёт права, человек может совмещать несколько ролей. Внешние участники входят только в свой раздел.',
-      ),
-      lists: t('Справочники, которые используют формы и проверки платформы'),
-      integrations: t('Откуда платформа берёт данные и куда их отдаёт'),
-   };
-
-   return (
-      <>
-         <PageHeader actions={actions[tab]} meta={meta[tab]} title={title}>
-            <Tabs
-               active={tab}
-               items={TABS.map((id) => ({
-                  id,
-                  label: t(TAB_LABELS[id]),
-                  count: id === 'users' ? data.staff.length : undefined,
-               }))}
-               label={title}
-               onChange={(next) =>
-                  setParams(next === 'rules' ? {} : { tab: next }, {
-                     replace: true,
-                  })
-               }
+   const content = () => {
+      if (kind)
+         return (
+            <ListSection
+               editable={director}
+               items={data.lists[kind]}
+               kind={kind}
+               onEdit={setEditing}
             />
-         </PageHeader>
-         <PageBody className='flex flex-col'>
-            {tab === 'rules' && (
-               <Rules
+         );
+      switch (section) {
+         case 'mandate':
+            return (
+               <Mandate
+                  data={data}
                   draft={draft}
                   editable={director}
                   errors={{ check: checkError }}
                   onChange={setDraft}
                />
-            )}
-            {tab === 'users' && <Users data={data} />}
-            {tab === 'lists' && <Lists data={data} />}
-            {tab === 'integrations' && <Integrations />}
-         </PageBody>
-         <JournalDialog
-            data={data}
-            open={journal}
-            onClose={() => setJournal(false)}
+            );
+         case 'stages':
+            return (
+               <Stages draft={draft} editable={director} onChange={setDraft} />
+            );
+         case 'flags':
+            return (
+               <Flags draft={draft} editable={director} onChange={setDraft} />
+            );
+         case 'committee':
+            return <Committee />;
+         case 'task-statuses':
+            return <TaskStatuses />;
+         case 'users':
+            return <Users data={data} />;
+         case 'integrations':
+            return <Integrations />;
+         case 'journal':
+            return <Journal data={data} />;
+         default:
+            return null;
+      }
+   };
+
+   return (
+      <>
+         <PageHeader
+            actions={actions()}
+            meta={t(info.meta)}
+            section={title}
+            title={t(info.label)}
          />
+         <PageBody className='gap-section grid content-start lg:grid-cols-[13rem_minmax(0,1fr)]'>
+            <SettingsNav
+               active={section}
+               counts={data.lists}
+               staff={data.staff.length}
+               unsaved={unsaved}
+            />
+            {/* the section's card grows to the menu's height, so the two end level */}
+            <div className='flex min-w-0 flex-col [&>:last-child]:flex-1'>
+               {content()}
+            </div>
+         </PageBody>
          <InviteDialog open={inviting} onClose={() => setInviting(false)} />
+         {kind && (
+            <ListItemDialog
+               item={editing === 'new' ? null : editing}
+               kind={kind}
+               open={editing !== null}
+               onClose={() => setEditing(null)}
+            />
+         )}
       </>
    );
 };

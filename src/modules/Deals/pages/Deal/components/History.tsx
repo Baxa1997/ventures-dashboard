@@ -1,5 +1,5 @@
-import { REJECT_REASON_LABELS, STAGE_LABELS } from '@modules/Deals/constants';
-import { personName } from '@modules/Deals/helpers';
+import { STAGE_LABELS } from '@modules/Deals/constants';
+import { personName, reasonText } from '@modules/Deals/helpers';
 import { Card, NoData } from '@shared/components';
 import { formatDayYear } from '@shared/helpers';
 import type { Deal, JournalEntry } from '@shared/types/deals.types';
@@ -33,7 +33,7 @@ const History = ({ deal }: HistoryProps) => {
                  });
          case 'rejected':
             return t('Отказ: {{reason}} · {{name}}', {
-               reason: t(REJECT_REASON_LABELS[entry.reason]).toLowerCase(),
+               reason: reasonText(entry.reason).toLowerCase(),
                name: personName(entry.userId),
             });
          case 'request':

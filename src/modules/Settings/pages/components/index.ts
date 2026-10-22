@@ -1,4 +1,10 @@
+export { default as Committee } from './Committee';
+export { default as Flags } from './Flags';
 export { default as Integrations } from './Integrations';
-export { default as Lists } from './Lists';
-export { default as Rules } from './Rules';
+export { default as Journal } from './Journal';
+export { default as ListSection } from './ListSection';
+export { default as Mandate } from './Mandate';
+export { default as SettingsNav } from './SettingsNav';
+export { default as Stages } from './Stages';
+export { default as TaskStatuses } from './TaskStatuses';
 export { default as Users } from './Users';

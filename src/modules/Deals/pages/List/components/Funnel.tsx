@@ -1,10 +1,4 @@
-import {
-   ALL,
-   FUNNEL_STAGES,
-   SOURCE_LABELS,
-   SOURCE_ORDER,
-   STAGE_LABELS,
-} from '@modules/Deals/constants';
+import { ALL, FUNNEL_STAGES, STAGE_LABELS } from '@modules/Deals/constants';
 import {
    type Deadline,
    deadlineLabel,
@@ -13,6 +7,7 @@ import {
    dueText,
    formatAmount,
    getDeadline,
+   industryText,
    nextTitle,
    sumAmounts,
    stageNorm,
@@ -28,7 +23,7 @@ import {
    SearchField,
 } from '@shared/components';
 import { formatDate, formatDay } from '@shared/helpers';
-import type { Deal, DealSource } from '@shared/types/deals.types';
+import type { Deal } from '@shared/types/deals.types';
 import type { DealStage } from '@shared/types/work.types';
 import clsx from 'clsx';
 import { Fragment, useEffect, useMemo, useState } from 'react';
@@ -38,7 +33,9 @@ import {
    industryOptions,
    matches,
    matchesSearch,
+   matchesSource,
    ownerOptions,
+   sourceOptions,
 } from '../helpers';
 
 interface FunnelProps {
@@ -70,7 +67,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
    const language = i18n.resolvedLanguage ?? i18n.language;
    const [search, setSearch] = useState('');
    const [ownerId, setOwnerId] = useState<string>(ALL);
-   const [source, setSource] = useState<DealSource | typeof ALL>(ALL);
+   const [source, setSource] = useState<string>(ALL);
    const [industry, setIndustry] = useState<string>(ALL);
    const [deadline, setDeadline] = useState<DeadlineFilter>(ALL);
    const [stage, setStage] = useState<DealStage | typeof ALL>(ALL);
@@ -93,8 +90,8 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
             (deal) =>
                matchesSearch(deal, search) &&
                matches(ownerId, deal.ownerId) &&
-               matches(source, deal.source) &&
-               matches(industry, deal.industry) &&
+               matchesSource(source, deal) &&
+               matches(industry, industryText(deal)) &&
                matches(stage, deal.stage) &&
                matches(deadline, deadlineGroup(getDeadline(deal))),
          ),
@@ -163,10 +160,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                label={t('Источник')}
                options={[
                   { value: ALL, label: t('Все источники') },
-                  ...SOURCE_ORDER.map((value) => ({
-                     value,
-                     label: t(SOURCE_LABELS[value]),
-                  })),
+                  ...sourceOptions(t),
                ]}
                showLabel={false}
                value={source}

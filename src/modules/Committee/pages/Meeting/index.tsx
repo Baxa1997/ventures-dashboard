@@ -19,6 +19,7 @@ import {
    type VoteTally,
 } from '@modules/Committee/helpers';
 import { type CommitteeData, useCommittee } from '@modules/Committee/hooks';
+import { industryText } from '@modules/Deals/helpers';
 import committee from '@modules/Committee/services';
 import {
    Avatar,
@@ -610,7 +611,7 @@ const ItemCard = ({
       : deal
         ? [
              { label: t('Чем занимается'), value: deal.about },
-             { label: t('Отрасль'), value: deal.industry },
+             { label: t('Отрасль'), value: industryText(deal) },
              { label: t('Запрос'), value: formatUsd(deal.amount, language) },
              {
                 label: t('Докладчик'),

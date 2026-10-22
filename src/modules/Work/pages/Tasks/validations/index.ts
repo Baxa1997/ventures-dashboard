@@ -3,7 +3,6 @@ import {
    TASK_RECURRENCE_ORDER,
    TASK_RELATION_ORDER,
    TASK_STATUS_ORDER,
-   TASK_TYPE_ORDER,
    TITLE_MAX,
 } from '@modules/Work/constants';
 import type { RuTranslation } from '@shared/i18n/ru';
@@ -24,7 +23,7 @@ const oneOf = <T extends string>(values: T[]) => z.enum(values as [T, ...T[]]);
 export const taskSchema: z.ZodType<TaskFormValues> = z
    .object({
       title: z.string().trim().min(1, REQUIRED).max(TITLE_MAX, TOO_LONG),
-      type: oneOf(TASK_TYPE_ORDER),
+      type: z.string().min(1, REQUIRED), // a key of Настройки → Типы задач
       context: z.string().trim().max(CONTEXT_MAX, TOO_LONG),
       relation: oneOf(TASK_RELATION_ORDER),
       relationId: z.string(),

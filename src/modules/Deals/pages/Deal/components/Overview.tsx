@@ -1,12 +1,11 @@
 import { RiskList } from '@modules/Deals/components';
+import { FIELD_FACTS, STAGE_LABELS } from '@modules/Deals/constants';
 import {
-   FIELD_FACTS,
-   ROUND_STAGE_NAMES,
-   SOURCE_LABELS,
-   STAGE_LABELS,
-} from '@modules/Deals/constants';
-import {
+   countryText,
    defaultPath,
+   industryText,
+   roundText,
+   sourceLine,
    factRows,
    formatAmount,
    formatStamp,
@@ -212,19 +211,25 @@ const Overview = ({ deal }: OverviewProps) => {
                                       },
                                    ]
                                  : []),
-                              { label: t('Отрасль'), value: deal.industry },
+                              {
+                                 label: t('Отрасль'),
+                                 value: industryText(deal),
+                              },
                               {
                                  label: t('Запрос'),
                                  value: formatAmount(deal.amount, language),
                               },
                               {
                                  label: t('Стадия раунда'),
-                                 value: ROUND_STAGE_NAMES[deal.roundStage],
+                                 value: roundText(deal),
                               },
-                              { label: t('География'), value: deal.country },
+                              {
+                                 label: t('География'),
+                                 value: countryText(deal),
+                              },
                               {
                                  label: t('Источник'),
-                                 value: t(SOURCE_LABELS[deal.source]),
+                                 value: sourceLine(t, deal),
                               },
                               {
                                  label: t('Поступила'),

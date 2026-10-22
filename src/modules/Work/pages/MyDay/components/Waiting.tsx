@@ -1,4 +1,4 @@
-import { TASK_TYPE_LABELS } from '@modules/Work/constants';
+import { listName } from '@modules/Settings/services';
 import { formatDate } from '@modules/Work/helpers';
 import type { Task, WaitingItem } from '@shared/types/work.types';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +38,7 @@ const Waiting = ({ items, tasks }: WaitingProps) => {
       })),
       ...tasks.map((task) => ({
          id: task.id,
-         from: [t(TASK_TYPE_LABELS[task.type]), task.context]
+         from: [listName('taskTypes', task.type), task.context]
             .filter(Boolean)
             .join(' · '),
          title: task.title,

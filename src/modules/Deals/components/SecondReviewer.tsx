@@ -27,7 +27,7 @@ const SecondReviewer = ({
       return (
          <p className='text-ink-soft text-xs'>
             {t('В команде пока нет другого сотрудника.')}{' '}
-            <Link className='link' to={`${SETTINGS_PATH}?tab=users`}>
+            <Link className='link' to={`${SETTINGS_PATH}/users`}>
                {t('Пригласить в Настройках')}
             </Link>
          </p>

@@ -65,28 +65,31 @@ const today = todayISO();
 
 const settingsRow = (await api.listRows('fund_settings'))[0];
 const normRows = await api.listRows('stage_norms');
+const roundRows = await api.listRows('round_stages');
 
 try {
    // ---- Настройки
    const initial = await settings.getSettings();
-   check('settings: mandate, 8 norms, flags, staff, 11 industries', initial.norms.length === 8 && initial.industries.length === 11 && initial.staff.length >= 1, {
+   const counts = Object.fromEntries(Object.entries(initial.lists).map(([kind, items]) => [kind, items.length]));
+   check('settings: mandate, 8 norms, flags, staff, the six lists', initial.norms.length === 8 && initial.staff.length >= 1 && counts.industries >= 11 && counts.rounds >= 4 && counts.sources >= 13 && counts.countries >= 12 && counts.reasons >= 6 && counts.taskTypes >= 8, {
       norms: initial.norms.map((n) => `${n.stage}:${n.norm}`),
       flags: initial.flags,
       staff: initial.staff.map((m) => `${m.name}/${m.role}`),
+      counts,
    });
    await settings.save(
       {
-         mandate: { ...initial.mandate, check: '$50 000 – $300 000', stages: 'Pre-seed, Seed' },
+         mandate: { ...initial.mandate, check: '$50 000 – $300 000' },
          norms: initial.norms.map((n) => (n.stage === 'screening' ? { ...n, norm: '6 · публично' } : n)),
          flags: { ...initial.flags, churn: 6 },
       },
       me.id,
-      { 'mandate.check': 'Мандат · Чек', 'mandate.stages': 'Мандат · Стадии', 'norm.screening': 'Норматив · Скрининг', 'flag.churn': 'Флаг · Churn' },
+      { 'mandate.check': 'Мандат · Чек', 'norm.screening': 'Норматив · Скрининг', 'flag.churn': 'Флаг · Churn' },
    );
    const saved = await settings.getSettings();
-   check('settings saved and read back', saved.mandate.check === '$50 000 – $300 000' && saved.mandate.stages === 'Pre-seed, Seed' && saved.flags.churn === 6 && saved.norms.find((n) => n.stage === 'screening')?.norm === '6 · публично', saved.mandate);
+   check('settings saved and read back', saved.mandate.check === '$50 000 – $300 000' && saved.flags.churn === 6 && saved.norms.find((n) => n.stage === 'screening')?.norm === '6 · публично', saved.mandate);
    // only the values that differ from what the fund has saved go to the journal
-   const changed = [initial.mandate.check !== '$50 000 – $300 000', initial.mandate.stages !== 'Pre-seed, Seed', initial.norms.find((n) => n.stage === 'screening')?.norm !== '6 · публично', initial.flags.churn !== 6].filter(Boolean).length;
+   const changed = [initial.mandate.check !== '$50 000 – $300 000', initial.norms.find((n) => n.stage === 'screening')?.norm !== '6 · публично', initial.flags.churn !== 6].filter(Boolean).length;
    check(`settings journal has the ${changed} changes`, saved.journal.length - initial.journal.length === changed, saved.journal.slice(0, changed).map((j) => `${j.field}: ${j.from} → ${j.to}`));
    const { stageNorm, mandateLimits } = await import('@modules/Deals/helpers');
    check('Сделки follow the saved rules', stageNorm('screening') === 6 && mandateLimits().maxCheck === 300000, { screening: stageNorm('screening'), limits: mandateLimits() });
@@ -96,9 +99,42 @@ try {
    check('invite adds an employees row, not signed in yet', invited && invited.invitedAt === today && invited.role === 'analyst', invited);
    check('the team includes the invited employee', TEAM.some(({ id }) => id === invited?.id));
 
+   // ---- Настройки: a list (batch 7)
+   const { listOf, listIdOf, itemOf } = await import('@modules/Settings/services');
+   const describe = (row: { names: { ru: string }; active: boolean } | null) => (row ? `${row.names.ru} · ${row.active ? 'используется' : 'отключён'}` : '');
+   const journalBefore = (await settings.getSettings()).journal.length;
+   const round = { key: 'zz_series_b', names: { ru: 'ZZ Series B', uz: 'ZZ Series B', en: 'ZZ Series B' }, active: true, inMandate: false };
+   await settings.saveListItem('rounds', null, round, me.id, 'Справочник «Раунды» · ZZ Series B', describe);
+   const added = itemOf('rounds', 'zz_series_b');
+   check('a round added to the list, last, and offered by the forms', added && added.names.en === 'ZZ Series B' && !added.inMandate && listOf('rounds').at(-1)?.key === 'zz_series_b', added);
+   await settings.saveListItem('rounds', added!.id, { ...round, inMandate: true, active: false }, me.id, 'Справочник «Раунды» · ZZ Series B', describe);
+   const changedRound = itemOf('rounds', 'zz_series_b');
+   check('turned off: kept in the list, no longer offered', changedRound?.inMandate && !changedRound.active && !listOf('rounds').some((item) => item.key === 'zz_series_b') && listOf('rounds', true).some((item) => item.key === 'zz_series_b'), changedRound);
+   const journalAfter = (await settings.getSettings()).journal;
+   check('both list changes are in the journal', journalAfter.length - journalBefore === 2 && journalAfter[0].from === 'ZZ Series B · используется' && journalAfter[0].to === 'ZZ Series B · отключён', journalAfter.slice(0, 2));
+   let refusedKey = false;
+   try {
+      await settings.saveListItem('rounds', null, { ...round, key: 'seed' }, me.id, 'x', describe);
+   } catch {
+      refusedKey = true;
+   }
+   check('a key that is taken is refused', refusedKey);
+   const orderOf = () => listOf('rounds', true).map((item) => item.key).join(',');
+   const orderBefore = orderOf();
+   await settings.moveListItem('rounds', added!.id, -1);
+   const moved = orderOf();
+   await settings.moveListItem('rounds', added!.id, 1);
+   check('a row moves up the list and back', moved !== orderBefore && moved.indexOf('zz_series_b') < orderBefore.indexOf('zz_series_b') && orderOf() === orderBefore, { orderBefore, moved, after: orderOf() });
+
    // ---- Сделки
-   const deal = await deals.createDeal({ company: 'ZZ Test Co', about: 'Тестовая сделка', industry: 'FinTech', source: 'network', amount: 150000, country: 'Узбекистан', roundStage: 'seed' }, me.id);
+   const deal = await deals.createDeal({ company: 'ZZ Test Co', about: 'Тестовая сделка', industryKey: 'fintech', industry: 'ZZ цифровые чеки', source: 'network', amount: 150000, country: 'UZ', roundStage: 'seed' }, me.id);
    check('deal created in the inbox', deal.status === 'review' && /^SQBV-\d{4}-\d{4}$/.test(deal.number), deal.number);
+   const dealRow = (await api.listRows('deals')).find((row) => row.guid === deal.id);
+   check("the deal points to the lists' rows: industry, source, round, country", dealRow && dealRow.industries_id === listIdOf('industries', 'fintech') && dealRow.lead_sources_id === listIdOf('sources', 'network') && dealRow.round_stages_id === listIdOf('rounds', 'seed') && dealRow.countries_id === listIdOf('countries', 'UZ') && dealRow.niche === 'ZZ цифровые чеки' && dealRow.channel === 'network', dealRow && { industries_id: dealRow.industries_id, lead_sources_id: dealRow.lead_sources_id, round_stages_id: dealRow.round_stages_id, countries_id: dealRow.countries_id, channel: dealRow.channel });
+   const { checkMandate } = await import('@modules/Deals/helpers');
+   const t = ((key: string) => key) as unknown as Parameters<typeof checkMandate>[0];
+   const verdict = (patch: Partial<typeof deal>) => checkMandate(t, { ...deal, ...patch }, 'ru').verdict.state;
+   check('the mandate check reads the lists: fits; a round or a country outside the mandate, a deal with no sector', verdict({}) === 'ok' && verdict({ roundStage: 'series_a' }) === 'attention' && verdict({ country: 'RU' }) === 'attention' && verdict({ industryKey: '' }) === 'attention', { fits: verdict({}), seriesA: verdict({ roundStage: 'series_a' }), russia: verdict({ country: 'RU' }), noSector: verdict({ industryKey: '' }) });
    const queueInbox = await work.getQueue(me.id);
    check('Мой день: the application offered to me', queueInbox.some((item) => item.kind === 'inbox' && item.dealId === deal.id));
    await deals.takeToScreening(deal.id, me.id);
@@ -122,6 +158,8 @@ try {
    const tasks = await work.getTasks();
    const closed = tasks.find((t) => t.id === task.id);
    const next = tasks.find((t) => t.id !== task.id && t.title === task.title);
+   const taskRow = (await api.listRows('tasks')).find((row) => row.guid === task.id);
+   check('the task points to its type in the list', taskRow?.task_types_id === listIdOf('taskTypes', 'other'), taskRow?.task_types_id);
    check('task read back from ucode: deal link, checklist, history', closed && closed.relation === 'deal' && closed.relationId === deal.id && closed.checklist[0].done && !closed.checklist[1].done && closed.completedAt === today && closed.history.map((e) => e.kind).join(',') === 'status,comment', closed && { checklist: closed.checklist, history: closed.history.map((e) => e.kind) });
    check('closing a monthly task made the next one', next && next.status === 'assigned' && next.checklist.every((i) => !i.done) && next.history[0]?.kind === 'recurred' && next.dueDate > task.dueDate, next && { due: next.dueDate, history: next.history.map((e) => e.kind) });
    await work.updateTask(next!.id, { checklist: [next!.checklist[1]], reviewerId: me.id, status: 'review' }, me.id);
@@ -264,14 +302,13 @@ try {
          guid: settingsRow.guid,
          check_min: settingsRow.check_min ?? null,
          check_max: settingsRow.check_max ?? null,
-         round_stages: settingsRow.round_stages ?? null,
          focus_text: settingsRow.focus_text ?? null,
-         geography_text: settingsRow.geography_text ?? null,
          excluded_text: settingsRow.excluded_text ?? null,
          flag_churn_pct: settingsRow.flag_churn_pct ?? null,
       });
    for (const row of normRows)
       await api.updateRow('stage_norms', { guid: row.guid, norm_text: row.norm_text ?? null, norm_days: row.norm_days ?? null });
+   for (const row of roundRows) await api.updateRow('round_stages', { guid: row.guid, sort_order: row.sort_order ?? null });
    // children before their parents: the reverse of the order they were made in
    let left = 0;
    for (const [table, guid] of [...created].reverse())
