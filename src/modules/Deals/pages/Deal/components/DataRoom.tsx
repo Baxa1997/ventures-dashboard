@@ -17,11 +17,12 @@ import {
    ModalBody,
    ModalFooter,
    NoData,
+   Spinner,
 } from '@shared/components';
 import { useAction, useCurrentUser, useRequest } from '@shared/hooks';
 import type { Deal, DealDocument, DealFolder } from '@shared/types/deals.types';
-import { ChevronRight, FileText, Folder } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { ChevronRight, FileText, Folder, Upload } from 'lucide-react';
+import { type DragEvent, type FormEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface DataRoomProps {
@@ -294,6 +295,38 @@ const DataRoom = ({ deal, folderId, onFolder, onRequest }: DataRoomProps) => {
    const folderName = (id: string) =>
       folders.find((folder) => folder.id === id)?.name ?? 'Data room';
 
+   // the fund's files, into the open folder: by the button or dropped on the card
+   const input = useRef<HTMLInputElement>(null);
+   const [uploading, setUploading] = useState(0);
+   const [dragging, setDragging] = useState(false);
+   const uploader = useAction(
+      async (files: File[], folderId: string) => {
+         for (const file of files)
+            await deals.uploadDocument(deal.id, file, user.id, folderId);
+      },
+      {
+         kind: 'upload',
+         success: (files, folderId) =>
+            files.length > 1
+               ? t('Файлы загружены в «{{folder}}»: {{count}}', {
+                    folder: folderName(folderId),
+                    count: files.length,
+                 })
+               : t('Файл загружен в «{{folder}}»', {
+                    folder: folderName(folderId),
+                 }),
+      },
+   );
+   const upload = async (files: File[]) => {
+      if (!files.length || uploader.pending) return;
+      setUploading(files.length);
+      await uploader.run(files, current);
+      setUploading(0);
+   };
+   const withFiles = (event: DragEvent) =>
+      writable && event.dataTransfer.types.includes('Files');
+   const choose = () => input.current?.click();
+
    // what a folder holds, directly
    const contentsOf = (id: string) => {
       const inner = folders.filter(({ parentId }) => parentId === id).length;
@@ -394,279 +427,366 @@ const DataRoom = ({ deal, folderId, onFolder, onRequest }: DataRoomProps) => {
    };
 
    return (
-      <Card
-         hint={`${t('{{count}} документ', { count: documents.length })} · ${t(
-            '{{total}} на проверке',
-            { total: reviewCount },
-         )}`}
-         title='Data room'
+      // files dropped anywhere on the card go into the open folder
+      <div
+         className='relative flex flex-col'
+         onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node))
+               setDragging(false);
+         }}
+         onDragOver={(event) => {
+            if (!withFiles(event)) return;
+            event.preventDefault();
+            setDragging(true);
+         }}
+         onDrop={(event) => {
+            if (!withFiles(event)) return;
+            event.preventDefault();
+            setDragging(false);
+            upload([...event.dataTransfer.files]);
+         }}
       >
-         <div className='border-line flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-5 py-3'>
-            <nav aria-label={t('Папки data room')}>
-               <ol className='text-meta flex flex-wrap items-center gap-1'>
-                  {[{ id: '', name: 'Data room' }, ...path].map(
-                     (item, index, all) => {
-                        const last = index === all.length - 1;
-                        return (
-                           <li
-                              key={item.id}
-                              className='flex items-center gap-1'
-                           >
-                              {index > 0 && (
-                                 <ChevronRight
-                                    aria-hidden
-                                    className='text-ink-faint size-3.5'
-                                 />
-                              )}
-                              {last ? (
-                                 <span
-                                    aria-current='page'
-                                    className='font-semibold'
-                                 >
-                                    {item.name}
-                                 </span>
-                              ) : (
-                                 <button
-                                    type='button'
-                                    className='link'
-                                    onClick={() => onFolder(item.id)}
-                                 >
-                                    {item.name}
-                                 </button>
-                              )}
-                           </li>
-                        );
-                     },
-                  )}
-               </ol>
-            </nav>
-            {writable && (
-               <button
-                  type='button'
-                  className='link text-meta'
-                  onClick={() => setEditingFolder('new')}
-               >
-                  {t('Новая папка')}
-               </button>
-            )}
-         </div>
-
-         {subfolders.length || files.length ? (
-            <div className='p-5'>
-               <ul className='flex flex-col gap-2.5'>
-                  {subfolders.map((folder) => (
-                     <li
-                        key={folder.id}
-                        className='border-line hover:bg-ground/60 relative flex items-center gap-3.5 rounded-lg border px-4 py-3'
+         {dragging && (
+            <div className='border-accent bg-accent-tint/90 text-accent pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-lg border-2 border-dashed p-6 text-center font-semibold'>
+               {t('Отпустите — файлы загрузятся в «{{folder}}»', {
+                  folder: folderName(current),
+               })}
+            </div>
+         )}
+         <input
+            ref={input}
+            hidden
+            multiple
+            type='file'
+            onChange={(event) => {
+               upload([...(event.target.files ?? [])]);
+               event.target.value = '';
+            }}
+         />
+         <Card
+            className='flex-1'
+            hint={`${t('{{count}} документ', { count: documents.length })} · ${t(
+               '{{total}} на проверке',
+               { total: reviewCount },
+            )}`}
+            title='Data room'
+         >
+            <div className='border-line flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-5 py-3'>
+               <nav aria-label={t('Папки data room')}>
+                  <ol className='text-meta flex flex-wrap items-center gap-1'>
+                     {[{ id: '', name: 'Data room' }, ...path].map(
+                        (item, index, all) => {
+                           const last = index === all.length - 1;
+                           return (
+                              <li
+                                 key={item.id}
+                                 className='flex items-center gap-1'
+                              >
+                                 {index > 0 && (
+                                    <ChevronRight
+                                       aria-hidden
+                                       className='text-ink-faint size-3.5'
+                                    />
+                                 )}
+                                 {last ? (
+                                    <span
+                                       aria-current='page'
+                                       className='font-semibold'
+                                    >
+                                       {item.name}
+                                    </span>
+                                 ) : (
+                                    <button
+                                       type='button'
+                                       className='link'
+                                       onClick={() => onFolder(item.id)}
+                                    >
+                                       {item.name}
+                                    </button>
+                                 )}
+                              </li>
+                           );
+                        },
+                     )}
+                  </ol>
+               </nav>
+               {writable && (
+                  <span className='text-meta flex flex-wrap items-center gap-x-4 gap-y-1'>
+                     <button
+                        type='button'
+                        aria-busy={uploading > 0 || undefined}
+                        className='link disabled:text-ink-soft inline-flex items-center gap-1.5 disabled:no-underline'
+                        disabled={uploading > 0}
+                        onClick={choose}
                      >
-                        <span className='bg-accent-tint text-accent grid size-9 shrink-0 place-items-center rounded-md'>
-                           <Folder aria-hidden className='size-4' />
-                        </span>
-                        <div className='min-w-0 flex-1'>
-                           {/* the whole row opens the folder */}
-                           <button
-                              type='button'
-                              className='text-left font-semibold after:absolute after:inset-0'
-                              onClick={() => onFolder(folder.id)}
-                           >
-                              {folder.name}
-                           </button>
-                           <div className='text-ink-soft mt-0.5 text-xs'>
-                              {contentsOf(folder.id) || t('пустая папка')}
-                           </div>
-                        </div>
-                        {writable && (
-                           <ItemActions
-                              className='relative text-xs'
-                              name={folder.name}
-                              onDelete={() => setRemovingFolder(folder)}
-                              onEdit={() => setEditingFolder(folder)}
-                           />
+                        {uploading > 0 ? (
+                           <Spinner className='size-3.5' />
+                        ) : (
+                           <Upload aria-hidden className='size-3.5' />
                         )}
-                     </li>
-                  ))}
-                  {files.map((document) => (
-                     <li
-                        key={document.id}
-                        className='border-line rounded-lg border px-4 py-3'
+                        {uploading > 0
+                           ? t('Загружается: {{count}}', { count: uploading })
+                           : t('Загрузить файлы')}
+                     </button>
+                     <button
+                        type='button'
+                        className='link'
+                        onClick={() => setEditingFolder('new')}
                      >
-                        <div className='flex items-center gap-3.5'>
-                           <span className='bg-ground text-ink-faint grid size-9 shrink-0 place-items-center rounded-md'>
-                              <FileText aria-hidden className='size-4' />
+                        {t('Новая папка')}
+                     </button>
+                  </span>
+               )}
+            </div>
+
+            {subfolders.length || files.length ? (
+               <div className='p-5'>
+                  <ul className='flex flex-col gap-2.5'>
+                     {subfolders.map((folder) => (
+                        <li
+                           key={folder.id}
+                           className='border-line hover:bg-ground/60 relative flex items-center gap-3.5 rounded-lg border px-4 py-3'
+                        >
+                           <span className='bg-accent-tint text-accent grid size-9 shrink-0 place-items-center rounded-md'>
+                              <Folder aria-hidden className='size-4' />
                            </span>
                            <div className='min-w-0 flex-1'>
-                              <div className='flex flex-wrap items-center gap-x-2.5 gap-y-1'>
-                                 <span className='font-semibold break-words'>
-                                    {document.title}
-                                 </span>
-                                 <Badge
-                                    caps
-                                    tone={
-                                       DOCUMENT_STATUS_TONES[document.status]
-                                    }
-                                 >
-                                    {t(DOCUMENT_STATUS_LABELS[document.status])}
-                                 </Badge>
-                              </div>
+                              {/* the whole row opens the folder */}
+                              <button
+                                 type='button'
+                                 className='text-left font-semibold after:absolute after:inset-0'
+                                 onClick={() => onFolder(folder.id)}
+                              >
+                                 {folder.name}
+                              </button>
                               <div className='text-ink-soft mt-0.5 text-xs'>
-                                 {documentLine(document)}
+                                 {contentsOf(folder.id) || t('пустая папка')}
                               </div>
                            </div>
-                           {reviewId !== document.id &&
-                              documentAction(document)}
-                        </div>
-                        {reviewId === document.id && (
-                           <div className='border-line mt-3 border-t pt-3'>
-                              <textarea
-                                 aria-label={t('Причина отклонения')}
-                                 className='field-input text-meta'
-                                 maxLength={TEXT_MAX}
-                                 placeholder={t(
-                                    'Причина — нужна, только если документ отклоняется',
-                                 )}
-                                 rows={2}
-                                 value={reason}
-                                 onChange={(event) =>
-                                    setReason(event.target.value)
-                                 }
+                           {writable && (
+                              <ItemActions
+                                 className='relative text-xs'
+                                 name={folder.name}
+                                 onDelete={() => setRemovingFolder(folder)}
+                                 onEdit={() => setEditingFolder(folder)}
                               />
-                              <div className='mt-2.5 flex flex-wrap items-center gap-2.5'>
-                                 {document.url && (
-                                    <a
-                                       className='link text-meta mr-auto'
-                                       href={document.url}
-                                       rel='noreferrer'
-                                       target='_blank'
+                           )}
+                        </li>
+                     ))}
+                     {files.map((document) => (
+                        <li
+                           key={document.id}
+                           className='border-line rounded-lg border px-4 py-3'
+                        >
+                           <div className='flex items-center gap-3.5'>
+                              <span className='bg-ground text-ink-faint grid size-9 shrink-0 place-items-center rounded-md'>
+                                 <FileText aria-hidden className='size-4' />
+                              </span>
+                              <div className='min-w-0 flex-1'>
+                                 <div className='flex flex-wrap items-center gap-x-2.5 gap-y-1'>
+                                    <span className='font-semibold break-words'>
+                                       {document.title}
+                                    </span>
+                                    <Badge
+                                       caps
+                                       tone={
+                                          DOCUMENT_STATUS_TONES[document.status]
+                                       }
                                     >
-                                       {t('Открыть файл')}
-                                    </a>
-                                 )}
-                                 <Button
-                                    className='h-9'
-                                    disabled={reviewing.pending}
-                                    loading={verdict === true}
-                                    onClick={() => review(document, true)}
-                                 >
-                                    {t('Принять')}
-                                 </Button>
-                                 <Button
-                                    className='h-9'
-                                    // a rejection always says why
-                                    disabled={
-                                       !reason.trim() || reviewing.pending
-                                    }
-                                    loading={verdict === false}
-                                    variant='ghost'
-                                    onClick={() => review(document, false)}
-                                 >
-                                    {t('Отклонить')}
-                                 </Button>
-                                 <Button
-                                    className='h-9'
-                                    disabled={reviewing.pending}
-                                    variant='text'
-                                    onClick={() => setReviewId(null)}
-                                 >
-                                    {t('Отмена')}
-                                 </Button>
+                                       {t(
+                                          DOCUMENT_STATUS_LABELS[
+                                             document.status
+                                          ],
+                                       )}
+                                    </Badge>
+                                 </div>
+                                 <div className='text-ink-soft mt-0.5 text-xs'>
+                                    {documentLine(document)}
+                                 </div>
                               </div>
+                              {reviewId !== document.id &&
+                                 documentAction(document)}
                            </div>
+                           {reviewId === document.id && (
+                              <div className='border-line mt-3 border-t pt-3'>
+                                 <textarea
+                                    aria-label={t('Причина отклонения')}
+                                    className='field-input text-meta'
+                                    maxLength={TEXT_MAX}
+                                    placeholder={t(
+                                       'Причина — нужна, только если документ отклоняется',
+                                    )}
+                                    rows={2}
+                                    value={reason}
+                                    onChange={(event) =>
+                                       setReason(event.target.value)
+                                    }
+                                 />
+                                 <div className='mt-2.5 flex flex-wrap items-center gap-2.5'>
+                                    {document.url && (
+                                       <a
+                                          className='link text-meta mr-auto'
+                                          href={document.url}
+                                          rel='noreferrer'
+                                          target='_blank'
+                                       >
+                                          {t('Открыть файл')}
+                                       </a>
+                                    )}
+                                    <Button
+                                       className='h-9'
+                                       disabled={reviewing.pending}
+                                       loading={verdict === true}
+                                       onClick={() => review(document, true)}
+                                    >
+                                       {t('Принять')}
+                                    </Button>
+                                    <Button
+                                       className='h-9'
+                                       // a rejection always says why
+                                       disabled={
+                                          !reason.trim() || reviewing.pending
+                                       }
+                                       loading={verdict === false}
+                                       variant='ghost'
+                                       onClick={() => review(document, false)}
+                                    >
+                                       {t('Отклонить')}
+                                    </Button>
+                                    <Button
+                                       className='h-9'
+                                       disabled={reviewing.pending}
+                                       variant='text'
+                                       onClick={() => setReviewId(null)}
+                                    >
+                                       {t('Отмена')}
+                                    </Button>
+                                 </div>
+                              </div>
+                           )}
+                        </li>
+                     ))}
+                  </ul>
+                  <p className='text-ink-soft mt-3.5 text-xs'>
+                     {t(
+                        'Каждая версия хранится с автором и временем. «Загрузить файлы» кладёт файлы в открытую папку, их можно и перетащить на карточку; документ переносят в другую папку кнопкой «Изменить». Отклонение без причины недоступно — иначе заявитель вернётся в почту.',
+                     )}
+                  </p>
+               </div>
+            ) : writable ? (
+               // an empty folder: where to drop files, or the button
+               <div className='p-5'>
+                  <div className='border-line-strong text-ink-soft grid place-items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center'>
+                     <p>
+                        {current
+                           ? t('В этой папке пока пусто')
+                           : t('Документов в data room пока нет')}
+                        <br />
+                        {t(
+                           'Перетащите файлы сюда или выберите их на компьютере.',
                         )}
-                     </li>
-                  ))}
-               </ul>
-               <p className='text-ink-soft mt-3.5 text-xs'>
+                     </p>
+                     <Button
+                        className='h-9'
+                        loading={uploading > 0}
+                        variant='ghost'
+                        onClick={choose}
+                     >
+                        {uploading > 0
+                           ? t('Загружается: {{count}}', { count: uploading })
+                           : t('Загрузить файлы')}
+                     </Button>
+                  </div>
+               </div>
+            ) : (
+               <NoData>
+                  {current
+                     ? t('В этой папке пока пусто')
+                     : t('Документов в data room пока нет')}
+               </NoData>
+            )}
+
+            <Modal
+               open={editingFolder !== null}
+               subtitle={deal.company}
+               title={editingFolder === 'new' ? t('Новая папка') : t('Папка')}
+               onClose={() => setEditingFolder(null)}
+            >
+               {editingFolder && (
+                  <FolderForm
+                     key={editingFolder === 'new' ? 'new' : editingFolder.id}
+                     deal={deal}
+                     folder={editingFolder === 'new' ? null : editingFolder}
+                     parentId={current}
+                     onClose={() => setEditingFolder(null)}
+                  />
+               )}
+            </Modal>
+            <ConfirmDialog
+               open={removingFolder !== null}
+               subtitle={removingFolder?.name}
+               success={t('Папка удалена')}
+               title={t('Удалить папку?')}
+               onClose={() => setRemovingFolder(null)}
+               onConfirm={async () => {
+                  if (!removingFolder) return;
+                  await deals.removeFolder(deal.id, removingFolder.id);
+                  // the open folder, or one inside it, is gone: go up
+                  if (
+                     removingFolder.id === current ||
+                     path.some(({ id }) => id === removingFolder.id)
+                  )
+                     onFolder(removingFolder.parentId);
+               }}
+            >
+               <p>
                   {t(
-                     'Каждая версия хранится с автором и временем. «Загрузить от имени фонда» кладёт файлы в открытую папку; документ переносят в другую папку кнопкой «Изменить». Отклонение без причины недоступно — иначе заявитель вернётся в почту.',
+                     'Файлы и папки из неё не удалятся — они перейдут в «{{parent}}».',
+                     { parent: folderName(removingFolder?.parentId ?? '') },
                   )}
                </p>
-            </div>
-         ) : (
-            <NoData>
-               {current
-                  ? t('В этой папке пока пусто')
-                  : t('Документов в data room пока нет')}
-            </NoData>
-         )}
-
-         <Modal
-            open={editingFolder !== null}
-            subtitle={deal.company}
-            title={editingFolder === 'new' ? t('Новая папка') : t('Папка')}
-            onClose={() => setEditingFolder(null)}
-         >
-            {editingFolder && (
-               <FolderForm
-                  key={editingFolder === 'new' ? 'new' : editingFolder.id}
-                  deal={deal}
-                  folder={editingFolder === 'new' ? null : editingFolder}
-                  parentId={current}
-                  onClose={() => setEditingFolder(null)}
-               />
-            )}
-         </Modal>
-         <ConfirmDialog
-            open={removingFolder !== null}
-            subtitle={removingFolder?.name}
-            success={t('Папка удалена')}
-            title={t('Удалить папку?')}
-            onClose={() => setRemovingFolder(null)}
-            onConfirm={async () => {
-               if (!removingFolder) return;
-               await deals.removeFolder(deal.id, removingFolder.id);
-               // the open folder, or one inside it, is gone: go up
-               if (
-                  removingFolder.id === current ||
-                  path.some(({ id }) => id === removingFolder.id)
-               )
-                  onFolder(removingFolder.parentId);
-            }}
-         >
-            <p>
-               {t(
-                  'Файлы и папки из неё не удалятся — они перейдут в «{{parent}}».',
-                  { parent: folderName(removingFolder?.parentId ?? '') },
+            </ConfirmDialog>
+            <Modal
+               open={editingDocument !== null}
+               subtitle={deal.company}
+               title={t('Документ')}
+               onClose={() => setEditingDocument(null)}
+            >
+               {editingDocument && (
+                  <DocumentForm
+                     key={editingDocument.id}
+                     deal={deal}
+                     document={editingDocument}
+                     onClose={() => setEditingDocument(null)}
+                  />
                )}
-            </p>
-         </ConfirmDialog>
-         <Modal
-            open={editingDocument !== null}
-            subtitle={deal.company}
-            title={t('Документ')}
-            onClose={() => setEditingDocument(null)}
-         >
-            {editingDocument && (
-               <DocumentForm
-                  key={editingDocument.id}
-                  deal={deal}
-                  document={editingDocument}
-                  onClose={() => setEditingDocument(null)}
-               />
-            )}
-         </Modal>
-         <ConfirmDialog
-            open={removingDocument !== null}
-            subtitle={
-               removingDocument &&
-               `${removingDocument.title}${removingDocument.version ? ` · v${removingDocument.version}` : ''}`
-            }
-            success={t('Документ удалён')}
-            title={t('Удалить документ?')}
-            onClose={() => setRemovingDocument(null)}
-            onConfirm={() =>
-               removingDocument &&
-               deals.removeDocument(deal.id, removingDocument.id)
-            }
-         >
-            <p>
-               {removingDocument?.fileId
-                  ? t(
-                       'Файл удалится из data room и из хранилища; другие версии документа останутся.',
-                    )
-                  : t('Документ уйдёт из data room; другие версии останутся.')}
-            </p>
-         </ConfirmDialog>
-      </Card>
+            </Modal>
+            <ConfirmDialog
+               open={removingDocument !== null}
+               subtitle={
+                  removingDocument &&
+                  `${removingDocument.title}${removingDocument.version ? ` · v${removingDocument.version}` : ''}`
+               }
+               success={t('Документ удалён')}
+               title={t('Удалить документ?')}
+               onClose={() => setRemovingDocument(null)}
+               onConfirm={() =>
+                  removingDocument &&
+                  deals.removeDocument(deal.id, removingDocument.id)
+               }
+            >
+               <p>
+                  {removingDocument?.fileId
+                     ? t(
+                          'Файл удалится из data room и из хранилища; другие версии документа останутся.',
+                       )
+                     : t(
+                          'Документ уйдёт из data room; другие версии останутся.',
+                       )}
+               </p>
+            </ConfirmDialog>
+         </Card>
+      </div>
    );
 };
 

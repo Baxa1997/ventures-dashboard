@@ -25,10 +25,19 @@ Object.assign(globalThis, { localStorage: memory(), sessionStorage: memory() });
 // the rows this run creates: the guid of every row a POST /v2/items/<table>
 // made, from ucode's reply (some rows are created without one of their own)
 const created: [table: string, guid: string][] = [];
+// every field the run writes, by table: with PANEL_TEST_WRITES set, written to
+// that file at the end, for `verify.mjs --writes` to check against ucode
+const writes = new Map<string, Set<string>>();
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-   const response = await realFetch(input, init);
    const table = String(input).match(/\/v2\/items\/(\w+)$/)?.[1];
+   if (table && (init?.method === 'POST' || init?.method === 'PUT') && typeof init.body === 'string') {
+      const data = (JSON.parse(init.body) as { data?: Record<string, unknown> }).data ?? {};
+      const fields = writes.get(table) ?? new Set<string>();
+      Object.keys(data).forEach((field) => fields.add(field));
+      writes.set(table, fields);
+   }
+   const response = await realFetch(input, init);
    if (table && init?.method === 'POST' && response.ok) {
       const reply = (await response.clone().json()) as { data?: { data?: { guid?: string } } };
       const guid = reply.data?.data?.guid;
@@ -134,6 +143,13 @@ try {
    const moved = orderOf();
    await settings.moveListItem('rounds', added!.id, 1);
    check('a row moves up the list and back', moved !== orderBefore && moved.indexOf('zz_series_b') < orderBefore.indexOf('zz_series_b') && orderOf() === orderBefore, { orderBefore, moved, after: orderOf() });
+
+   // ---- Настройки: a document template with its file (batch 9)
+   await settings.saveListItem('docTemplates', null, { key: 'zz_questionnaire', names: { ru: 'ZZ Анкета', uz: 'ZZ Anketa', en: 'ZZ Questionnaire' }, active: true, file: { id: '', url: 'https://example.com/zz-questionnaire.xlsx', name: 'zz-questionnaire.xlsx' } }, me.id, 'Справочник «Шаблоны документов» · ZZ', describe);
+   clearStores();
+   await settings.getSettings();
+   const template = itemOf('docTemplates', 'zz_questionnaire');
+   check('a document template saved with its file and read back from ucode', template?.file?.url === 'https://example.com/zz-questionnaire.xlsx' && template.file.name === 'zz-questionnaire.xlsx' && template.names.uz === 'ZZ Anketa', template);
 
    // ---- Настройки: a task status and a metric of the fund's own, deleted with what used them moved on
    await settings.saveListItem('taskStatuses', null, { key: 'zz_hold', names: { ru: 'ZZ На удержании', uz: '', en: 'ZZ On hold' }, active: true, group: 'progress', tone: 'warning' }, me.id, 'Справочник «Статусы задач» · ZZ', describe);
@@ -437,7 +453,24 @@ try {
    await deals.removeFolder(deal.id, inner.id);
    for (const document of uploaded) await deals.removeDocument(deal.id, document.id);
    clearStores();
-   check('documents the fund uploads: versions 1 and 2 with their files, read back as uploaded by the fund, one renamed, then deleted', uploaded.length === 2 && uploaded.map((d) => d.version).sort().join() === '1,2' && uploaded.every((d) => d.url && d.fileId && d.handled?.kind === 'uploaded') && opened === 200 && renamedDoc === 'zz-term-sheet-renamed' && !(await dealNow()).documents?.some((d) => uploaded.some((u) => u.id === d.id)), { versions: uploaded.map((d) => d.version), kinds: uploaded.map((d) => d.handled?.kind), opened, renamedDoc });
+   // a request that carries a template; the answer's filled-in file goes to the data room, to be checked
+   await deals.addRequest(deal.id, { title: 'ZZ Анкета DD', text: 'ZZ заполните', dueDate: addWorkingDays(today, 5), ddQuestionnaire: false }, me.id, [{ title: 'ZZ Анкета', url: template!.file!.url }]);
+   const templateRequest = (await dealNow()).requests!.find((r) => r.title === 'ZZ Анкета DD')!;
+   const copies = (await attachments.getAll()).filter((a) => a.section === 'request' && a.itemId === templateRequest.id);
+   await deals.answerRequest(deal.id, templateRequest.id, 'ZZ заполнили', me.id, [new File(['ZZ filled'], 'zz-anketa-filled.txt', { type: 'text/plain' })]);
+   clearStores();
+   const afterAnswer = await dealNow();
+   const filled = afterAnswer.documents?.find((d) => d.requestId === templateRequest.id);
+   const filledOpens = filled?.url ? (await fetch(filled.url)).status : 0;
+   check("a request carries its template as a copy (no file id of its own); the answer's filled-in file is in the data room to be checked, tied to the request", copies.length === 1 && copies[0].url === template!.file!.url && copies[0].fileId === '' && copies[0].kind === 'file' && afterAnswer.requests?.find((r) => r.id === templateRequest.id)?.status === 'accepted' && filled?.status === 'review' && filled.uploadedBy === 'applicant' && filled.uploadedById === me.id && !!filled.fileId && filled.version === 1 && filledOpens === 200, { copies, filled, filledOpens });
+   await deals.removeRequest(deal.id, templateRequest.id);
+   clearStores();
+   const untied = (await dealNow()).documents?.find((d) => d.id === filled?.id);
+   check('a deleted request takes its copies and leaves the template; its answer stays in the data room, untied', untied?.requestId === '' && !(await attachments.getAll()).some((a) => a.itemId === templateRequest.id) && !!itemOf('docTemplates', 'zz_questionnaire')?.file, untied);
+   if (filled) await deals.removeDocument(deal.id, filled.id);
+   await settings.deleteListItem('docTemplates', template!.id, null, me.id, 'Справочник «Шаблоны документов» · удалено: ZZ', 'ZZ Анкета');
+   check('the template deleted from the list', !itemOf('docTemplates', 'zz_questionnaire'));
+   check('documents the fund uploads: versions 1 and 2 with their files, read back as uploaded by the fund, one renamed, then deleted', uploaded.length === 2 && uploaded.map((d) => d.version).sort().join() === '1,2' && uploaded.every((d) => d.url && d.fileId && d.handled?.kind === 'uploaded' && d.uploadedBy === 'fund' && d.uploadedById === me.id) && opened === 200 && renamedDoc === 'zz-term-sheet-renamed' && !(await dealNow()).documents?.some((d) => uploaded.some((u) => u.id === d.id)), { versions: uploaded.map((d) => d.version), kinds: uploaded.map((d) => d.handled?.kind), opened, renamedDoc });
    // a workstream changed and deleted; DD's frame
    const streamToEdit = (await dealNow()).workstreams!.find((w) => w.name === 'ZZ Legal DD')!;
    await deals.updateWorkstream(deal.id, streamToEdit.id, { name: 'ZZ Legal DD (группа)', executor: streamToEdit.executor, dueDate: addWorkingDays(today, 7), status: streamToEdit.status, conclusion: streamToEdit.conclusion });
@@ -601,6 +634,10 @@ try {
    const restored = (await api.listRows('fund_settings'))[0];
    check(`cleanup: the ${created.length} rows this run made deleted`, !left, left ? `${left} could not be deleted` : '');
    check('cleanup: fund settings and norms put back', restored?.flag_churn_pct === settingsRow?.flag_churn_pct && (restored?.check_max ?? null) === (settingsRow?.check_max ?? null));
+   if (process.env.PANEL_TEST_WRITES) {
+      const { writeFileSync } = await import('node:fs');
+      writeFileSync(process.env.PANEL_TEST_WRITES, JSON.stringify(Object.fromEntries([...writes].map(([table, fields]) => [table, [...fields].sort()])), null, 1));
+   }
    console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
    process.exit(failures ? 1 : 0);
 }

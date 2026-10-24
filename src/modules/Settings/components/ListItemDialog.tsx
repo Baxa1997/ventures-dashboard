@@ -6,8 +6,8 @@ import {
    TEMPLATE_ACCEPT,
    TONE_LABELS,
 } from '@modules/Settings/constants';
-import settings, { listOf } from '@modules/Settings/services';
-import { deleteFile, uploadFile } from '@shared/api/ucode';
+import settings, { listOf, releaseFile } from '@modules/Settings/services';
+import { uploadFile } from '@shared/api/ucode';
 import {
    Badge,
    Button,
@@ -197,9 +197,9 @@ const ListItemForm = ({
             }),
             describe,
          );
-         // the template it no longer has
-         if (item?.file?.id && item.file.id !== file?.id)
-            await deleteFile(item.file.id);
+         // the template it no longer has, unless a request still offers it
+         if (item?.file && item.file.id !== file?.id)
+            await releaseFile(item.file);
       },
       { kind: item ? 'save' : 'create' },
    );

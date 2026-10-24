@@ -44,7 +44,7 @@ Button names are given as the panel shows them. The panel is in Russian only for
 ## 3. Входящие
 
 1. Panel → Сделки → «Входящие» → `ZZ Startup A` is there with the next deal number (`SQBV-2026-000N`), the amount, the source «Сайт» and a mandate verdict.
-2. Open its card → Обзор shows «Из заявки» with what the form sent; «Запросы и документы» shows the pitch deck «на проверке».
+2. Open its card → Обзор shows «Из заявки» with what the form sent; «Запросы и документы» shows the pitch deck «Принят», «загружен заявителем · date» (the website files it as accepted).
 3. Back in Входящие, choose the owner `ZZ Аналитик` in the card's owner select (so that step 4 can use «Администратор» as the second reviewer).
 4. «Взять в скрининг» → the deal leaves Входящие and appears in «Воронка» on Скрининг, with «Осталось 5 р.д.» (or the norm set in Настройки). In ucode `applications`, `public_status` = `screening`.
 5. Also enter one deal by hand: Сделки → «Новая сделка», company `ZZ Manual B`; Отрасль, Источник, Стадия раунда and Страна are chosen from Настройки's lists, Ниша is free text and may stay empty → «Добавить» → it appears in Входящие, offered to you; it will be used in step 10.
@@ -64,9 +64,9 @@ Button names are given as the panel shows them. The panel is in Russian only for
 
 ## 6. Запросы и документы
 
-1. Tab «Запросы и документы»: the pitch deck → «Принять» → it is accepted, the history has an entry. Try «Отклонить» on another document if there is one: a reason is required.
+1. Tab «Запросы и документы»: the pitch deck is already «Принят». A document «На проверке» (an answer's filled-in file, step 6.3) → «Проверить» → «Принять» or «Отклонить» (a reason is required); the history has an entry.
 2. «Новый запрос»: title `ZZ Финмодель`, text, due date → the request is «ждём ответа»; on Воронка the deal shows «Ждём заявителя» (the stage clock stands).
-3. «Загрузить от имени фонда», pick one or more files → each appears as accepted with «Открыть» (the file opens from ucode Files); the same name again makes version 2; «Изменить» renames one; «Удалить» asks, then removes a document with its file. Each link or file has a pencil (rename, change the address) and a bin (asks first). Under a request: «Добавить ссылку», «Загрузить файлы»; «Ответ получен» with the answer closes it and restarts the clock; «Изменить» and «Удалить» change or withdraw it.
+3. In the «Data room» card, «Загрузить файлы» (or drop files on the card) → they go into the open folder; each appears as accepted with «Открыть» (the file opens from ucode Files); the same name again makes version 2; «Изменить» renames one; «Удалить» asks, then removes a document with its file. Each link or file has a pencil (rename, change the address) and a bin (asks first). Under a request: «Добавить ссылку», «Загрузить файлы»; «Ответ получен» with the answer closes it and restarts the clock; «Изменить» and «Удалить» change or withdraw it.
 4. The founder cannot answer a request yet (that is the cabinet, phase 2), so the request stays open.
 
 ## 7. Due diligence

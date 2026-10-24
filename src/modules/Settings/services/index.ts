@@ -13,11 +13,13 @@ import {
 } from '@shared/api/ucode';
 import { createStore, newId, shortName, todayISO } from '@shared/helpers';
 import { reloadTeam } from '@shared/hooks';
+import attachments from '@shared/services/attachments';
 // the instance @shared/i18n sets up; imported directly, so the services run
 // without the browser setup (scripts/ucode/panel-test.ts runs them in Node)
 import i18n from 'i18next';
 import type { MetricFormat } from '@shared/types/portfolio.types';
 import type {
+   ItemFile,
    Access,
    EscalateTo,
    IndustryMandate,
@@ -231,6 +233,17 @@ const oneOf = <T extends string>(options: T[], value: unknown, fallback: T) =>
    options.find((option) => option === value) ?? fallback;
 
 export const LIST_KINDS = Object.keys(LIST_TABLES) as ListKind[];
+
+/* Deletes a list's file — a template replaced or deleted — unless a request
+   still offers it: a request's template is a copy pointing to the same file,
+   and the applicant may not have downloaded it yet. */
+export const releaseFile = async (file: ItemFile | null | undefined) => {
+   if (!file?.id) return;
+   const offered = (await attachments.getAll()).some(
+      ({ url }) => url === file.url,
+   );
+   if (!offered) await deleteFile(file.id);
+};
 
 // The lists whose rows carry a file: a report document's or a template's.
 const withFile = (kind: ListKind) =>
@@ -763,7 +776,7 @@ class Settings {
             ),
          );
       await deleteRow(LIST_TABLES[kind].table, id);
-      if (item.file?.id) await deleteFile(item.file.id);
+      await releaseFile(item.file);
       await createRow('settings_journal', {
          guid: newId(),
          date: todayISO(),

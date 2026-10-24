@@ -50,7 +50,7 @@ import {
 import { formatDate } from '@shared/helpers';
 import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
 import {
@@ -86,13 +86,11 @@ const DealCard = () => {
    const [transferring, setTransferring] = useState(false);
    const [editing, setEditing] = useState(false);
    const [moving, setMoving] = useState(false);
-   const [uploading, setUploading] = useState(0);
-   // the open folder of the data room: the fund's uploads go into it
+   // the open folder of the data room, kept while the card's tabs change
    const [folderId, setFolderId] = useState('');
    // null: the request dialog is closed; otherwise what the request starts with
    const [requestTitle, setRequestTitle] = useState<string | null>(null);
    const [workstream, setWorkstream] = useState<WorkstreamMode | null>(null);
-   const fileInput = useRef<HTMLInputElement>(null);
    const language = i18n.resolvedLanguage ?? i18n.language;
    const deal = all.find((item) => item.id === id);
    const taking = useAction(
@@ -107,19 +105,6 @@ const DealCard = () => {
    const approving = useAction(
       (dealId: string) => deals.approveMemo(dealId, user.id),
       { success: t('Меморандум утверждён') },
-   );
-   const uploader = useAction(
-      async (dealId: string, files: File[], folder: string) => {
-         for (const file of files)
-            await deals.uploadDocument(dealId, file, user.id, folder);
-      },
-      {
-         kind: 'upload',
-         success: (_, files) =>
-            files.length > 1
-               ? t('Файлы загружены: {{count}}', { count: files.length })
-               : t('Файл загружен'),
-      },
    );
 
    if (loading || !deal)
@@ -264,41 +249,9 @@ const DealCard = () => {
          </>
       ),
       requests: (
-         <>
-            <Button
-               loading={uploading > 0}
-               variant='ghost'
-               onClick={() => fileInput.current?.click()}
-            >
-               {uploading
-                  ? t('Загружается: {{count}}', { count: uploading })
-                  : t('Загрузить от имени фонда')}
-            </Button>
-            <input
-               ref={fileInput}
-               hidden
-               multiple
-               type='file'
-               onChange={async (event) => {
-                  const files = [...(event.target.files ?? [])];
-                  event.target.value = '';
-                  if (!files.length) return;
-                  setUploading(files.length);
-                  await uploader.run(
-                     deal.id,
-                     files,
-                     // a folder of another deal, or one deleted, is no folder
-                     deal.folders?.some(({ id }) => id === folderId)
-                        ? folderId
-                        : '',
-                  );
-                  setUploading(0);
-               }}
-            />
-            <Button onClick={() => setRequestTitle('')}>
-               {t('Новый запрос')}
-            </Button>
-         </>
+         <Button onClick={() => setRequestTitle('')}>
+            {t('Новый запрос')}
+         </Button>
       ),
       dd: (
          <>

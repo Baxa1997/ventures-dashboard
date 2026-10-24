@@ -229,11 +229,13 @@ class Deals {
       return deal;
    }
 
+   /* The deal leaves the inbox for the stage after it: Скрининг, unless the
+      fund has deleted or moved it in Настройки. */
    async takeToScreening(id: string, ownerId: string) {
       await change(id, (deal) =>
          logged(
             {
-               ...onStage(deal, 'screening'),
+               ...onStage(deal, nextStageOf('inbox') ?? 'screening'),
                ownerId,
                screening: deal.screening ?? emptyScreening(),
             },
@@ -435,13 +437,16 @@ class Deals {
       await this.updateScreening(id, (screening) => ({ ...screening, note }));
    }
 
-   // Closes the screening with an invitation to a meeting.
+   /* Closes the screening and moves the deal to the next stage in the fund's
+      order: Встреча, unless the fund has deleted it or put a stage of its own
+      before it. */
    async completeScreening(id: string, userId: string) {
-      await change(id, (deal) =>
-         logged(
+      await change(id, (deal) => {
+         const next = nextStageOf(deal.stage) ?? deal.stage;
+         return logged(
             logged(
                {
-                  ...onStage(deal, 'meeting'),
+                  ...onStage(deal, next),
                   screening: deal.screening && {
                      ...deal.screening,
                      completedAt: todayISO(),
@@ -449,9 +454,9 @@ class Deals {
                },
                { kind: 'screening', userId },
             ),
-            { kind: 'stage', stage: 'meeting' },
-         ),
-      );
+            { kind: 'stage', stage: next },
+         );
+      });
    }
 
    /* A request to the applicant stops the stage clock until it is answered.

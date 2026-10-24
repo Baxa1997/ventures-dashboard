@@ -8,6 +8,13 @@
 
      node scripts/ucode/verify.mjs [--rows]
 
+     node scripts/ucode/verify.mjs --writes <file.json>
+
+   --writes checks the fields the panel wrote, as panel-test.mjs records them
+   (PANEL_TEST_WRITES=<file.json>), against each table's fields in ucode:
+   ucode drops a field a table lacks without an error, so this is how a write
+   that never lands shows.
+
    --rows also checks the row counts of the test environment: industries 11,
    reject_reasons 6, stage_norms 8, fund_settings 1, round_stages 4,
    lead_sources 13, countries 12, task_types 8, employees 1 (Sqb-admin's
@@ -30,6 +37,30 @@ const ROWS = {
    employees: 1,
 };
 const withRows = process.argv.includes('--rows');
+const writesFile = process.argv[process.argv.indexOf('--writes') + 1];
+
+// --writes: every field the panel wrote, against the table's fields
+if (process.argv.includes('--writes')) {
+   const { readFileSync } = await import('node:fs');
+   const written = JSON.parse(readFileSync(writesFile, 'utf8'));
+   let missing = 0;
+   for (const [table, fields] of Object.entries(written)) {
+      const { ok, status, data } = await ucode('GET', `/v2/fields/${table}`);
+      if (!ok) {
+         console.log(`✗ ${table}: cannot read its fields (HTTP ${status})`);
+         missing++;
+         continue;
+      }
+      const actual = new Set((data?.data?.fields ?? []).map((field) => field.slug));
+      const lost = fields.filter((field) => !actual.has(field) && !SYSTEM.has(field));
+      if (lost.length) {
+         missing++;
+         console.log(`✗ ${table}: written but not in ucode: ${lost.join(', ')}`);
+      } else console.log(`✓ ${table} (${fields.length} fields written)`);
+   }
+   console.log(missing ? `\n${missing} tables get fields they lack.` : '\nEvery written field exists.');
+   process.exit(missing ? 1 : 0);
+}
 
 // "FROM investments TO decisions" → "decisions"
 const targetOf = (field) =>
