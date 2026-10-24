@@ -302,6 +302,13 @@ export const groupBy = (rows: Row[], field: string) => {
 // Where ucode Files serves what it stores: the reply's link is a path under it.
 const FILES_URL = 'https://cdn.u-code.io';
 
+// A stored file's address; a path, as ucode answers and as the website kept
+// pitch decks before 24 October, gets the Files server in front.
+export const fileUrl = (link: string) =>
+   !link || /^https?:/.test(link)
+      ? link
+      : `${FILES_URL}/${link.replace(/^\/+/, '')}`;
+
 export interface StoredFile {
    id: string; // ucode Files' id, to delete it by
    url: string; // the address it opens at: anyone with it can open the file
@@ -326,7 +333,7 @@ export const uploadFile = async (file: File, folder: string) => {
    if (!link) throw new UcodeError('ucode stored no file', 0);
    return {
       id: reply.data?.id ?? '',
-      url: /^https?:/.test(link) ? link : `${FILES_URL}/${link}`,
+      url: fileUrl(link),
       name: reply.data?.file_name_download ?? file.name,
    } satisfies StoredFile;
 };

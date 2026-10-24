@@ -8,6 +8,7 @@ import {
 import {
    createRow,
    deleteRow,
+   fileUrl,
    fromJson,
    listRows,
    numOrNull,
@@ -183,7 +184,7 @@ const toDocument = (row: Row): DealDocument => {
       title: str(row.title),
       status,
       version: num(row.version),
-      url: str(row.file),
+      url: fileUrl(str(row.file)),
       fileId: str(row.file_id),
       folderId: str(row.deal_folders_id),
       requestId: str(row.deal_requests_id),
