@@ -27,7 +27,7 @@ import {
 } from '@shared/components';
 import { TEAM } from '@shared/constants';
 import { formatDay, shortName } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal, DealsSummary } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
@@ -84,6 +84,10 @@ const Inbox = ({
    const [assignment, setAssignment] = useState<Assignment>('unassigned');
    const [selectedId, setSelectedId] = useState('');
    const [ownerId, setOwnerId] = useState('');
+   const taking = useAction(
+      (dealId: string, owner: string) => deals.takeToScreening(dealId, owner),
+      { success: t('Сделка взята в скрининг') },
+   );
 
    const inbox = useMemo(
       () =>
@@ -384,9 +388,8 @@ const Inbox = ({
                      </div>
                      <div className='mt-3 flex flex-col gap-2.5'>
                         <Button
-                           onClick={() =>
-                              deals.takeToScreening(selected.id, ownerId)
-                           }
+                           loading={taking.pending}
+                           onClick={() => taking.run(selected.id, ownerId)}
                         >
                            {t('Взять в скрининг')}
                         </Button>

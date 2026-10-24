@@ -2,10 +2,10 @@ import type { BadgeTone } from '@shared/components';
 import type {
    Instrument,
    MetricFormat,
-   MetricKey,
    PilotStatus,
-   ReportDoc,
    RequestStatus,
+   SystemMetric,
+   SystemReportDoc,
 } from '@shared/types/portfolio.types';
 
 // Texts are keys of the "portfolio" translations.
@@ -54,7 +54,8 @@ export const INSTRUMENT_LABELS = {
    equity: 'Доля',
 } as const satisfies Record<Instrument, string>;
 
-export const REPORT_DOCS: ReportDoc[] = [
+// The default documents, until Настройки → Отчётность are read.
+export const REPORT_DOCS: SystemReportDoc[] = [
    'fund_template',
    'company_template',
    'form1',
@@ -68,14 +69,14 @@ export const REPORT_DOC_LABELS = {
    company_template: 'Отчёт по шаблону компании',
    form1: 'Форма 1',
    form2: 'Форма 2',
-} as const satisfies Record<ReportDoc, string>;
+} as const satisfies Record<SystemReportDoc, string>;
 
 export const REPORT_DOC_ITEMS = {
    fund_template: 'Инвесторский отчёт по шаблону фонда',
    company_template: 'Инвесторский отчёт по шаблону компании',
    form1: 'Форма 1',
    form2: 'Форма 2',
-} as const satisfies Record<ReportDoc, string>;
+} as const satisfies Record<SystemReportDoc, string>;
 
 // How many quarters the reporting table and a company's card show.
 export const QUARTERS_SHOWN = 3;
@@ -122,7 +123,7 @@ export const METRIC_FORMATS = {
    clients: 'number',
    churn: 'percent',
    team: 'number',
-} as const satisfies Record<MetricKey, MetricFormat>;
+} as const satisfies Record<SystemMetric, MetricFormat>;
 
 export const METRIC_LABELS = {
    mrr: 'MRR',
@@ -133,4 +134,4 @@ export const METRIC_LABELS = {
    clients: 'Активных клиентов',
    churn: 'Churn за квартал',
    team: 'Команда, FTE',
-} as const satisfies Record<MetricKey, string>;
+} as const satisfies Record<SystemMetric, string>;

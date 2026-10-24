@@ -1,25 +1,33 @@
+import { INSTRUMENT_LABELS } from '@modules/Portfolio/constants';
 import {
    addWorkingDays,
    formatDate,
    formatDay,
+   formatUsd,
    downloadCsv,
    personName,
    todayISO,
+   workingDaysBetween,
 } from '@shared/helpers';
+import type { FactRow } from '@shared/components';
 import type {
    CheckItem,
    Criterion,
    Deal,
    Fact,
    PathStep,
+   TeamMember,
    Tone,
 } from '@shared/types/deals.types';
-import type { DealStage } from '@shared/types/work.types';
+import dayjs from 'dayjs';
+import type { DealStage, Task } from '@shared/types/work.types';
 import type { TFunction } from 'i18next';
-import type { NormStage } from '@shared/types/settings.types';
 import {
    currentSettings,
    itemOf,
+   stageItem,
+   stageName,
+   stagesOf,
    listName,
    nameOf,
    parseCheck,
@@ -28,12 +36,13 @@ import {
 import {
    APPLICATION_PHRASES,
    CLOSED_STATUSES,
+   CONDITION_ORIGIN,
+   CONDITION_STAGES,
    CRITERIA,
    MANDATE,
-   STAGE_LABELS,
+   STAGE_HOW,
    STAGE_NEXT_LABELS,
    STAGE_NORMS,
-   STAGES,
    STATUS_LABELS,
    STATUS_TONES,
 } from '../constants';
@@ -48,7 +57,41 @@ export const timeOf = (stamp: string) => stamp.slice(11);
 export const formatStamp = (stamp: string) =>
    [formatDate(dayOf(stamp)), timeOf(stamp)].filter(Boolean).join(', ');
 
-export { downloadCsv, personName };
+export { downloadCsv, personName, stageName };
+
+// ---- the stages, as Настройки → Этапы и нормативы order them
+
+export const stageKeys = () => stagesOf().map(({ key }) => key);
+
+// The funnel's columns: every stage after Входящие.
+export const funnelStages = () =>
+   stageKeys().filter((stage) => stage !== 'inbox');
+
+// The stage after this one; null after the last (the deal joins the portfolio).
+export const nextStageOf = (stage: DealStage): DealStage | null => {
+   const keys = stageKeys();
+   const index = keys.indexOf(stage);
+   return index === keys.length - 1 ? null : (keys[index + 1] ?? null);
+};
+
+// What a deal on the stage does next, as its card's «Следующий шаг» says.
+export const stageNextLabel = (t: T, stage: DealStage) => {
+   const label = STAGE_NEXT_LABELS[stage as keyof typeof STAGE_NEXT_LABELS];
+   return label ? t(label) : stageName(stage);
+};
+
+// How the owner works the stage and moves the deal on from it.
+export const stageHowText = (t: T, stage: DealStage) => {
+   const next = nextStageOf(stage);
+   const values = { next: next ? stageName(next) : t('Портфель') };
+   const how = STAGE_HOW[stage as keyof typeof STAGE_HOW];
+   return how
+      ? t(how, values)
+      : t(
+           'Сделайте работу этапа «{{stage}}». Затем — «Перевести в «{{next}}»».',
+           { ...values, stage: stageName(stage) },
+        );
+};
 
 // The check range of the mandate, as Настройки have it now.
 export const mandateLimits = () => {
@@ -58,23 +101,11 @@ export const mandateLimits = () => {
       : { minCheck: MANDATE.minCheck, maxCheck: MANDATE.maxCheck };
 };
 
-// The stages whose norm Настройки give in working days.
-const SETTINGS_STAGES: Partial<Record<DealStage, NormStage>> = {
-   inbox: 'inbox',
-   screening: 'screening',
-   meeting: 'meeting',
-   analysis: 'analysis',
-   dd: 'dd',
-   closing: 'closing',
-};
-
 // Working days a deal may stay on a stage: from Настройки where they give a
-// number, otherwise the stage's own rule.
+// number, otherwise the stage's own rule (none for the fund's own stages).
 export const stageNorm = (stage: DealStage) => {
-   const key = SETTINGS_STAGES[stage];
-   const norm =
-      key && currentSettings()?.norms.find((item) => item.stage === key);
-   return (norm && parseNorm(norm.norm)) || STAGE_NORMS[stage];
+   const item = stageItem(stage);
+   return (item && parseNorm(item.norm)) || STAGE_NORMS[stage] || null;
 };
 
 // $250K, $1,5M
@@ -90,9 +121,6 @@ export const isOpen = ({ status }: Deal) =>
    status === 'review' || status === 'active';
 
 export const isClosed = ({ status }: Deal) => CLOSED_STATUSES.includes(status);
-
-export const nextStageOf = (stage: DealStage): DealStage | null =>
-   STAGES[STAGES.indexOf(stage) + 1] ?? null;
 
 // ---- the fund's deadline on a stage
 
@@ -149,7 +177,7 @@ export const isLate = (deal: Deal, today = todayISO()) =>
       : getDeadline(deal).kind === 'overdue';
 
 export const nextTitle = (t: T, deal: Deal) =>
-   deal.next?.title || t(STAGE_NEXT_LABELS[deal.stage]);
+   deal.next?.title || stageNextLabel(t, deal.stage);
 
 // "до 8 октября", "сегодня", "срок был 30 сентября", "6 октября, 11:00"
 export const dueText = (
@@ -168,7 +196,7 @@ export const dueText = (
 
 export const statusOf = (t: T, deal: Deal) =>
    deal.status === 'active'
-      ? { label: t(STAGE_LABELS[deal.stage]), tone: 'accent' as Tone }
+      ? { label: stageName(deal.stage), tone: 'accent' as Tone }
       : {
            label: t(STATUS_LABELS[deal.status]),
            tone: STATUS_TONES[deal.status],
@@ -437,7 +465,7 @@ const committeeCondition = (t: T, deal: Deal): CheckItem => {
    return {
       id: 'committee',
       text: t('Получить одобрение: {{body}}', {
-         body: t(STAGE_LABELS[deal.stage]),
+         body: stageName(deal.stage),
       }),
       note: note(),
       state: approval ? 'done' : 'blocking',
@@ -470,7 +498,47 @@ const directorCondition = (t: T, deal: Deal): CheckItem => {
    };
 };
 
-export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
+// The tasks a committee's approvals gave the deal's owner.
+export const conditionTasks = (deal: Deal, tasks: Task[]) =>
+   tasks.filter(
+      ({ origin, relationId }) =>
+         origin === CONDITION_ORIGIN && relationId === deal.id,
+   );
+
+// On DD the conditions of ИК-1 are met, on Закрытие those of ИК-2 and the
+// board: the tasks due by the event the deal goes to next.
+const conditionsCondition = (t: T, deal: Deal, tasks: Task[]): CheckItem[] => {
+   const due = CONDITION_STAGES[deal.stage];
+   const own = conditionTasks(deal, tasks).filter(
+      ({ dueLabel }) => dueLabel === due,
+   );
+   if (!own.length) return [];
+   const open = own.filter(({ status }) => status !== 'done').length;
+   return [
+      {
+         id: 'conditions',
+         text:
+            deal.stage === 'dd'
+               ? t('Выполнить условия ИК-1')
+               : t('Выполнить условия ИК-2 и Набсовета'),
+         note: open
+            ? t('открыто {{open}} из {{total}} — задачи в «Задачах»', {
+                 open,
+                 total: own.length,
+              })
+            : t('все выполнены'),
+         state: open ? 'blocking' : 'done',
+      },
+   ];
+};
+
+/* `tasks`: the task list, for the conditions of the committee's approvals;
+   without it they are not checked. */
+export const exitConditions = (
+   t: T,
+   deal: Deal,
+   tasks: Task[] = [],
+): CheckItem[] => {
    const own = deal.exit ?? [];
    if (COMMITTEE_STAGES.includes(deal.stage))
       return [
@@ -478,6 +546,8 @@ export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
          ...(deal.stage === 'ic2' ? [directorCondition(t, deal)] : []),
          ...own,
       ];
+   if (CONDITION_STAGES[deal.stage])
+      return [...conditionsCondition(t, deal, tasks), ...own];
    if (deal.stage !== 'screening' || deal.exit) return own;
    const scored = (deal.screening?.criteria ?? []).filter(isScored).length;
    const secondId = deal.screening?.secondId ?? '';
@@ -500,6 +570,114 @@ export const exitConditions = (t: T, deal: Deal): CheckItem[] => {
    ];
 };
 
+// Where a committee stage stands: the committee's word, or the meeting the
+// deal waits for.
+export const committeeStateOf = (deal: Deal) => {
+   const decisions = (deal.decisions ?? []).filter(
+      ({ stage }) => stage === deal.stage,
+   );
+   if (decisions.some(({ verdict }) => verdict === 'approved'))
+      return 'approved';
+   if (decisions.some(({ verdict }) => verdict === 'rejected'))
+      return 'rejected';
+   // the meeting the deal was put on has met and put the question off
+   if (
+      deal.committee &&
+      decisions.some(({ meetingId }) => meetingId === deal.committee?.id)
+   )
+      return 'postponed';
+   return deal.committee ? 'scheduled' : 'none';
+};
+
+interface NextStepInfo {
+   title: string;
+   text: string;
+   ready?: string; // the move the deal is ready for, as its button says
+}
+
+/* The card's «Следующий шаг»: what to do now and how, from where the deal
+   stands rather than from its stage alone. On a committee stage that is the
+   meeting, then the committee's word, then the move; on the others, the
+   stage's own work. */
+export const nextStepOf = (
+   t: T,
+   deal: Deal,
+   tasks: Task[] = [],
+): NextStepInfo => {
+   if (deal.status === 'portfolio')
+      return {
+         title: t('Сделка закрыта — компания в портфеле'),
+         text: t(
+            'Дальше компанию ведёт «Портфель»: квартальные отчёты, пилоты, запросы компании.',
+         ),
+      };
+   if (deal.status === 'review')
+      return { title: nextTitle(t, deal), text: t(STAGE_HOW.inbox) };
+   if (deal.status !== 'active') return { title: nextTitle(t, deal), text: '' };
+   const target = nextStageOf(deal.stage);
+   const move = target
+      ? t('Перевести в «{{stage}}»', { stage: stageName(target) })
+      : t('Перевести в портфель');
+   const exit = exitConditions(t, deal, tasks);
+   const blocking = exit.filter(({ state }) => state !== 'done');
+   if (!COMMITTEE_STAGES.includes(deal.stage))
+      return {
+         title: deal.next?.title || stageNextLabel(t, deal.stage),
+         text: stageHowText(t, deal.stage),
+         // a stage with conditions is ready once they are met; on the others
+         // the owner judges when the work is done
+         ...(exit.length > 0 && blocking.length === 0 && { ready: move }),
+      };
+   const body = stageName(deal.stage);
+   switch (committeeStateOf(deal)) {
+      case 'rejected':
+         return {
+            title: t('{{body}}: отказ', { body }),
+            text: t(
+               'Решение комитета не закрывает сделку само: нажмите «Отказать с причиной».',
+            ),
+         };
+      case 'approved':
+         return blocking.some(({ id }) => id === 'director')
+            ? {
+                 title: t('Одобрение директора'),
+                 text: t(
+                    'ИК-2 одобрил инвестицию. Директор подтверждает её в окне «{{move}}» кнопкой «Одобряю».',
+                    { move },
+                 ),
+              }
+            : {
+                 title: move,
+                 text: t(
+                    '{{body}} одобрил сделку — переведите её на следующую стадию.',
+                    { body },
+                 ),
+                 ready: move,
+              };
+      case 'postponed':
+         return {
+            title: t('{{body}}: решение отложено', { body }),
+            text: t(
+               'Когда будет готово то, чего ждал комитет, вынесите сделку на следующее заседание.',
+            ),
+         };
+      case 'scheduled':
+         return {
+            title: t('Ждём решения: {{body}}', { body }),
+            text: t(
+               'Сделка в повестке. Секретарь проводит заседание и записывает голоса; решение придёт в карточку из протокола.',
+            ),
+         };
+      default:
+         return {
+            title: t('Вынести на «{{body}}»', { body }),
+            text: t(
+               'Назначьте заседание или добавьте сделку в повестку уже назначенного.',
+            ),
+         };
+   }
+};
+
 // What the counters next to the card's tabs show.
 export const tabCounts = (deal: Deal) => {
    const openStreams = (deal.workstreams ?? []).filter(
@@ -513,38 +691,339 @@ export const tabCounts = (deal: Deal) => {
    };
 };
 
-// The path of a deal the sample has no log for: stages passed, the current
-// one with its clock, and the norms of those ahead.
+// 11–14 окт; one day for a stage passed within it
+const spanText = (from: string, to: string) => {
+   if (!to || from === to) return formatDay(from);
+   return dayjs(from).isSame(to, 'month')
+      ? `${dayjs(from).format('D')}–${formatDay(to)}`
+      : `${formatDay(from)} – ${formatDay(to)}`;
+};
+
+const approvalOf = (deal: Deal, stage: DealStage) =>
+   deal.decisions?.find(
+      (decision) => decision.stage === stage && decision.verdict === 'approved',
+   );
+
+// Where a committee stage the deal is on stands, under its name on the path.
+const committeeLine = (t: T, deal: Deal) => {
+   const state = committeeStateOf(deal);
+   if (state === 'approved') return t('одобрено');
+   if (state === 'rejected') return t('отказ');
+   if (state === 'scheduled' && deal.committee)
+      return t(
+         deal.stage === 'board'
+            ? 'НС № {{number}} · {{date}}'
+            : 'ИК № {{number}} · {{date}}',
+         {
+            number: deal.committee.number,
+            date: formatDay(deal.committee.date),
+         },
+      );
+   return t('по графику заседаний');
+};
+
+/* The path from the deal's stage history: when each stage passed was on, in
+   how many working days against its norm, and the meeting that approved a
+   committee stage; the current one since when and its clock; the norms of
+   those ahead. A deal from before the history shows its stages as passed. */
 export const defaultPath = (t: T, deal: Deal): PathStep[] => {
-   const current = STAGES.indexOf(deal.stage);
-   return STAGES.map((stage, index) => {
+   const keys = stageKeys();
+   // a deal in the portfolio has passed them all
+   const current =
+      deal.status === 'portfolio' ? keys.length : keys.indexOf(deal.stage);
+   return keys.map((stage, index) => {
       const norm = stageNorm(stage);
       const normLine = norm
          ? t('норма {{days}} р.д.', { days: norm })
          : t('по графику заседаний');
-      if (index === 0)
+      const record = deal.stages?.filter((item) => item.stage === stage).at(-1);
+      if (index < current) {
+         const approval = approvalOf(deal, stage);
+         const days =
+            record?.daysUsed != null && record.norm
+               ? t('{{used}} из {{norm}} р.д.', {
+                    used: record.daysUsed,
+                    norm: record.norm,
+                 })
+               : '';
          return {
             stage,
-            line1: formatDay(dayOf(deal.receivedAt)),
-            line2: index === current ? normLine : '',
+            line1: record
+               ? spanText(record.enteredAt, record.leftAt)
+               : index === 0
+                 ? formatDay(dayOf(deal.receivedAt))
+                 : t('пройдена'),
+            line2: approval
+               ? [approval.meetingLabel, t('одобрено')]
+                    .filter(Boolean)
+                    .join(' · ')
+               : days,
+            late: record?.late,
          };
-      if (index < current) return { stage, line1: t('пройдена'), line2: '' };
-      if (index === current && deal.days)
+      }
+      if (index === current) {
+         const since =
+            index === 0
+               ? formatDay(dayOf(deal.receivedAt))
+               : record &&
+                 t('с {{date}}', { date: formatDay(record.enteredAt) });
          return {
             stage,
-            line1: deal.waiting ? t('ждём заявителя') : t('идёт сейчас'),
-            line2: t('{{used}} из {{norm}} р.д.', deal.days),
+            line1: deal.waiting
+               ? t('ждём заявителя')
+               : since || t('идёт сейчас'),
+            line2: COMMITTEE_STAGES.includes(stage)
+               ? committeeLine(t, deal)
+               : deal.days
+                 ? t('{{used}} из {{norm}} р.д.', deal.days)
+                 : normLine,
          };
+      }
       return { stage, line1: normLine, line2: '' };
    });
 };
 
+// "в работе 12 рабочих дней · из них 3 на паузе"; how long the path took for
+// a deal in the portfolio.
+export const pathHintOf = (t: T, deal: Deal) => {
+   const start = dayOf(deal.receivedAt);
+   if (deal.status === 'portfolio') {
+      const end = deal.stages?.find(({ stage }) => stage === 'portfolio');
+      return end
+         ? t('путь занял {{count}} рабочий день', {
+              count: workingDaysBetween(start, end.enteredAt),
+           })
+         : undefined;
+   }
+   if (deal.status !== 'active') return undefined;
+   const paused = deal.clock?.pausedDays ?? 0;
+   return [
+      t('в работе {{count}} рабочий день', {
+         count: workingDaysBetween(start, todayISO()),
+      }),
+      paused > 0 && t('из них {{count}} на паузе', { count: paused }),
+   ]
+      .filter(Boolean)
+      .join(' · ');
+};
+
 export const pathState = (deal: Deal, stage: DealStage) => {
    if (deal.status === 'portfolio') return 'done';
-   const current = STAGES.indexOf(deal.stage);
-   const index = STAGES.indexOf(stage);
+   const keys = stageKeys();
+   const current = keys.indexOf(deal.stage);
+   const index = keys.indexOf(stage);
    if (index < current) return 'done';
    return index === current ? 'current' : 'ahead';
 };
 
 // ---- the register
+
+// ---- the card's sections
+
+// The stages on which the deal's terms, metrics, risks and synergy are kept:
+// from the first committee on, once there is something to put to it.
+export const TERMS_STAGES: DealStage[] = [
+   'ic1',
+   'dd',
+   'ic2',
+   'board',
+   'closing',
+];
+
+export const hasTermsStage = (deal: Deal) =>
+   deal.status === 'portfolio' || TERMS_STAGES.includes(deal.stage);
+
+// SAFE, Доля
+export const instrumentText = (t: T, deal: Deal) =>
+   deal.terms?.instrument ? t(INSTRUMENT_LABELS[deal.terms.instrument]) : '';
+
+// «Условия сделки» as label–value rows, each only once it is written.
+export const termsRows = (t: T, deal: Deal, language: string): FactRow[] => {
+   const terms = deal.terms;
+   if (!terms) return [];
+   const usd = (value: number) => formatUsd(value, language);
+   const instrument = instrumentText(t, deal);
+   const share =
+      terms.roundSize && deal.amount
+         ? Math.round((deal.amount / terms.roundSize) * 100)
+         : null;
+   const post =
+      terms.preMoney && terms.roundSize ? terms.preMoney + terms.roundSize : 0;
+   const rows: (FactRow | false)[] = [
+      !!instrument && {
+         label: t('Инструмент'),
+         value: [instrument, roundText(deal)].filter(Boolean).join(' · '),
+      },
+      {
+         label: t('Раунд'),
+         value: [
+            terms.roundSize && usd(terms.roundSize),
+            t('чек фонда {{amount}}', { amount: usd(deal.amount) }),
+            share !== null && t('{{pct}}% раунда', { pct: share }),
+         ]
+            .filter(Boolean)
+            .join(' · '),
+      },
+      !!terms.conditions && {
+         label: instrument
+            ? t('Условия {{instrument}}', { instrument })
+            : t('Условия'),
+         value: terms.conditions,
+      },
+      !!terms.preMoney && {
+         label: t('Оценка компании'),
+         value: t('{{amount}} pre-money', { amount: usd(terms.preMoney) }),
+         note:
+            post > 0
+               ? t('доля фонда ≈ {{pct}}% post-money', {
+                    pct: new Intl.NumberFormat(language, {
+                       maximumFractionDigits: 1,
+                    }).format((deal.amount / post) * 100),
+                 })
+               : undefined,
+      },
+      !!terms.valuation && { label: t('Оценка по DD'), value: terms.valuation },
+      !!terms.structure && { label: t('Структура'), value: terms.structure },
+      !!terms.founder && { label: t('Основатель'), value: terms.founder },
+   ];
+   return rows.filter((row): row is FactRow => !!row);
+};
+
+// What the committee is asked to approve: "$300 000 · SAFE · раунд $1 000 000".
+export const proposalText = (t: T, deal: Deal, language: string) => {
+   const amount = formatUsd(deal.amount, language);
+   const instrument = instrumentText(t, deal);
+   if (!instrument) return t('{{amount}} — запрос компании', { amount });
+   return [
+      amount,
+      instrument,
+      deal.terms?.roundSize &&
+         t('раунд {{amount}}', {
+            amount: formatUsd(deal.terms.roundSize, language),
+         }),
+   ]
+      .filter(Boolean)
+      .join(' · ');
+};
+
+const WORKSTREAM_STATES = {
+   done: 'done',
+   in_progress: 'waiting',
+   rework: 'attention',
+   not_started: 'open',
+} as const;
+
+/* The materials a deal needs for the committee of its stage, as the panel
+   sees them: the decision before, the memorandum, the terms, DD's
+   conclusions, the company's answers and documents; then the items the owner
+   added. Each closes here when the work behind it is done, and the
+   materials go to the members once all are closed. [] off a committee stage. */
+export const readinessOf = (t: T, deal: Deal): CheckItem[] => {
+   if (!COMMITTEE_STAGES.includes(deal.stage)) return [];
+   const items: CheckItem[] = [];
+   const before =
+      deal.stage === 'ic2' ? 'ic1' : deal.stage === 'board' ? 'ic2' : null;
+   if (before) {
+      const approval = approvalOf(deal, before);
+      items.push({
+         id: 'decision',
+         text: t('Решение {{body}}', { body: stageName(before) }),
+         note: approval?.detail || t('решения нет'),
+         state: approval ? 'done' : 'blocking',
+      });
+   }
+   if (deal.memo)
+      items.push({
+         id: 'memo',
+         text: t('Меморандум, утверждённый спонсором'),
+         note: deal.memo.approvedAt
+            ? t('v{{version}} · {{name}}, {{date}}', {
+                 version: deal.memo.version,
+                 name: personName(deal.memo.sponsorId),
+                 date: formatDate(deal.memo.approvedAt),
+              })
+            : t('v{{version}} · ждёт утверждения спонсора', {
+                 version: deal.memo.version,
+              }),
+         state: deal.memo.approvedAt ? 'done' : 'attention',
+      });
+   if (deal.stage !== 'ic1') {
+      const ready = !!deal.terms?.instrument && !!deal.terms.roundSize;
+      items.push({
+         id: 'terms',
+         text: t('Условия сделки'),
+         note: ready
+            ? proposalText(t, deal, 'ru')
+            : t('внесите инструмент и размер раунда'),
+         state: ready ? 'done' : 'open',
+      });
+      for (const stream of deal.workstreams ?? [])
+         items.push({
+            id: `stream-${stream.id}`,
+            text: t('{{name}} — вывод', { name: stream.name }),
+            note:
+               stream.status === 'done'
+                  ? stream.executor
+                  : stream.status === 'not_started'
+                    ? t('не передано исполнителю')
+                    : stream.status === 'rework'
+                      ? t('на доработке')
+                      : t('у исполнителя до {{date}}', {
+                           date: formatDate(stream.dueDate),
+                        }),
+            state: WORKSTREAM_STATES[stream.status],
+         });
+   }
+   for (const request of deal.requests ?? [])
+      if (request.status === 'waiting')
+         items.push({
+            id: `request-${request.id}`,
+            text: t('Ответ компании: {{title}}', { title: request.title }),
+            note: t('запрошено {{date}} · ждём', {
+               date: formatDate(request.sentAt),
+            }),
+            state: 'waiting',
+         });
+   for (const document of deal.documents ?? [])
+      if (document.status !== 'accepted')
+         items.push({
+            id: `document-${document.id}`,
+            text: t('Документ: {{title}}', { title: document.title }),
+            note:
+               document.status === 'review'
+                  ? t('на проверке у фонда')
+                  : document.status === 'rejected'
+                    ? t('отклонён — ждём новую версию')
+                    : t('не загружен'),
+            state: document.status === 'review' ? 'attention' : 'waiting',
+         });
+   return [...items, ...(deal.readiness?.items ?? [])];
+};
+
+/* Who works on the deal: its owner, the memorandum's sponsor, the colleague
+   who checked the screening and DD's outside executors, each from the deal
+   itself; then the people the owner added. */
+export const teamOf = (t: T, deal: Deal): TeamMember[] => {
+   const roles = new Map<string, string[]>();
+   const add = (employeeId: string | undefined, role: string) => {
+      if (employeeId)
+         roles.set(employeeId, [...(roles.get(employeeId) ?? []), role]);
+   };
+   add(deal.ownerId, t('Владелец'));
+   add(deal.memo?.sponsorId, t('Спонсор'));
+   add(deal.screening?.secondId, t('Второй оценщик скрининга'));
+   return [
+      ...[...roles].map(([employeeId, list]) => ({
+         employeeId,
+         role: list.join(' · '),
+      })),
+      ...(deal.team ?? []),
+      ...(deal.workstreams ?? [])
+         .filter(({ executor, handedAt }) => executor && handedAt)
+         // "ООО «ABACUS» · договор № 22/26": who, then on what grounds
+         .map(({ name, executor }) => {
+            const [who, ...grounds] = executor.split(' · ');
+            return { name: who, role: [name, ...grounds].join(' · ') };
+         }),
+   ];
+};

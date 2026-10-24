@@ -1,6 +1,7 @@
 import {
    DAYJS_LOCALES,
    DEFAULT_LANGUAGE,
+   INTERFACE_LANGUAGES,
    SUPPORTED_LANGUAGES,
 } from '@shared/constants/system/languages';
 import type { SupportedLanguageType } from '@shared/types/system/language.types';
@@ -44,6 +45,8 @@ const options: InitOptions = {
    keySeparator: false,
    nsSeparator: false,
    resources,
+   // with one interface language, it is the language, whatever was kept
+   ...(INTERFACE_LANGUAGES.length === 1 && { lng: INTERFACE_LANGUAGES[0] }),
    supportedLngs: SUPPORTED_LANGUAGES,
    detection: {
       caches: ['localStorage'],

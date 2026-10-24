@@ -3,7 +3,7 @@
 About 30 minutes. You take one test deal through every stage, using only the panel.
 
 - Open **https://admin.sqbvc.uz** and sign in as `Sqb-admin`. You are «Администратор», the director.
-- Keep the panel in Russian. The language switch is in the user menu, bottom left.
+- The panel is in Russian only for now; button names below are as the screen shows them.
 - Start every test name with **ZZ**, so it is easy to find and delete later.
 - After each step, check the line starting with **✓**. If you see something else, take a screenshot and write down the step number.
 
@@ -13,11 +13,11 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 
 ## 1. Add committee members (only the first time)
 
-1. Left menu → **Инвесткомитет** → tab **«Состав и договоры»**.
-2. Click **«Добавить члена ИК»**. Name `ZZ Член 1`, Роль «председатель ИК» → **«Добавить»**.
-3. Add two more the same way: `ZZ Член 2` and `ZZ Член 3`, Роль «независимый член».
+1. Left menu → **Инвесткомитет** → **«Назначить заседание»**. Under **«Участники»** click **«Добавить человека»**.
+2. Кто «Не из команды фонда», Name `ZZ Член 1`, Роль «председатель ИК» → **«Добавить»**.
+3. Add two more the same way: `ZZ Член 2` and `ZZ Член 3`, Роль «независимый член». Close the window without scheduling.
 
-✓ Three members are listed, the chair first.
+✓ Next time «Назначить заседание» lists the three under «Участники», ticked.
 
 ## 2. Create a deal
 
@@ -83,15 +83,15 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 
 1. Do step 6 again. The window now has Орган **«Наблюдательный совет»**.
 2. On the deal: **«Перевести в «Закрытие»»** → **«Перевести»**.
-3. Then **«Перевести в портфель»** → **«Перевести»**.
+3. Then **«Перевести в портфель»**: the window asks for the fund's investment. Keep SAFE, the amount and today's date → **«Перевести в портфель»**.
 
-✓ The deal's status is «Портфель».
+✓ The deal's status is «Портфель», and «Следующий шаг» says «Сделка закрыта — компания в портфеле» with a link to the company.
+✓ **Портфель** lists the company with the amount invested.
 
 ## 10. Quick checks
 
-- **Инвесткомитет → «Реестр решений»**: three decisions for `ZZ Test Startup`.
+- **Инвесткомитет**, each meeting's tab **«Решения»**: the decisions for `ZZ Test Startup`.
 - **The deal → «Решения ИК и НС»**: the same three.
-- **User menu → Язык → O‘zbek**: the pages read in Uzbek. Switch back to Русский.
 - **Настройки**: the menu on the left has Мандат, Этапы и нормативы, Отрасли, Раунды, Источники, Регионы, Причины отказа, Типы задач, Статусы задач and more. «Мандат» → «Из справочников» shows Pre-seed and Seed and the five Central Asian countries as the mandate.
 
 ## 11. Optional: a rejection
@@ -107,7 +107,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 
 - Applications sent on the live website (sqbvc.uz) do not reach the panel yet: the site still uses another ucode project. That is why deals for testing are created with «Новая сделка».
 - The board meeting uses the same members as the investment committee for now.
-- The panel cannot delete meetings or deals. When you finish, take members off with «Вывести из состава», and ask the developer to delete the `ZZ` meetings and deals.
+- The panel deletes a meeting only before it opens («Удалить» on its page), and no deals. When you finish, take members off the committee with «Убрать» → «Из состава ИК» on a planned meeting's «Участники» (or «Убрать» next to a person in «Назначить заседание»), and ask the developer to delete the `ZZ` meetings and deals.
 
 ## Reporting a problem
 

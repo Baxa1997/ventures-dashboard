@@ -3,12 +3,14 @@ import clsx from 'clsx';
 import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Spinner } from './Button';
 
 interface CheckListProps {
    items: CheckItem[];
    // when given, a person ticks the items here; otherwise the system closes
    // them when something happens (a report is uploaded, a request is sent)
    onToggle?: (id: string) => void;
+   busyId?: string; // the item whose tick is being saved; the others wait
    // what a person does to meet an item, by the item's id: a link, a field
    actions?: Partial<Record<string, ReactNode>>;
    className?: string;
@@ -30,7 +32,13 @@ const NOTES: Record<CheckItem['state'], string> = {
    blocking: 'text-danger',
 };
 
-const CheckList = ({ items, onToggle, actions, className }: CheckListProps) => {
+const CheckList = ({
+   items,
+   onToggle,
+   busyId,
+   actions,
+   className,
+}: CheckListProps) => {
    const { t } = useTranslation('components');
 
    return (
@@ -49,20 +57,31 @@ const CheckList = ({ items, onToggle, actions, className }: CheckListProps) => {
                      <button
                         type='button'
                         role='checkbox'
+                        aria-busy={busyId === item.id || undefined}
                         aria-checked={done}
                         aria-label={item.text}
                         className={clsx(
                            box,
-                           'relative after:absolute after:-inset-2',
+                           'relative after:absolute after:-inset-2 disabled:cursor-progress',
                            !done && 'hover:border-accent',
                         )}
+                        disabled={!!busyId}
                         onClick={() => onToggle(item.id)}
                      >
-                        <Check
-                           aria-hidden
-                           className='size-3.5'
-                           strokeWidth={3}
-                        />
+                        {busyId === item.id ? (
+                           <Spinner
+                              className={clsx(
+                                 'size-3',
+                                 done ? 'text-white' : 'text-ink-soft',
+                              )}
+                           />
+                        ) : (
+                           <Check
+                              aria-hidden
+                              className='size-3.5'
+                              strokeWidth={3}
+                           />
+                        )}
                      </button>
                   ) : (
                      <span className={box}>

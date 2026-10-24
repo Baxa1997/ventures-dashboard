@@ -1,13 +1,12 @@
+import ReportDocTitle from '@modules/Portfolio/components/ReportDocTitle';
 import MetricsDialog from '@modules/Portfolio/components/MetricsDialog';
-import {
-   REPORT_DOC_LABELS,
-   REPORT_DOCS,
-   TEMPLATE_BLOCKS,
-} from '@modules/Portfolio/constants';
+import { TEMPLATE_BLOCKS } from '@modules/Portfolio/constants';
 import {
    quarterLabel,
    receivedCount,
    recentQuarters,
+   reportDocName,
+   reportDocs,
 } from '@modules/Portfolio/helpers';
 import type { PortfolioData } from '@modules/Portfolio/hooks';
 import {
@@ -45,7 +44,7 @@ const Reports = ({ data }: ReportsProps) => {
    const [quarter, setQuarter] = useState(cycle.quarter);
    const [checking, setChecking] = useState<PortfolioCompany | null>(null);
    const current = quarter === cycle.quarter;
-   const total = companies.length * REPORT_DOCS.length;
+   const total = companies.length * reportDocs().length;
    const received = companies.reduce(
       (sum, company) => sum + receivedCount(company, quarter),
       0,
@@ -100,9 +99,9 @@ const Reports = ({ data }: ReportsProps) => {
                   head={
                      <>
                         <th className={TH}>{t('Компания')}</th>
-                        {REPORT_DOCS.map((doc) => (
+                        {reportDocs().map((doc) => (
                            <th key={doc} className={TH}>
-                              {t(REPORT_DOC_LABELS[doc])}
+                              <ReportDocTitle doc={doc} />
                            </th>
                         ))}
                         <th className={TH}>{t('Показатели в дашборде')}</th>
@@ -129,7 +128,7 @@ const Reports = ({ data }: ReportsProps) => {
                                  </span>
                               </span>
                            </td>
-                           {REPORT_DOCS.map((doc) => (
+                           {reportDocs().map((doc) => (
                               <td key={doc} className={TD}>
                                  {report?.received[doc] ? (
                                     <Badge tone='success'>{t('Получен')}</Badge>

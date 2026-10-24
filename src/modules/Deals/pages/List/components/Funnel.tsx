@@ -1,4 +1,5 @@
-import { ALL, FUNNEL_STAGES, STAGE_LABELS } from '@modules/Deals/constants';
+import { stageName } from '@modules/Settings/services';
+import { ALL } from '@modules/Deals/constants';
 import {
    type Deadline,
    deadlineLabel,
@@ -11,6 +12,7 @@ import {
    nextTitle,
    sumAmounts,
    stageNorm,
+   funnelStages,
 } from '@modules/Deals/helpers';
 import {
    Badge,
@@ -199,7 +201,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
          </FilterBar>
 
          <div className='mt-section gap-section grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8'>
-            {FUNNEL_STAGES.map((key) => {
+            {funnelStages().map((key) => {
                const group = funnel.filter((deal) => deal.stage === key);
                const overdue = group.filter(
                   (deal) => getDeadline(deal).kind === 'overdue',
@@ -221,7 +223,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                      onClick={() => setStage(active ? ALL : key)}
                   >
                      <div className='text-ink-soft truncate text-xs'>
-                        {t(STAGE_LABELS[key])}
+                        {stageName(key)}
                      </div>
                      <div className='mt-1 flex items-baseline gap-2'>
                         <span className='text-xl leading-6 font-bold tabular-nums'>
@@ -261,7 +263,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                         </tr>
                      </thead>
                      <tbody>
-                        {FUNNEL_STAGES.map((key) => {
+                        {funnelStages().map((key) => {
                            const group = rows.filter(
                               (deal) => deal.stage === key,
                            );
@@ -275,7 +277,7 @@ const Funnel = ({ deals: all, onVisible }: FunnelProps) => {
                                        className='px-5 py-2 text-left font-normal'
                                     >
                                        <span className='text-sm font-bold'>
-                                          {t(STAGE_LABELS[key])}
+                                          {stageName(key)}
                                        </span>
                                        <span className='text-ink-soft ml-3 text-xs'>
                                           {groupNote(key, group)}

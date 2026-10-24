@@ -26,7 +26,7 @@ import {
    TH,
 } from '@shared/components';
 import { formatDayYear, personName } from '@shared/helpers';
-import { useServiceData } from '@shared/hooks';
+import { useAction, useServiceData } from '@shared/hooks';
 import type { DocCategory, IssueStatus } from '@shared/types/documents.types';
 import clsx from 'clsx';
 import { ExternalLink, FileText } from 'lucide-react';
@@ -59,6 +59,12 @@ const DocumentsPage = () => {
    const [addingIssue, setAddingIssue] = useState(false);
    const markedRow = useRef<HTMLTableRowElement>(null);
    const title = t('Документы фонда');
+   const changing = useAction(
+      (id: string, status: IssueStatus) => documents.setIssueStatus(id, status),
+      { success: t('Статус вопроса сохранён') },
+   );
+   // the issue whose status is being saved
+   const [changingId, setChangingId] = useState('');
 
    useEffect(() => {
       markedRow.current?.scrollIntoView({ block: 'center' });
@@ -227,6 +233,7 @@ const DocumentsPage = () => {
                               <div className='mt-2 flex flex-wrap items-center gap-x-3 gap-y-2'>
                                  <FilterSelect<IssueStatus>
                                     accent={issue.status === 'in_work'}
+                                    busy={changingId === issue.id}
                                     label={t('Статус вопроса')}
                                     options={(
                                        Object.keys(
@@ -238,12 +245,11 @@ const DocumentsPage = () => {
                                     }))}
                                     showLabel={false}
                                     value={issue.status}
-                                    onChange={(status) =>
-                                       documents.setIssueStatus(
-                                          issue.id,
-                                          status,
-                                       )
-                                    }
+                                    onChange={async (status) => {
+                                       setChangingId(issue.id);
+                                       await changing.run(issue.id, status);
+                                       setChangingId('');
+                                    }}
                                  />
                                  {issue.ownerId && (
                                     <span className='text-ink-soft text-xs'>

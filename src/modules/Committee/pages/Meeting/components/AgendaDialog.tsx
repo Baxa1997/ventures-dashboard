@@ -1,5 +1,5 @@
+import { stageName } from '@modules/Settings/services';
 import DealPicker from '@modules/Committee/components/DealPicker';
-import { STAGE_LABELS } from '@modules/Committee/constants';
 import { meetingName, waitingDeals } from '@modules/Committee/helpers';
 import type { CommitteeData } from '@modules/Committee/hooks';
 import committee from '@modules/Committee/services';
@@ -13,6 +13,7 @@ import {
 import type { Meeting } from '@shared/types/committee.types';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRequest } from '@shared/hooks';
 
 interface AgendaDialogProps {
    data: CommitteeData;
@@ -26,7 +27,10 @@ interface AgendaDialogProps {
 const AgendaDialog = ({ data, meeting, open, onClose }: AgendaDialogProps) => {
    const { t } = useTranslation('committee');
    const [dealIds, setDealIds] = useState<string[]>([]);
-   const [saving, setSaving] = useState(false);
+   const saving = useRequest({
+      kind: 'create',
+      success: t('Добавлено в повестку'),
+   });
    const waiting = waitingDeals(
       data.meetings,
       data.deals,
@@ -36,20 +40,19 @@ const AgendaDialog = ({ data, meeting, open, onClose }: AgendaDialogProps) => {
    const stage =
       meeting.body === 'board'
          ? t('Наблюдательный совет')
-         : meeting.stage && t(STAGE_LABELS[meeting.stage]);
+         : meeting.stage && stageName(meeting.stage);
 
    useEffect(() => {
       if (open) setDealIds([]);
    }, [open]);
 
    const submit = async () => {
-      setSaving(true);
-      try {
-         await committee.addToAgenda(meeting.id, dealIds);
+      if (
+         await saving.run(async () => {
+            await committee.addToAgenda(meeting.id, dealIds);
+         })
+      )
          onClose();
-      } finally {
-         setSaving(false);
-      }
    };
 
    return (
@@ -89,7 +92,11 @@ const AgendaDialog = ({ data, meeting, open, onClose }: AgendaDialogProps) => {
                <Button variant='ghost' onClick={onClose}>
                   {t('Отмена')}
                </Button>
-               <Button disabled={!dealIds.length || saving} type='submit'>
+               <Button
+                  disabled={!dealIds.length}
+                  loading={saving.pending}
+                  type='submit'
+               >
                   {t('Добавить')}
                </Button>
             </ModalFooter>

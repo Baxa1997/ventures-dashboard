@@ -1,16 +1,27 @@
-import { STAGE_NEXT_LABELS } from '@modules/Deals/constants';
+import { stageNextLabel } from '@modules/Deals/helpers';
+import { itemOf, listOf, nameOf, stageName } from '@modules/Settings/services';
 import type { BadgeTone } from '@shared/components';
 import { directorId } from '@shared/constants';
+import type { ListItem, StatusGroup } from '@shared/types/settings.types';
 import type {
    Employee,
    QueueItem,
+   SystemTaskStatus,
    Task,
+   TaskStatus,
    WeekDeadline,
 } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
 import { capitalize, daysUntil, personName, todayISO } from '@shared/helpers';
-import { DATE_FORMAT, DEAL_STAGE_LABELS, SOON_DAYS } from '../constants';
+import {
+   DATE_FORMAT,
+   SOON_DAYS,
+   TASK_STATUS_GROUPS,
+   TASK_STATUS_LABELS,
+   TASK_STATUS_ORDER,
+   TASK_STATUS_TONES,
+} from '../constants';
 
 export {
    capitalize,
@@ -55,7 +66,45 @@ export const dueTone = (date: string, today = todayISO()): BadgeTone => {
    return days <= SOON_DAYS ? 'warning' : 'accent';
 };
 
-export const isDone = (task: Task) => task.status === 'done';
+const isSystemStatus = (status: string): status is SystemTaskStatus =>
+   status in TASK_STATUS_GROUPS;
+
+// The statuses in their order, as Настройки keep them; the system ones until
+// Настройки are read.
+export const taskStatuses = (): ListItem[] => {
+   const list = listOf('taskStatuses');
+   if (list.length) return list;
+   return TASK_STATUS_ORDER.map((status, index) => ({
+      id: status,
+      key: status,
+      names: { ru: '', uz: '', en: '' },
+      sortOrder: index + 1,
+      active: true,
+      isSystem: true,
+      group: TASK_STATUS_GROUPS[status],
+      tone: TASK_STATUS_TONES[status],
+   }));
+};
+
+// A status's group: what it does to a task (todo, progress or complete).
+export const statusGroup = (status: TaskStatus): StatusGroup =>
+   itemOf('taskStatuses', status)?.group ??
+   (isSystemStatus(status) ? TASK_STATUS_GROUPS[status] : 'progress');
+
+export const statusTone = (status: TaskStatus): BadgeTone =>
+   itemOf('taskStatuses', status)?.tone ??
+   (isSystemStatus(status) ? TASK_STATUS_TONES[status] : 'neutral');
+
+// A status's name: the fund's, else the system status's own, else its slug.
+export const statusName = (t: TFunction<'work'>, status: TaskStatus) => {
+   const item = itemOf('taskStatuses', status);
+   const own = item && nameOf(item);
+   if (own && own !== status) return own;
+   return isSystemStatus(status) ? t(TASK_STATUS_LABELS[status]) : status;
+};
+
+// A task in a status of the «complete» group is closed.
+export const isDone = (task: Task) => statusGroup(task.status) === 'complete';
 
 export const isOverdue = (task: Task, today = todayISO()) =>
    !isDone(task) && !!task.dueDate && task.dueDate < today;
@@ -97,8 +146,8 @@ export const queueWording = (
       return {
          title:
             item.title ||
-            (item.stage ? tDeals(STAGE_NEXT_LABELS[item.stage]) : ''),
-         note: item.stage ? t(DEAL_STAGE_LABELS[item.stage]) : '',
+            (item.stage ? stageNextLabel(tDeals, item.stage) : ''),
+         note: item.stage ? stageName(item.stage) : '',
       };
    if (item.kind === 'memo')
       return {
@@ -126,8 +175,7 @@ export const deadlineWording = (
       return {
          title: item.title,
          note:
-            item.note ||
-            (item.stage ? tDeals(STAGE_NEXT_LABELS[item.stage]) : ''),
+            item.note || (item.stage ? stageNextLabel(tDeals, item.stage) : ''),
       };
    return { title: item.title, note: item.note };
 };

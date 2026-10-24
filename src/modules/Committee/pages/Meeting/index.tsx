@@ -1,3 +1,4 @@
+import { stageName } from '@modules/Settings/services';
 import {
    ATTENDANCE,
    ATTENDANCE_ORDER,
@@ -6,12 +7,13 @@ import {
    MEMBER_ROLE_LABELS,
    OUTCOMES,
    PROTOCOL_FIELDS,
-   STAGE_LABELS,
    VOTES,
 } from '@modules/Committee/constants';
 import {
+   approvedAt,
    hasQuorum,
    isDecided,
+   participantsOf,
    materialsReady,
    meetingName,
    preparationOf,
@@ -19,7 +21,8 @@ import {
    type VoteTally,
 } from '@modules/Committee/helpers';
 import { type CommitteeData, useCommittee } from '@modules/Committee/hooks';
-import { industryText } from '@modules/Deals/helpers';
+import { RECOMMENDATION_NAMES } from '@modules/Deals/constants';
+import { industryText, proposalText } from '@modules/Deals/helpers';
 import committee from '@modules/Committee/services';
 import {
    Avatar,
@@ -29,33 +32,48 @@ import {
    buttonClass,
    Card,
    CheckList,
+   ConfirmDialog,
    FactList,
    Loading,
    NoData,
    PageBody,
    PageHeader,
+   Spinner,
    STACK,
+   Tabs,
    type BadgeTone,
 } from '@shared/components';
-import { directorId } from '@shared/constants';
+import { directorId, ROLE_LABELS, TEAM } from '@shared/constants';
 import { formatDate, formatUsd, personName } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useAction, useCurrentUser, useRequest } from '@shared/hooks';
 import type {
    AgendaItem,
    Attendance,
    Meeting,
+   VoteChoice,
 } from '@shared/types/committee.types';
-import type { CheckItem } from '@shared/types/deals.types';
+import type { CheckItem, Deal } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import Decisions from '@modules/Committee/components/Decisions';
+import MeetingDialog from '@modules/Committee/components/MeetingDialog';
 import AgendaDialog from './components/AgendaDialog';
+import Participants from './components/Participants';
 import SignDialog from './components/SignDialog';
 import SponsorDialog from './components/SponsorDialog';
 import VoteSelect from './components/VoteSelect';
+
+// The meeting page's tabs; the address keeps the open one (?tab=participants).
+const MEETING_TABS = ['agenda', 'participants', 'decisions'] as const;
+const MEETING_TAB_LABELS = {
+   agenda: 'Повестка',
+   participants: 'Участники',
+   decisions: 'Решения',
+} as const;
 
 const BOX_TONES: Record<BadgeTone, string> = {
    accent: 'bg-accent-tint',
@@ -122,6 +140,14 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
    const [sponsorItem, setSponsorItem] = useState<AgendaItem | null>(null);
    const [addingDeals, setAddingDeals] = useState(false);
    const [signing, setSigning] = useState(false);
+   const starting = useRequest({ success: t('Заседание открыто') });
+   const pausing = useRequest({
+      success:
+         meeting.status === 'break'
+            ? t('Заседание продолжено')
+            : t('Объявлен перерыв'),
+   });
+   const forming = useRequest({ success: t('Протокол сформирован') });
    const selected =
       meeting.agenda.find((item) => item.id === selectedId) ??
       meeting.agenda[0];
@@ -130,7 +156,17 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
    const held = meeting.status === 'held';
    const canRecord =
       user.id === meeting.secretaryId || user.role === 'director';
-   const present = data.members.filter(
+   const participants = participantsOf(meeting, data.members);
+   const decisions = data.decisions.filter(
+      ({ meetingId }) => meetingId === meeting.id,
+   ).length;
+   const [params, setParams] = useSearchParams();
+   const tab = MEETING_TABS.find((id) => id === params.get('tab')) ?? 'agenda';
+   const navigate = useNavigate();
+   // the meeting's day and format being changed; the meeting asked to be deleted
+   const [changing, setChanging] = useState(false);
+   const [removing, setRemoving] = useState(false);
+   const present = participants.filter(
       ({ id }) => meeting.attendance[id] === 'confirmed',
    ).length;
    const chair = data.members.find(({ id }) => id === meeting.chairId);
@@ -169,16 +205,16 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
          : meeting.status === 'planned'
            ? t('Подтвердили участие {{present}} из {{total}}', {
                 present,
-                total: data.members.length,
+                total: participants.length,
              })
            : hasQuorum(present)
              ? t('Кворум есть: {{present}} из {{total}} членов', {
                   present,
-                  total: data.members.length,
+                  total: participants.length,
                })
              : t('Кворума нет: {{present}} из {{total}} членов', {
                   present,
-                  total: data.members.length,
+                  total: participants.length,
                }),
       chair && t('председатель {{name}}', { name: chair.name }),
       t('протокол ведёт секретарь'),
@@ -213,31 +249,50 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
          );
       if (planned)
          return (
-            <Button
-               disabled={!canRecord || !prepared}
-               title={
-                  prepared
-                     ? undefined
-                     : t('Откроется, когда подготовка к заседанию закончена')
-               }
-               onClick={() => committee.startMeeting(meeting.id)}
-            >
-               {t('Открыть заседание')}
-            </Button>
+            <>
+               {canRecord && (
+                  <>
+                     <Button variant='ghost' onClick={() => setChanging(true)}>
+                        {t('Изменить')}
+                     </Button>
+                     <Button variant='ghost' onClick={() => setRemoving(true)}>
+                        {t('Удалить')}
+                     </Button>
+                  </>
+               )}
+               <Button
+                  disabled={!canRecord || !prepared}
+                  title={
+                     prepared
+                        ? undefined
+                        : t('Откроется, когда подготовка к заседанию закончена')
+                  }
+                  loading={starting.pending}
+                  onClick={() =>
+                     starting.run(() => committee.startMeeting(meeting.id))
+                  }
+               >
+                  {t('Открыть заседание')}
+               </Button>
+            </>
          );
       return (
          <>
             <Button
-               disabled={!canRecord}
+               disabled={!canRecord || forming.pending}
+               loading={pausing.pending}
                variant='ghost'
-               onClick={() => committee.toggleBreak(meeting.id)}
+               onClick={() =>
+                  pausing.run(() => committee.toggleBreak(meeting.id))
+               }
             >
                {meeting.status === 'break'
                   ? t('Продолжить заседание')
                   : t('Перерыв')}
             </Button>
             <Button
-               disabled={!canRecord || !allDecided || !live}
+               disabled={!canRecord || !allDecided || !live || pausing.pending}
+               loading={forming.pending}
                title={
                   allDecided
                      ? undefined
@@ -245,7 +300,9 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                           'Протокол формируется, когда по всем вопросам есть решение',
                        )
                }
-               onClick={() => committee.formProtocol(meeting.id, user.id)}
+               onClick={() =>
+                  forming.run(() => committee.formProtocol(meeting.id, user.id))
+               }
             >
                {t('Сформировать протокол')}
             </Button>
@@ -259,14 +316,7 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
             {t('Инвесткомитет')}
          </Link>
          {' · '}
-         <Link
-            className='hover:underline'
-            to={
-               meeting.body === 'board'
-                  ? `${COMMITTEE_PATH}?tab=board`
-                  : COMMITTEE_PATH
-            }
-         >
+         <Link className='hover:underline' to={COMMITTEE_PATH}>
             {meeting.body === 'board'
                ? t('Наблюдательный совет')
                : t('Заседания')}
@@ -282,115 +332,176 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
             meta={meta}
             section={section}
             title={`${name} · ${date}`}
-         />
-         <PageBody className='gap-section grid xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.85fr)_minmax(0,1.05fr)]'>
-            <Card className='p-3'>
-               <h2 className='text-ink-soft px-2 py-1.5 text-xs'>
-                  {t('Повестка')}
-               </h2>
-               <ol className='mt-1 flex flex-col gap-1'>
-                  {meeting.agenda.map((item, index) => {
-                     const active = item.id === selected?.id;
-                     return (
-                        <li key={item.id}>
-                           <button
-                              type='button'
-                              aria-current={active || undefined}
-                              className={clsx(
-                                 'flex w-full gap-3 rounded-md px-2 py-2 text-left',
-                                 active ? 'bg-accent-tint' : 'hover:bg-ground',
-                              )}
-                              onClick={() => setSelectedId(item.id)}
-                           >
-                              <span
-                                 className={clsx(
-                                    'w-3 shrink-0 tabular-nums',
-                                    active ? 'text-accent' : 'text-ink-soft',
-                                 )}
-                              >
-                                 {index + 1}
-                              </span>
-                              <span className='min-w-0'>
-                                 <span
-                                    className={clsx(
-                                       'block font-semibold',
-                                       active && 'text-accent',
-                                    )}
-                                 >
-                                    {item.title}
-                                 </span>
-                                 <span className='text-ink-soft mt-0.5 block text-xs'>
-                                    {itemState(
-                                       t,
-                                       item,
-                                       item.id === firstOpen?.id && live,
-                                    )}
-                                 </span>
-                              </span>
-                           </button>
-                        </li>
-                     );
-                  })}
-               </ol>
-               {meeting.agenda.length === 0 && (
-                  <p className='text-ink-soft px-2 py-1.5'>
-                     {t('Повестка пуста')}
-                  </p>
-               )}
-               {planned && canRecord && (
-                  <button
-                     type='button'
-                     className='link mt-1 px-2 py-1.5'
-                     onClick={() => setAddingDeals(true)}
-                  >
-                     {t('Добавить сделку')}
-                  </button>
-               )}
-            </Card>
-
-            <div className={STACK}>
-               {planned && (
-                  <Preparation
-                     data={data}
-                     editable={canRecord}
-                     meeting={meeting}
-                     onAddDeals={() => setAddingDeals(true)}
-                  />
-               )}
-               {!planned && meeting.agenda.length === 0 && (
-                  <Card className='grid min-h-48 place-items-center'>
-                     <NoData>
-                        {t(
-                           'На этом заседании не было вопросов — решений по нему нет.',
-                        )}
-                     </NoData>
-                  </Card>
-               )}
-               {selected && (
-                  <ItemCard
-                     data={data}
-                     editable={live && canRecord}
-                     index={meeting.agenda.indexOf(selected) + 1}
-                     item={selected}
-                     meeting={meeting}
-                     onSponsor={setSponsorItem}
-                  />
-               )}
-            </div>
-
-            {selected && (
-               <ProtocolCard
-                  editable={!held && canRecord}
-                  item={selected}
+         >
+            <Tabs
+               active={tab}
+               items={MEETING_TABS.map((id) => ({
+                  id,
+                  label: t(MEETING_TAB_LABELS[id]),
+                  count:
+                     id === 'participants'
+                        ? participants.length
+                        : id === 'decisions'
+                          ? decisions || undefined
+                          : undefined,
+               }))}
+               label={name}
+               onChange={(next) =>
+                  setParams(next === 'agenda' ? {} : { tab: next }, {
+                     replace: true,
+                  })
+               }
+            />
+         </PageHeader>
+         {tab === 'participants' && (
+            <PageBody className='flex flex-col'>
+               <Participants
+                  data={data}
+                  editable={canRecord}
                   meeting={meeting}
                />
-            )}
-         </PageBody>
+            </PageBody>
+         )}
+         {tab === 'decisions' && (
+            <PageBody className='flex flex-col'>
+               <Decisions data={data} meetingId={meeting.id} />
+            </PageBody>
+         )}
+         {tab === 'agenda' && (
+            <PageBody className='gap-section grid xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.85fr)_minmax(0,1.05fr)]'>
+               <Card className='p-3'>
+                  <h2 className='text-ink-soft px-2 py-1.5 text-xs'>
+                     {t('Повестка')}
+                  </h2>
+                  <ol className='mt-1 flex flex-col gap-1'>
+                     {meeting.agenda.map((item, index) => {
+                        const active = item.id === selected?.id;
+                        return (
+                           <li key={item.id}>
+                              <button
+                                 type='button'
+                                 aria-current={active || undefined}
+                                 className={clsx(
+                                    'flex w-full gap-3 rounded-md px-2 py-2 text-left',
+                                    active
+                                       ? 'bg-accent-tint'
+                                       : 'hover:bg-ground',
+                                 )}
+                                 onClick={() => setSelectedId(item.id)}
+                              >
+                                 <span
+                                    className={clsx(
+                                       'w-3 shrink-0 tabular-nums',
+                                       active ? 'text-accent' : 'text-ink-soft',
+                                    )}
+                                 >
+                                    {index + 1}
+                                 </span>
+                                 <span className='min-w-0'>
+                                    <span
+                                       className={clsx(
+                                          'block font-semibold',
+                                          active && 'text-accent',
+                                       )}
+                                    >
+                                       {item.title}
+                                    </span>
+                                    <span className='text-ink-soft mt-0.5 block text-xs'>
+                                       {itemState(
+                                          t,
+                                          item,
+                                          item.id === firstOpen?.id && live,
+                                       )}
+                                    </span>
+                                 </span>
+                              </button>
+                           </li>
+                        );
+                     })}
+                  </ol>
+                  {meeting.agenda.length === 0 && (
+                     <p className='text-ink-soft px-2 py-1.5'>
+                        {t('Повестка пуста')}
+                     </p>
+                  )}
+                  {planned && canRecord && (
+                     <button
+                        type='button'
+                        className='link mt-1 px-2 py-1.5'
+                        onClick={() => setAddingDeals(true)}
+                     >
+                        {t('Добавить сделку')}
+                     </button>
+                  )}
+               </Card>
+
+               <div className={STACK}>
+                  {planned && (
+                     <Preparation
+                        data={data}
+                        editable={canRecord}
+                        meeting={meeting}
+                        onAddDeals={() => setAddingDeals(true)}
+                     />
+                  )}
+                  {!planned && meeting.agenda.length === 0 && (
+                     <Card className='grid min-h-48 place-items-center'>
+                        <NoData>
+                           {t(
+                              'На этом заседании не было вопросов — решений по нему нет.',
+                           )}
+                        </NoData>
+                     </Card>
+                  )}
+                  {selected && (
+                     <ItemCard
+                        canRemove={!held && canRecord}
+                        data={data}
+                        editable={live && canRecord}
+                        index={meeting.agenda.indexOf(selected) + 1}
+                        item={selected}
+                        meeting={meeting}
+                        onSponsor={setSponsorItem}
+                     />
+                  )}
+               </div>
+
+               {selected && (
+                  <ProtocolCard
+                     editable={!held && canRecord}
+                     item={selected}
+                     meeting={meeting}
+                  />
+               )}
+            </PageBody>
+         )}
          <SignDialog
             meeting={meeting}
             open={signing}
             onClose={() => setSigning(false)}
          />
+         <MeetingDialog
+            meeting={meeting}
+            open={changing}
+            onClose={() => setChanging(false)}
+         />
+         <ConfirmDialog
+            open={removing}
+            subtitle={`${name} · ${date}`}
+            success={t('Заседание удалено')}
+            title={t('Удалить заседание?')}
+            onClose={() => setRemoving(false)}
+            onConfirm={async () => {
+               await committee.deleteMeeting(meeting.id);
+               navigate(COMMITTEE_PATH);
+            }}
+         >
+            <p>
+               {t(
+                  'Заседание удалится вместе с повесткой и списком участников; сделки с повестки снова будут ждать заседания.',
+               )}
+            </p>
+         </ConfirmDialog>
          <AgendaDialog
             data={data}
             meeting={meeting}
@@ -425,7 +536,7 @@ const itemState = (
       : voting
         ? t('голосование')
         : t('ожидает');
-   return [item.stage && t(STAGE_LABELS[item.stage]), state]
+   return [item.stage && stageName(item.stage), state]
       .filter(Boolean)
       .join(' · ');
 };
@@ -448,6 +559,17 @@ const Preparation = ({
    onAddDeals,
 }: PreparationProps) => {
    const { t } = useTranslation('committee');
+   const sending = useRequest({
+      kind: 'send',
+      success: t('Материалы разосланы'),
+   });
+   const marking = useAction(
+      (memberId: string, value: Attendance) =>
+         committee.setAttendance(meeting.id, memberId, value),
+      { success: t('Участие отмечено') },
+   );
+   // the member whose answer is being saved
+   const [markingId, setMarkingId] = useState('');
    const prep = preparationOf(meeting, data.members);
    const quorum = IC_RULES.quorum;
    const items: CheckItem[] = [
@@ -455,14 +577,18 @@ const Preparation = ({
          id: 'agenda',
          text: t('Внести сделки в повестку'),
          note: prep.questions
-            ? t('В повестке: {{titles}}', { titles: meeting.summary })
+            ? t('В повестке: {{titles}}', {
+                 titles:
+                    meeting.summary ||
+                    meeting.agenda.map(({ title }) => title).join(', '),
+              })
             : t('Повестка пуста'),
          state: prep.questions ? 'done' : 'blocking',
       },
       {
          id: 'members',
-         text: t('Состав ИК — не меньше {{quorum}} членов', { quorum }),
-         note: t('В составе {{members}} из {{quorum}} нужных', {
+         text: t('Участники — не меньше {{quorum}}', { quorum }),
+         note: t('Приглашено {{members}}, нужно не меньше {{quorum}}', {
             members: prep.members,
             quorum,
          }),
@@ -498,13 +624,13 @@ const Preparation = ({
          </button>
       ),
       members: prep.members < quorum && (
-         <Link className='link' to={`${COMMITTEE_PATH}?tab=members`}>
-            {t('Открыть «Состав и договоры»')}
+         <Link className='link' to='?tab=participants'>
+            {t('Открыть «Участники»')}
          </Link>
       ),
-      attendance: data.members.length > 0 && (
+      attendance: participantsOf(meeting, data.members).length > 0 && (
          <ul className='flex flex-col gap-1'>
-            {data.members.map((member) => {
+            {participantsOf(meeting, data.members).map((member) => {
                const value = meeting.attendance[member.id] ?? 'no_answer';
                return (
                   <li key={member.id} className='flex items-center gap-3'>
@@ -516,6 +642,7 @@ const Preparation = ({
                      </span>
                      {editable ? (
                         <BadgeSelect<Attendance>
+                           busy={markingId === member.id}
                            label={t('Участие: {{name}}', { name: member.name })}
                            options={ATTENDANCE_ORDER.map((option) => ({
                               value: option,
@@ -523,13 +650,11 @@ const Preparation = ({
                               tone: ATTENDANCE[option].tone,
                            }))}
                            value={value}
-                           onChange={(next) =>
-                              committee.setAttendance(
-                                 meeting.id,
-                                 member.id,
-                                 next,
-                              )
-                           }
+                           onChange={async (next) => {
+                              setMarkingId(member.id);
+                              await marking.run(member.id, next);
+                              setMarkingId('');
+                           }}
                         />
                      ) : (
                         <Badge tone={ATTENDANCE[value].tone}>
@@ -544,8 +669,9 @@ const Preparation = ({
       materials: editable && !meeting.materialsSentAt && (
          <button
             type='button'
-            className='link disabled:text-ink-faint disabled:no-underline'
-            disabled={!canSend}
+            aria-busy={sending.pending || undefined}
+            className='link disabled:text-ink-faint inline-flex items-center gap-1.5 disabled:no-underline'
+            disabled={!canSend || sending.pending}
             title={
                canSend
                   ? undefined
@@ -553,8 +679,11 @@ const Preparation = ({
                        'Разослать можно, когда у всех вопросов готовы все материалы',
                     )
             }
-            onClick={() => committee.sendMaterials(meeting.id)}
+            onClick={() =>
+               sending.run(() => committee.sendMaterials(meeting.id))
+            }
          >
+            {sending.pending && <Spinner className='size-3.5' />}
             {t('Разослать материалы')}
          </button>
       ),
@@ -590,8 +719,37 @@ interface ItemCardProps {
    item: AgendaItem;
    index: number;
    editable: boolean;
+   canRemove?: boolean; // the secretary may take the question off the agenda
    onSponsor: (item: AgendaItem) => void;
 }
+
+// Why a deal no longer waits for a question on a meeting not held yet: it was
+// approved at that stage elsewhere, or has left the stage; '' when it waits.
+const staleNote = (
+   t: TFunction<'committee'>,
+   meeting: Meeting,
+   item: AgendaItem,
+   deal: Deal | undefined,
+) => {
+   if (!deal || item.kind !== 'decision' || item.outcome) return '';
+   if (meeting.status === 'held') return '';
+   const stage =
+      meeting.body === 'board' ? 'board' : (item.stage ?? meeting.stage);
+   if (!stage) return '';
+   const label =
+      stage === 'board' ? t('Наблюдательный совет') : stageName(stage);
+   if (approvedAt(deal, stage))
+      return t(
+         '{{stage}} уже одобрил эту сделку на другом заседании — вопрос можно убрать из повестки.',
+         { stage: label },
+      );
+   if (deal.status !== 'active' || deal.stage !== stage)
+      return t(
+         'Сделка уже не на стадии «{{stage}}» — вопрос можно убрать из повестки.',
+         { stage: label },
+      );
+   return '';
+};
 
 // The question: what the members are asked, then the vote and its result.
 const ItemCard = ({
@@ -600,25 +758,67 @@ const ItemCard = ({
    item,
    index,
    editable,
+   canRemove,
    onSponsor,
 }: ItemCardProps) => {
    const { t, i18n } = useTranslation('committee');
+   const { t: tDeals } = useTranslation('deals');
+   const { t: tLayout } = useTranslation('layout');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const deal = data.deals.find(({ id }) => id === item.dealId);
-   // what the members are asked; until it is written, the deal's own facts
+   const stale = staleNote(t, meeting, item, deal);
+   // the deal's owner presents it, also when assigned after it was scheduled
+   const speakerId = item.speakerId || deal?.ownerId || '';
+   const speakerRole = TEAM.find(({ id }) => id === speakerId)?.role;
+   const memo = deal?.memo;
+   const [removing, setRemoving] = useState(false);
+   const noting = useRequest({ success: t('Принято к сведению') });
+   // what the members are asked: the deal's terms, the sponsor's word and an
+   // exception to the mandate; the company itself until the terms are written
    const facts = item.facts?.length
       ? item.facts
       : deal
         ? [
-             { label: t('Чем занимается'), value: deal.about },
-             { label: t('Отрасль'), value: industryText(deal) },
-             { label: t('Запрос'), value: formatUsd(deal.amount, language) },
+             {
+                label: t('Предложение'),
+                value: proposalText(tDeals, deal, language),
+             },
+             ...(deal.terms
+                ? []
+                : [
+                     { label: t('Чем занимается'), value: deal.about },
+                     { label: t('Отрасль'), value: industryText(deal) },
+                  ]),
+             {
+                label: t('Рекомендация спонсора'),
+                value: memo
+                   ? [
+                        RECOMMENDATION_NAMES[memo.recommendation],
+                        personName(memo.sponsorId),
+                     ]
+                        .filter(Boolean)
+                        .join(' · ')
+                   : '',
+             },
+             {
+                label: t('Исключение из мандата'),
+                value: deal.terms?.warning ?? '',
+             },
              {
                 label: t('Докладчик'),
-                value: personName(item.speakerId) || t('не назначен'),
+                value: speakerId
+                   ? [
+                        personName(speakerId),
+                        speakerRole &&
+                           tLayout(ROLE_LABELS[speakerRole]).toLowerCase(),
+                     ]
+                        .filter(Boolean)
+                        .join(', ')
+                   : t('не назначен'),
              },
           ].filter(({ value }) => value)
         : [];
+   const memoVersion = item.memoVersion ?? memo?.version;
    const title =
       item.kind === 'info'
          ? t('{{index}}. {{title}} — информация', { index, title: item.title })
@@ -626,12 +826,12 @@ const ItemCard = ({
               index,
               title: item.title,
            });
-   const memoLink = item.dealId && item.memoVersion && (
+   const memoLink = item.dealId && memoVersion && (
       <Link className='link' to={`/deals/${item.dealId}?tab=memo`}>
-         {t('Меморандум v{{version}}', { version: item.memoVersion })}
+         {t('Меморандум v{{version}}', { version: memoVersion })}
       </Link>
    );
-   const dealLink = item.dealId && !item.memoVersion && (
+   const dealLink = item.dealId && !memoVersion && (
       <Link className='link' to={`/deals/${item.dealId}`}>
          {t('Карточка сделки')}
       </Link>
@@ -639,6 +839,16 @@ const ItemCard = ({
 
    return (
       <>
+         {stale && (
+            <div className='bg-warning-tint text-warning-ink text-meta flex flex-wrap items-center justify-between gap-3 rounded-lg px-5 py-3.5'>
+               <span>{stale}</span>
+               {canRemove && (
+                  <Button variant='ghost' onClick={() => setRemoving(true)}>
+                     {t('Убрать из повестки')}
+                  </Button>
+               )}
+            </div>
+         )}
          <Card action={memoLink || dealLink || undefined} title={title}>
             {facts.length ? (
                <FactList
@@ -664,9 +874,12 @@ const ItemCard = ({
                   ) : (
                      editable && (
                         <Button
+                           loading={noting.pending}
                            variant='ghost'
                            onClick={() =>
-                              committee.decide(meeting.id, item.id, 'noted')
+                              noting.run(() =>
+                                 committee.decide(meeting.id, item.id, 'noted'),
+                              )
                            }
                         >
                            {t('Принять к сведению')}
@@ -684,6 +897,22 @@ const ItemCard = ({
                onSponsor={onSponsor}
             />
          )}
+         <ConfirmDialog
+            confirmLabel={t('Убрать')}
+            error={t('Не удалось убрать из повестки')}
+            open={removing}
+            subtitle={meetingName(t, meeting)}
+            success={t('Убрано из повестки')}
+            title={t('Убрать «{{title}}» из повестки?', { title: item.title })}
+            onClose={() => setRemoving(false)}
+            onConfirm={() => committee.removeFromAgenda(meeting.id, item.id)}
+         >
+            <p>
+               {t(
+                  'Вопрос уйдёт из повестки вместе с голосами по нему; сделка перестанет ждать это заседание.',
+               )}
+            </p>
+         </ConfirmDialog>
       </>
    );
 };
@@ -696,6 +925,18 @@ const Voting = ({
    onSponsor,
 }: Omit<ItemCardProps, 'index'>) => {
    const { t } = useTranslation('committee');
+   const voting = useAction(
+      (memberId: string, choice: VoteChoice | null) =>
+         committee.setVote(meeting.id, item.id, memberId, choice),
+      { success: t('Голос записан') },
+   );
+   // the member whose vote is being saved
+   const [votingId, setVotingId] = useState('');
+   const noting = useAction(
+      (memberId: string, text: string) =>
+         committee.setVoteNote(meeting.id, item.id, memberId, text),
+      { success: t('Комментарий сохранён') },
+   );
    const recorded = Object.values(item.votes).some(({ choice }) => choice);
    const tally = tallyVotes(meeting, data.members, item);
 
@@ -724,7 +965,7 @@ const Voting = ({
          title={t('Голосование')}
       >
          <ul className='divide-line divide-y px-5'>
-            {data.members.map((member) => {
+            {participantsOf(meeting, data.members).map((member) => {
                const vote = item.votes[member.id] ?? { choice: null, note: '' };
                const role = t(MEMBER_ROLE_LABELS[member.role]);
                const note =
@@ -752,12 +993,7 @@ const Voting = ({
                               onBlur={(event) => {
                                  const text = event.target.value.trim();
                                  if (text !== vote.note)
-                                    committee.setVoteNote(
-                                       meeting.id,
-                                       item.id,
-                                       member.id,
-                                       text,
-                                    );
+                                    noting.run(member.id, text);
                               }}
                            />
                         ) : (
@@ -770,16 +1006,14 @@ const Voting = ({
                      </div>
                      {changeable ? (
                         <VoteSelect
+                           busy={votingId === member.id}
                            label={t('Голос: {{name}}', { name: member.name })}
                            value={vote.choice}
-                           onChange={(choice) =>
-                              committee.setVote(
-                                 meeting.id,
-                                 item.id,
-                                 member.id,
-                                 choice,
-                              )
-                           }
+                           onChange={async (choice) => {
+                              setVotingId(member.id);
+                              await voting.run(member.id, choice);
+                              setVotingId('');
+                           }}
                         />
                      ) : vote.choice ? (
                         <Badge tone={VOTES[vote.choice].tone}>
@@ -820,13 +1054,39 @@ const ResultBox = ({
    onSponsor,
 }: ResultBoxProps) => {
    const { t } = useTranslation('committee');
-   const decide = (outcome: AgendaItem['outcome']) =>
-      committee.decide(meeting.id, item.id, outcome);
+   const deciding = useAction(
+      (outcome: AgendaItem['outcome']) =>
+         committee.decide(meeting.id, item.id, outcome),
+      {
+         success: (outcome) =>
+            outcome === null
+               ? t('Решение снято — можно зафиксировать другое')
+               : outcome === 'postponed'
+                 ? t('Вопрос отложен')
+                 : t('Решение зафиксировано'),
+      },
+   );
+   // the outcome being recorded, for the spinner of its button
+   const [target, setTarget] = useState<AgendaItem['outcome'] | undefined>();
+   const decide = async (outcome: AgendaItem['outcome']) => {
+      setTarget(outcome);
+      await deciding.run(outcome);
+      setTarget(undefined);
+   };
+   // a button that records an outcome: off while another is being recorded
+   const busy = (outcome: AgendaItem['outcome']) => ({
+      disabled: deciding.pending,
+      loading: deciding.pending && target === outcome,
+   });
    const rule = t(
       'Правило «Чек-лист ИК»: один голос против — обсуждение, решение принимает спонсор. Два и более — отказ. Особое мнение любого члена — вето.',
    );
    const postpone = (
-      <Button variant='ghost' onClick={() => decide('postponed')}>
+      <Button
+         {...busy('postponed')}
+         variant='ghost'
+         onClick={() => decide('postponed')}
+      >
          {t('Отложить вопрос')}
       </Button>
    );
@@ -844,7 +1104,7 @@ const ResultBox = ({
       text = item.outcomeNote;
       buttons =
          meeting.status !== 'held' ? (
-            <Button variant='text' onClick={() => decide(null)}>
+            <Button {...busy(null)} variant='text' onClick={() => decide(null)}>
                {t('Изменить решение')}
             </Button>
          ) : null;
@@ -860,17 +1120,12 @@ const ResultBox = ({
    } else if (tally.state === 'approved') {
       tone = 'success';
       title = t('Итог по правилам фонда: {{for}} «за» — вопрос одобрен', tally);
+      const approval = item.protocol.conditions.trim()
+         ? 'approved_conditions'
+         : 'approved';
       buttons = (
          <>
-            <Button
-               onClick={() =>
-                  decide(
-                     item.protocol.conditions.trim()
-                        ? 'approved_conditions'
-                        : 'approved',
-                  )
-               }
-            >
+            <Button {...busy(approval)} onClick={() => decide(approval)}>
                {t('Зафиксировать одобрение')}
             </Button>
             {postpone}
@@ -884,7 +1139,7 @@ const ResultBox = ({
       );
       buttons = (
          <>
-            <Button onClick={() => onSponsor(item)}>
+            <Button disabled={deciding.pending} onClick={() => onSponsor(item)}>
                {t('Зафиксировать решение спонсора')}
             </Button>
             {postpone}
@@ -903,7 +1158,7 @@ const ResultBox = ({
             : t('Итог по правилам фонда: {{against}} «против» — отказ', tally);
       buttons = (
          <>
-            <Button onClick={() => decide('rejected')}>
+            <Button {...busy('rejected')} onClick={() => decide('rejected')}>
                {t('Зафиксировать отказ')}
             </Button>
             {postpone}
@@ -931,6 +1186,11 @@ interface ProtocolCardProps {
 // The secretary's draft of the protocol for the open question.
 const ProtocolCard = ({ meeting, item, editable }: ProtocolCardProps) => {
    const { t } = useTranslation('committee');
+   const saving = useAction(
+      (key: (typeof PROTOCOL_FIELDS)[number]['key'], value: string) =>
+         committee.setProtocol(meeting.id, item.id, key, value),
+      { success: t('Протокол сохранён') },
+   );
 
    return (
       <Card
@@ -956,12 +1216,7 @@ const ProtocolCard = ({ meeting, item, editable }: ProtocolCardProps) => {
                         defaultValue={item.protocol[key]}
                         onBlur={(event) => {
                            if (event.target.value !== item.protocol[key])
-                              committee.setProtocol(
-                                 meeting.id,
-                                 item.id,
-                                 key,
-                                 event.target.value,
-                              );
+                              saving.run(key, event.target.value);
                         }}
                      />
                   ) : (

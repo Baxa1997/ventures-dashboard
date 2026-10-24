@@ -1,5 +1,9 @@
-import { STAGES } from '@modules/Deals/constants';
-import { getDeadline, isLate, triageDue } from '@modules/Deals/helpers';
+import {
+   getDeadline,
+   isLate,
+   stageKeys,
+   triageDue,
+} from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import { hasAllDocs } from '@modules/Portfolio/helpers';
 import portfolio from '@modules/Portfolio/services';
@@ -40,6 +44,7 @@ import {
    isMine,
    needsAction,
    shiftMonths,
+   statusGroup,
    todayISO,
 } from '../helpers';
 
@@ -81,8 +86,10 @@ const newest = (a: Row, b: Row) =>
 const toTask = (row: Row, checklist: Row[], events: Row[]): Task => ({
    id: row.guid,
    title: str(row.title),
-   type: listKeyOf('taskTypes', row.task_types_id) ?? (str(row.type) || 'other'),
+   type:
+      listKeyOf('taskTypes', row.task_types_id) ?? (str(row.type) || 'other'),
    context: str(row.context),
+   details: str(row.details),
    relation: row.deals_id
       ? 'deal'
       : row.portfolio_companies_id
@@ -120,6 +127,7 @@ const taskFields = (task: Task) => ({
    type: task.type,
    task_types_id: listIdOf('taskTypes', task.type),
    context: task.context,
+   details: task.details,
    basis: task.basis,
    assignee_id: task.assigneeId,
    reviewer_id: task.reviewerId,
@@ -410,7 +418,7 @@ class Work {
          ...extra,
          createdById: userId,
          createdAt: today,
-         completedAt: input.status === 'done' ? today : null,
+         completedAt: statusGroup(input.status) === 'complete' ? today : null,
          history: [],
       };
       store.set((current) => [task, ...current]);
@@ -596,9 +604,10 @@ class Work {
    // The deals a person runs, the furthest along first.
    async getMyDeals(userId: string): Promise<MyDeal[]> {
       const all = await deals.getDeals();
+      const keys = stageKeys();
       return all
          .filter((deal) => deal.status === 'active' && deal.ownerId === userId)
-         .sort((a, b) => STAGES.indexOf(b.stage) - STAGES.indexOf(a.stage))
+         .sort((a, b) => keys.indexOf(b.stage) - keys.indexOf(a.stage))
          .map((deal) => ({
             id: deal.id,
             company: deal.company,
@@ -736,7 +745,7 @@ class Work {
             })),
          },
          // incoming applications, then the deals in work on each stage
-         funnel: STAGES.map((stage) => {
+         funnel: stageKeys().map((stage) => {
             const group = all.filter((deal) =>
                stage === 'inbox'
                   ? deal.status === 'review'

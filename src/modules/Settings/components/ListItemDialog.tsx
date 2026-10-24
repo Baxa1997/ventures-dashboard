@@ -1,6 +1,15 @@
-import { INDUSTRY_MANDATES, LISTS } from '@modules/Settings/constants';
-import settings, { listOf } from '@modules/Settings/services';
 import {
+   INDUSTRY_MANDATES,
+   LISTS,
+   METRIC_FORMAT_LABELS,
+   STATUS_GROUPS,
+   TEMPLATE_ACCEPT,
+   TONE_LABELS,
+} from '@modules/Settings/constants';
+import settings, { listOf } from '@modules/Settings/services';
+import { deleteFile, uploadFile } from '@shared/api/ucode';
+import {
+   Badge,
    Button,
    Checkbox,
    Field,
@@ -9,15 +18,20 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
-import { useCurrentUser } from '@shared/hooks';
+import { toLatin } from '@shared/helpers';
+import { useAction, useCurrentUser } from '@shared/hooks';
+import type { MetricFormat } from '@shared/types/portfolio.types';
 import type {
    IndustryMandate,
+   ItemTone,
    ListItem,
    ListItemInput,
    ListKind,
+   StatusGroup,
 } from '@shared/types/settings.types';
 import type { SupportedLanguageType } from '@shared/types/system/language.types';
-import { type FormEvent, useState } from 'react';
+import type { TFunction } from 'i18next';
+import { type FormEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface ListItemDialogProps {
@@ -35,24 +49,63 @@ const LANGUAGES = [
    ['en', 'Название (англ.)'],
 ] as const satisfies readonly (readonly [SupportedLanguageType, string])[];
 
+const SNAKE = /^[a-z0-9]+(_[a-z0-9]+)*$/;
+
 // How each list writes its keys: industries as the website's ids
 // (e-commerce), countries as ISO codes (KZ), the rest with underscores.
 const KEY_PATTERNS: Record<ListKind, RegExp> = {
    industries: /^[a-z0-9]+(-[a-z0-9]+)*$/,
    countries: /^[A-Z]{2}$/,
-   rounds: /^[a-z0-9]+(_[a-z0-9]+)*$/,
-   sources: /^[a-z0-9]+(_[a-z0-9]+)*$/,
-   reasons: /^[a-z0-9]+(_[a-z0-9]+)*$/,
-   taskTypes: /^[a-z0-9]+(_[a-z0-9]+)*$/,
+   rounds: SNAKE,
+   sources: SNAKE,
+   reasons: SNAKE,
+   taskTypes: SNAKE,
+   taskStatuses: SNAKE,
+   metrics: SNAKE,
+   reportDocs: SNAKE,
+   docTemplates: SNAKE,
+};
+
+// The flags a row is marked by with a box.
+const BOX_LABELS = {
+   inMandate: 'В мандате',
+   onSite: 'На сайте',
+   isMandate: 'По мандату',
+} as const;
+type BoxFlag = keyof typeof BOX_LABELS;
+const isBoxFlag = (flag: string | null): flag is BoxFlag =>
+   !!flag && flag in BOX_LABELS;
+
+// How the journal shows a row: its names, its mark and whether it is used.
+export const describeRow = (
+   t: TFunction<'settings'>,
+   kind: ListKind,
+   row: ListItemInput | null,
+) => {
+   if (!row) return '';
+   const flag = LISTS[kind].flag;
+   const mark =
+      flag === 'mandate'
+         ? t(INDUSTRY_MANDATES[row.mandate ?? 'allowed'].label)
+         : flag === 'group'
+           ? t(STATUS_GROUPS[row.group ?? 'progress'])
+           : flag === 'format'
+             ? t(METRIC_FORMAT_LABELS[row.format ?? 'number'])
+             : flag === 'file'
+               ? (row.file?.name ?? '')
+               : isBoxFlag(flag) && row[flag]
+                 ? t(BOX_LABELS[flag])
+                 : '';
+   return [row.names.ru, mark, row.active ? t('используется') : t('отключён')]
+      .filter(Boolean)
+      .join(' · ');
 };
 
 // "Series B" → "series_b"; "Industrial Tech" → "industrial-tech"
 const keyFrom = (kind: ListKind, name: string) => {
    if (kind === 'countries') return '';
    const separator = kind === 'industries' ? '-' : '_';
-   return name
-      .trim()
-      .toLowerCase()
+   return toLatin(name.trim())
       .replace(/[^a-z0-9]+/g, separator)
       .replace(new RegExp(`^\\${separator}+|\\${separator}+$`, 'g'), '');
 };
@@ -65,6 +118,12 @@ const blank = (kind: ListKind): ListItemInput => ({
    ...((kind === 'rounds' || kind === 'countries') && { inMandate: false }),
    ...(kind === 'sources' && { onSite: false }),
    ...(kind === 'reasons' && { isMandate: false }),
+   ...(kind === 'taskStatuses' && {
+      group: 'progress' as StatusGroup,
+      tone: 'accent' as ItemTone,
+   }),
+   ...(kind === 'metrics' && { format: 'number' as MetricFormat }),
+   ...(LISTS[kind].flag === 'file' && { file: null }),
 });
 
 const ListItemForm = ({
@@ -75,13 +134,15 @@ const ListItemForm = ({
    const { t } = useTranslation('settings');
    const user = useCurrentUser();
    const list = LISTS[kind];
+   const fileInput = useRef<HTMLInputElement>(null);
    const [value, setValue] = useState<ListItemInput>(() =>
       item ? { ...item } : blank(kind),
    );
+   // the template picked to replace the current one, uploaded on saving
+   const [picked, setPicked] = useState<File | null>(null);
    // the key follows the English name until it is typed by hand
    const [keyTyped, setKeyTyped] = useState(!!item);
    const [tried, setTried] = useState(false);
-   const [saving, setSaving] = useState(false);
 
    const taken =
       !item && listOf(kind, true).some((other) => other.key === value.key);
@@ -97,46 +158,34 @@ const ListItemForm = ({
    };
    const valid = !errors.ru && !errors.key;
 
+   // the code follows the English name, or the Russian one while there is
+   // no English, until it is typed by hand
    const setName = (language: SupportedLanguageType, name: string) =>
-      setValue((prev) => ({
-         ...prev,
-         names: { ...prev.names, [language]: name },
-         ...(!keyTyped && language === 'en' && { key: keyFrom(kind, name) }),
-      }));
+      setValue((prev) => {
+         const names = { ...prev.names, [language]: name };
+         return {
+            ...prev,
+            names,
+            ...(!keyTyped && { key: keyFrom(kind, names.en || names.ru) }),
+         };
+      });
 
-   // how the journal shows the row: its names, its mark and whether it is used
-   const describe = (row: ListItemInput | null) => {
-      if (!row) return '';
-      const flag = list.flag;
-      const mark =
-         flag === 'mandate'
-            ? t(INDUSTRY_MANDATES[row.mandate ?? 'allowed'].label)
-            : flag && row[flag]
-              ? t(list.flagLabel)
-              : '';
-      return [
-         row.names.ru,
-         mark,
-         row.active ? t('используется') : t('отключён'),
-      ]
-         .filter(Boolean)
-         .join(' · ');
-   };
+   const describe = (row: ListItemInput | null) => describeRow(t, kind, row);
 
-   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setTried(true);
-      if (!valid) return;
-      const next: ListItemInput = {
-         ...value,
-         names: {
-            ru: value.names.ru.trim(),
-            uz: value.names.uz.trim(),
-            en: value.names.en.trim(),
-         },
-      };
-      setSaving(true);
-      try {
+   const save = useAction(
+      async () => {
+         const file = picked
+            ? await uploadFile(picked, 'Templates')
+            : (value.file ?? null);
+         const next: ListItemInput = {
+            ...value,
+            names: {
+               ru: value.names.ru.trim(),
+               uz: value.names.uz.trim(),
+               en: value.names.en.trim(),
+            },
+            ...(LISTS[kind].flag === 'file' && { file }),
+         };
          await settings.saveListItem(
             kind,
             item?.id ?? null,
@@ -148,10 +197,17 @@ const ListItemForm = ({
             }),
             describe,
          );
-         onClose();
-      } finally {
-         setSaving(false);
-      }
+         // the template it no longer has
+         if (item?.file?.id && item.file.id !== file?.id)
+            await deleteFile(item.file.id);
+      },
+      { kind: item ? 'save' : 'create' },
+   );
+
+   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setTried(true);
+      if (valid && (await save.run())) onClose();
    };
 
    const flag = list.flag;
@@ -182,7 +238,7 @@ const ListItemForm = ({
                   error={tried ? errors.key : undefined}
                   hint={
                      item
-                        ? t('Код не меняется: сделки и сайт хранят его')
+                        ? t('Код не меняется: записи хранят его')
                         : t(list.keyHint)
                   }
                   label={t(list.keyLabel)}
@@ -227,11 +283,154 @@ const ListItemForm = ({
                      </select>
                   </Field>
                )}
-               {flag && flag !== 'mandate' && (
+               {flag === 'group' && (
+                  <div className='grid gap-4 sm:grid-cols-2'>
+                     <Field
+                        hint={
+                           item?.isSystem
+                              ? t('Группа системного статуса не меняется')
+                              : undefined
+                        }
+                        label={t('Группа')}
+                     >
+                        <select
+                           className='field-input disabled:bg-ground'
+                           disabled={!!item?.isSystem}
+                           value={value.group}
+                           onChange={(event) =>
+                              setValue((prev) => ({
+                                 ...prev,
+                                 group: event.target.value as StatusGroup,
+                              }))
+                           }
+                        >
+                           {(Object.keys(STATUS_GROUPS) as StatusGroup[]).map(
+                              (group) => (
+                                 <option key={group} value={group}>
+                                    {t(STATUS_GROUPS[group])}
+                                 </option>
+                              ),
+                           )}
+                        </select>
+                     </Field>
+                     <Field label={t('Цвет')}>
+                        <div className='flex items-center gap-3'>
+                           <select
+                              className='field-input flex-1'
+                              value={value.tone}
+                              onChange={(event) =>
+                                 setValue((prev) => ({
+                                    ...prev,
+                                    tone: event.target.value as ItemTone,
+                                 }))
+                              }
+                           >
+                              {(Object.keys(TONE_LABELS) as ItemTone[]).map(
+                                 (tone) => (
+                                    <option key={tone} value={tone}>
+                                       {t(TONE_LABELS[tone])}
+                                    </option>
+                                 ),
+                              )}
+                           </select>
+                           <Badge tone={value.tone ?? 'neutral'}>
+                              {value.names.ru || t('Статус')}
+                           </Badge>
+                        </div>
+                     </Field>
+                  </div>
+               )}
+               {flag === 'format' && (
+                  <Field
+                     hint={
+                        item?.isSystem
+                           ? t('Формат системного показателя не меняется')
+                           : t('Как цифра показывается в отчётах')
+                     }
+                     label={t(list.flagLabel)}
+                  >
+                     <select
+                        className='field-input disabled:bg-ground'
+                        disabled={!!item?.isSystem}
+                        value={value.format}
+                        onChange={(event) =>
+                           setValue((prev) => ({
+                              ...prev,
+                              format: event.target.value as MetricFormat,
+                           }))
+                        }
+                     >
+                        {(
+                           Object.keys(METRIC_FORMAT_LABELS) as MetricFormat[]
+                        ).map((format) => (
+                           <option key={format} value={format}>
+                              {t(METRIC_FORMAT_LABELS[format])}
+                           </option>
+                        ))}
+                     </select>
+                  </Field>
+               )}
+               {flag === 'file' && (
+                  <Field
+                     hint={t('Excel, Word, PowerPoint или PDF')}
+                     label={t(list.flagLabel)}
+                  >
+                     <div className='text-meta flex flex-wrap items-center gap-x-4 gap-y-1'>
+                        {picked ? (
+                           <span className='font-medium'>{picked.name}</span>
+                        ) : value.file ? (
+                           <a
+                              className='link'
+                              href={value.file.url}
+                              rel='noreferrer'
+                              target='_blank'
+                           >
+                              {value.file.name}
+                           </a>
+                        ) : (
+                           <span className='text-ink-soft'>
+                              {t('Шаблона нет')}
+                           </span>
+                        )}
+                        <button
+                           type='button'
+                           className='link'
+                           onClick={() => fileInput.current?.click()}
+                        >
+                           {value.file || picked
+                              ? t('Заменить файл')
+                              : t('Выбрать файл')}
+                        </button>
+                        {(value.file || picked) && (
+                           <button
+                              type='button'
+                              className='text-ink-soft hover:text-danger'
+                              onClick={() => {
+                                 setPicked(null);
+                                 setValue((prev) => ({ ...prev, file: null }));
+                              }}
+                           >
+                              {t('Убрать')}
+                           </button>
+                        )}
+                        <input
+                           ref={fileInput}
+                           accept={TEMPLATE_ACCEPT}
+                           hidden
+                           type='file'
+                           onChange={(event) => {
+                              setPicked(event.target.files?.[0] ?? null);
+                              event.target.value = '';
+                           }}
+                        />
+                     </div>
+                  </Field>
+               )}
+               {isBoxFlag(flag) && (
                   <label className='flex items-center gap-2.5'>
                      <Checkbox
                         checked={!!value[flag]}
-                        label={t(list.flagLabel)}
+                        label={t(BOX_LABELS[flag])}
                         onChange={() =>
                            setValue((prev) => ({
                               ...prev,
@@ -239,7 +438,7 @@ const ListItemForm = ({
                            }))
                         }
                      />
-                     {t(list.flagLabel)}
+                     {t(BOX_LABELS[flag])}
                   </label>
                )}
                {item && (
@@ -260,7 +459,7 @@ const ListItemForm = ({
                         {t('Используется')}
                         <span className='text-ink-soft block text-xs'>
                            {t(
-                              'Снимите, чтобы формы перестали предлагать эту строку; сделки и задачи с ней её сохранят.',
+                              'Снимите, чтобы формы перестали предлагать эту строку; записи с ней её сохранят.',
                            )}
                         </span>
                      </span>
@@ -268,11 +467,17 @@ const ListItemForm = ({
                )}
             </div>
          </ModalBody>
-         <ModalFooter note={t('Изменение попадёт в журнал')}>
+         <ModalFooter
+            note={
+               item?.isSystem
+                  ? t('Системная строка: её можно переименовать, но не удалить')
+                  : t('Изменение попадёт в журнал')
+            }
+         >
             <Button variant='text' onClick={onClose}>
                {t('Отмена')}
             </Button>
-            <Button disabled={saving} type='submit'>
+            <Button loading={save.pending} type='submit'>
                {item ? t('Сохранить') : t('Добавить')}
             </Button>
          </ModalFooter>

@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
+import { Spinner } from './Button';
 
 interface FilterSelectProps<T extends string> {
    label: string; // names the filter for screen readers
@@ -8,10 +9,12 @@ interface FilterSelectProps<T extends string> {
    value: T;
    options: { value: T; label: string }[];
    onChange: (value: T) => void;
+   busy?: boolean; // the choice is being saved: a spinner, and it is off
 }
 
-// A compact filter. The native select lies invisibly over the text, so the
-// list, the keyboard and screen readers work as usual.
+// A compact filter, or a choice saved as it is made. The native select lies
+// invisibly over the text, so the list, the keyboard and screen readers work
+// as usual.
 const FilterSelect = <T extends string>({
    label,
    showLabel = true,
@@ -19,6 +22,7 @@ const FilterSelect = <T extends string>({
    value,
    options,
    onChange,
+   busy = false,
 }: FilterSelectProps<T>) => {
    const current = options.find((option) => option.value === value)?.label;
 
@@ -32,13 +36,19 @@ const FilterSelect = <T extends string>({
          )}
       >
          <span aria-hidden>{showLabel ? `${label}: ${current}` : current}</span>
-         <ChevronDown
-            aria-hidden
-            className={clsx('size-4', !accent && 'text-ink-soft')}
-         />
+         {busy ? (
+            <Spinner className={clsx(!accent && 'text-ink-soft')} />
+         ) : (
+            <ChevronDown
+               aria-hidden
+               className={clsx('size-4', !accent && 'text-ink-soft')}
+            />
+         )}
          <select
+            aria-busy={busy || undefined}
             aria-label={label}
-            className='absolute inset-0 w-full opacity-0'
+            className='absolute inset-0 w-full opacity-0 disabled:cursor-progress'
+            disabled={busy}
             value={value}
             onChange={(event) => onChange(event.target.value as T)}
          >

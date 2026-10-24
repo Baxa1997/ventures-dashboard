@@ -1,14 +1,16 @@
 import type { BadgeTone } from '@shared/components';
+import type { MetricFormat } from '@shared/types/portfolio.types';
 import type {
    Access,
    FlagField,
    IndustryMandate,
+   EscalateTo,
+   ItemTone,
    ListKind,
    MandateField,
-   NormStage,
    StaffRole,
+   StatusGroup,
 } from '@shared/types/settings.types';
-import type { TaskStatus } from '@shared/types/work.types';
 
 // Texts are keys of the "settings" translations.
 
@@ -22,8 +24,11 @@ export const SETTINGS_SECTION_IDS = [
    'sources',
    'countries',
    'reasons',
+   'doc-templates',
    'task-types',
    'task-statuses',
+   'metrics',
+   'report-docs',
    'users',
    'integrations',
    'journal',
@@ -88,6 +93,11 @@ export const SETTINGS_GROUPS = [
             label: 'Причины отказа',
             meta: 'Отказ возможен только с причиной из списка.',
          },
+         {
+            id: 'doc-templates',
+            label: 'Шаблоны документов',
+            meta: 'Файлы, которые фонд отправляет заявителю с запросом: он заполняет их и возвращает.',
+         },
       ],
    },
    {
@@ -102,6 +112,21 @@ export const SETTINGS_GROUPS = [
             id: 'task-statuses',
             label: 'Статусы задач',
             meta: 'Путь задачи от постановки до завершения.',
+         },
+      ],
+   },
+   {
+      label: 'Портфель',
+      sections: [
+         {
+            id: 'metrics',
+            label: 'Показатели',
+            meta: 'Что компании портфеля сообщают каждый квартал.',
+         },
+         {
+            id: 'report-docs',
+            label: 'Отчётность',
+            meta: 'Документы квартального отчёта и шаблоны, которые компании заполняют.',
          },
       ],
    },
@@ -158,6 +183,10 @@ export const LIST_SECTIONS = {
    countries: 'countries',
    reasons: 'reasons',
    'task-types': 'taskTypes',
+   'task-statuses': 'taskStatuses',
+   metrics: 'metrics',
+   'report-docs': 'reportDocs',
+   'doc-templates': 'docTemplates',
 } as const satisfies Partial<Record<SettingsSection, ListKind>>;
 
 export const LISTS = {
@@ -215,6 +244,42 @@ export const LISTS = {
       flag: null,
       flagLabel: '',
    },
+   taskStatuses: {
+      title: 'Статусы задач',
+      one: 'статус',
+      note: 'Путь задачи. Группа задаёт, как статус работает: «К выполнению» — задача ещё не начата, «В работе» — идёт, «Завершено» — закрыта (повторяющаяся задача создаёт следующую). Задачи в списке собраны по статусам.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: on_hold',
+      flag: 'group',
+      flagLabel: 'Группа',
+   },
+   metrics: {
+      title: 'Показатели',
+      one: 'показатель',
+      note: 'Цифры квартального отчёта компании. Runway, Churn и выручка — системные: по ним портфель получает красный флаг.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: arpu',
+      flag: 'format',
+      flagLabel: 'Формат',
+   },
+   reportDocs: {
+      title: 'Отчётность',
+      one: 'документ',
+      note: 'Документы, которые компания сдаёт за квартал, и шаблон каждого (Excel, Word или PowerPoint), который ей отправляют.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: cash_flow',
+      flag: 'file',
+      flagLabel: 'Шаблон',
+   },
+   docTemplates: {
+      title: 'Шаблоны документов',
+      one: 'шаблон',
+      note: 'Анкеты, формы и таблицы (Excel, Word, PowerPoint, PDF), которые заявитель заполняет. В «Новом запросе» шаблоны выбирают галочками — они уходят с запросом, а заполненные файлы возвращаются в data room на проверку.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: dd_questionnaire',
+      flag: 'file',
+      flagLabel: 'Файл',
+   },
 } as const satisfies Record<
    ListKind,
    {
@@ -223,50 +288,38 @@ export const LISTS = {
       note: string;
       keyLabel: string;
       keyHint: string;
-      flag: 'mandate' | 'inMandate' | 'onSite' | 'isMandate' | null;
+      // the list's own column: a mark, a select, or a file
+      flag:
+         | 'mandate'
+         | 'inMandate'
+         | 'onSite'
+         | 'isMandate'
+         | 'group'
+         | 'format'
+         | 'file'
+         | null;
       flagLabel: string;
    }
 >;
 
-// What each task status means; the statuses are fixed (ucode STATUS options).
-export const TASK_STATUS_INFO = [
-   {
-      status: 'assigned',
-      group: 'todo',
-      text: 'Задача поставлена, исполнитель ещё не начал.',
-   },
-   {
-      status: 'in_progress',
-      group: 'progress',
-      text: 'Исполнитель работает над задачей.',
-   },
-   {
-      status: 'waiting',
-      group: 'progress',
-      text: 'Ждём ответа от другого человека или организации; поставившему задачу она видна в «Ждёте от других».',
-   },
-   {
-      status: 'review',
-      group: 'progress',
-      text: 'Исполнитель закончил, задачу проверяет проверяющий; закрыть её может только он.',
-   },
-   {
-      status: 'postponed',
-      group: 'progress',
-      text: 'Отложена: срок не горит, задача не попадает в «Мой день».',
-   },
-   {
-      status: 'done',
-      group: 'complete',
-      text: 'Завершена. Повторяющаяся задача создаёт следующую — через месяц или квартал.',
-   },
-] as const satisfies readonly {
-   status: TaskStatus;
-   group: StatusGroup;
-   text: string;
-}[];
+// A task status's colour, as the badge shows it.
+export const TONE_LABELS = {
+   neutral: 'Серый',
+   accent: 'Синий',
+   success: 'Зелёный',
+   warning: 'Жёлтый',
+   danger: 'Красный',
+} as const satisfies Record<ItemTone, string>;
 
-export type StatusGroup = 'todo' | 'progress' | 'complete';
+export const METRIC_FORMAT_LABELS = {
+   usd: 'Доллары',
+   percent: 'Проценты',
+   months: 'Месяцы',
+   number: 'Число',
+} as const satisfies Record<MetricFormat, string>;
+
+// The files a report document's template may be.
+export const TEMPLATE_ACCEPT = '.xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt,.pdf';
 
 export const STATUS_GROUPS = {
    todo: 'К выполнению',
@@ -298,16 +351,26 @@ export const MANDATE_FIELDS = [
    placeholder?: string; // the format the field is read in
 }[];
 
-export const NORM_STAGE_LABELS = {
-   inbox: 'Входящие',
-   screening: 'Скрининг',
-   meeting: 'Встреча',
-   analysis: 'Анализ',
-   committee: 'ИК-1, ИК-2',
-   dd: 'Детальный DD',
-   board: 'Набсовет',
-   closing: 'Закрытие',
-} as const satisfies Record<NormStage, string>;
+// The stages a fund starts with, in their order, with their default names;
+// the system ones carry the platform's rules.
+export const DEFAULT_STAGES = [
+   { key: 'inbox', label: 'Входящие', system: true },
+   { key: 'screening', label: 'Скрининг', system: true },
+   { key: 'meeting', label: 'Встреча', system: false },
+   { key: 'analysis', label: 'Анализ', system: false },
+   { key: 'ic1', label: 'ИК-1', system: true },
+   { key: 'dd', label: 'Детальный DD', system: true },
+   { key: 'ic2', label: 'ИК-2', system: true },
+   { key: 'board', label: 'Набсовет', system: true },
+   { key: 'closing', label: 'Закрытие', system: true },
+] as const;
+
+export const ESCALATION_LABELS = {
+   deputy: 'Зам. директора',
+   director: 'Директор',
+   ic_chair: 'Председатель ИК',
+   '': '—',
+} as const satisfies Record<EscalateTo, string>;
 
 export const FLAG_FIELDS = [
    { key: 'runway', label: 'Runway меньше', unit: 'месяцев' },

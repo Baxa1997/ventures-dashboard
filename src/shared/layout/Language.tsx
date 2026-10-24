@@ -1,4 +1,4 @@
-import { SUPPORTED_LANGUAGES } from '@shared/constants';
+import { INTERFACE_LANGUAGES } from '@shared/constants';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 
@@ -8,7 +8,7 @@ const Language = () => {
 
    return (
       <div role='group' aria-label={t('Язык')} className='flex gap-1'>
-         {SUPPORTED_LANGUAGES.map((language) => {
+         {INTERFACE_LANGUAGES.map((language) => {
             const active = i18n.resolvedLanguage === language;
             return (
                <button

@@ -17,7 +17,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { formatDate, todayISO } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useCurrentUser, useRequest } from '@shared/hooks';
 import type {
    Approver,
    DocCategory,
@@ -65,7 +65,9 @@ const DocumentDialog = ({
    const [values, setValues] = useState<DocumentInput>(EMPTY);
    const [number, setNumber] = useState('');
    const [errors, setErrors] = useState<{ title?: string; link?: string }>({});
-   const [saving, setSaving] = useState(false);
+   const saving = useRequest(
+      editing ? {} : { kind: 'create', success: t('Документ добавлен') },
+   );
 
    useEffect(() => {
       setErrors({});
@@ -115,16 +117,15 @@ const DocumentDialog = ({
               link,
            }
          : { ...values, title: subject, note: values.note.trim(), link };
-      setSaving(true);
-      try {
-         const id = editing
-            ? (await documents.updateDocument(editing.id, input), editing.id)
-            : await documents.addDocument(input, user.id);
-         onSaved(id, input.category);
+      if (
+         await saving.run(async () => {
+            const id = editing
+               ? (await documents.updateDocument(editing.id, input), editing.id)
+               : await documents.addDocument(input, user.id);
+            onSaved(id, input.category);
+         })
+      )
          onClose();
-      } finally {
-         setSaving(false);
-      }
    };
 
    const title = editing
@@ -279,7 +280,7 @@ const DocumentDialog = ({
                <Button variant='ghost' onClick={onClose}>
                   {t('Отмена')}
                </Button>
-               <Button disabled={saving} type='submit'>
+               <Button loading={saving.pending} type='submit'>
                   {editing
                      ? t('Сохранить')
                      : order

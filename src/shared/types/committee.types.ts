@@ -8,6 +8,8 @@ export interface CommitteeMember {
    role: MemberRole;
    remote: boolean; // takes part by video
    contract: string; // what the member works under
+   employeeId?: string; // a member of the fund's team, when they are one
+   retired?: boolean; // left the committee: kept for the meetings they sat at
 }
 
 export type Attendance = 'confirmed' | 'no_answer' | 'declined';
@@ -122,6 +124,7 @@ export interface NewMeetingInput {
    time: string;
    format: string;
    dealIds: string[];
+   participantIds: string[]; // the members invited; the quorum counts them
 }
 
 export type MemberInput = Omit<CommitteeMember, 'id'>;

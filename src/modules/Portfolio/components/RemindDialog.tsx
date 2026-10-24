@@ -3,6 +3,7 @@ import type { PortfolioData } from '@modules/Portfolio/hooks';
 import portfolio from '@modules/Portfolio/services';
 import { Button, Modal, ModalBody, ModalFooter } from '@shared/components';
 import { formatDate } from '@shared/helpers';
+import { useRequest } from '@shared/hooks';
 import { useTranslation } from 'react-i18next';
 
 interface RemindDialogProps {
@@ -14,6 +15,10 @@ interface RemindDialogProps {
 // Asks the companies that have not sent all their documents for them again.
 const RemindDialog = ({ data, open, onClose }: RemindDialogProps) => {
    const { t } = useTranslation('portfolio');
+   const reminding = useRequest({
+      kind: 'send',
+      success: t('Напоминание отправлено'),
+   });
    const { companies, cycle } = data;
    const missing = companies.filter(
       (company) => !hasAllDocs(company, cycle.quarter),
@@ -68,9 +73,9 @@ const RemindDialog = ({ data, open, onClose }: RemindDialogProps) => {
             </Button>
             <Button
                disabled={!missing.length}
+               loading={reminding.pending}
                onClick={async () => {
-                  await portfolio.remind();
-                  onClose();
+                  if (await reminding.run(() => portfolio.remind())) onClose();
                }}
             >
                {t('Отправить напоминание')}

@@ -11,9 +11,11 @@ import {
    CheckList,
    FactList,
    NoData,
+   Spinner,
    STACK,
 } from '@shared/components';
 import { TEAM } from '@shared/constants';
+import { useAction } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
@@ -34,6 +36,13 @@ const TH = 'px-3 py-2.5 text-xs font-normal text-ink-soft';
 const Memorandum = ({ deal }: MemorandumProps) => {
    const { t } = useTranslation('deals');
    const [active, setActive] = useState(1);
+   const recommending = useAction(
+      (value: (typeof RECOMMENDATIONS)[number]) =>
+         deals.setRecommendation(deal.id, value),
+      { success: t('Рекомендация сохранена') },
+   );
+   // the recommendation being saved, for its spinner
+   const [choosing, setChoosing] = useState('');
    const { memo } = deal;
 
    if (!memo)
@@ -140,17 +149,26 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                            type='button'
                            role='radio'
                            aria-checked={chosen}
+                           aria-busy={
+                              (recommending.pending && choosing === value) ||
+                              undefined
+                           }
                            className={clsx(
-                              'text-meta h-9 rounded-lg border px-4 font-medium transition-colors disabled:cursor-not-allowed',
+                              'text-meta inline-flex h-9 items-center gap-1.5 rounded-lg border px-4 font-medium transition-colors disabled:cursor-not-allowed',
                               chosen
                                  ? 'border-accent bg-accent text-white'
                                  : 'border-line-strong text-ink-soft enabled:hover:border-accent bg-white',
                            )}
-                           disabled={locked}
-                           onClick={() =>
-                              deals.setRecommendation(deal.id, value)
-                           }
+                           disabled={locked || recommending.pending}
+                           onClick={async () => {
+                              setChoosing(value);
+                              await recommending.run(value);
+                              setChoosing('');
+                           }}
                         >
+                           {recommending.pending && choosing === value && (
+                              <Spinner className='size-3.5' />
+                           )}
                            {RECOMMENDATION_NAMES[value]}
                         </button>
                      );

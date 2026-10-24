@@ -1,10 +1,11 @@
+import type { BadgeTone } from '@shared/components';
+import type { StatusGroup } from '@shared/types/settings.types';
 import type {
-   DealStage,
    Section,
+   SystemTaskStatus,
    TaskPriority,
    TaskRecurrence,
    TaskRelation,
-   TaskStatus,
 } from '@shared/types/work.types';
 
 export { DATE_FORMAT } from '@shared/constants';
@@ -14,8 +15,10 @@ export const TITLE_MAX = 120;
 // A deadline this many days away, or closer, is highlighted.
 export const SOON_DAYS = 3;
 
-// Display order, and labels that are keys of the "work" translations.
-export const TASK_STATUS_ORDER: TaskStatus[] = [
+// The system statuses as batch 8 starts them (Настройки → Статусы задач has
+// the list the fund keeps): their order, names (keys of the "work"
+// translations), colours and groups, for a row the list does not have.
+export const TASK_STATUS_ORDER: SystemTaskStatus[] = [
    'assigned',
    'in_progress',
    'waiting',
@@ -31,7 +34,25 @@ export const TASK_STATUS_LABELS = {
    review: 'На проверке',
    postponed: 'Отложена',
    done: 'Завершена',
-} as const satisfies Record<TaskStatus, string>;
+} as const satisfies Record<SystemTaskStatus, string>;
+
+export const TASK_STATUS_TONES: Record<SystemTaskStatus, BadgeTone> = {
+   assigned: 'neutral',
+   in_progress: 'accent',
+   waiting: 'warning',
+   review: 'accent',
+   postponed: 'neutral',
+   done: 'success',
+};
+
+export const TASK_STATUS_GROUPS: Record<SystemTaskStatus, StatusGroup> = {
+   assigned: 'todo',
+   in_progress: 'progress',
+   waiting: 'progress',
+   review: 'progress',
+   postponed: 'progress',
+   done: 'complete',
+};
 
 export const TASK_PRIORITY_ORDER: TaskPriority[] = ['high', 'medium', 'low'];
 
@@ -82,15 +103,3 @@ export const RECURRENCE_MONTHS: Record<
    monthly: 1,
    quarterly: 3,
 };
-
-export const DEAL_STAGE_LABELS = {
-   inbox: 'Входящие',
-   screening: 'Скрининг',
-   meeting: 'Встреча',
-   analysis: 'Анализ',
-   ic1: 'ИК-1',
-   dd: 'Детальный DD',
-   ic2: 'ИК-2',
-   board: 'Наблюдательный совет',
-   closing: 'Закрытие',
-} as const satisfies Record<DealStage, string>;

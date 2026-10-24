@@ -4,9 +4,12 @@ import {
    isDone,
    isMine,
    isOverdue,
+   statusGroup,
 } from '@modules/Work/helpers';
+import { textToHtml } from '@shared/helpers';
 import type {
    ChecklistItem,
+   SystemTaskStatus,
    Task,
    TaskInput,
    TaskRelation,
@@ -88,10 +91,19 @@ export const selectTasks = (
       .sort(byDueDate);
 };
 
-export const getNextStep = (task: Task) =>
-   task.status === 'in_progress' && !task.reviewerId
-      ? CLOSE_STEP
-      : NEXT_STEPS[task.status];
+const isSystem = (status: string): status is SystemTaskStatus =>
+   status in NEXT_STEPS;
+
+// The main button's step; a status the fund added moves on as its group:
+// to work, to review or closed, and back to work once closed.
+export const getNextStep = (task: Task) => {
+   if (task.status === 'in_progress' && !task.reviewerId) return CLOSE_STEP;
+   if (isSystem(task.status)) return NEXT_STEPS[task.status];
+   const group = statusGroup(task.status);
+   if (group === 'todo') return NEXT_STEPS.assigned;
+   if (group === 'complete') return NEXT_STEPS.done;
+   return task.reviewerId ? NEXT_STEPS.in_progress : CLOSE_STEP;
+};
 
 // The form edits the checklist as text, one item per line.
 export type TaskFormValues = Omit<TaskInput, 'checklist'> & {
@@ -105,6 +117,8 @@ export const getInitialValues = (
    title: task?.title ?? '',
    type: task?.type ?? 'other',
    context: task?.context ?? '',
+   // a task from before the rich editor has only the one-line text
+   details: task?.details || textToHtml(task?.context ?? ''),
    relation: task?.relation ?? 'none',
    relationId: task?.relationId ?? '',
    assigneeId: task ? task.assigneeId : userId,

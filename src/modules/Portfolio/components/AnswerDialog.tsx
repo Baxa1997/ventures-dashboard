@@ -7,6 +7,7 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { useRequest } from '@shared/hooks';
 import type { CompanyRequest } from '@shared/types/portfolio.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,9 @@ const AnswerDialog = ({ request, onClose }: AnswerDialogProps) => {
    const { t } = useTranslation('portfolio');
    const [answer, setAnswer] = useState('');
    const [error, setError] = useState('');
+   const answering = useRequest({
+      success: t('Ответ сохранён, запрос закрыт'),
+   });
 
    const close = () => {
       setAnswer('');
@@ -44,8 +48,12 @@ const AnswerDialog = ({ request, onClose }: AnswerDialogProps) => {
                   setError(t('Напишите ответ'));
                   return;
                }
-               await portfolio.answerRequest(request.id, answer.trim());
-               close();
+               if (
+                  await answering.run(() =>
+                     portfolio.answerRequest(request.id, answer.trim()),
+                  )
+               )
+                  close();
             }}
          >
             <ModalBody>
@@ -70,7 +78,9 @@ const AnswerDialog = ({ request, onClose }: AnswerDialogProps) => {
                <Button variant='ghost' onClick={close}>
                   {t('Отмена')}
                </Button>
-               <Button type='submit'>{t('Ответить и закрыть')}</Button>
+               <Button loading={answering.pending} type='submit'>
+                  {t('Ответить и закрыть')}
+               </Button>
             </ModalFooter>
          </form>
       </Modal>

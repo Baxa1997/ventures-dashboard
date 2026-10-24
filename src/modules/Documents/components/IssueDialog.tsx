@@ -9,7 +9,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { TEAM } from '@shared/constants';
-import { useCurrentUser } from '@shared/hooks';
+import { useCurrentUser, useRequest } from '@shared/hooks';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -27,7 +27,7 @@ const IssueDialog = ({ open, onClose }: IssueDialogProps) => {
    const [note, setNote] = useState('');
    const [ownerId, setOwnerId] = useState('');
    const [error, setError] = useState('');
-   const [saving, setSaving] = useState(false);
+   const saving = useRequest({ kind: 'create', success: t('Вопрос добавлен') });
 
    useEffect(() => {
       if (!open) return;
@@ -39,17 +39,16 @@ const IssueDialog = ({ open, onClose }: IssueDialogProps) => {
 
    const submit = async () => {
       if (!title.trim()) return setError(t('Напишите, в чём вопрос'));
-      setSaving(true);
-      try {
-         await documents.addIssue({
-            title: title.trim(),
-            note: note.trim(),
-            ownerId,
-         });
+      if (
+         await saving.run(async () => {
+            await documents.addIssue({
+               title: title.trim(),
+               note: note.trim(),
+               ownerId,
+            });
+         })
+      )
          onClose();
-      } finally {
-         setSaving(false);
-      }
    };
 
    return (
@@ -104,7 +103,7 @@ const IssueDialog = ({ open, onClose }: IssueDialogProps) => {
                <Button variant='ghost' onClick={onClose}>
                   {t('Отмена')}
                </Button>
-               <Button disabled={saving} type='submit'>
+               <Button loading={saving.pending} type='submit'>
                   {t('Добавить')}
                </Button>
             </ModalFooter>

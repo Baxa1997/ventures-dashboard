@@ -1,4 +1,5 @@
-import { STAGE_LABELS } from '@modules/Deals/constants';
+import { stageName } from '@modules/Settings/services';
+import { STATUS_LABELS } from '@modules/Deals/constants';
 import { personName, reasonText } from '@modules/Deals/helpers';
 import { Card, NoData } from '@shared/components';
 import { formatDayYear } from '@shared/helpers';
@@ -29,7 +30,7 @@ const History = ({ deal }: HistoryProps) => {
             return entry.stage === 'portfolio'
                ? t('Переведена в портфель')
                : t('Переведена в стадию «{{stage}}»', {
-                    stage: t(STAGE_LABELS[entry.stage]),
+                    stage: stageName(entry.stage),
                  });
          case 'rejected':
             return t('Отказ: {{reason}} · {{name}}', {
@@ -67,6 +68,25 @@ const History = ({ deal }: HistoryProps) => {
             return t('Директор одобрил переход · {{name}}', {
                name: personName(entry.userId),
             });
+         case 'edited':
+            return t('Данные сделки изменены · {{name}}', {
+               name: personName(entry.userId),
+            });
+         case 'moved': {
+            const moved = {
+               stage: stageName(entry.stage),
+               status: t(STATUS_LABELS[entry.status]).toLowerCase(),
+               reason: entry.reason,
+               name: personName(entry.userId),
+            };
+            // the reason is written only when one was given
+            return entry.reason
+               ? t(
+                    'Вручную: «{{stage}}», {{status}} — {{reason}} · {{name}}',
+                    moved,
+                 )
+               : t('Вручную: «{{stage}}», {{status}} · {{name}}', moved);
+         }
          case 'workstream':
             return entry.handed
                ? t('Направление DD передано исполнителю: {{name}}', {

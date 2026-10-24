@@ -177,15 +177,20 @@ const refresh = async () => {
 
 // ---- calls
 
+// A form (a file) goes as it is, with the browser's own content type.
 const send = (path: string, method: string, body: unknown) =>
    fetch(`${ADMIN_URL}${path}`, {
       method,
       headers: {
-         'Content-Type': 'application/json',
+         ...(!(body instanceof FormData) && {
+            'Content-Type': 'application/json',
+         }),
          Authorization: `Bearer ${tokens?.accessToken ?? ''}`,
          'Environment-Id': ENVIRONMENT,
       },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      ...(body !== undefined && {
+         body: body instanceof FormData ? body : JSON.stringify(body),
+      }),
    });
 
 const call = async <T>(method: string, path: string, body?: unknown) => {
@@ -290,4 +295,48 @@ export const groupBy = (rows: Row[], field: string) => {
       groups.set(key, [...(groups.get(key) ?? []), row]);
    }
    return groups;
+};
+
+// ---- files
+
+// Where ucode Files serves what it stores: the reply's link is a path under it.
+const FILES_URL = 'https://cdn.u-code.io';
+
+export interface StoredFile {
+   id: string; // ucode Files' id, to delete it by
+   url: string; // the address it opens at: anyone with it can open the file
+   name: string;
+}
+
+/* Stores a file in ucode Files, in a folder of the project's storage. What is
+   stored there opens for anyone who has its address (docs/ERP.md §7): fine
+   for the fund's working files, as decided on 22 October; private storage
+   comes later. */
+export const uploadFile = async (file: File, folder: string) => {
+   const form = new FormData();
+   form.append('file', file, file.name);
+   const reply = await call<{
+      data?: { id?: string; link?: string; file_name_download?: string };
+   }>(
+      'POST',
+      `/v1/files/folder_upload?folder_name=${encodeURIComponent(folder)}&project-id=${PROJECT}`,
+      form,
+   );
+   const link = reply.data?.link;
+   if (!link) throw new UcodeError('ucode stored no file', 0);
+   return {
+      id: reply.data?.id ?? '',
+      url: /^https?:/.test(link) ? link : `${FILES_URL}/${link}`,
+      name: reply.data?.file_name_download ?? file.name,
+   } satisfies StoredFile;
+};
+
+// Removes a stored file by its id; a file already gone is not an error.
+export const deleteFile = async (id: string) => {
+   if (!id) return;
+   try {
+      await call('DELETE', '/v1/files', { objects: [{ object_id: id }] });
+   } catch (error) {
+      if (!(error instanceof UcodeError) || error.status !== 404) throw error;
+   }
 };

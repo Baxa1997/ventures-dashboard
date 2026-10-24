@@ -7,7 +7,7 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
-import { useCurrentUser } from '@shared/hooks';
+import { useAction, useCurrentUser } from '@shared/hooks';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,28 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
    const navigate = useNavigate();
    const [amount, setAmount] = useState('');
    const [error, setError] = useState('');
+   // opens the new deal once ucode has it
+   const opening = useAction(
+      async (value: number) => {
+         const deal = await deals.createDeal(
+            {
+               company: `${company.name} · follow-on`,
+               about: company.about,
+               industryKey: company.industryKey,
+               industry: company.tagline || company.about,
+               // Настройки → Источники: «Портфель (follow-on)»
+               source: 'portfolio',
+               amount: value,
+               country: 'UZ',
+               roundStage: 'seed',
+            },
+            user.id,
+         );
+         close();
+         navigate(`/deals/${deal.id}`);
+      },
+      { kind: 'create', success: t('Follow-on открыт во «Входящих»') },
+   );
 
    const close = () => {
       setAmount('');
@@ -49,22 +71,7 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
                   setError(t('Укажите сумму в долларах'));
                   return;
                }
-               const deal = await deals.createDeal(
-                  {
-                     company: `${company.name} · follow-on`,
-                     about: company.about,
-                     industryKey: company.industryKey,
-                     industry: company.tagline || company.about,
-                     // Настройки → Источники: «Портфель (follow-on)»
-                     source: 'portfolio',
-                     amount: value,
-                     country: 'UZ',
-                     roundStage: 'seed',
-                  },
-                  user.id,
-               );
-               close();
-               navigate(`/deals/${deal.id}`);
+               opening.run(value);
             }}
          >
             <ModalBody>
@@ -90,7 +97,9 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
                <Button variant='ghost' onClick={close}>
                   {t('Отмена')}
                </Button>
-               <Button type='submit'>{t('Открыть follow-on')}</Button>
+               <Button loading={opening.pending} type='submit'>
+                  {t('Открыть follow-on')}
+               </Button>
             </ModalFooter>
          </form>
       </Modal>

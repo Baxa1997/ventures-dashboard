@@ -165,6 +165,41 @@
    .field-input[aria-invalid='true'] {
       @apply border-danger;
    }
+   /* Text written in the rich editor (CKEditor), in the editor and shown:
+      the reset takes lists' markers and paragraphs' spacing away. */
+   .rich-text,
+   .ck-content {
+      @apply text-sm leading-6;
+   }
+   .rich-text p + p,
+   .ck-content p + p {
+      @apply mt-2;
+   }
+   .rich-text ul,
+   .ck-content ul {
+      @apply list-disc pl-5;
+   }
+   .rich-text ol,
+   .ck-content ol {
+      @apply list-decimal pl-5;
+   }
+   .rich-text a,
+   .ck-content a {
+      @apply text-accent underline;
+   }
+   .rich-text strong,
+   .ck-content strong {
+      @apply font-semibold;
+   }
+   .ck.ck-editor__editable_inline {
+      @apply min-h-24;
+   }
+   .ck.ck-editor {
+      --ck-border-radius: 0.5rem;
+      --ck-color-base-border: var(--color-line-strong);
+      --ck-color-focus-border: var(--color-accent);
+      --ck-font-size-base: 13px;
+   }
 }
 
 /* Scrolls without showing a scrollbar (the sidebar on short screens). */

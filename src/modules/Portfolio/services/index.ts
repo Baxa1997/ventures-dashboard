@@ -1,6 +1,7 @@
 import {
    createRow,
    day,
+   deleteRow,
    fromJson,
    groupBy,
    listRows,
@@ -10,21 +11,27 @@ import {
    str,
    updateRow,
 } from '@shared/api/ucode';
-import settings, { listKeyOf } from '@modules/Settings/services';
+import settings, { listIdOf, listKeyOf } from '@modules/Settings/services';
 import { createStore, newId, todayISO } from '@shared/helpers';
+import type { Deal } from '@shared/types/deals.types';
 import type {
    CompanyRequest,
    Instrument,
+   Investment,
    MetricKey,
    PilotStatus,
    PortfolioCompany,
    QuarterReport,
-   ReportDoc,
    ReportingCycle,
    RequestStatus,
+   SystemReportDoc,
 } from '@shared/types/portfolio.types';
-import { METRIC_FORMATS } from '../constants';
-import { lastClosedQuarter, reportDates } from '../helpers';
+import {
+   lastClosedQuarter,
+   metricFormat,
+   metricKeys,
+   reportDates,
+} from '../helpers';
 
 /* Портфель in ucode (docs/ucode-migration.md, batch 4): portfolio_companies
    with their investments, quarter_reports, pilots and company_requests, and
@@ -39,21 +46,24 @@ export interface PortfolioState {
    cycle: ReportingCycle;
 }
 
-const DOC_FIELDS: Record<ReportDoc, string> = {
+// The days the documents of batch 4 came, in their own columns; the fund's
+// own documents keep theirs in `received`.
+const DOC_FIELDS: Record<SystemReportDoc, string> = {
    fund_template: 'fund_template_at',
    company_template: 'company_template_at',
    form1: 'form1_at',
    form2: 'form2_at',
 };
 
-const METRICS = Object.keys(METRIC_FORMATS) as MetricKey[];
-
 const toReport = (row: Row): QuarterReport => ({
-   received: Object.fromEntries(
-      Object.entries(DOC_FIELDS).flatMap(([doc, field]) =>
-         row[field] ? [[doc, day(row[field])]] : [],
+   received: {
+      ...fromJson<Record<string, string>>(row.received, {}),
+      ...Object.fromEntries(
+         Object.entries(DOC_FIELDS).flatMap(([doc, field]) =>
+            row[field] ? [[doc, day(row[field])]] : [],
+         ),
       ),
-   ),
+   },
    metrics: (str(row.metrics_state) || 'none') as QuarterReport['metrics'],
    filledAt: day(row.filled_at) || null,
 });
@@ -63,10 +73,27 @@ const toCompany = (
    investments: Row[],
    reports: Row[],
    pilots: Row[],
+   values: Row[],
 ): PortfolioCompany => {
    const byQuarter = new Map(
       reports.map((report) => [str(report.quarter), report]),
    );
+   // a figure in metric_values; one a report row holds in its own column
+   // (batch 4) counts while metric_values has none
+   const valueOf = (key: MetricKey) =>
+      Object.fromEntries([
+         ...[...byQuarter].flatMap(([quarter, report]) =>
+            report[key] === undefined || report[key] === null
+               ? []
+               : [[quarter, numOrNull(report[key])]],
+         ),
+         ...values
+            .filter(
+               (value) =>
+                  listKeyOf('metrics', value.portfolio_metrics_id) === key,
+            )
+            .map((value) => [str(value.quarter), numOrNull(value.value)]),
+      ]);
    return {
       id: row.guid,
       name: str(row.name),
@@ -85,15 +112,10 @@ const toCompany = (
       reports: Object.fromEntries(
          [...byQuarter].map(([quarter, report]) => [quarter, toReport(report)]),
       ),
-      metrics: METRICS.map((key) => ({
+      metrics: metricKeys().map((key) => ({
          key,
-         format: METRIC_FORMATS[key],
-         values: Object.fromEntries(
-            [...byQuarter].map(([quarter, report]) => [
-               quarter,
-               numOrNull(report[key]),
-            ]),
-         ),
+         format: metricFormat(key),
+         values: valueOf(key),
       })),
       pilots: pilots.map((pilot) => ({
          id: pilot.guid,
@@ -125,14 +147,22 @@ const toRequest = (row: Row): CompanyRequest => ({
 });
 
 // The rows behind the state, to write changes back to.
-let rowIds = { cycle: '', reports: new Map<string, string>() };
+let rowIds = {
+   cycle: '',
+   reports: new Map<string, string>(),
+   values: new Map<string, string>(), // company/metric/quarter → metric_values
+   // the figures a report row holds in its own column (batch 4)
+   columns: new Set<string>(),
+};
 const reportKey = (companyId: string, quarter: string) =>
    `${companyId}/${quarter}`;
+const valueKey = (companyId: string, metric: string, quarter: string) =>
+   `${companyId}/${metric}/${quarter}`;
 
 const store = createStore<PortfolioState>(async () => {
    // the companies' sectors are rows of Настройки's industries
    await settings.getSettings();
-   const [companies, investments, reports, pilots, requests, cycles] =
+   const [companies, investments, reports, pilots, requests, cycles, values] =
       await Promise.all(
          [
             'portfolio_companies',
@@ -141,12 +171,14 @@ const store = createStore<PortfolioState>(async () => {
             'pilots',
             'company_requests',
             'reporting_cycles',
+            'metric_values',
          ].map((table) => listRows(table)),
       );
    const by = {
       investments: groupBy(investments, 'portfolio_companies_id'),
       reports: groupBy(reports, 'portfolio_companies_id'),
       pilots: groupBy(pilots, 'portfolio_companies_id'),
+      values: groupBy(values, 'portfolio_companies_id'),
    };
    const latest = [...cycles].sort((a, b) =>
       str(b.quarter).localeCompare(str(a.quarter)),
@@ -159,6 +191,29 @@ const store = createStore<PortfolioState>(async () => {
             row.guid,
          ]),
       ),
+      values: new Map(
+         values.map((row) => [
+            valueKey(
+               str(row.portfolio_companies_id),
+               listKeyOf('metrics', row.portfolio_metrics_id) ?? '',
+               str(row.quarter),
+            ),
+            row.guid,
+         ]),
+      ),
+      columns: new Set(
+         reports.flatMap((row) =>
+            metricKeys()
+               .filter((key) => row[key] !== undefined && row[key] !== null)
+               .map((key) =>
+                  valueKey(
+                     str(row.portfolio_companies_id),
+                     key,
+                     str(row.quarter),
+                  ),
+               ),
+         ),
+      ),
    };
    const quarter = latest ? str(latest.quarter) : lastClosedQuarter();
    const rule = reportDates(quarter);
@@ -170,6 +225,7 @@ const store = createStore<PortfolioState>(async () => {
                by.investments.get(row.guid) ?? [],
                by.reports.get(row.guid) ?? [],
                by.pilots.get(row.guid) ?? [],
+               by.values.get(row.guid) ?? [],
             ),
          )
          .sort((a, b) => a.name.localeCompare(b.name)),
@@ -210,6 +266,69 @@ class Portfolio {
       await store.reload();
    }
 
+   /* A company's figures for a quarter, as the analyst enters or corrects
+      them: a figure written, changed, or cleared (null deletes its row, and
+      empties the report's column that held it). */
+   async saveQuarterMetrics(
+      companyId: string,
+      quarter: string,
+      values: Record<MetricKey, number | null>,
+   ) {
+      await store.get();
+      const report = rowIds.reports.get(reportKey(companyId, quarter));
+      const cleared = Object.entries(values)
+         .filter(
+            ([metric, value]) =>
+               value === null &&
+               rowIds.columns.has(valueKey(companyId, metric, quarter)),
+         )
+         .map(([metric]) => [metric, null]);
+      await Promise.all([
+         ...Object.entries(values).map(([metric, value]) => {
+            const guid = rowIds.values.get(
+               valueKey(companyId, metric, quarter),
+            );
+            if (guid)
+               return value === null
+                  ? deleteRow('metric_values', guid)
+                  : updateRow('metric_values', { guid, value });
+            if (value === null) return Promise.resolve();
+            return createRow('metric_values', {
+               guid: newId(),
+               quarter,
+               value,
+               portfolio_companies_id: companyId,
+               portfolio_metrics_id: listIdOf('metrics', metric),
+            });
+         }),
+         ...(report && cleared.length
+            ? [
+                 updateRow('quarter_reports', {
+                    guid: report,
+                    ...Object.fromEntries(cleared),
+                 }),
+              ]
+            : []),
+      ]);
+      await store.reload();
+   }
+
+   // Every figure of a company's quarter, deleted.
+   async deleteQuarterMetrics(companyId: string, quarter: string) {
+      const company = (await store.get()).companies.find(
+         ({ id }) => id === companyId,
+      );
+      await this.saveQuarterMetrics(
+         companyId,
+         quarter,
+         Object.fromEntries(
+            (company?.metrics ?? [])
+               .filter(({ values }) => values[quarter] != null)
+               .map(({ key }) => [key, null]),
+         ),
+      );
+   }
+
    // A reminder goes to the cabinets of the companies that have not sent all
    // their documents yet; the first one requests the quarter's reports.
    async remind() {
@@ -231,6 +350,49 @@ class Portfolio {
             auto_reminder_at: cycle.autoReminderAt,
          });
       await store.reload();
+   }
+
+   /* A closed deal joins the portfolio: the company, with the deal's owner as
+      its owner, and the fund's first investment. Once per deal: for a deal that
+      already has its company nothing is added. Returns the company's id. */
+   async addFromDeal(
+      deal: Deal,
+      sector: { tagline: string; countries: string },
+      investment: Investment,
+      decisionId: string,
+   ): Promise<string> {
+      const { companies } = await store.get();
+      const known = companies.find(({ dealId }) => dealId === deal.id);
+      if (known) return known.id;
+      const id = newId();
+      await createRow('portfolio_companies', {
+         guid: id,
+         name: deal.company,
+         tagline: sector.tagline,
+         about: deal.about,
+         countries: sector.countries,
+         instrument: investment.instrument,
+         since: Number(investment.date.slice(0, 4)),
+         owner_id: deal.ownerId,
+         status: 'active',
+         facts: '[]',
+         industries_id: listIdOf('industries', deal.industryKey),
+         deals_id: deal.id,
+      });
+      await createRow('investments', {
+         guid: newId(),
+         date: investment.date,
+         kind: 'initial',
+         instrument: investment.instrument,
+         amount: investment.amount,
+         valuation: investment.valuation,
+         stake_pct: investment.stakePct,
+         portfolio_companies_id: id,
+         deals_id: deal.id,
+         decisions_id: decisionId || null,
+      });
+      await store.reload();
+      return id;
    }
 
    async answerRequest(id: string, answer: string) {

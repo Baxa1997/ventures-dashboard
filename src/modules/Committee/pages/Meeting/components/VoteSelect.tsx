@@ -7,14 +7,16 @@ interface VoteSelectProps {
    label: string; // whose vote, for screen readers
    value: VoteChoice | null;
    onChange: (value: VoteChoice | null) => void;
+   busy?: boolean; // the vote is being saved
 }
 
 // A member's vote as a badge the secretary changes in place.
-const VoteSelect = ({ label, value, onChange }: VoteSelectProps) => {
+const VoteSelect = ({ label, value, onChange, busy }: VoteSelectProps) => {
    const { t } = useTranslation('committee');
 
    return (
       <BadgeSelect<VoteChoice | ''>
+         busy={busy}
          label={label}
          options={[
             { value: '', label: t('Не голосовал'), tone: 'neutral' },

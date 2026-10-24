@@ -1,4 +1,8 @@
+import { stageName } from '@modules/Settings/services';
 import {
+   concludable,
+   MoveDealDialog,
+   NewDealDialog,
    RejectDialog,
    RequestDialog,
    TransferDialog,
@@ -14,7 +18,6 @@ import {
    LIST_TAB_LABELS,
    type ListTab,
    RESUBMIT_LABELS,
-   STAGE_LABELS,
 } from '@modules/Deals/constants';
 import {
    dayOf,
@@ -45,7 +48,7 @@ import {
    Tabs,
 } from '@shared/components';
 import { formatDate } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import { type ReactNode, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -81,12 +84,43 @@ const DealCard = () => {
    const tab = toTab(params.get('tab'));
    const [rejecting, setRejecting] = useState(false);
    const [transferring, setTransferring] = useState(false);
+   const [editing, setEditing] = useState(false);
+   const [moving, setMoving] = useState(false);
+   const [uploading, setUploading] = useState(0);
+   // the open folder of the data room: the fund's uploads go into it
+   const [folderId, setFolderId] = useState('');
    // null: the request dialog is closed; otherwise what the request starts with
    const [requestTitle, setRequestTitle] = useState<string | null>(null);
    const [workstream, setWorkstream] = useState<WorkstreamMode | null>(null);
    const fileInput = useRef<HTMLInputElement>(null);
    const language = i18n.resolvedLanguage ?? i18n.language;
    const deal = all.find((item) => item.id === id);
+   const taking = useAction(
+      (dealId: string, ownerId: string) =>
+         deals.takeToScreening(dealId, ownerId),
+      { success: t('Сделка взята в скрининг') },
+   );
+   const completing = useAction(
+      (dealId: string) => deals.completeScreening(dealId, user.id),
+      { success: t('Скрининг завершён') },
+   );
+   const approving = useAction(
+      (dealId: string) => deals.approveMemo(dealId, user.id),
+      { success: t('Меморандум утверждён') },
+   );
+   const uploader = useAction(
+      async (dealId: string, files: File[], folder: string) => {
+         for (const file of files)
+            await deals.uploadDocument(dealId, file, user.id, folder);
+      },
+      {
+         kind: 'upload',
+         success: (_, files) =>
+            files.length > 1
+               ? t('Файлы загружены: {{count}}', { count: files.length })
+               : t('Файл загружен'),
+      },
+   );
 
    if (loading || !deal)
       return (
@@ -166,8 +200,9 @@ const DealCard = () => {
       if (deal.status === 'review')
          return (
             <Button
+               loading={taking.pending}
                onClick={() =>
-                  deals.takeToScreening(
+                  taking.run(
                      deal.id,
                      // a website application is offered to nobody: the person taking it owns it
                      deal.ownerId || deal.proposedOwnerId || user.id,
@@ -177,28 +212,10 @@ const DealCard = () => {
                {t('Взять в скрининг')}
             </Button>
          );
-      if (deal.readiness) {
-         const ready = deal.readiness.items.every(
-            ({ state }) => state === 'done',
-         );
-         return (
-            <Button
-               disabled={!ready}
-               title={
-                  ready
-                     ? undefined
-                     : t('Материалы уйдут, когда закрыты все пункты готовности')
-               }
-               onClick={() => setTransferring(true)}
-            >
-               {t('Отправить материалы на ИК')}
-            </Button>
-         );
-      }
       return (
          <Button onClick={() => setTransferring(true)}>
             {next
-               ? t('Перевести в «{{stage}}»', { stage: t(STAGE_LABELS[next]) })
+               ? t('Перевести в «{{stage}}»', { stage: stageName(next) })
                : t('Перевести в портфель')}
          </Button>
       );
@@ -208,7 +225,7 @@ const DealCard = () => {
    const completeScreening = () => {
       if (screening?.decision === 'request') setRequestTitle('');
       else if (screening?.decision === 'reject') setRejecting(true);
-      else deals.completeScreening(deal.id, user.id);
+      else completing.run(deal.id);
    };
    const screeningReady =
       deal.stage === 'screening' &&
@@ -234,6 +251,7 @@ const DealCard = () => {
             {requestButton}
             <Button
                disabled={!screeningReady}
+               loading={completing.pending}
                title={
                   screeningReady
                      ? undefined
@@ -247,17 +265,34 @@ const DealCard = () => {
       ),
       requests: (
          <>
-            <Button variant='ghost' onClick={() => fileInput.current?.click()}>
-               {t('Загрузить от имени фонда')}
+            <Button
+               loading={uploading > 0}
+               variant='ghost'
+               onClick={() => fileInput.current?.click()}
+            >
+               {uploading
+                  ? t('Загружается: {{count}}', { count: uploading })
+                  : t('Загрузить от имени фонда')}
             </Button>
             <input
                ref={fileInput}
                hidden
+               multiple
                type='file'
-               onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) deals.uploadDocument(deal.id, file.name, user.id);
+               onChange={async (event) => {
+                  const files = [...(event.target.files ?? [])];
                   event.target.value = '';
+                  if (!files.length) return;
+                  setUploading(files.length);
+                  await uploader.run(
+                     deal.id,
+                     files,
+                     // a folder of another deal, or one deleted, is no folder
+                     deal.folders?.some(({ id }) => id === folderId)
+                        ? folderId
+                        : '',
+                  );
+                  setUploading(0);
                }}
             />
             <Button onClick={() => setRequestTitle('')}>
@@ -270,9 +305,18 @@ const DealCard = () => {
             <Button variant='ghost' onClick={() => setWorkstream('add')}>
                {t('Добавить направление')}
             </Button>
-            <Button disabled={!pending} onClick={() => setWorkstream('hand')}>
+            <Button
+               disabled={!pending}
+               variant={concludable(deal).length ? 'ghost' : 'primary'}
+               onClick={() => setWorkstream('hand')}
+            >
                {t('Передать исполнителю')}
             </Button>
+            {concludable(deal).length > 0 && (
+               <Button onClick={() => setWorkstream('conclude')}>
+                  {t('Принять вывод')}
+               </Button>
+            )}
          </>
       ),
       memo: memo && (
@@ -294,12 +338,13 @@ const DealCard = () => {
             ) : (
                <Button
                   disabled={user.id !== memo.sponsorId}
+                  loading={approving.pending}
                   title={
                      user.id === memo.sponsorId
                         ? undefined
                         : t('Утвердить может только спонсор сделки')
                   }
-                  onClick={() => deals.approveMemo(deal.id, user.id)}
+                  onClick={() => approving.run(deal.id)}
                >
                   {t('Утвердить как спонсор')}
                </Button>
@@ -342,29 +387,49 @@ const DealCard = () => {
             />
          </PageHeader>
          <PageBody className='flex flex-col'>
-            {isClosed(deal) && deal.closed && (
-               <div className='bg-neutral-tint text-meta mb-section rounded-lg px-5 py-3.5'>
-                  <span className='font-semibold'>
-                     {status.label}
-                     {' · '}
-                     {formatDate(deal.closed.date)}
+            {(isClosed(deal) || deal.status === 'paused') && deal.closed && (
+               <div className='bg-neutral-tint text-meta mb-section flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg px-5 py-3.5'>
+                  <span className='min-w-0 flex-1'>
+                     <span className='font-semibold'>
+                        {status.label}
+                        {' · '}
+                        {formatDate(deal.closed.date)}
+                     </span>
+                     {' — '}
+                     {[
+                        deal.closed.reason && reasonText(deal.closed.reason),
+                        deal.closed.note,
+                        deal.closed.resubmit &&
+                           `${t('Повторная подача')}: ${t(RESUBMIT_LABELS[deal.closed.resubmit]).toLowerCase()}`,
+                        deal.status !== 'paused' &&
+                           t('карточка открыта только на чтение'),
+                     ]
+                        .filter(Boolean)
+                        .join(' · ')}
                   </span>
-                  {' — '}
-                  {[
-                     deal.closed.reason && reasonText(deal.closed.reason),
-                     deal.closed.note,
-                     deal.closed.resubmit &&
-                        `${t('Повторная подача')}: ${t(RESUBMIT_LABELS[deal.closed.resubmit]).toLowerCase()}`,
-                     t('карточка открыта только на чтение'),
-                  ]
-                     .filter(Boolean)
-                     .join(' · ')}
+                  {deal.status !== 'portfolio' && (
+                     <Button variant='ghost' onClick={() => setMoving(true)}>
+                        {t('Вернуть в работу')}
+                     </Button>
+                  )}
                </div>
             )}
-            {tab === 'overview' && <Overview deal={deal} />}
+            {tab === 'overview' && (
+               <Overview
+                  deal={deal}
+                  onEdit={() => setEditing(true)}
+                  onMove={() => setMoving(true)}
+                  onTransfer={() => setTransferring(true)}
+               />
+            )}
             {tab === 'screening' && <Screening key={deal.id} deal={deal} />}
             {tab === 'requests' && (
-               <Requests deal={deal} onRequest={setRequestTitle} />
+               <Requests
+                  deal={deal}
+                  folderId={folderId}
+                  onFolder={setFolderId}
+                  onRequest={setRequestTitle}
+               />
             )}
             {tab === 'dd' && <DueDiligence deal={deal} />}
             {tab === 'memo' && <Memorandum deal={deal} />}
@@ -374,6 +439,15 @@ const DealCard = () => {
          <RejectDialog
             deal={rejecting ? deal : null}
             onClose={() => setRejecting(false)}
+         />
+         <NewDealDialog
+            deal={deal}
+            open={editing}
+            onClose={() => setEditing(false)}
+         />
+         <MoveDealDialog
+            deal={moving ? deal : null}
+            onClose={() => setMoving(false)}
          />
          <TransferDialog
             deal={transferring ? deal : null}

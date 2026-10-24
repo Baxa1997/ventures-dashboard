@@ -1,31 +1,35 @@
 import DataRequestDialog from '@modules/Portfolio/components/DataRequestDialog';
 import FollowOnDialog from '@modules/Portfolio/components/FollowOnDialog';
+import QuarterMetricsDialog from '@modules/Portfolio/components/QuarterMetricsDialog';
+import ReportDocTitle from '@modules/Portfolio/components/ReportDocTitle';
 import {
    CARD_TAB_LABELS,
    CARD_TABS,
    type CardTab,
    INSTRUMENT_LABELS,
-   METRIC_LABELS,
    PILOT_STATUSES,
    PORTFOLIO_PATH,
-   REPORT_DOC_ITEMS,
-   REPORT_DOC_LABELS,
-   REPORT_DOCS,
 } from '@modules/Portfolio/constants';
 import {
    formatMetric,
+   metricName,
    quarterLabel,
    quarterName,
    recentQuarters,
+   reportDocName,
+   reportDocs,
 } from '@modules/Portfolio/helpers';
 import { type PortfolioData, usePortfolio } from '@modules/Portfolio/hooks';
+import portfolio from '@modules/Portfolio/services';
 import { useDeals } from '@modules/Deals/hooks';
 import {
    Badge,
    Button,
    Card,
    CheckList,
+   ConfirmDialog,
    FactList,
+   ItemActions,
    Loading,
    NoData,
    PageBody,
@@ -91,12 +95,15 @@ const CompanyView = ({ data, company }: ViewProps) => {
    const tab = toTab(params.get('tab'));
    const [requesting, setRequesting] = useState(false);
    const [followOn, setFollowOn] = useState(false);
+   // the quarter whose figures are being entered, or asked to be deleted
+   const [editingQuarter, setEditingQuarter] = useState<string | null>(null);
+   const [removingQuarter, setRemovingQuarter] = useState<string | null>(null);
    const openRequests = data.requests.filter(
       ({ companyId, status }) =>
          companyId === company.id && status !== 'closed',
    ).length;
    const counts: Partial<Record<CardTab, number>> = {
-      reports: REPORT_DOCS.length,
+      reports: reportDocs().length,
       pilots: company.pilots.length || undefined,
       requests: openRequests || undefined,
    };
@@ -155,8 +162,25 @@ const CompanyView = ({ data, company }: ViewProps) => {
                <Overview company={company} data={data} onSelect={select} />
             )}
             {tab === 'metrics' && (
-               <Card className='flex-1'>
-                  <MetricsTable company={company} cycle={data.cycle} />
+               <Card
+                  action={
+                     <button
+                        type='button'
+                        className='link'
+                        onClick={() => setEditingQuarter(data.cycle.quarter)}
+                     >
+                        {t('Внести показатели')}
+                     </button>
+                  }
+                  className='flex-1'
+                  title={t('Показатели по кварталам')}
+               >
+                  <MetricsTable
+                     company={company}
+                     cycle={data.cycle}
+                     onDelete={setRemovingQuarter}
+                     onEdit={setEditingQuarter}
+                  />
                </Card>
             )}
             {tab === 'reports' && (
@@ -179,6 +203,31 @@ const CompanyView = ({ data, company }: ViewProps) => {
             open={followOn}
             onClose={() => setFollowOn(false)}
          />
+         <QuarterMetricsDialog
+            company={company}
+            initial={editingQuarter ?? undefined}
+            open={editingQuarter !== null}
+            quarter={data.cycle.quarter}
+            onClose={() => setEditingQuarter(null)}
+         />
+         <ConfirmDialog
+            open={removingQuarter !== null}
+            subtitle={company.name}
+            title={t('Удалить показатели за {{quarter}}?', {
+               quarter: removingQuarter ? quarterLabel(t, removingQuarter) : '',
+            })}
+            onClose={() => setRemovingQuarter(null)}
+            onConfirm={() =>
+               removingQuarter &&
+               portfolio.deleteQuarterMetrics(company.id, removingQuarter)
+            }
+         >
+            <p>
+               {t(
+                  'Все цифры компании за квартал удалятся; документы отчёта останутся.',
+               )}
+            </p>
+         </ConfirmDialog>
       </>
    );
 };
@@ -304,9 +353,9 @@ const Overview = ({ data, company, onSelect }: OverviewProps) => {
             >
                <div className='px-5 py-4'>
                   <CheckList
-                     items={REPORT_DOCS.map((doc) => ({
+                     items={reportDocs().map((doc) => ({
                         id: doc,
-                        text: t(REPORT_DOC_ITEMS[doc]),
+                        text: reportDocName(t, doc),
                         note: report?.received[doc]
                            ? t('получен {{date}}', {
                                 date: formatDate(
@@ -343,9 +392,17 @@ const Overview = ({ data, company, onSelect }: OverviewProps) => {
 interface MetricsTableProps {
    company: PortfolioCompany;
    cycle: PortfolioData['cycle'];
+   // given: each quarter's figures are changed or deleted (after asking)
+   onEdit?: (quarter: string) => void;
+   onDelete?: (quarter: string) => void;
 }
 
-const MetricsTable = ({ company, cycle }: MetricsTableProps) => {
+const MetricsTable = ({
+   company,
+   cycle,
+   onEdit,
+   onDelete,
+}: MetricsTableProps) => {
    const { t, i18n } = useTranslation('portfolio');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const quarters = recentQuarters(cycle.quarter);
@@ -379,7 +436,7 @@ const MetricsTable = ({ company, cycle }: MetricsTableProps) => {
             return (
                <tr key={metric.key}>
                   <td className={clsx(TD, 'text-ink-soft')}>
-                     {t(METRIC_LABELS[metric.key])}
+                     {metricName(t, metric.key)}
                   </td>
                   {quarters.map((quarter) => {
                      const value = metric.values[quarter] ?? null;
@@ -406,6 +463,30 @@ const MetricsTable = ({ company, cycle }: MetricsTableProps) => {
                </tr>
             );
          })}
+         {onEdit && (
+            <tr>
+               <td className={clsx(TD, 'py-1')}>
+                  <span className='sr-only'>{t('Действия')}</span>
+               </td>
+               {quarters.map((quarter) => (
+                  <td key={quarter} className={clsx(TD, 'py-1')}>
+                     <ItemActions
+                        icons
+                        name={quarterLabel(t, quarter)}
+                        onDelete={
+                           onDelete &&
+                           company.metrics.some(
+                              ({ values }) => values[quarter] != null,
+                           )
+                              ? () => onDelete(quarter)
+                              : undefined
+                        }
+                        onEdit={() => onEdit(quarter)}
+                     />
+                  </td>
+               ))}
+            </tr>
+         )}
       </Table>
    );
 };
@@ -451,9 +532,9 @@ const ReportsTab = ({
             head={
                <>
                   <th className={TH}>{t('Квартал')}</th>
-                  {REPORT_DOCS.map((doc) => (
+                  {reportDocs().map((doc) => (
                      <th key={doc} className={TH}>
-                        {t(REPORT_DOC_LABELS[doc])}
+                        <ReportDocTitle doc={doc} />
                      </th>
                   ))}
                </>
@@ -466,7 +547,7 @@ const ReportsTab = ({
                      <td className={clsx(TD, 'font-semibold')}>
                         {quarterLabel(t, quarter)}
                      </td>
-                     {REPORT_DOCS.map((doc) => {
+                     {reportDocs().map((doc) => {
                         const day = company.reports[quarter]?.received[doc];
                         return (
                            <td key={doc} className={TD}>
@@ -495,7 +576,7 @@ const DocumentsTab = ({ company }: { company: PortfolioCompany }) => {
    const { t } = useTranslation('portfolio');
    const quarters = Object.keys(company.reports).sort().reverse();
    const files = quarters.flatMap((quarter) =>
-      REPORT_DOCS.flatMap((doc) => {
+      reportDocs().flatMap((doc) => {
          const day = company.reports[quarter]?.received[doc];
          return day ? [{ quarter, doc, day }] : [];
       }),
@@ -514,7 +595,7 @@ const DocumentsTab = ({ company }: { company: PortfolioCompany }) => {
             >
                {files.map(({ quarter, doc, day }) => (
                   <tr key={`${quarter}-${doc}`}>
-                     <td className={TD}>{t(REPORT_DOC_ITEMS[doc])}</td>
+                     <td className={TD}>{reportDocName(t, doc)}</td>
                      <td className={clsx(TD, 'text-ink-soft')}>
                         {quarterLabel(t, quarter)}
                      </td>

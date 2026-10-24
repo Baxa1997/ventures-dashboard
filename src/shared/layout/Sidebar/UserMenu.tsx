@@ -1,6 +1,7 @@
 import { Avatar } from '@shared/components';
-import { ROLE_LABELS } from '@shared/constants';
+import { INTERFACE_LANGUAGES, ROLE_LABELS } from '@shared/constants';
 import { signOut, useCurrentUser } from '@shared/hooks';
+import clsx from 'clsx';
 import { LogOut } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,11 +37,21 @@ const UserMenu = () => {
       <div ref={ref} className='relative'>
          {open && (
             <div className='bg-navy-raised shadow-popup animate-pop absolute inset-x-3 bottom-full mb-1 origin-bottom rounded-lg p-1'>
-               <div className={HEADING}>{t('Язык')}</div>
-               <div className='px-1 pb-1.5'>
-                  <Language />
-               </div>
-               <div className='mt-1 border-t border-white/10 pt-1'>
+               {/* hidden while the interface has one language */}
+               {INTERFACE_LANGUAGES.length > 1 && (
+                  <>
+                     <div className={HEADING}>{t('Язык')}</div>
+                     <div className='px-1 pb-1.5'>
+                        <Language />
+                     </div>
+                  </>
+               )}
+               <div
+                  className={clsx(
+                     INTERFACE_LANGUAGES.length > 1 &&
+                        'mt-1 border-t border-white/10 pt-1',
+                  )}
+               >
                   <button
                      type='button'
                      className='text-meta text-on-dark-soft flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left font-medium hover:bg-white/10 hover:text-white'

@@ -1,4 +1,4 @@
-import { DEAL_STAGE_LABELS } from '@modules/Work/constants';
+import { stageName } from '@modules/Settings/services';
 import { formatDate } from '@modules/Work/helpers';
 import { Badge } from '@shared/components';
 import type { MyDeal } from '@shared/types/work.types';
@@ -27,7 +27,7 @@ const MyDeals = ({ deals }: MyDealsProps) => {
                   {deal.company}
                </Link>
                <Badge>
-                  {t(DEAL_STAGE_LABELS[deal.stage])}
+                  {stageName(deal.stage)}
                   {deal.stageDate && ` · ${formatDate(deal.stageDate)}`}
                </Badge>
             </li>

@@ -1,6 +1,7 @@
 import logoWhite from '@assets/images/logo-white.png';
 import { LOGIN_MAX, PASSWORD_MAX } from '@modules/Auth/constants';
 import { UcodeError, ucodeConfigured } from '@shared/api/ucode';
+import { Spinner } from '@shared/components';
 import { OVERVIEW_PATH } from '@shared/constants';
 import { signIn, useSession } from '@shared/hooks';
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
@@ -185,9 +186,11 @@ const Login = () => {
                )}
                <button
                   type='submit'
+                  aria-busy={busy || undefined}
                   disabled={busy || !ucodeConfigured}
-                  className='bg-brand-sky hover:bg-brand-sky-deep focus-visible:outline-brand-sky rounded-[10px] px-4 py-3.5 text-base font-bold text-white transition-colors disabled:opacity-70'
+                  className='bg-brand-sky hover:bg-brand-sky-deep focus-visible:outline-brand-sky inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-3.5 text-base font-bold text-white transition-colors disabled:opacity-70 aria-busy:cursor-progress'
                >
+                  {busy && <Spinner />}
                   {busy ? t('Вход…') : t('Войти')}
                </button>
             </form>

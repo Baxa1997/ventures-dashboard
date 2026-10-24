@@ -1,9 +1,24 @@
-import { INDUSTRY_MANDATES, LISTS } from '@modules/Settings/constants';
+import {
+   INDUSTRY_MANDATES,
+   LISTS,
+   METRIC_FORMAT_LABELS,
+   STATUS_GROUPS,
+} from '@modules/Settings/constants';
 import settings, { nameOf } from '@modules/Settings/services';
-import { Badge, Card, NoData, Table, TD, TH } from '@shared/components';
+import {
+   Badge,
+   Card,
+   ItemActions,
+   NoData,
+   Spinner,
+   Table,
+   TD,
+   TH,
+} from '@shared/components';
+import { useAction } from '@shared/hooks';
 import type { ListItem, ListKind } from '@shared/types/settings.types';
 import clsx from 'clsx';
-import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,20 +27,35 @@ interface ListSectionProps {
    items: ListItem[]; // in their order, the turned-off ones too
    editable: boolean;
    onEdit: (item: ListItem) => void;
+   onDelete: (item: ListItem) => void; // asks first; not for system rows
 }
 
 const ICON_BUTTON =
    'text-ink-soft hover:bg-ground hover:text-ink grid size-7 place-items-center rounded-md disabled:pointer-events-none disabled:opacity-30';
 
 /* One reference list: its rows in the order the forms show them, each with
-   its names in the three languages, its key, its mark (in the mandate, on the
-   website…) and whether it is in use. The director adds and changes rows and
-   moves them up and down; a row is turned off rather than deleted, so the
-   deals and tasks that have it keep it. */
-const ListSection = ({ kind, items, editable, onEdit }: ListSectionProps) => {
+   its names in the three languages, its key, its own column (in the mandate,
+   on the website, a status's group, a metric's format, a template) and
+   whether it is in use. The director adds, changes, orders and deletes rows;
+   a row in use is deleted once its records move to another, and the
+   platform's own rows are renamed, never deleted. */
+const ListSection = ({
+   kind,
+   items,
+   editable,
+   onEdit,
+   onDelete,
+}: ListSectionProps) => {
    const { t, i18n } = useTranslation('settings');
    const list = LISTS[kind];
-   const [moving, setMoving] = useState(false);
+   // the arrow whose request runs, for its spinner; the others wait
+   const [target, setTarget] = useState('');
+   const moving = useAction(
+      (item: ListItem, step: -1 | 1) =>
+         settings.moveListItem(kind, item.id, step),
+      { success: t('Порядок сохранён') },
+   );
+   const spins = (id: string) => moving.pending && target === id;
    // the two names in the languages other than the interface's
    const others = (item: ListItem) =>
       (['ru', 'uz', 'en'] as const)
@@ -34,13 +64,9 @@ const ListSection = ({ kind, items, editable, onEdit }: ListSectionProps) => {
          .filter((name) => name && name !== nameOf(item))
          .join(' · ');
 
-   const move = async (item: ListItem, step: -1 | 1) => {
-      setMoving(true);
-      try {
-         await settings.moveListItem(kind, item.id, step);
-      } finally {
-         setMoving(false);
-      }
+   const move = (item: ListItem, step: -1 | 1) => {
+      setTarget(`${item.id}${step}`);
+      moving.run(item, step);
    };
 
    const mark = (item: ListItem) => {
@@ -48,6 +74,31 @@ const ListSection = ({ kind, items, editable, onEdit }: ListSectionProps) => {
          const mandate = INDUSTRY_MANDATES[item.mandate ?? 'allowed'];
          return <Badge tone={mandate.tone}>{t(mandate.label)}</Badge>;
       }
+      if (list.flag === 'group')
+         return (
+            <span className='text-ink-soft whitespace-nowrap'>
+               {t(STATUS_GROUPS[item.group ?? 'progress'])}
+            </span>
+         );
+      if (list.flag === 'format')
+         return (
+            <span className='text-ink-soft'>
+               {t(METRIC_FORMAT_LABELS[item.format ?? 'number'])}
+            </span>
+         );
+      if (list.flag === 'file')
+         return item.file ? (
+            <a
+               className='link break-all'
+               href={item.file.url}
+               rel='noreferrer'
+               target='_blank'
+            >
+               {item.file.name}
+            </a>
+         ) : (
+            <span className='text-ink-faint'>—</span>
+         );
       if (!list.flag) return null;
       return item[list.flag] ? (
          <Badge tone='success'>{t('да')}</Badge>
@@ -74,8 +125,8 @@ const ListSection = ({ kind, items, editable, onEdit }: ListSectionProps) => {
                      {list.flag && <th className={TH}>{t(list.flagLabel)}</th>}
                      <th className={TH}>{t('Статус')}</th>
                      {editable && (
-                        <th className={clsx(TH, 'w-10')}>
-                           <span className='sr-only'>{t('Изменить')}</span>
+                        <th className={clsx(TH, 'w-20')}>
+                           <span className='sr-only'>{t('Действия')}</span>
                         </th>
                      )}
                   </>
@@ -92,26 +143,49 @@ const ListSection = ({ kind, items, editable, onEdit }: ListSectionProps) => {
                               <button
                                  aria-label={t('Выше')}
                                  className={ICON_BUTTON}
-                                 disabled={moving || index === 0}
+                                 disabled={moving.pending || index === 0}
                                  type='button'
                                  onClick={() => move(item, -1)}
                               >
-                                 <ChevronUp className='size-4' />
+                                 {spins(`${item.id}-1`) ? (
+                                    <Spinner />
+                                 ) : (
+                                    <ChevronUp className='size-4' />
+                                 )}
                               </button>
                               <button
                                  aria-label={t('Ниже')}
                                  className={ICON_BUTTON}
-                                 disabled={moving || index === items.length - 1}
+                                 disabled={
+                                    moving.pending || index === items.length - 1
+                                 }
                                  type='button'
                                  onClick={() => move(item, 1)}
                               >
-                                 <ChevronDown className='size-4' />
+                                 {spins(`${item.id}1`) ? (
+                                    <Spinner />
+                                 ) : (
+                                    <ChevronDown className='size-4' />
+                                 )}
                               </button>
                            </div>
                         </td>
                      )}
                      <td className={TD}>
-                        <div className='font-semibold'>{nameOf(item)}</div>
+                        <div className='flex flex-wrap items-center gap-2 font-semibold'>
+                           {kind === 'taskStatuses' ? (
+                              <Badge tone={item.tone ?? 'neutral'}>
+                                 {nameOf(item)}
+                              </Badge>
+                           ) : (
+                              nameOf(item)
+                           )}
+                           {item.isSystem && (
+                              <span className='text-ink-soft text-xs font-normal'>
+                                 {t('системный')}
+                              </span>
+                           )}
+                        </div>
                         {others(item) && (
                            <div className='text-ink-soft text-xs'>
                               {others(item)}
@@ -133,16 +207,16 @@ const ListSection = ({ kind, items, editable, onEdit }: ListSectionProps) => {
                      </td>
                      {editable && (
                         <td className={clsx(TD, 'py-1')}>
-                           <button
-                              aria-label={t('Изменить: {{name}}', {
-                                 name: nameOf(item),
-                              })}
-                              className={ICON_BUTTON}
-                              type='button'
-                              onClick={() => onEdit(item)}
-                           >
-                              <Pencil className='size-3.5' />
-                           </button>
+                           <ItemActions
+                              icons
+                              name={nameOf(item)}
+                              onDelete={
+                                 item.isSystem
+                                    ? undefined
+                                    : () => onDelete(item)
+                              }
+                              onEdit={() => onEdit(item)}
+                           />
                         </td>
                      )}
                   </tr>
@@ -154,7 +228,7 @@ const ListSection = ({ kind, items, editable, onEdit }: ListSectionProps) => {
          <p className='text-ink-soft border-line mt-auto border-t px-5 py-3 text-xs'>
             {editable
                ? t(
-                    'Строку не удаляют, а отключают: формы перестают её предлагать, а сделки и задачи с ней сохраняют её. Порядок — тот, в котором формы показывают список.',
+                    'Строку можно отключить — формы перестанут её предлагать, записи сохранят — или удалить: записи с ней сначала перейдут на другую строку. Системные строки только переименовываются. Порядок — тот, в котором формы показывают список.',
                  )
                : t('Менять справочники может только директор.')}
          </p>

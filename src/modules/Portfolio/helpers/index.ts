@@ -1,21 +1,70 @@
+import { itemOf, listOf, nameOf } from '@modules/Settings/services';
 import { formatNumber, todayISO } from '@shared/helpers';
 import dayjs from 'dayjs';
 import type {
    CompanyRequest,
    Metric,
+   MetricFormat,
    PortfolioCompany,
    ReportingCycle,
 } from '@shared/types/portfolio.types';
+import type { ItemFile } from '@shared/types/settings.types';
 import type { TFunction } from 'i18next';
 import {
    AUTO_REMINDER_DAYS,
+   METRIC_FORMATS,
+   METRIC_LABELS,
    QUARTERS_SHOWN,
+   REPORT_DOC_LABELS,
    REPORT_DOCS,
    REPORTS_DUE_DAY,
    REQUEST_ANSWER_DAYS,
 } from '../constants';
 
 type T = TFunction<'portfolio'>;
+
+// ---- the lists of Настройки → Портфель
+
+// The documents of a quarter's report, in their order: Настройки →
+// Отчётность, or the four of batch 4 until it is read.
+export const reportDocs = () => {
+   const list = listOf('reportDocs');
+   return list.length ? list.map(({ key }) => key) : [...REPORT_DOCS];
+};
+
+export const reportDocName = (t: T, key: string) => {
+   const item = itemOf('reportDocs', key);
+   if (item) return nameOf(item);
+   return key in REPORT_DOC_LABELS
+      ? t(REPORT_DOC_LABELS[key as keyof typeof REPORT_DOC_LABELS])
+      : key;
+};
+
+// The template a company fills in for the document, if the fund keeps one.
+export const reportTemplate = (key: string): ItemFile | null =>
+   itemOf('reportDocs', key)?.file ?? null;
+
+// The metrics a company reports, in their order: Настройки → Показатели, or
+// the eight of batch 4 until it is read.
+export const metricKeys = () => {
+   const list = listOf('metrics');
+   return list.length
+      ? list.map(({ key }) => key)
+      : (Object.keys(METRIC_FORMATS) as (keyof typeof METRIC_FORMATS)[]);
+};
+
+export const metricFormat = (key: string): MetricFormat =>
+   itemOf('metrics', key)?.format ??
+   METRIC_FORMATS[key as keyof typeof METRIC_FORMATS] ??
+   'number';
+
+export const metricName = (t: T, key: string) => {
+   const item = itemOf('metrics', key);
+   if (item) return nameOf(item);
+   return key in METRIC_LABELS
+      ? t(METRIC_LABELS[key as keyof typeof METRIC_LABELS])
+      : key;
+};
 
 // 2026-Q3 → "Q3 2026"; with `roman`, "III квартал 2026"
 export const quarterLabel = (t: T, quarter: string, roman = false) => {
@@ -69,10 +118,10 @@ export const reportDates = (quarter: string) => {
 export const formatK = (amount: number) => `$${Math.round(amount / 1000)}K`;
 
 export const receivedCount = (company: PortfolioCompany, quarter: string) =>
-   REPORT_DOCS.filter((doc) => company.reports[quarter]?.received[doc]).length;
+   reportDocs().filter((doc) => company.reports[quarter]?.received[doc]).length;
 
 export const hasAllDocs = (company: PortfolioCompany, quarter: string) =>
-   receivedCount(company, quarter) === REPORT_DOCS.length;
+   receivedCount(company, quarter) === reportDocs().length;
 
 export const waitingDays = (request: CompanyRequest, today = todayISO()) =>
    dayjs(today).diff(dayjs(request.openedAt), 'day');

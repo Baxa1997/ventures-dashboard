@@ -1,3 +1,4 @@
+import { raiseToasts } from '@shared/helpers/toast';
 import { X } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +35,7 @@ const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
          dialog.showModal();
          // showModal focuses the close button; move to the marked field if any
          dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+         raiseToasts(); // the notes stay over it
       }
       if (!open && dialog.open) dialog.close();
    }, [open]);

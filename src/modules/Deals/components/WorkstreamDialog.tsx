@@ -7,6 +7,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { addWorkingDays, todayISO } from '@shared/helpers';
+import { useRequest } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,8 +19,9 @@ import {
    workstreamSchema,
 } from '../validations';
 
-// 'add': a new DD workstream; 'hand': hand one that has not started to its executor
-export type WorkstreamMode = 'add' | 'hand';
+// 'add': a new DD workstream; 'hand': hand one that has not started to its
+// executor; 'conclude': record the conclusion of one in work, which closes it
+export type WorkstreamMode = 'add' | 'hand' | 'conclude';
 
 interface WorkstreamDialogProps {
    deal: Deal;
@@ -28,6 +30,91 @@ interface WorkstreamDialogProps {
 }
 
 type Errors = Partial<Record<'name' | 'executor' | 'dueDate', ValidationKey>>;
+
+// The workstreams whose executor can report.
+export const concludable = (deal: Deal) =>
+   (deal.workstreams ?? []).filter(
+      ({ status }) => status === 'in_progress' || status === 'rework',
+   );
+
+const ConcludeForm = ({
+   deal,
+   onClose,
+}: Omit<WorkstreamDialogProps, 'mode'>) => {
+   const { t } = useTranslation('deals');
+   const { t: tValidation } = useTranslation('validation');
+   const streams = concludable(deal);
+   const [streamId, setStreamId] = useState(streams[0]?.id ?? '');
+   const [conclusion, setConclusion] = useState('');
+   const [error, setError] = useState(false);
+   const stream = streams.find(({ id }) => id === streamId);
+   const accepting = useRequest({ success: t('Вывод принят') });
+
+   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!conclusion.trim()) {
+         setError(true);
+         return;
+      }
+      if (
+         await accepting.run(() =>
+            deals.concludeWorkstream(deal.id, streamId, conclusion.trim()),
+         )
+      )
+         onClose();
+   };
+
+   return (
+      <form noValidate className={MODAL_FORM} onSubmit={handleSubmit}>
+         <ModalBody>
+            <div className='grid gap-4'>
+               <Field hint={stream?.executor} label={t('Направление')}>
+                  <select
+                     className='field-input'
+                     value={streamId}
+                     onChange={(event) => setStreamId(event.target.value)}
+                  >
+                     {streams.map(({ id, name }) => (
+                        <option key={id} value={id}>
+                           {name}
+                        </option>
+                     ))}
+                  </select>
+               </Field>
+               <Field
+                  error={error ? tValidation('Обязательное поле') : undefined}
+                  hint={t(
+                     'Главное из отчёта исполнителя: что подтвердилось и что нет',
+                  )}
+                  label={t('Вывод')}
+               >
+                  <textarea
+                     data-autofocus
+                     aria-invalid={error}
+                     className='field-input field-sizing-content min-h-24 resize-none'
+                     maxLength={600}
+                     value={conclusion}
+                     onChange={(event) => {
+                        setConclusion(event.target.value);
+                        setError(false);
+                     }}
+                  />
+               </Field>
+            </div>
+         </ModalBody>
+         <ModalFooter
+            note={t('Направление закроется, а вывод уйдёт в готовность к ИК.')}
+         >
+            <Button variant='text' onClick={onClose}>
+               {t('Отмена')}
+            </Button>
+            <Button loading={accepting.pending} type='submit'>
+               {t('Принять вывод')}
+            </Button>
+         </ModalFooter>
+      </form>
+   );
+};
 
 const WorkstreamForm = ({
    deal,
@@ -47,6 +134,11 @@ const WorkstreamForm = ({
       dueDate: addWorkingDays(todayISO(), 10),
    });
    const [errors, setErrors] = useState<Errors>({});
+   const saving = useRequest(
+      mode === 'hand'
+         ? { success: t('Направление передано') }
+         : { kind: 'create', success: t('Направление добавлено') },
+   );
 
    const setValue = (key: keyof typeof values, value: string) => {
       setValues((prev) => ({ ...prev, [key]: value }));
@@ -67,14 +159,15 @@ const WorkstreamForm = ({
          setErrors(fieldErrors(result.error));
          return;
       }
-      if (mode === 'hand')
-         await deals.handOverWorkstream(
-            deal.id,
-            streamId,
-            result.data.executor,
-         );
-      else await deals.addWorkstream(deal.id, result.data);
-      onClose();
+      const { data } = result;
+      if (
+         await saving.run(() =>
+            mode === 'hand'
+               ? deals.handOverWorkstream(deal.id, streamId, data.executor)
+               : deals.addWorkstream(deal.id, data),
+         )
+      )
+         onClose();
    };
 
    return (
@@ -151,7 +244,7 @@ const WorkstreamForm = ({
             <Button variant='text' onClick={onClose}>
                {t('Отмена')}
             </Button>
-            <Button type='submit'>
+            <Button loading={saving.pending} type='submit'>
                {mode === 'hand' ? t('Передать') : t('Добавить')}
             </Button>
          </ModalFooter>
@@ -167,13 +260,16 @@ const WorkstreamDialog = ({ deal, mode, onClose }: WorkstreamDialogProps) => {
          open={mode !== null}
          subtitle={`${deal.company} · Due diligence`}
          title={
-            mode === 'hand'
-               ? t('Передать исполнителю')
-               : t('Добавить направление')
+            mode === 'conclude'
+               ? t('Принять вывод')
+               : mode === 'hand'
+                 ? t('Передать исполнителю')
+                 : t('Добавить направление')
          }
          onClose={onClose}
       >
-         {mode && (
+         {mode === 'conclude' && <ConcludeForm deal={deal} onClose={onClose} />}
+         {mode && mode !== 'conclude' && (
             <WorkstreamForm
                key={mode}
                deal={deal}

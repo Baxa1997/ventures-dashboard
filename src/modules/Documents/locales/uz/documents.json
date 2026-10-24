@@ -53,5 +53,8 @@
    "Черновик": "Qoralama",
    "Что делаем": "Nima qilyapmiz",
    "Шаблоны": "Shablonlar",
-   "у каждого документа одна действующая редакция": "har bir hujjatning bitta amaldagi tahriri bor"
+   "у каждого документа одна действующая редакция": "har bir hujjatning bitta amaldagi tahriri bor",
+   "Документ добавлен": "Hujjat qo‘shildi",
+   "Вопрос добавлен": "Masala qo‘shildi",
+   "Статус вопроса сохранён": "Masala holati saqlandi"
 }

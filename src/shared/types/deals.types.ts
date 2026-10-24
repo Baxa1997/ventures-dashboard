@@ -1,3 +1,4 @@
+import type { Instrument } from './portfolio.types';
 import type { DealStage } from './work.types';
 
 // Where an application or a deal stands. "review" is an incoming application
@@ -19,6 +20,16 @@ export type Tone = 'accent' | 'warning' | 'danger' | 'success' | 'neutral';
 
 // A label–value row of sample content, with an optional smaller note.
 export type Fact = [label: string, value: string, note?: string];
+
+// A stage the deal has been on, from its stage history.
+export interface StageRecord {
+   stage: DealStage | 'portfolio';
+   enteredAt: string; // YYYY-MM-DD
+   leftAt: string; // YYYY-MM-DD, '' while the deal is on it
+   daysUsed: number | null; // working days, once it has left
+   norm: number | null;
+   late: boolean; // it took longer than its norm
+}
 
 // One stage on the "Путь сделки" strip, written as the fund's log has it.
 export interface PathStep {
@@ -52,9 +63,23 @@ export interface CheckItem {
 }
 
 export interface TeamMember {
+   id?: string; // a member the owner added; the others come from the deal
    employeeId?: string;
    name?: string; // an outside party
    role: string;
+}
+
+/* What the fund offers, as the deal's owner writes it once the terms take
+   shape. The fund's cheque is the deal's amount. */
+export interface DealTerms {
+   instrument: Instrument | ''; // '' until chosen
+   roundSize: number | null; // USD, the whole round
+   preMoney: number | null; // USD, the company's valuation before the round
+   conditions: string; // the cap, discount and term of a SAFE or a loan
+   valuation: string; // what DD makes of the valuation
+   structure: string; // the group: holding, operating companies
+   founder: string; // the founders and their shares
+   warning: string; // why the deal is an exception to the mandate
 }
 
 export interface Metric {
@@ -93,7 +118,7 @@ export interface DealRequest {
    dueDate: string; // YYYY-MM-DD
    status: 'waiting' | 'accepted';
    closedAt: string; // YYYY-MM-DD, '' while waiting
-   detail: string; // sample wording of the line under the title, if any
+   detail: string; // the applicant's answer, once it came
    warning: string; // what holds the request up, if anything
 }
 
@@ -104,7 +129,16 @@ export interface DealDocument {
    title: string;
    status: DocumentStatus;
    version: number; // 0 while nothing is uploaded
-   detail: string; // sample wording: who handled the version and when
+   url: string; // where its file opens, '' without one
+   fileId: string; // the file's ucode Files id, to delete it with the document
+   folderId: string; // the data room folder it is in, '' at the top
+   requestId: string; // the request it answers, '' for none
+   // whose file it is: the applicant's (from the website, or uploaded by the
+   // fund for them) or the fund's own; '' for an older row
+   uploadedBy: 'applicant' | 'fund' | '';
+   uploadedById: string; // the employee who uploaded it, '' for the website
+   uploadedAt: string; // YYYY-MM-DD HH:mm, '' when unknown
+   detail: string; // why it was rejected, or an older row's wording
    // set when somebody handles the document in this app; replaces "detail"
    handled?: {
       kind: 'accepted' | 'rejected' | 'uploaded';
@@ -112,6 +146,15 @@ export interface DealDocument {
       at: string; // YYYY-MM-DD HH:mm
       reason: string;
    };
+}
+
+// A folder of a deal's data room; folders sit inside one another.
+export interface DealFolder {
+   id: string;
+   name: string;
+   parentId: string; // '' at the top of the data room
+   sortOrder: number;
+   createdById: string;
 }
 
 export type WorkstreamStatus =
@@ -152,6 +195,8 @@ export interface Decision {
    outcome: string;
    stage: string; // the stage it decides on: ic1, ic2, board
    verdict: 'approved' | 'rejected' | 'other'; // postponed, or only noted
+   meetingId?: string; // the meeting that took it
+   meetingLabel?: string; // ИК № 3
 }
 
 interface JournalBase {
@@ -168,6 +213,8 @@ export type JournalEntry =
    | (JournalBase & { kind: 'stage'; stage: DealStage | 'portfolio' })
    | (JournalBase & { kind: 'rejected'; reason: RejectReason; userId: string })
    | (JournalBase & { kind: 'request'; title: string; userId: string })
+   // the applicant's answer to a request, recorded by the fund
+   | (JournalBase & { kind: 'answered'; title: string; userId: string })
    | (JournalBase & {
         kind: 'document';
         title: string;
@@ -178,6 +225,16 @@ export type JournalEntry =
    | (JournalBase & { kind: 'memo'; userId: string })
    // the director approved moving on from the stage the deal was on
    | (JournalBase & { kind: 'approved'; userId: string })
+   // the deal's details (company, request, lists) were changed
+   | (JournalBase & { kind: 'edited'; userId: string })
+   // put on a stage with a status by hand, past the conditions, with a reason
+   | (JournalBase & {
+        kind: 'moved';
+        stage: DealStage;
+        status: DealStatus;
+        reason: string;
+        userId: string;
+     })
    | (JournalBase & { kind: 'workstream'; name: string; handed: boolean });
 
 export interface Deal {
@@ -218,9 +275,12 @@ export interface Deal {
    factsHint?: string;
    path?: PathStep[];
    pathHint?: string;
-   terms?: { rows: Fact[]; warning: string };
+   stages?: StageRecord[]; // oldest first
+   terms?: DealTerms;
    metrics?: { hint: string; items: Metric[]; note: string };
    risks?: Risk[];
+   // what the owner adds to the materials for the committee, next to what the
+   // panel counts itself (readinessOf)
    readiness?: { note: string; items: CheckItem[] };
    team?: TeamMember[];
    synergy?: Fact[];
@@ -228,6 +288,7 @@ export interface Deal {
    screening?: Screening;
    requests?: DealRequest[];
    documents?: DealDocument[];
+   folders?: DealFolder[];
    applicantEmail?: string;
    clock?: { pausedDays: number; pausedSince: string };
    workstreams?: Workstream[];

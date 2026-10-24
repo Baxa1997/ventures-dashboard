@@ -1,3 +1,4 @@
+import { readinessOf } from '@modules/Deals/helpers';
 import type { BadgeTone } from '@shared/components';
 import { daysUntil, formatDate } from '@shared/helpers';
 import type {
@@ -31,14 +32,26 @@ export const formatName = (t: T, format: string) => {
    return known ? t(known) : format;
 };
 
-// The members who take part: those who confirmed, before the meeting opens;
-// those not marked absent, once it is open.
+// The people who can be asked to a meeting: those who have not left.
+export const activeMembers = (members: CommitteeMember[]) =>
+   members.filter(({ retired }) => !retired);
+
+// The people asked to the meeting (its attendance rows), those who left
+// since too; every member for a meeting from before participants were picked
+// per meeting.
+export const participantsOf = (meeting: Meeting, members: CommitteeMember[]) =>
+   Object.keys(meeting.attendance).length
+      ? members.filter(({ id }) => id in meeting.attendance)
+      : activeMembers(members);
+
+// The participants who take part: those who confirmed, before the meeting
+// opens; those not marked absent, once it is open.
 export const presentMembers = (
    meeting: Meeting,
    members: CommitteeMember[],
    item?: AgendaItem,
 ) =>
-   members.filter((member) =>
+   participantsOf(meeting, members).filter((member) =>
       meeting.status === 'planned' || !item
          ? meeting.attendance[member.id] === 'confirmed'
          : item.votes[member.id]?.choice !== 'absent',
@@ -52,20 +65,29 @@ export const preparationOf = (meeting: Meeting, members: CommitteeMember[]) => {
    const confirmed = presentMembers(meeting, members).length;
    return {
       questions: meeting.agenda.length,
-      members: members.length,
+      members: participantsOf(meeting, members).length,
       confirmed,
       ready: meeting.agenda.length > 0 && hasQuorum(confirmed),
    };
 };
 
-// The active deals waiting for a meeting of this body and stage that no
-// planned meeting has on its agenda yet.
+// Whether a committee has already approved the deal at this stage: its owner
+// then moves it on, and it waits for no other meeting.
+export const approvedAt = (deal: Deal, stage: string) =>
+   (deal.decisions ?? []).some(
+      (decision) => decision.stage === stage && decision.verdict === 'approved',
+   );
+
+// The active deals waiting for a meeting of this body and stage: not on the
+// agenda of a meeting that has not been held yet, and not approved at that
+// stage already.
 export const waitingDeals = (
    meetings: Meeting[],
    deals: Deal[],
    body: CommitteeBody,
    stage: CommitteeStage | null,
 ) => {
+   const target = body === 'board' ? 'board' : stage;
    const planned = new Set(
       meetings
          .filter(({ status }) => status !== 'held')
@@ -75,7 +97,8 @@ export const waitingDeals = (
       (deal) =>
          deal.status === 'active' &&
          !planned.has(deal.id) &&
-         deal.stage === (body === 'board' ? 'board' : stage),
+         deal.stage === target &&
+         !approvedAt(deal, deal.stage),
    );
 };
 
@@ -127,11 +150,16 @@ export const tallyVotes = (
    return { ...tally, state };
 };
 
-// How many of an item's materials are ready: from the deal's readiness list
-// when it has one.
+// Only the states of the readiness items are counted here, so their wording
+// is left as the keys.
+const COUNT_ONLY = ((key: string) => key) as unknown as TFunction<'deals'>;
+
+// How many of an item's materials are ready: from the deal's readiness for
+// its committee (readinessOf) while the deal waits for it, otherwise as the
+// item was recorded.
 export const materialsOf = (item: AgendaItem, deal?: Deal) => {
-   const items = deal?.readiness?.items;
-   if (items?.length)
+   const items = deal ? readinessOf(COUNT_ONLY, deal) : [];
+   if (items.length)
       return {
          ready: items.filter(({ state }) => state === 'done').length,
          total: items.length,

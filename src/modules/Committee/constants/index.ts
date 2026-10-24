@@ -12,16 +12,6 @@ import type {
 
 export const COMMITTEE_PATH = '/committee';
 
-export const LIST_TABS = ['meetings', 'board', 'decisions', 'members'] as const;
-export type ListTab = (typeof LIST_TABS)[number];
-
-export const LIST_TAB_LABELS = {
-   meetings: 'Заседания ИК',
-   board: 'Наблюдательный совет',
-   decisions: 'Реестр решений',
-   members: 'Состав и договоры',
-} as const satisfies Record<ListTab, string>;
-
 // The voting rules of the fund ("Чек-лист ИК"); Настройки show them.
 export const IC_RULES = {
    quorum: 3,

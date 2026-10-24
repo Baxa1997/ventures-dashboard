@@ -90,3 +90,68 @@ export const downloadCsv = (name: string, rows: string[][]) => {
 };
 
 export { clearStores, createStore, newId, type Store } from './store';
+
+// The text of what the rich editor wrote, on one line: for lists and search.
+export const htmlToText = (html: string) =>
+   html
+      .replace(/<\/(p|li|h\d)>/gi, ' ')
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+// Plain text as the rich editor's HTML: a paragraph, escaped.
+export const textToHtml = (text: string) =>
+   text
+      ? `<p>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+      : '';
+
+const CYRILLIC: Record<string, string> = {
+   а: 'a',
+   б: 'b',
+   в: 'v',
+   г: 'g',
+   д: 'd',
+   е: 'e',
+   ё: 'e',
+   ж: 'zh',
+   з: 'z',
+   и: 'i',
+   й: 'y',
+   к: 'k',
+   л: 'l',
+   м: 'm',
+   н: 'n',
+   о: 'o',
+   п: 'p',
+   р: 'r',
+   с: 's',
+   т: 't',
+   у: 'u',
+   ф: 'f',
+   х: 'kh',
+   ц: 'ts',
+   ч: 'ch',
+   ш: 'sh',
+   щ: 'sch',
+   ъ: '',
+   ы: 'y',
+   ь: '',
+   э: 'e',
+   ю: 'yu',
+   я: 'ya',
+   ў: 'o',
+   қ: 'q',
+   ғ: 'g',
+   ҳ: 'h',
+};
+
+// "Серия Б" → "seriya b": Cyrillic letters in Latin, for a code made from a name.
+export const toLatin = (text: string) =>
+   [...text.toLowerCase()].map((letter) => CYRILLIC[letter] ?? letter).join('');

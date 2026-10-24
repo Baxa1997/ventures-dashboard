@@ -2,7 +2,6 @@ import { StatusBadge } from '@modules/Work/components';
 import {
    TASK_RELATION_LABELS,
    TASK_RELATION_SECTIONS,
-   TASK_STATUS_LABELS,
 } from '@modules/Work/constants';
 import { listName } from '@modules/Settings/services';
 import {
@@ -13,9 +12,12 @@ import {
    isDone,
    relativeDue,
    shortName,
+   statusName,
 } from '@modules/Work/helpers';
-import { Button, Card, Checkbox } from '@shared/components';
+import { Button, Card, Checkbox, RichText, Spinner } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
+import { textToHtml } from '@shared/helpers';
+import { useAction } from '@shared/hooks';
 import type {
    Employee,
    Task,
@@ -35,11 +37,9 @@ interface TaskDetailProps {
    task: Task;
    employees: Employee[];
    targets: TaskTargets;
-   onAdvance: (status: TaskStatus) => void;
-   onToggleItem: (itemId: string) => void;
-   onComment: (text: string) => void;
-   onEdit: () => void;
-   onDelete: () => void;
+   onAdvance: (status: TaskStatus) => Promise<unknown>;
+   onToggleItem: (itemId: string) => Promise<unknown>;
+   onComment: (text: string) => Promise<unknown>;
 }
 
 const SECTION = 'border-line border-b px-5 py-4';
@@ -53,14 +53,23 @@ const TaskDetail = ({
    onAdvance,
    onToggleItem,
    onComment,
-   onEdit,
-   onDelete,
 }: TaskDetailProps) => {
    const { t } = useTranslation('work');
    // null: the comment field is closed
    const [comment, setComment] = useState<string | null>(null);
-   // Deleting takes two clicks: the first one arms the button.
-   const [armed, setArmed] = useState(false);
+   const advancing = useAction(onAdvance, {
+      success: (status) =>
+         t('Статус задачи: «{{status}}»', { status: statusName(t, status) }),
+   });
+   const commenting = useAction(onComment, {
+      kind: 'send',
+      success: t('Комментарий добавлен'),
+   });
+   const ticking = useAction(onToggleItem, {
+      success: t('Отметка сохранена'),
+   });
+   // the checklist item whose tick is being saved
+   const [tickingId, setTickingId] = useState('');
 
    const name = (id: string) => {
       const employee = getEmployee(employees, id);
@@ -97,7 +106,7 @@ const TaskDetail = ({
    const eventText = (event: TaskEvent) => {
       if (event.kind === 'status')
          return t('Статус «{{status}}» · {{name}}', {
-            status: t(TASK_STATUS_LABELS[event.status]),
+            status: statusName(t, event.status),
             name: name(event.userId),
          });
       if (event.kind === 'recurred')
@@ -131,12 +140,10 @@ const TaskDetail = ({
       ]);
    if (task.basis) fields.push([t('Основание'), task.basis]);
 
-   const submitComment = (event: FormEvent<HTMLFormElement>) => {
+   const submitComment = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const text = comment?.trim();
-      if (!text) return;
-      onComment(text);
-      setComment(null);
+      if (text && (await commenting.run(text))) setComment(null);
    };
 
    return (
@@ -147,6 +154,12 @@ const TaskDetail = ({
                <StatusBadge status={task.status} />
             </div>
             <h2 className='text-title mt-2 font-bold'>{task.title}</h2>
+            {(task.details || task.context) && (
+               <RichText
+                  className='text-ink mt-3'
+                  html={task.details || textToHtml(task.context)}
+               />
+            )}
          </div>
 
          <dl
@@ -178,9 +191,15 @@ const TaskDetail = ({
                   {task.checklist.map((item) => (
                      <li key={item.id} className='flex items-start gap-2.5'>
                         <Checkbox
+                           busy={tickingId === item.id}
                            checked={item.done}
                            label={item.text}
-                           onChange={() => onToggleItem(item.id)}
+                           onChange={async () => {
+                              if (ticking.pending) return;
+                              setTickingId(item.id);
+                              await ticking.run(item.id);
+                              setTickingId('');
+                           }}
                         />
                         <span
                            aria-hidden
@@ -236,14 +255,17 @@ const TaskDetail = ({
                   <div className='mt-2 flex gap-4 text-xs font-medium'>
                      <button
                         type='submit'
-                        className='text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-50'
-                        disabled={!comment.trim()}
+                        aria-busy={commenting.pending || undefined}
+                        className='text-accent inline-flex items-center gap-1.5 hover:underline disabled:cursor-not-allowed disabled:opacity-50'
+                        disabled={!comment.trim() || commenting.pending}
                      >
+                        {commenting.pending && <Spinner className='size-3.5' />}
                         {t('Отправить')}
                      </button>
                      <button
                         type='button'
-                        className='text-ink-soft hover:text-ink'
+                        className='text-ink-soft hover:text-ink disabled:opacity-50'
+                        disabled={commenting.pending}
                         onClick={() => setComment(null)}
                      >
                         {t('Отмена')}
@@ -252,33 +274,15 @@ const TaskDetail = ({
                </form>
             )}
             <div className='flex flex-wrap gap-2.5'>
-               <Button onClick={() => onAdvance(next.status)}>
+               <Button
+                  loading={advancing.pending}
+                  onClick={() => advancing.run(next.status)}
+               >
                   {t(next.label)}
                </Button>
                <Button variant='ghost' onClick={() => setComment('')}>
                   {t('Комментарий')}
                </Button>
-            </div>
-            <div className='mt-3.5 flex gap-4 text-xs'>
-               <button
-                  type='button'
-                  className='text-ink-soft hover:text-ink'
-                  onClick={onEdit}
-               >
-                  {t('Изменить')}
-               </button>
-               <button
-                  type='button'
-                  className={
-                     armed
-                        ? 'text-danger font-semibold'
-                        : 'text-ink-soft hover:text-danger'
-                  }
-                  onBlur={() => setArmed(false)}
-                  onClick={() => (armed ? onDelete() : setArmed(true))}
-               >
-                  {armed ? t('Удалить?') : t('Удалить')}
-               </button>
             </div>
          </div>
       </Card>

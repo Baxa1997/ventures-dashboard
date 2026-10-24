@@ -4,16 +4,24 @@ import {
    SCREENING_NOTE_FIELDS,
 } from '@modules/Deals/constants';
 import { SecondReviewer } from '@modules/Deals/components';
-import { applicationText, factRows, isScored } from '@modules/Deals/helpers';
+import {
+   applicationText,
+   factRows,
+   isOpen,
+   isScored,
+} from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import {
+   Attachments,
    Button,
    Card,
    ChoiceCards,
    FactList,
    NoData,
+   Spinner,
    STACK,
 } from '@shared/components';
+import { useAction, useRequest } from '@shared/hooks';
 import type {
    Criterion,
    Deal,
@@ -29,16 +37,20 @@ interface ScreeningProps {
 }
 
 interface CriterionRowProps {
+   dealId: string;
    index: number;
    criterion: Criterion;
-   locked: boolean;
-   onChange: (patch: Partial<Criterion>) => void;
+   locked: boolean; // the score: only while the deal is being screened
+   attachable: boolean; // the links and files: while the deal is open
+   onChange: (patch: Partial<Criterion>) => Promise<unknown>;
 }
 
 const CriterionRow = ({
+   dealId,
    index,
    criterion,
    locked,
+   attachable,
    onChange,
 }: CriterionRowProps) => {
    const { t } = useTranslation('deals');
@@ -47,6 +59,16 @@ const CriterionRow = ({
    const [rationale, setRationale] = useState(criterion.rationale);
    const [source, setSource] = useState(criterion.source);
    const empty = !rationale.trim();
+   const saving = useAction(onChange, {
+      success: (patch) =>
+         'score' in patch
+            ? t('Балл сохранён')
+            : 'rationale' in patch
+              ? t('Обоснование сохранено')
+              : t('Источник сохранён'),
+   });
+   // the score being saved, for its spinner
+   const [scoring, setScoring] = useState<number | null>(null);
 
    return (
       <li className='py-5'>
@@ -77,10 +99,14 @@ const CriterionRow = ({
                               ? 'border-accent bg-accent font-semibold text-white'
                               : 'border-line-strong text-ink-soft enabled:hover:border-accent bg-white',
                         )}
-                        disabled={locked}
-                        onClick={() => onChange({ score })}
+                        disabled={locked || saving.pending}
+                        onClick={async () => {
+                           setScoring(score);
+                           await saving.run({ score });
+                           setScoring(null);
+                        }}
                      >
-                        {score}
+                        {scoring === score ? <Spinner /> : score}
                      </button>
                   );
                })}
@@ -98,7 +124,7 @@ const CriterionRow = ({
             value={rationale}
             onBlur={() =>
                rationale !== criterion.rationale &&
-               onChange({ rationale: rationale.trim() })
+               saving.run({ rationale: rationale.trim() })
             }
             onChange={(event) => setRationale(event.target.value)}
          />
@@ -118,12 +144,18 @@ const CriterionRow = ({
                   value={source}
                   onBlur={() =>
                      source !== criterion.source &&
-                     onChange({ source: source.trim() })
+                     saving.run({ source: source.trim() })
                   }
                   onChange={(event) => setSource(event.target.value)}
                />
             </label>
          )}
+         {/* the score's evidence: links and files, as many as needed */}
+         <Attachments
+            className='mt-2'
+            editable={attachable}
+            place={{ dealId, section: 'screening', itemId: criterion.key }}
+         />
       </li>
    );
 };
@@ -134,16 +166,40 @@ const Screening = ({ deal }: ScreeningProps) => {
    const screening = deal.screening;
    const [editing, setEditing] = useState(false);
    const [note, setNote] = useState(screening?.note);
+   const deciding = useAction(
+      (decision: ScreeningDecision) =>
+         deals.setScreening(deal.id, { decision }),
+      { success: t('Решение сохранено') },
+   );
+   const noting = useRequest();
+
+   // the screening's materials, added whenever the deal is open
+   const materials = (
+      <Card title={t('Материалы скрининга')}>
+         <div className='px-5 py-4'>
+            <Attachments
+               editable={isOpen(deal)}
+               empty={t(
+                  'Ссылки и файлы скрининга: презентация, финмодель, заметки со звонка.',
+               )}
+               place={{ dealId: deal.id, section: 'screening' }}
+            />
+         </div>
+      </Card>
+   );
 
    if (!screening)
       return (
-         <Card className='grid flex-1 place-items-center'>
-            <NoData>
-               {deal.status === 'review'
-                  ? t('Оценка начнётся, когда заявку возьмут в скрининг')
-                  : t('Оценки по критериям для этой сделки в примере нет')}
-            </NoData>
-         </Card>
+         <div className='gap-section grid flex-1 content-start xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+            <Card className='grid min-h-40 place-items-center'>
+               <NoData>
+                  {deal.status === 'review'
+                     ? t('Оценка начнётся, когда заявку возьмут в скрининг')
+                     : t('Оценки по критериям для этой сделки нет')}
+               </NoData>
+            </Card>
+            {materials}
+         </div>
       );
 
    // only a deal that is being screened can be scored
@@ -159,8 +215,11 @@ const Screening = ({ deal }: ScreeningProps) => {
    const complete = scored.length === CRITERIA.length;
 
    const saveNote = async () => {
-      if (note) await deals.setScreeningNote(deal.id, note);
-      setEditing(false);
+      if (
+         !note ||
+         (await noting.run(() => deals.setScreeningNote(deal.id, note)))
+      )
+         setEditing(false);
    };
 
    return (
@@ -180,7 +239,9 @@ const Screening = ({ deal }: ScreeningProps) => {
                   <CriterionRow
                      key={criterion.key}
                      criterion={criterion}
+                     dealId={deal.id}
                      index={index}
+                     attachable={isOpen(deal)}
                      locked={locked}
                      onChange={(patch) =>
                         deals.setCriterion(deal.id, criterion.key, patch)
@@ -220,7 +281,7 @@ const Screening = ({ deal }: ScreeningProps) => {
             <Card title={t('Решение по скринингу')}>
                <div className='p-5'>
                   <ChoiceCards<ScreeningDecision>
-                     disabled={locked}
+                     disabled={locked || deciding.pending}
                      label={t('Решение по скринингу')}
                      name='screening-decision'
                      options={[
@@ -243,9 +304,7 @@ const Screening = ({ deal }: ScreeningProps) => {
                         },
                      ]}
                      value={screening.decision}
-                     onChange={(decision) =>
-                        deals.setScreening(deal.id, { decision })
-                     }
+                     onChange={(decision) => deciding.run(decision)}
                   />
                   <div className='text-meta mt-3 flex items-center gap-3'>
                      <span className='text-ink-soft'>
@@ -307,13 +366,21 @@ const Screening = ({ deal }: ScreeningProps) => {
                </dl>
                {editing && (
                   <div className='flex justify-end gap-2.5 px-5 pb-4'>
-                     <Button variant='text' onClick={() => setEditing(false)}>
+                     <Button
+                        disabled={noting.pending}
+                        variant='text'
+                        onClick={() => setEditing(false)}
+                     >
                         {t('Отмена')}
                      </Button>
-                     <Button onClick={saveNote}>{t('Сохранить')}</Button>
+                     <Button loading={noting.pending} onClick={saveNote}>
+                        {t('Сохранить')}
+                     </Button>
                   </div>
                )}
             </Card>
+
+            {materials}
 
             {deal.facts && (
                <Card

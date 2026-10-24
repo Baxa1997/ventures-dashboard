@@ -6,5 +6,4 @@ export { default as ListSection } from './ListSection';
 export { default as Mandate } from './Mandate';
 export { default as SettingsNav } from './SettingsNav';
 export { default as Stages } from './Stages';
-export { default as TaskStatuses } from './TaskStatuses';
 export { default as Users } from './Users';

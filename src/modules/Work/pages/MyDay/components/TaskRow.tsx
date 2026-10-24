@@ -2,13 +2,14 @@ import { DueBadge, TaskCheck } from '@modules/Work/components';
 import { listName } from '@modules/Settings/services';
 import { queueWording } from '@modules/Work/helpers';
 import { SECTION_LABELS } from '@shared/constants';
+import { useRequest } from '@shared/hooks';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { DayItem } from '../helpers';
 
 interface TaskRowProps {
    item: DayItem;
-   onToggle: (item: DayItem) => void;
+   onToggle: (item: DayItem) => Promise<unknown>;
 }
 
 // One thing to do: where it comes from, what it is and when it is due.
@@ -16,6 +17,9 @@ const TaskRow = ({ item, onToggle }: TaskRowProps) => {
    const { t } = useTranslation('work');
    const { t: tLayout } = useTranslation('layout');
    const { t: tDeals } = useTranslation('deals');
+   const toggling = useRequest({
+      success: item.done ? t('Возвращено в работу') : t('Отмечено выполненным'),
+   });
 
    const text =
       item.kind === 'queue'
@@ -39,9 +43,10 @@ const TaskRow = ({ item, onToggle }: TaskRowProps) => {
    return (
       <li className='flex items-start gap-3 py-3'>
          <TaskCheck
+            busy={toggling.pending}
             done={item.done}
             title={text.title}
-            onToggle={() => onToggle(item)}
+            onToggle={() => toggling.run(() => onToggle(item))}
          />
          <div className='min-w-0 flex-1'>
             <div className='text-ink-soft text-xs leading-4'>

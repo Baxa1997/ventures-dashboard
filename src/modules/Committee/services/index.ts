@@ -1,9 +1,12 @@
+import { CONDITION_DUE, CONDITION_ORIGIN } from '@modules/Deals/constants';
 import deals from '@modules/Deals/services';
 import { memoRowOf } from '@modules/Deals/services/ucode';
+import { isDone } from '@modules/Work/helpers';
 import work from '@modules/Work/services';
 import {
    createRow,
    day,
+   deleteRow,
    fromJson,
    groupBy,
    listRows,
@@ -17,6 +20,7 @@ import { addWorkingDays, createStore, newId, todayISO } from '@shared/helpers';
 import type {
    AgendaItem,
    Attendance,
+   CommitteeBody,
    CommitteeDecision,
    CommitteeMember,
    CommitteeStage,
@@ -33,7 +37,12 @@ import type { Deal } from '@shared/types/deals.types';
 import type { Task } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import { IC_RULES } from '../constants';
-import { resultOf } from '../helpers';
+import {
+   activeMembers,
+   participantsOf,
+   resultOf,
+   waitingDeals,
+} from '../helpers';
 
 /* Инвесткомитет in ucode (docs/ucode-migration.md, batch 3): committee
    members, meetings with their attendance, agenda items with their votes, and
@@ -51,7 +60,6 @@ export interface CommitteeState {
 }
 
 const BODY_NAMES = { ic: 'ИК', board: 'НС' };
-const CONDITION = 'ic_condition';
 
 // The rows behind attendance marks and votes, by meeting or item and member.
 let rowIds = {
@@ -77,6 +85,8 @@ const toMember = (row: Row): CommitteeMember => ({
    role: (str(row.role) || 'independent') as CommitteeMember['role'],
    remote: !!row.remote,
    contract: str(row.contract),
+   ...(row.employee_id ? { employeeId: str(row.employee_id) } : {}),
+   ...(row.is_active === false ? { retired: true } : {}),
 });
 
 const toItem = (
@@ -182,7 +192,7 @@ const toDecisionTask = (task: Task): DecisionTask => ({
    basis: task.basis,
    ownerId: task.assigneeId,
    due: task.dueDate ? { date: task.dueDate } : { label: task.dueLabel },
-   done: task.status === 'done',
+   done: isDone(task),
 });
 
 const store = createStore<Omit<CommitteeState, 'tasks'>>(async () => {
@@ -235,10 +245,8 @@ const store = createStore<Omit<CommitteeState, 'tasks'>>(async () => {
       .map(toDecision)
       .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
    return {
-      members: members
-         .filter((row) => row.is_active !== false)
-         .map(toMember)
-         .sort(byRole),
+      // those who left too: the meetings they sat at show them
+      members: members.map(toMember).sort(byRole),
       meetings: allMeetings,
       decisions: register,
       totals: {
@@ -348,6 +356,22 @@ const agendaFor = (
       ];
    });
 
+// Of the deals asked for, those still waiting for a meeting of this body and
+// stage: a deal already on another meeting's agenda, or already approved at
+// that stage, is not put on a second one.
+const onlyWaiting = (
+   state: Stored,
+   all: Deal[],
+   body: CommitteeBody,
+   stage: CommitteeStage | null,
+   dealIds: string[],
+) => {
+   const waiting = new Set(
+      waitingDeals(state.meetings, all, body, stage).map(({ id }) => id),
+   );
+   return dealIds.filter((id) => waiting.has(id));
+};
+
 const summaryOf = (agenda: AgendaItem[]) =>
    agenda.map(({ title }) => title).join(', ');
 
@@ -397,6 +421,7 @@ const memberFields = (input: MemberInput) => ({
    role: input.role,
    remote: input.remote,
    contract: input.contract,
+   employee_id: input.employeeId ?? '',
 });
 
 const itemOf = (state: Stored, meetingId: string, itemId: string) => {
@@ -423,7 +448,7 @@ class Committee {
       return {
          ...state,
          tasks: tasks
-            .filter(({ origin }) => origin === CONDITION)
+            .filter(({ origin }) => origin === CONDITION_ORIGIN)
             .map(toDecisionTask),
       };
    }
@@ -437,7 +462,16 @@ class Committee {
             .filter(({ body }) => body === input.body)
             .map(({ number }) => Math.floor(Number(number)) || 0),
       );
-      const agenda = agendaFor(all, input.dealIds, input.stage);
+      const agenda = agendaFor(
+         all,
+         onlyWaiting(state, all, input.body, input.stage, input.dealIds),
+         input.stage,
+      );
+      // the people asked to take part; everyone, when none were picked
+      const active = activeMembers(state.members);
+      const invited = input.participantIds.length
+         ? active.filter(({ id }) => input.participantIds.includes(id))
+         : active;
       const meeting: Meeting = {
          id: newId(),
          body: input.body,
@@ -454,11 +488,10 @@ class Committee {
          breakAt: null,
          chairId:
             input.body === 'ic'
-               ? (state.members.find(({ role }) => role === 'chair')?.id ??
-                 null)
+               ? (active.find(({ role }) => role === 'chair')?.id ?? null)
                : null,
          attendance: Object.fromEntries(
-            state.members.map(({ id }) => [id, 'no_answer' as const]),
+            invited.map(({ id }) => [id, 'no_answer' as const]),
          ),
          agenda,
          summary: summaryOf(agenda),
@@ -492,7 +525,7 @@ class Committee {
                ...meetingFields(meeting),
             });
             await Promise.all([
-               ...state.members.map(({ id: memberId }) => {
+               ...invited.map(({ id: memberId }) => {
                   const guid = newId();
                   rowIds.attendance.set(pair(meeting.id, memberId), guid);
                   return createRow('meeting_attendance', {
@@ -510,11 +543,87 @@ class Committee {
       return meeting;
    }
 
+   // The day, time and format of a meeting not opened yet; the materials'
+   // deadline follows the day.
+   async updateMeeting(
+      id: string,
+      input: Pick<Meeting, 'date' | 'time' | 'format'>,
+   ) {
+      const materialsDue = addWorkingDays(input.date, -IC_RULES.materialsDays);
+      await apply(
+         withMeeting(id, (meeting) => ({ ...meeting, ...input, materialsDue })),
+         async () => {
+            await updateRow('meetings', {
+               guid: id,
+               date: input.date,
+               time: input.time,
+               format: input.format,
+               materials_due: materialsDue,
+            });
+            await Promise.all([deals.reload(), work.reloadMeetings()]);
+         },
+      );
+   }
+
+   /* Deletes a meeting that has not opened yet, with its agenda and the
+      people asked to it; its deals no longer wait for it. */
+   async deleteMeeting(id: string) {
+      const meeting = meetingOf(await store.get(), id);
+      const waiting = (await deals.getDeals()).filter(
+         (deal) => deal.committee?.id === id,
+      );
+      await apply(
+         (state) => ({
+            ...state,
+            meetings: state.meetings.filter((item) => item.id !== id),
+            totals: {
+               ...state.totals,
+               meetings:
+                  state.totals.meetings - (meeting.body === 'ic' ? 1 : 0),
+            },
+         }),
+         async () => {
+            const own = <T>(map: Map<string, T>, prefixes: string[]) =>
+               [...map].filter(([key]) =>
+                  prefixes.some((prefix) => key.startsWith(`${prefix}/`)),
+               );
+            const votes = own(
+               rowIds.votes,
+               meeting.agenda.map((item) => item.id),
+            );
+            const attendance = own(rowIds.attendance, [id]);
+            await Promise.all([
+               ...votes.map(([key, guid]) => {
+                  rowIds.votes.delete(key);
+                  return deleteRow('votes', guid);
+               }),
+               ...attendance.map(([key, guid]) => {
+                  rowIds.attendance.delete(key);
+                  return deleteRow('meeting_attendance', guid);
+               }),
+               ...meeting.agenda.map((item) =>
+                  deleteRow('agenda_items', item.id),
+               ),
+               ...waiting.map((deal) =>
+                  updateRow('deals', { guid: deal.id, meetings_id: null }),
+               ),
+            ]);
+            await deleteRow('meetings', id);
+            await Promise.all([deals.reload(), work.reloadMeetings()]);
+         },
+      );
+   }
+
    // Puts deals on the agenda of a meeting that has not opened yet.
    async addToAgenda(meetingId: string, dealIds: string[]) {
       const [state, all] = await Promise.all([store.get(), deals.getDeals()]);
-      const from = meetingOf(state, meetingId).agenda.length;
-      const items = agendaFor(all, dealIds, meetingOf(state, meetingId).stage);
+      const meeting = meetingOf(state, meetingId);
+      const from = meeting.agenda.length;
+      const items = agendaFor(
+         all,
+         onlyWaiting(state, all, meeting.body, meeting.stage, dealIds),
+         meeting.stage,
+      );
       await apply(
          withMeeting(meetingId, (meeting) => {
             const agenda = [...meeting.agenda, ...items];
@@ -533,6 +642,48 @@ class Committee {
       );
    }
 
+   /* Takes a question off the agenda of a meeting that has not been held, with
+      the votes recorded on it: a deal decided at another meeting, or put on
+      this one by mistake. The deal no longer waits for this meeting. */
+   async removeFromAgenda(meetingId: string, itemId: string) {
+      const state = await store.get();
+      const item = meetingOf(state, meetingId).agenda.find(
+         ({ id }) => id === itemId,
+      );
+      if (!item) return;
+      const all = await deals.getDeals();
+      const deal = all.find(({ id }) => id === item.dealId);
+      await apply(
+         withMeeting(meetingId, (meeting) => {
+            const agenda = meeting.agenda.filter(({ id }) => id !== itemId);
+            return { ...meeting, agenda, summary: summaryOf(agenda) };
+         }),
+         async (_, after) => {
+            const votes = [...rowIds.votes].filter(([key]) =>
+               key.startsWith(`${itemId}/`),
+            );
+            await Promise.all(
+               votes.map(([key, guid]) => {
+                  rowIds.votes.delete(key);
+                  return deleteRow('votes', guid);
+               }),
+            );
+            await Promise.all([
+               deleteRow('agenda_items', itemId),
+               updateRow('meetings', {
+                  guid: meetingId,
+                  summary: meetingOf(after, meetingId).summary,
+               }),
+               ...(deal?.committee?.id === meetingId
+                  ? [updateRow('deals', { guid: deal.id, meetings_id: null })]
+                  : []),
+            ]);
+            await Promise.all([deals.reload(), work.reloadMeetings()]);
+         },
+      );
+   }
+
+   // Adds a person to the committee's people; returns their id.
    async addMember(input: MemberInput) {
       const id = newId();
       await apply(
@@ -546,6 +697,30 @@ class Committee {
                ...memberFields(input),
                is_active: true,
             }),
+      );
+      return id;
+   }
+
+   // Asks a person to a meeting that has not opened yet.
+   async addParticipant(id: string, memberId: string) {
+      const meeting = meetingOf(await store.get(), id);
+      if (memberId in meeting.attendance) return;
+      await this.setAttendance(id, memberId, 'no_answer');
+   }
+
+   // Takes a person off a meeting that has not opened yet.
+   async removeParticipant(id: string, memberId: string) {
+      await apply(
+         withMeeting(id, (meeting) => {
+            const { [memberId]: _, ...attendance } = meeting.attendance;
+            return { ...meeting, attendance };
+         }),
+         async () => {
+            const key = pair(id, memberId);
+            const guid = rowIds.attendance.get(key);
+            if (guid) await deleteRow('meeting_attendance', guid);
+            rowIds.attendance.delete(key);
+         },
       );
    }
 
@@ -565,12 +740,21 @@ class Committee {
       );
    }
 
-   // A member who leaves the committee stays in the old protocols.
+   /* A member who leaves the committee: no longer offered for meetings and
+      taken off those not opened yet, kept in the meetings they sat at and in
+      their protocols. */
    async retireMember(id: string) {
+      const planned = (await store.get()).meetings.filter(
+         (meeting) => meeting.status === 'planned' && id in meeting.attendance,
+      );
+      for (const meeting of planned)
+         await this.removeParticipant(meeting.id, id);
       await apply(
          (state) => ({
             ...state,
-            members: state.members.filter((member) => member.id !== id),
+            members: state.members.map((member) =>
+               member.id === id ? { ...member, retired: true } : member,
+            ),
          }),
          () => updateRow('committee_members', { guid: id, is_active: false }),
       );
@@ -629,19 +813,22 @@ class Committee {
                      : {
                           ...item,
                           votes: Object.fromEntries(
-                             state.members.map(({ id: memberId }) => [
-                                memberId,
-                                item.votes[memberId]?.choice
-                                   ? item.votes[memberId]
-                                   : {
-                                        choice:
-                                           meeting.attendance[memberId] ===
-                                           'confirmed'
-                                              ? null
-                                              : ('absent' as const),
-                                        note: item.votes[memberId]?.note ?? '',
-                                     },
-                             ]),
+                             participantsOf(meeting, state.members).map(
+                                ({ id: memberId }) => [
+                                   memberId,
+                                   item.votes[memberId]?.choice
+                                      ? item.votes[memberId]
+                                      : {
+                                           choice:
+                                              meeting.attendance[memberId] ===
+                                              'confirmed'
+                                                 ? null
+                                                 : ('absent' as const),
+                                           note:
+                                              item.votes[memberId]?.note ?? '',
+                                        },
+                                ],
+                             ),
                           ),
                        },
                ),
@@ -865,6 +1052,7 @@ class Committee {
                      title: `${item.title}: ${conditions}`,
                      type: 'other',
                      context: item.title,
+                     details: '',
                      relation: item.dealId ? 'deal' : 'none',
                      relationId: item.dealId ?? '',
                      assigneeId: owner || directorId(),
@@ -879,8 +1067,10 @@ class Committee {
                   {
                      basis: `Условие ${meetingLabel}`,
                      dueLabel:
-                        item.stage === 'ic1' ? 'до ИК-2' : 'до подписания',
-                     origin: CONDITION,
+                        item.stage === 'ic1'
+                           ? CONDITION_DUE.ic2
+                           : CONDITION_DUE.signing,
+                     origin: CONDITION_ORIGIN,
                      decisionId: decisions[index].id,
                   },
                );

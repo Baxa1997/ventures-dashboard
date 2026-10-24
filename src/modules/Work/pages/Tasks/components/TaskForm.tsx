@@ -6,18 +6,18 @@ import {
    TASK_RECURRENCE_ORDER,
    TASK_RELATION_LABELS,
    TASK_RELATION_ORDER,
-   TASK_STATUS_LABELS,
-   TASK_STATUS_ORDER,
    TITLE_MAX,
 } from '@modules/Work/constants';
-import { shortName } from '@modules/Work/helpers';
+import { shortName, statusName, taskStatuses } from '@modules/Work/helpers';
 import {
    Button,
    Field,
    MODAL_FORM,
    ModalBody,
    ModalFooter,
+   RichTextEditor,
 } from '@shared/components';
+import { htmlToText } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
 import type {
    Employee,
@@ -41,6 +41,7 @@ interface TaskFormProps {
    targets: TaskTargets;
    onSubmit: (values: TaskInput) => void;
    onCancel: () => void;
+   saving?: boolean; // the task is on its way to ucode
 }
 
 const TaskForm = ({
@@ -49,6 +50,7 @@ const TaskForm = ({
    targets,
    onSubmit,
    onCancel,
+   saving = false,
 }: TaskFormProps) => {
    const { t } = useTranslation('work');
    const { t: tValidation } = useTranslation('validation');
@@ -71,7 +73,11 @@ const TaskForm = ({
 
    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const result = taskSchema.safeParse(values);
+      // the note's text, on one line, is what lists show next to the type
+      const result = taskSchema.safeParse({
+         ...values,
+         context: htmlToText(values.details).slice(0, CONTEXT_MAX),
+      });
       if (!result.success) {
          setErrors(getFieldErrors(result.error));
          return;
@@ -193,24 +199,21 @@ const TaskForm = ({
                      </select>
                   </Field>
                )}
-               <Field
-                  className='sm:col-span-2'
-                  error={errorOf('context')}
-                  hint={t(
-                     'Контрагент, компания или документ — показывается рядом с типом',
-                  )}
-                  label={t('Уточнение')}
-               >
-                  <input
-                     aria-invalid={!!errors.context}
-                     className='field-input'
-                     maxLength={CONTEXT_MAX}
-                     value={values.context}
-                     onChange={(event) =>
-                        setValue('context', event.target.value)
-                     }
+               <div className='flex flex-col gap-1.5 sm:col-span-2'>
+                  <span className='text-ink-soft text-xs font-medium'>
+                     {t('Уточнение')}
+                  </span>
+                  <RichTextEditor
+                     label={t('Уточнение')}
+                     value={values.details}
+                     onChange={(html) => setValue('details', html)}
                   />
-               </Field>
+                  <span className='text-ink-soft text-xs'>
+                     {t(
+                        'Подробности задачи: контрагент, документ, ссылки, списки. Начало текста видно в списке рядом с типом.',
+                     )}
+                  </span>
+               </div>
                <Field
                   hint={t('Без исполнителя задача уходит директору')}
                   label={t('Исполнитель')}
@@ -242,8 +245,18 @@ const TaskForm = ({
                   )}
                </Field>
                <Field label={t('Статус')}>
-                  {select('status', TASK_STATUS_ORDER, (status) =>
-                     t(TASK_STATUS_LABELS[status]),
+                  {select(
+                     'status',
+                     // a status turned off in Настройки stays on the tasks that have it
+                     [
+                        ...taskStatuses().map(({ key }) => key),
+                        ...(taskStatuses().some(
+                           ({ key }) => key === values.status,
+                        )
+                           ? []
+                           : [values.status]),
+                     ],
+                     (status) => statusName(t, status),
                   )}
                </Field>
                <Field
@@ -266,10 +279,12 @@ const TaskForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='ghost' onClick={onCancel}>
+            <Button disabled={saving} variant='ghost' onClick={onCancel}>
                {t('Отмена')}
             </Button>
-            <Button type='submit'>{t('Сохранить')}</Button>
+            <Button loading={saving} type='submit'>
+               {t('Сохранить')}
+            </Button>
          </ModalFooter>
       </form>
    );

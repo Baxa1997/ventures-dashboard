@@ -3,13 +3,13 @@ import {
    LIST_TAB_LABELS,
    LIST_TABS,
    type ListTab,
-   REPORT_DOCS,
 } from '@modules/Portfolio/constants';
 import {
    isOverdue,
    quarterLabel,
    quarterName,
    receivedCount,
+   reportDocs,
 } from '@modules/Portfolio/helpers';
 import { usePortfolio } from '@modules/Portfolio/hooks';
 import {
@@ -76,7 +76,7 @@ const PortfolioList = () => {
       reports: [
          quarterLabel(t, cycle.quarter, true),
          t('от каждой компании {{count}} документ', {
-            count: REPORT_DOCS.length,
+            count: reportDocs().length,
          }),
          t('срок сдачи {{date}}', { date: formatDate(cycle.due) }),
       ].join(' · '),

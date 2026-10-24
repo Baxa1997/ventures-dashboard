@@ -7,6 +7,7 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { useRequest } from '@shared/hooks';
 import type { Meeting } from '@shared/types/committee.types';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +26,7 @@ const SignDialog = ({ meeting, open, onClose }: SignDialogProps) => {
    const { t } = useTranslation('committee');
    const [link, setLink] = useState('');
    const [error, setError] = useState('');
-   const [saving, setSaving] = useState(false);
+   const saving = useRequest({ success: t('Протокол отмечен подписанным') });
 
    useEffect(() => {
       if (!open) return;
@@ -41,13 +42,8 @@ const SignDialog = ({ meeting, open, onClose }: SignDialogProps) => {
                ? t('Ссылка должна начинаться с https://')
                : t('Вставьте ссылку на подписанный протокол'),
          );
-      setSaving(true);
-      try {
-         await committee.signProtocol(meeting.id, value);
+      if (await saving.run(() => committee.signProtocol(meeting.id, value)))
          onClose();
-      } finally {
-         setSaving(false);
-      }
    };
 
    return (
@@ -92,7 +88,7 @@ const SignDialog = ({ meeting, open, onClose }: SignDialogProps) => {
                <Button variant='ghost' onClick={onClose}>
                   {t('Отмена')}
                </Button>
-               <Button disabled={saving} type='submit'>
+               <Button loading={saving.pending} type='submit'>
                   {t('Сохранить')}
                </Button>
             </ModalFooter>

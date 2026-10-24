@@ -24,12 +24,14 @@ import { Link } from 'react-router';
 
 interface DecisionsProps {
    data: CommitteeData;
+   meetingId?: string; // given: only that meeting's decisions, no filters
 }
 
 type BodyFilter = CommitteeBody | 'all';
 
-// Every decision of the committee and the board, newest first.
-const Decisions = ({ data }: DecisionsProps) => {
+// The decisions of the committee and the board, newest first: one meeting's
+// on its page.
+const Decisions = ({ data, meetingId }: DecisionsProps) => {
    const { t } = useTranslation('committee');
    const [search, setSearch] = useState('');
    const [body, setBody] = useState<BodyFilter>('all');
@@ -37,6 +39,7 @@ const Decisions = ({ data }: DecisionsProps) => {
    const rows = data.decisions
       .filter(
          (decision) =>
+            (!meetingId || decision.meetingId === meetingId) &&
             (body === 'all' || decision.body === body) &&
             (!query ||
                `${decision.subject} ${decision.note}`
@@ -47,24 +50,28 @@ const Decisions = ({ data }: DecisionsProps) => {
 
    return (
       <>
-         <FilterBar>
-            <SearchField
-               label={t('Компания или вопрос')}
-               value={search}
-               onChange={setSearch}
-            />
-            <FilterSelect
-               label={t('Орган')}
-               options={[
-                  { value: 'all', label: t('все') },
-                  { value: 'ic', label: t('Инвестиционный комитет') },
-                  { value: 'board', label: t('Наблюдательный совет') },
-               ]}
-               value={body}
-               onChange={setBody}
-            />
-         </FilterBar>
-         <Card className='mt-section flex flex-1 flex-col'>
+         {!meetingId && (
+            <FilterBar>
+               <SearchField
+                  label={t('Компания или вопрос')}
+                  value={search}
+                  onChange={setSearch}
+               />
+               <FilterSelect
+                  label={t('Орган')}
+                  options={[
+                     { value: 'all', label: t('все') },
+                     { value: 'ic', label: t('Инвестиционный комитет') },
+                     { value: 'board', label: t('Наблюдательный совет') },
+                  ]}
+                  value={body}
+                  onChange={setBody}
+               />
+            </FilterBar>
+         )}
+         <Card
+            className={clsx('flex flex-1 flex-col', !meetingId && 'mt-section')}
+         >
             {rows.length ? (
                <Table
                   className='min-w-3xl'
@@ -125,7 +132,11 @@ const Decisions = ({ data }: DecisionsProps) => {
                   ))}
                </Table>
             ) : (
-               <NoData>{t('Решений по этим условиям нет')}</NoData>
+               <NoData>
+                  {meetingId
+                     ? t('Решения появятся, когда заседание примет их')
+                     : t('Решений по этим условиям нет')}
+               </NoData>
             )}
          </Card>
       </>

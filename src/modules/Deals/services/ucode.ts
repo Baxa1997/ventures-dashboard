@@ -7,8 +7,10 @@ import {
 } from '@modules/Settings/services';
 import {
    createRow,
+   deleteRow,
    fromJson,
    listRows,
+   numOrNull,
    toJson,
    updateRow,
    type Row,
@@ -18,9 +20,11 @@ import type {
    CheckItem,
    Deal,
    DealDocument,
+   DealFolder,
    DealRequest,
    DealsSummary,
    DealStatus,
+   DealTerms,
    Decision,
    Fact,
    JournalEntry,
@@ -28,11 +32,15 @@ import type {
    RejectReason,
    Risk,
    Screening,
+   StageRecord,
+   TeamMember,
    Workstream,
 } from '@shared/types/deals.types';
+import type { Instrument } from '@shared/types/portfolio.types';
 import type { DealStage } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import { CRITERIA } from '../constants';
+import { stageKeys } from '../helpers';
 
 /* Сделки in ucode (docs/ucode-migration.md, batch 2): each deal row with its
    children read into the panel's Deal, and what a change touched written back.
@@ -57,7 +65,7 @@ const REACHED: DealsSummary['reached'][number]['step'][] = [
 
 // The applicant's status in the order it moves (docs/ERP.md §5.6); it never goes back.
 const PUBLIC = ['submitted', 'screening', 'meeting', 'due_diligence', 'committee', 'closing', 'portfolio'];
-const PUBLIC_OF_STAGE: Record<DealStage, string> = {
+const PUBLIC_OF_STAGE: Partial<Record<DealStage, string>> = {
    inbox: 'submitted',
    screening: 'screening',
    meeting: 'meeting',
@@ -119,13 +127,24 @@ const toEntry = (row: Row): JournalEntry => {
       case 'screening':
       case 'memo':
       case 'approved':
+      case 'edited':
          return { ...base, kind: row.kind, userId };
+      case 'moved':
+         return {
+            ...base,
+            kind: 'moved',
+            stage: str(row.stage),
+            status: (str(row.result) || 'active') as DealStatus,
+            reason: str(row.text),
+            userId,
+         };
       case 'stage':
          return { ...base, kind: 'stage', stage: str(row.stage) as DealStage };
       case 'rejected':
          return { ...base, kind: 'rejected', reason: str(row.reason) as RejectReason, userId };
       case 'request':
-         return { ...base, kind: 'request', title: str(row.title), userId };
+      case 'answered':
+         return { ...base, kind: row.kind, title: str(row.title), userId };
       case 'document':
          return {
             ...base,
@@ -157,19 +176,24 @@ const checklist = (rows: Row[], list: string) =>
 
 const toDocument = (row: Row): DealDocument => {
    const status = (str(row.status) || 'review') as DealDocument['status'];
-   const byApplicant = row.uploaded_by === 'applicant';
+   // a file the fund uploaded itself is accepted as it is stored
+   const byFund = row.uploaded_by === 'fund';
    return {
       id: row.guid,
       title: str(row.title),
       status,
       version: num(row.version),
-      detail:
-         byApplicant && row.uploaded_at
-            ? `загружен заявителем ${dayjs(str(row.uploaded_at)).format('D MMMM, HH:mm')}`
-            : str(row.reason),
+      url: str(row.file),
+      fileId: str(row.file_id),
+      folderId: str(row.deal_folders_id),
+      requestId: str(row.deal_requests_id),
+      uploadedBy: row.uploaded_by === 'applicant' || byFund ? (row.uploaded_by as 'applicant' | 'fund') : '',
+      uploadedById: str(row.uploaded_by_id),
+      uploadedAt: moment(row.uploaded_at),
+      detail: str(row.reason),
       ...(Boolean(row.handled_by_id) && {
          handled: {
-            kind: status === 'accepted' || status === 'rejected' ? status : 'uploaded',
+            kind: !byFund && (status === 'accepted' || status === 'rejected') ? status : 'uploaded',
             byId: str(row.handled_by_id),
             at: moment(row.handled_at),
             reason: str(row.reason),
@@ -177,6 +201,14 @@ const toDocument = (row: Row): DealDocument => {
       }),
    };
 };
+
+const toFolder = (row: Row): DealFolder => ({
+   id: row.guid,
+   name: str(row.name),
+   parentId: str(row.parent_id),
+   sortOrder: num(row.sort_order),
+   createdById: str(row.created_by_id),
+});
 
 const toRequest = (row: Row): DealRequest => ({
    id: row.guid,
@@ -230,6 +262,60 @@ const toDecision = (row: Row): Decision => ({
       .join(' · '),
    stage: str(row.stage),
    verdict: verdictOf(str(row.outcome)),
+   meetingId: str(row.meetings_id),
+   meetingLabel: str(row.meeting_label),
+});
+
+const INSTRUMENTS: Instrument[] = ['safe', 'convertible', 'equity'];
+
+// The terms: the numbers in the deal's own fields, the wording in `terms`. An
+// older row keeps label–value rows there, which are left out.
+const toTerms = (row: Row): DealTerms | undefined => {
+   const text = fromJson<Partial<Record<'conditions' | 'valuation' | 'structure' | 'founder', string>>>(row.terms, {});
+   const words = Array.isArray(text) ? {} : text;
+   const instrument = INSTRUMENTS.find((item) => item === row.instrument) ?? '';
+   const terms: DealTerms = {
+      instrument,
+      roundSize: numOrNull(row.round_size),
+      preMoney: numOrNull(row.pre_money),
+      conditions: str(words.conditions),
+      valuation: str(words.valuation),
+      structure: str(words.structure),
+      founder: str(words.founder),
+      warning: str(row.terms_warning),
+   };
+   return Object.values(terms).some((value) => value !== '' && value !== null) ? terms : undefined;
+};
+
+const termsFields = (terms: DealTerms | undefined) => ({
+   instrument: terms?.instrument ?? '',
+   round_size: terms?.roundSize ?? null,
+   pre_money: terms?.preMoney ?? null,
+   terms: terms
+      ? toJson({ conditions: terms.conditions, valuation: terms.valuation, structure: terms.structure, founder: terms.founder })
+      : null,
+   terms_warning: terms?.warning ?? '',
+});
+
+// The stages the deal has been on, oldest first.
+const toStages = (rows: Row[]): StageRecord[] =>
+   rows
+      .map((row) => ({
+         stage: str(row.stage) as StageRecord['stage'],
+         enteredAt: day(row.entered_at),
+         leftAt: day(row.left_at),
+         daysUsed: numOrNull(row.days_used),
+         norm: numOrNull(row.norm_days),
+         late: Boolean(row.late),
+      }))
+      .filter(({ stage, enteredAt }) => stage && enteredAt)
+      .sort((a, b) => a.enteredAt.localeCompare(b.enteredAt) || (a.leftAt ? 0 : 1) - (b.leftAt ? 0 : 1));
+
+const toTeamMember = (row: Row): TeamMember => ({
+   id: row.guid,
+   ...(row.employee_id ? { employeeId: str(row.employee_id) } : {}),
+   ...(row.external_name ? { name: str(row.external_name) } : {}),
+   role: str(row.role),
 });
 
 const toMemo = (rows: Row[], checks: Row[]): Memo | undefined => {
@@ -297,6 +383,7 @@ const daysUsed = (row: Row, today: string) => {
 interface Children {
    events: Row[];
    documents: Row[];
+   folders: Row[];
    scores: Row[];
    requests: Row[];
    risks: Row[];
@@ -341,8 +428,9 @@ const toDeal = (
    const reason = listKeyOf('reasons', row.reject_reasons_id);
    const closedAt = day(row.closed_at);
    const facts = fromJson<Fact[] | undefined>(row.facts, undefined);
-   const terms = fromJson<Fact[] | undefined>(row.terms, undefined);
-   const dd = row.dd_due
+   const terms = toTerms(row);
+   const dd =
+      row.dd_due || row.dd_external_cost || row.dd_external_note || row.dd_strengths || row.dd_alert_title || row.dd_closed_note
       ? {
            due: day(row.dd_due),
            closedNote: str(row.dd_closed_note),
@@ -399,17 +487,12 @@ const toDeal = (
       }),
       ...(facts && { facts }),
       ...(row.facts_note ? { factsHint: str(row.facts_note) } : {}),
-      ...((terms !== undefined || Boolean(row.terms_warning)) && { terms: { rows: terms ?? [], warning: str(row.terms_warning) } }),
+      ...(children.history.length > 0 && { stages: toStages(children.history) }),
+      ...(terms && { terms }),
       ...(row.metrics ? { metrics: fromJson(row.metrics, { hint: '', items: [], note: '' }) } : {}),
       ...(children.risks.length > 0 && { risks: children.risks.map(toRisk) }),
       ...(readiness.length > 0 && { readiness: { note: '', items: readiness } }),
-      ...(children.team.length > 0 && {
-         team: children.team.map((member) => ({
-            ...(member.employee_id ? { employeeId: str(member.employee_id) } : {}),
-            ...(member.external_name ? { name: str(member.external_name) } : {}),
-            role: str(member.role),
-         })),
-      }),
+      ...(children.team.length > 0 && { team: children.team.map(toTeamMember) }),
       ...(row.synergy ? { synergy: fromJson<Fact[]>(row.synergy, []) } : {}),
       ...(row.related ? { related: fromJson<Fact[]>(row.related, []) } : {}),
       screening: toScreening(row, children.scores),
@@ -419,6 +502,11 @@ const toDeal = (
             .map(toRequest),
       }),
       ...(children.documents.length > 0 && { documents: children.documents.map(toDocument) }),
+      ...(children.folders.length > 0 && {
+         folders: children.folders
+            .map(toFolder)
+            .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+      }),
       ...(row.applicant_email ? { applicantEmail: str(row.applicant_email) } : {}),
       ...((num(row.paused_days) > 0 || Boolean(row.paused_since)) && {
          clock: { pausedDays: num(row.paused_days), pausedSince: day(row.paused_since) },
@@ -445,6 +533,7 @@ export const loadDeals = async (): Promise<Deal[]> => {
       rows,
       events,
       documents,
+      folders,
       scores,
       requests,
       risks,
@@ -461,6 +550,7 @@ export const loadDeals = async (): Promise<Deal[]> => {
          'deals',
          'deal_events',
          'deal_documents',
+         'deal_folders',
          'screening_scores',
          'deal_requests',
          'deal_risks',
@@ -480,6 +570,7 @@ export const loadDeals = async (): Promise<Deal[]> => {
    const by = {
       events: groupByDeal(events),
       documents: groupByDeal(documents),
+      folders: groupByDeal(folders),
       scores: groupByDeal(scores),
       requests: groupByDeal(requests),
       risks: groupByDeal(risks),
@@ -559,8 +650,7 @@ const dealFields = (deal: Deal): Record<string, unknown> => ({
    paused_since: deal.clock?.pausedSince || null,
    facts: deal.facts ? toJson(deal.facts) : null,
    facts_note: deal.factsHint ?? '',
-   terms: deal.terms ? toJson(deal.terms.rows) : null,
-   terms_warning: deal.terms?.warning ?? '',
+   ...termsFields(deal.terms),
    metrics: deal.metrics ? toJson(deal.metrics) : null,
    synergy: deal.synergy ? toJson(deal.synergy) : null,
    related: deal.related ? toJson(deal.related) : null,
@@ -591,13 +681,18 @@ const eventRow = (entry: JournalEntry, deal: Deal): Record<string, unknown> => {
    if ('userId' in entry) row.employee_id = entry.userId;
    if (entry.kind === 'stage') row.stage = entry.stage;
    if (entry.kind === 'rejected') row.reason = entry.reason;
-   if (entry.kind === 'request' || entry.kind === 'document') row.title = entry.title;
+   if (entry.kind === 'request' || entry.kind === 'answered' || entry.kind === 'document') row.title = entry.title;
    if (entry.kind === 'document') row.result = entry.result;
    if (entry.kind === 'workstream') {
       row.title = entry.name;
       row.result = entry.handed ? 'handed' : 'added';
    }
    if (entry.kind === 'text') row.text = entry.text;
+   if (entry.kind === 'moved') {
+      row.stage = entry.stage;
+      row.result = entry.status;
+      row.text = entry.reason;
+   }
    return row;
 };
 
@@ -615,6 +710,15 @@ const syncItems = <T extends { id: string }>(
       if (!same(previous, item)) return updateRow(table, { guid: item.id, ...toRow(item, index) });
       return Promise.resolve();
    });
+};
+
+// Deletes the rows of the items a list no longer has. Only for the lists a
+// person edits on the card (risks, team, readiness); the others keep theirs.
+const removedItems = <T extends { id?: string }>(table: string, before: T[] | undefined, after: T[] | undefined) => {
+   const kept = new Set((after ?? []).map(({ id }) => id));
+   return (before ?? [])
+      .filter(({ id }) => id && !kept.has(id))
+      .map(({ id }) => deleteRow(table, id as string));
 };
 
 const checkRow = (deal: Deal, list: string) => (item: CheckItem, index: number) => ({
@@ -641,7 +745,14 @@ const publicStatusOf = (deal: Deal) => {
    if (deal.status === 'rejected') return 'rejected';
    if (deal.status === 'portfolio') return 'portfolio';
    if (deal.status === 'paused' || deal.status === 'withdrawn') return null;
-   return deal.status === 'review' ? 'submitted' : PUBLIC_OF_STAGE[deal.stage];
+   if (deal.status === 'review') return 'submitted';
+   // a stage the fund added shows the applicant the stage before it
+   const keys = stageKeys();
+   for (let index = keys.indexOf(deal.stage); index >= 0; index--) {
+      const status = PUBLIC_OF_STAGE[keys[index]];
+      if (status) return status;
+   }
+   return PUBLIC_OF_STAGE[deal.stage] ?? null;
 };
 
 const emptyLinks = (): Links => ({
@@ -677,10 +788,8 @@ export const saveDeal = async (before: Deal, after: Deal) => {
    const fields = Object.fromEntries(
       Object.entries(dealFields(after)).filter(([key, value]) => !same(value, fieldsBefore[key])),
    );
-   const movedOn =
-      before.stage !== after.stage ||
-      (before.status === 'review' && after.status === 'active') ||
-      (before.status !== after.status && ['portfolio', 'rejected', 'withdrawn'].includes(after.status));
+   // a new stage, or a new status (taken in, paused, resumed, closed, reopened)
+   const movedOn = before.stage !== after.stage || before.status !== after.status;
    if (movedOn && after.status === 'active') {
       fields.stage_entered_at = today;
       fields.stage_due = after.next?.dueDate || null;
@@ -734,8 +843,26 @@ export const saveDeal = async (before: Deal, after: Deal) => {
          handled_by_id: item.handled?.byId ?? '',
          handled_at: item.handled?.at ? dayjs(item.handled.at).toISOString() : null,
          reason: item.handled?.reason ?? '',
+         file: item.url,
+         file_id: item.fileId,
+         deal_folders_id: item.folderId || null,
+         deal_requests_id: item.requestId || null,
+         ...(item.uploadedBy && { uploaded_by: item.uploadedBy }),
+         ...(item.uploadedAt && { uploaded_at: dayjs(item.uploadedAt).toISOString() }),
+         uploaded_by_id: item.uploadedById,
          deals_id: after.id,
       })),
+      ...removedItems('deal_documents', before.documents, after.documents),
+      ...syncItems('deal_folders', before.folders, after.folders, (item: DealFolder) => ({
+         name: item.name,
+         parent_id: item.parentId,
+         sort_order: item.sortOrder,
+         created_by_id: item.createdById,
+         deals_id: after.id,
+      })),
+      ...removedItems('deal_folders', before.folders, after.folders),
+      ...removedItems('deal_requests', before.requests, after.requests),
+      ...removedItems('workstreams', before.workstreams, after.workstreams),
       ...syncItems('deal_risks', before.risks, after.risks, (item: Risk) => ({
          level: item.level,
          severity: item.severity ?? null,
@@ -757,6 +884,21 @@ export const saveDeal = async (before: Deal, after: Deal) => {
       })),
       ...syncItems('deal_checklists', before.exit, after.exit, checkRow(after, 'exit')),
       ...syncItems('deal_checklists', before.readiness?.items, after.readiness?.items, checkRow(after, 'readiness')),
+      ...removedItems('deal_checklists', before.readiness?.items, after.readiness?.items),
+      ...removedItems('deal_risks', before.risks, after.risks),
+      // the members the owner added; the others are counted from the deal
+      ...syncItems(
+         'deal_team',
+         before.team?.filter((member): member is TeamMember & { id: string } => !!member.id),
+         after.team?.filter((member): member is TeamMember & { id: string } => !!member.id),
+         (member) => ({
+            employee_id: member.employeeId ?? '',
+            external_name: member.name ?? '',
+            role: member.role,
+            deals_id: after.id,
+         }),
+      ),
+      ...removedItems('deal_team', before.team, after.team),
       ...syncItems('deal_checklists', before.memo?.checklist, after.memo?.checklist, checkRow(after, 'memo')),
       ...syncItems('decisions', before.decisions, after.decisions, (item: Decision) => ({
          body: item.body === 'Набсовет' ? 'board' : 'ic',

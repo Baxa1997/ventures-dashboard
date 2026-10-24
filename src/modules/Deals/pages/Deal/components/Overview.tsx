@@ -1,9 +1,15 @@
-import { RiskList } from '@modules/Deals/components';
-import { FIELD_FACTS, STAGE_LABELS } from '@modules/Deals/constants';
+import { stageName } from '@modules/Settings/services';
+import { RisksCard } from '@modules/Deals/components';
+import { FIELD_FACTS } from '@modules/Deals/constants';
 import {
+   COMMITTEE_STAGES,
+   committeeStateOf,
    countryText,
    defaultPath,
+   hasTermsStage,
    industryText,
+   isOpen,
+   pathHintOf,
    roundText,
    sourceLine,
    factRows,
@@ -11,57 +17,87 @@ import {
    formatStamp,
    pathState,
 } from '@modules/Deals/helpers';
-import {
-   Avatar,
-   Card,
-   CheckList,
-   FactList,
-   Progress,
-   STACK,
-} from '@shared/components';
-import { TEAM } from '@shared/constants';
-import { formatDate, shortName } from '@shared/helpers';
-import type { Deal, Fact } from '@shared/types/deals.types';
+import { Card, FactList, STACK } from '@shared/components';
+import type { Deal } from '@shared/types/deals.types';
+import type { DealStage } from '@shared/types/work.types';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import MetricsCard from './MetricsCard';
 import NextStep from './NextStep';
+import ReadinessCard from './ReadinessCard';
+import RelatedCard from './RelatedCard';
+import StagePanel from './StagePanel';
+import SynergyCard from './SynergyCard';
+import TeamCard from './TeamCard';
+import TermsCard from './TermsCard';
 
 interface OverviewProps {
    deal: Deal;
+   onTransfer: () => void; // opens the move to the next stage
+   onEdit: () => void; // opens the deal's details
+   onMove: () => void; // opens the move to any stage or status
 }
 
-// The legal form in front of a company's name does not go into its initials.
-const LEGAL_FORM = /^(ООО|АО|ИП|ЧП)\s+/u;
+// The stages from which DD's confirmed metrics are kept.
+const METRICS_STAGES: DealStage[] = ['dd', 'ic2', 'board', 'closing'];
 
-const toRows = (facts: Fact[]) =>
-   facts.map(([label, value, note]) => ({ label, value, note }));
-
-// The deal at a glance: where it is on its path, the terms, what DD found,
-// and how ready it is for the committee.
-const Overview = ({ deal }: OverviewProps) => {
+/* The deal at a glance: where it is on its path, then what the fund knows
+   of it and what it does next. Before the first committee that is the
+   application; from ИК-1 on, the terms, DD's metrics and risks and the
+   synergy with the bank, which the owner writes here (a closed deal shows
+   only those written). On a committee stage the materials for the meeting
+   come first, until the committee decides. */
+const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
    const { t, i18n } = useTranslation('deals');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const path = deal.path ?? defaultPath(t, deal);
-   const team =
-      deal.team ??
-      (deal.ownerId ? [{ employeeId: deal.ownerId, role: t('Владелец') }] : []);
-   const ready = deal.readiness?.items.filter(({ state }) => state === 'done');
-   const detailed = !!(deal.terms || deal.metrics || deal.risks);
+   // the stage opened under the path: the deal's own until another is clicked
+   const [selected, setSelected] = useState<string | null>(null);
+   const chosen =
+      path.find((step) => step.stage === (selected ?? deal.stage)) ??
+      path.find((step) => pathState(deal, step.stage) === 'current') ??
+      path[0];
+   const editable = isOpen(deal);
+   // a section to fill in while the deal is open, or one already written
+   const shown = (written: boolean) =>
+      written || (editable && hasTermsStage(deal));
+   const terms = shown(!!deal.terms);
+   const metrics =
+      shown(!!deal.metrics) &&
+      (!!deal.metrics || METRICS_STAGES.includes(deal.stage));
+   const risks = shown(!!deal.risks);
+   const synergy = shown(!!deal.synergy);
+   const movable = deal.status !== 'portfolio';
+   const preparing =
+      deal.status === 'active' &&
+      COMMITTEE_STAGES.includes(deal.stage) &&
+      !['approved', 'rejected'].includes(committeeStateOf(deal));
 
    return (
       <div className='gap-section flex flex-1 flex-col'>
          <Card
             action={
-               <Link className='link' to='?tab=history'>
-                  {t('Журнал переходов')}
-               </Link>
+               <span className='flex gap-4'>
+                  {movable && (
+                     <button type='button' className='link' onClick={onMove}>
+                        {t('Сменить этап')}
+                     </button>
+                  )}
+                  <Link className='link' to='?tab=history'>
+                     {t('Журнал переходов')}
+                  </Link>
+               </span>
             }
-            hint={deal.pathHint}
+            hint={deal.pathHint ?? pathHintOf(t, deal)}
             title={t('Путь сделки')}
          >
-            <ol className='grid grid-cols-3 sm:grid-cols-5 xl:grid-cols-9'>
+            {/* a timeline: as many stages as the fund has, each at least
+                9.5rem wide; a long name wraps, and a path wider than the card
+                scrolls sideways */}
+            <ol className='flex overflow-x-auto'>
                {path.map((step) => {
                   const state = pathState(deal, step.stage);
                   return (
@@ -69,15 +105,28 @@ const Overview = ({ deal }: OverviewProps) => {
                         key={step.stage}
                         aria-current={state === 'current' ? 'step' : undefined}
                         className={clsx(
-                           'border-line min-w-0 border-l px-3 py-3 first:border-l-0',
+                           'border-line relative min-w-38 flex-1 basis-0 border-l px-3 py-3 first:border-l-0',
+                           step === chosen &&
+                              'shadow-[inset_0_-2px_0_var(--color-accent)]',
+                           state !== 'current' && 'hover:bg-ground',
                            state === 'current' && 'bg-accent-tint',
                         )}
                      >
-                        <div className='flex items-center gap-1.5'>
+                        {/* the whole cell opens the stage under the path */}
+                        <button
+                           type='button'
+                           aria-label={t('Открыть этап «{{stage}}»', {
+                              stage: stageName(step.stage),
+                           })}
+                           aria-pressed={step === chosen}
+                           className='absolute inset-0 cursor-pointer focus-visible:-outline-offset-2'
+                           onClick={() => setSelected(step.stage)}
+                        />
+                        <div className='flex items-start gap-1.5'>
                            <span
                               aria-hidden
                               className={clsx(
-                                 'grid size-4 shrink-0 place-items-center rounded-full',
+                                 'mt-0.5 grid size-4 shrink-0 place-items-center rounded-full',
                                  state === 'done' &&
                                     (step.late
                                        ? 'bg-warning-ink text-white'
@@ -94,12 +143,12 @@ const Overview = ({ deal }: OverviewProps) => {
                            </span>
                            <span
                               className={clsx(
-                                 'text-meta font-semibold whitespace-nowrap',
+                                 'text-meta min-w-0 font-semibold [overflow-wrap:anywhere]',
                                  state === 'ahead' &&
                                     'text-ink-soft font-normal',
                               )}
                            >
-                              {t(STAGE_LABELS[step.stage])}
+                              {stageName(step.stage)}
                            </span>
                         </div>
                         <div className='text-ink-soft mt-1.5 text-xs'>
@@ -121,233 +170,91 @@ const Overview = ({ deal }: OverviewProps) => {
                   );
                })}
             </ol>
+            {chosen && (
+               <StagePanel
+                  key={chosen.stage}
+                  deal={deal}
+                  state={pathState(deal, chosen.stage)}
+                  step={chosen}
+               />
+            )}
          </Card>
 
          <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
             <div className={STACK}>
-               {deal.terms && (
-                  <Card title={t('Условия сделки')}>
-                     <div className='px-5 pt-1 pb-5'>
-                        <FactList
-                           divided
-                           labelWidth='27%'
-                           rows={toRows(deal.terms.rows)}
-                        />
-                        <p className='bg-warning-tint text-warning-ink text-meta rounded-lg px-4 py-3'>
-                           {deal.terms.warning}
-                        </p>
-                     </div>
-                  </Card>
-               )}
-
-               {deal.metrics && (
-                  <Card
-                     hint={deal.metrics.hint}
-                     title={t('Метрики, проверенные DD')}
-                  >
-                     <div className='p-5'>
-                        <dl className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
-                           {deal.metrics.items.map((item) => (
-                              <div
-                                 key={item.label}
-                                 className='bg-ground rounded-lg px-4 py-3'
-                              >
-                                 <dt className='text-ink-soft text-xs'>
-                                    {item.label}
-                                 </dt>
-                                 <dd>
-                                    <div className='mt-1 text-xl leading-7 font-bold'>
-                                       {item.value}
-                                    </div>
-                                    <div
-                                       className={clsx(
-                                          'mt-1 text-xs',
-                                          item.warn
-                                             ? 'text-warning-ink'
-                                             : 'text-ink-soft',
-                                       )}
-                                    >
-                                       {item.note}
-                                    </div>
-                                 </dd>
-                              </div>
-                           ))}
-                        </dl>
-                        <p className='text-ink-soft mt-3.5 text-xs'>
-                           {deal.metrics.note}
-                        </p>
-                     </div>
-                  </Card>
-               )}
-
-               {deal.risks && (
-                  <Card
-                     action={
+               {terms && <TermsCard deal={deal} editable={editable} />}
+               {metrics && <MetricsCard deal={deal} editable={editable} />}
+               {risks && (
+                  <RisksCard
+                     deal={deal}
+                     editable={editable}
+                     link={
                         <Link className='link' to='?tab=dd'>
                            {t('Матрица рисков')}
                         </Link>
                      }
-                     hint={t('{{count}} открытый', {
-                        count: deal.risks.length,
-                     })}
                      title={t('Риски из DD')}
-                  >
-                     <RiskList risks={deal.risks} />
-                  </Card>
+                  />
                )}
-
-               {!detailed && (
-                  <Card title={t('Заявка')}>
-                     <div className='text-meta px-5 py-3'>
-                        <FactList
-                           divided
-                           labelWidth='27%'
-                           rows={[
-                              ...(deal.about
-                                 ? [
-                                      {
-                                         label: t('Чем занимается'),
-                                         value: deal.about,
-                                      },
-                                   ]
-                                 : []),
-                              {
-                                 label: t('Отрасль'),
-                                 value: industryText(deal),
-                              },
-                              {
-                                 label: t('Запрос'),
-                                 value: formatAmount(deal.amount, language),
-                              },
-                              {
-                                 label: t('Стадия раунда'),
-                                 value: roundText(deal),
-                              },
-                              {
-                                 label: t('География'),
-                                 value: countryText(deal),
-                              },
-                              {
-                                 label: t('Источник'),
-                                 value: sourceLine(t, deal),
-                              },
-                              {
-                                 label: t('Поступила'),
-                                 value: formatStamp(deal.receivedAt),
-                              },
-                              ...factRows(
-                                 t,
-                                 (deal.facts ?? []).filter(
-                                    ([label]) => !FIELD_FACTS.includes(label),
-                                 ),
+               <Card
+                  action={
+                     <button type='button' className='link' onClick={onEdit}>
+                        {t('Изменить')}
+                     </button>
+                  }
+                  title={t('Заявка')}
+               >
+                  <div className='text-meta px-5 py-3'>
+                     <FactList
+                        divided
+                        labelWidth='27%'
+                        rows={[
+                           ...(deal.about
+                              ? [
+                                   {
+                                      label: t('Чем занимается'),
+                                      value: deal.about,
+                                   },
+                                ]
+                              : []),
+                           { label: t('Отрасль'), value: industryText(deal) },
+                           {
+                              label: t('Запрос'),
+                              value: formatAmount(deal.amount, language),
+                           },
+                           {
+                              label: t('Стадия раунда'),
+                              value: roundText(deal),
+                           },
+                           { label: t('География'), value: countryText(deal) },
+                           { label: t('Источник'), value: sourceLine(t, deal) },
+                           {
+                              label: t('Поступила'),
+                              value: formatStamp(deal.receivedAt),
+                           },
+                           ...factRows(
+                              t,
+                              (deal.facts ?? []).filter(
+                                 ([label]) => !FIELD_FACTS.includes(label),
                               ),
-                           ]}
-                        />
-                     </div>
-                  </Card>
-               )}
+                           ),
+                        ].filter(({ value }) => value)}
+                     />
+                  </div>
+               </Card>
             </div>
 
             <div className={STACK}>
-               {deal.readiness && ready && deal.committee && (
-                  <Card
-                     hint={`${formatDate(deal.committee.date)}, ${deal.committee.time}`}
-                     title={t('Готовность к ИК № {{number}}', {
-                        number: deal.committee.number,
-                     })}
-                  >
-                     <div className='p-5'>
-                        <div className='flex items-center gap-4'>
-                           <Progress
-                              className='h-1.5 flex-1'
-                              max={deal.readiness.items.length}
-                              value={ready.length}
-                           />
-                           <span className='text-meta font-semibold'>
-                              {t('{{done}} из {{total}}', {
-                                 done: ready.length,
-                                 total: deal.readiness.items.length,
-                              })}
-                           </span>
-                        </div>
-                        <CheckList
-                           className='text-meta mt-4'
-                           items={deal.readiness.items}
-                        />
-                        <p className='text-ink-soft mt-4 text-xs'>
-                           {deal.readiness.note}
-                        </p>
-                     </div>
-                  </Card>
+               {preparing && <ReadinessCard deal={deal} editable={editable} />}
+               {(deal.next ||
+                  deal.status === 'active' ||
+                  deal.status === 'review' ||
+                  deal.status === 'portfolio') && (
+                  <NextStep deal={deal} onTransfer={onTransfer} />
                )}
-
-               {!deal.readiness &&
-                  (deal.next ||
-                     deal.status === 'active' ||
-                     deal.status === 'review') && <NextStep deal={deal} />}
-
-               {team.length > 0 && (
-                  <Card title={t('Команда сделки')}>
-                     <ul className='divide-line divide-y px-5 py-1'>
-                        {team.map((member) => {
-                           const employee = TEAM.find(
-                              ({ id }) => id === member.employeeId,
-                           );
-                           const name = employee
-                              ? shortName(employee.name)
-                              : (member.name ?? '');
-                           return (
-                              <li key={name} className='flex gap-3 py-3'>
-                                 <Avatar
-                                    name={
-                                       employee?.name ??
-                                       name
-                                          .replace(/[^\p{L}\s]/gu, '')
-                                          .replace(LEGAL_FORM, '')
-                                          .trim()
-                                    }
-                                 />
-                                 <div className='min-w-0'>
-                                    <div className='text-meta font-semibold'>
-                                       {name}
-                                    </div>
-                                    <div className='text-ink-soft mt-0.5 text-xs'>
-                                       {member.role}
-                                    </div>
-                                 </div>
-                              </li>
-                           );
-                        })}
-                     </ul>
-                  </Card>
-               )}
-
-               {deal.synergy && (
-                  <Card
-                     hint={t('заявлено компанией')}
-                     title={t('Синергия с SQB')}
-                  >
-                     <div className='text-meta px-5 py-1'>
-                        <FactList
-                           divided
-                           labelWidth='6.5rem'
-                           rows={toRows(deal.synergy)}
-                        />
-                     </div>
-                  </Card>
-               )}
-
-               {deal.related && (
-                  <Card title={t('Связанные объекты')}>
-                     <div className='text-meta px-5 py-1'>
-                        <FactList
-                           divided
-                           labelWidth='6.5rem'
-                           rows={toRows(deal.related)}
-                        />
-                     </div>
-                  </Card>
-               )}
+               <TeamCard deal={deal} editable={editable} />
+               {synergy && <SynergyCard deal={deal} editable={editable} />}
+               <RelatedCard deal={deal} />
             </div>
          </div>
       </div>

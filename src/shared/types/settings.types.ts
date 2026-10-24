@@ -1,5 +1,6 @@
 // Настройки: the rules the system works by, and who may do what.
 
+import type { MetricFormat } from './portfolio.types';
 import type { SupportedLanguageType } from './system/language.types';
 import type { Role } from './work.types';
 
@@ -7,22 +8,26 @@ import type { Role } from './work.types';
 // the lists (rounds, countries and industries in mandate).
 export type MandateField = 'check' | 'focus' | 'excluded';
 
-export type NormStage =
-   | 'inbox'
-   | 'screening'
-   | 'meeting'
-   | 'analysis'
-   | 'committee'
-   | 'dd'
-   | 'board'
-   | 'closing';
+// Who a late stage is escalated to.
+export type EscalateTo = 'deputy' | 'director' | 'ic_chair' | '';
 
-export interface StageNorm {
-   stage: NormStage;
-   norm: string; // working days, or when the stage ends ("до заседания")
+/* A stage of a deal (stage_norms, docs/ucode-migration.md batch 8). The
+   system stages carry the platform's rules (Входящие, Скрининг, ИК-1,
+   Детальный DD, ИК-2, Набсовет, Закрытие): renamed and given norms, never
+   deleted or moved. The fund adds, orders and deletes its own between them. */
+export interface StageItem {
+   id: string; // the stage_norms row; '' for a system stage without one yet
+   key: string; // inbox, ic1… or the fund's own slug; deals keep it
+   names: Record<SupportedLanguageType, string>; // '' where the default name stands
+   sortOrder: number;
+   isSystem: boolean;
+   norm: string; // working days, maybe with a mark ("5 · публично"), or "до заседания"
    paused: string; // when the clock stands
-   escalation: string;
+   escalation: EscalateTo;
+   isPublic: boolean; // the norm is told to founders
 }
+
+export type StageInput = Omit<StageItem, 'id' | 'sortOrder' | 'isSystem'>;
 
 export type FlagField = 'runway' | 'churn' | 'revenue' | 'reportLate';
 
@@ -74,32 +79,56 @@ export interface StaffMember {
 export type IndustryMandate = 'focus' | 'allowed' | 'licensed' | 'excluded';
 
 // The reference lists the fund keeps in Настройки, one ucode table each
-// (docs/ucode-migration.md, batches 1 and 7).
+// (docs/ucode-migration.md, batches 1, 7, 8 and 9).
 export type ListKind =
    | 'industries'
    | 'rounds'
    | 'sources'
    | 'countries'
    | 'reasons'
-   | 'taskTypes';
+   | 'taskTypes'
+   | 'taskStatuses'
+   | 'metrics'
+   | 'reportDocs'
+   | 'docTemplates';
+
+// ucode's groups of a status: a task status behaves as its group does.
+export type StatusGroup = 'todo' | 'progress' | 'complete';
+
+export type ItemTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
+
+// A file kept in ucode Files: a report document's template.
+export interface ItemFile {
+   id: string;
+   url: string;
+   name: string;
+}
 
 export interface ListItem {
    id: string; // the row's guid
    key: string; // the slug or code that deals, tasks and the website keep
    names: Record<SupportedLanguageType, string>;
    sortOrder: number;
-   active: boolean; // a row is turned off, never deleted: records point to it
+   active: boolean; // turned off: the forms stop offering it, records keep it
+   // the platform's own rows (a task status, a metric, a report document its
+   // logic names): renamed, never deleted
+   isSystem?: boolean;
    mandate?: IndustryMandate; // industries: its place in the mandate
    inMandate?: boolean; // rounds and countries the mandate accepts
    onSite?: boolean; // sources the website's form offers
    isMandate?: boolean; // reasons: outside the mandate, the applicant may apply again at once
+   group?: StatusGroup; // task statuses
+   tone?: ItemTone; // task statuses: the badge's colour
+   format?: MetricFormat; // portfolio metrics
+   file?: ItemFile | null; // report documents, document templates: the file to fill in
 }
 
 export type ListItemInput = Omit<ListItem, 'id' | 'sortOrder'>;
 
 export interface SettingsState {
    mandate: Record<MandateField, string>;
-   norms: StageNorm[];
+   stages: StageItem[]; // in their order
+   removedStages: string[]; // the platform's stages the fund deleted, to bring back
    flags: PortfolioFlags;
    journal: SettingsChange[];
    staff: StaffMember[];

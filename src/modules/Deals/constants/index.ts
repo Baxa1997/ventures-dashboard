@@ -7,43 +7,19 @@ import type {
    Tone,
    WorkstreamStatus,
 } from '@shared/types/deals.types';
-import type { DealStage } from '@shared/types/work.types';
+import type { DealStage, DefaultStage } from '@shared/types/work.types';
 
 export const DEALS_PATH = '/deals';
 
 export const COMPANY_MAX = 80;
 export const TEXT_MAX = 600;
 
-// The stages a deal passes, in order. Labels are keys of the "deals" translations.
-export const STAGES: DealStage[] = [
-   'inbox',
-   'screening',
-   'meeting',
-   'analysis',
-   'ic1',
-   'dd',
-   'ic2',
-   'board',
-   'closing',
-];
+// The stages a deal passes, their order and names, are Настройки → Этапы и
+// нормативы (stageKeys and stageName in ../helpers).
 
-export const FUNNEL_STAGES = STAGES.filter((stage) => stage !== 'inbox');
-
-export const STAGE_LABELS = {
-   inbox: 'Входящие',
-   screening: 'Скрининг',
-   meeting: 'Встреча',
-   analysis: 'Анализ',
-   ic1: 'ИК-1',
-   dd: 'Детальный DD',
-   ic2: 'ИК-2',
-   board: 'Набсовет',
-   closing: 'Закрытие',
-} as const satisfies Record<DealStage, string>;
-
-// Working days the fund has for a stage; none for the stages that follow a
-// meeting schedule. Set in "Настройки" once that section exists.
-export const STAGE_NORMS: Record<DealStage, number | null> = {
+// Working days a default stage has when Настройки give no number; none for
+// the stages that follow a meeting schedule.
+export const STAGE_NORMS: Partial<Record<DealStage, number | null>> = {
    inbox: 2,
    screening: 5,
    meeting: 10,
@@ -63,27 +39,44 @@ export const STAGE_NEXT_LABELS = {
    analysis: 'Анализ и запрос документов',
    ic1: 'Вынос на ИК-1',
    dd: 'Детальный DD по направлениям',
-   ic2: 'Рассылка материалов членам ИК',
-   board: 'Решение наблюдательного совета',
+   ic2: 'Вынос на ИК-2',
+   board: 'Вынос на Набсовет',
    closing: 'Подписание и платёж',
-} as const satisfies Record<DealStage, string>;
+} as const satisfies Record<DefaultStage, string>;
 
-// What the owner does on each stage, and how the deal moves on from it.
+// What the owner does on each default stage, and how the deal moves on from
+// it ({{next}}: the stage after it, as Настройки order them).
 export const STAGE_HOW = {
    inbox: 'Изучите заявку. Подходит — «Взять в скрининг», и вы станете владельцем сделки. Не подходит — «Отказать с причиной».',
    screening:
       'Оцените стартап по 7 критериям, у каждого балла — обоснование. Выберите второго оценщика и нажмите «Завершить скрининг».',
    meeting:
-      'Встретьтесь с командой стартапа. После встречи — «Перевести в «Анализ»».',
+      'Встретьтесь с командой стартапа. После встречи — «Перевести в «{{next}}»».',
    analysis:
-      'Запросите недостающие данные («Запросить данные») и проверьте документы. Когда всё собрано — «Перевести в «ИК-1»».',
-   ic1: 'Инвесткомитет решает, стоит ли делать детальный DD. Вынесите сделку на заседание ИК-1; после одобрения откроется «Перевести в «Детальный DD»».',
-   dd: 'Передайте направления DD исполнителям и соберите их заключения. Затем — «Перевести в «ИК-2»».',
-   ic2: 'Инвесткомитет принимает решение об инвестиции. Вынесите сделку на заседание ИК-2; после одобрения откроется «Перевести в «Набсовет»».',
-   board: 'Наблюдательный совет утверждает сделку. Вынесите её на заседание НС; после одобрения откроется «Перевести в «Закрытие»».',
+      'Запросите недостающие данные («Запросить данные») и проверьте документы. Когда всё собрано — «Перевести в «{{next}}»».',
+   ic1: 'Инвесткомитет решает, стоит ли делать детальный DD. Вынесите сделку на заседание ИК-1; после одобрения откроется «Перевести в «{{next}}»».',
+   dd: 'Передайте направления DD исполнителям, соберите их заключения и выполните условия ИК-1. Затем — «Перевести в «{{next}}»».',
+   ic2: 'Инвесткомитет принимает решение об инвестиции. Вынесите сделку на заседание ИК-2; после одобрения ИК и директора откроется «Перевести в «{{next}}»».',
+   board: 'Наблюдательный совет утверждает сделку. Вынесите её на заседание НС; после одобрения откроется «Перевести в «{{next}}»».',
    closing:
-      'Подпишите документы и проведите платёж, затем — «Перевести в портфель».',
-} as const satisfies Record<DealStage, string>;
+      'Выполните условия ИК-2 и Набсовета, подпишите документы и проведите платёж. Затем «Перевести в портфель»: укажите сумму и инструмент — компания появится в «Портфеле».',
+} as const satisfies Record<DefaultStage, string>;
+
+/* The conditions of a committee's approval are tasks for the deal's owner,
+   due by an event rather than a date: ИК-1's before ИК-2, ИК-2's and the
+   board's before signing. The deal leaves DD, and then Закрытие, only when
+   the conditions due by then are met. */
+export const CONDITION_ORIGIN = 'ic_condition';
+
+export const CONDITION_DUE = {
+   ic2: 'до ИК-2',
+   signing: 'до подписания',
+} as const;
+
+export const CONDITION_STAGES: Partial<Record<DealStage, string>> = {
+   dd: CONDITION_DUE.ic2,
+   closing: CONDITION_DUE.signing,
+};
 
 // The steps of the conversion strip on "Все сделки".
 export const REACHED_LABELS = {

@@ -53,5 +53,8 @@
    "Черновик": "Draft",
    "Что делаем": "What is being done",
    "Шаблоны": "Templates",
-   "у каждого документа одна действующая редакция": "each document has one version in force"
+   "у каждого документа одна действующая редакция": "each document has one version in force",
+   "Документ добавлен": "Document added",
+   "Вопрос добавлен": "Issue added",
+   "Статус вопроса сохранён": "Issue status saved"
 }

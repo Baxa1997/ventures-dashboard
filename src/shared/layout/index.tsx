@@ -1,5 +1,4 @@
 import { type PropsWithChildren, useState } from 'react';
-import Failure from './Failure';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
@@ -13,7 +12,6 @@ const Layout = ({ children }: PropsWithChildren) => {
             <Header onMenuClick={() => setMenuOpen(true)} />
             <main className='flex flex-1 flex-col'>{children}</main>
          </div>
-         <Failure />
       </div>
    );
 };

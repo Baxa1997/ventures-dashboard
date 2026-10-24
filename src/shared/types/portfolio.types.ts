@@ -3,8 +3,11 @@
 
 export type Instrument = 'safe' | 'convertible' | 'equity';
 
-export type ReportDoc =
+// The report documents batch 4 started with; Настройки → Отчётность keeps
+// the list (report_documents), the fund's own documents among them.
+export type SystemReportDoc =
    'fund_template' | 'company_template' | 'form1' | 'form2';
+export type ReportDoc = string;
 
 export type MetricsState = 'none' | 'check' | 'confirmed';
 
@@ -16,7 +19,9 @@ export interface QuarterReport {
 
 export type MetricFormat = 'usd' | 'percent' | 'months' | 'number';
 
-export type MetricKey =
+// The metrics batch 4 started with; Настройки → Показатели keeps the list
+// (portfolio_metrics), the fund's own metrics among them.
+export type SystemMetric =
    | 'mrr'
    | 'revenue'
    | 'margin'
@@ -25,6 +30,7 @@ export type MetricKey =
    | 'clients'
    | 'churn'
    | 'team';
+export type MetricKey = string;
 
 export interface Metric {
    key: MetricKey;
@@ -75,6 +81,15 @@ export interface PortfolioCompany {
    metrics: Metric[];
    pilots: Pilot[];
    commercial?: { title: string; note: string };
+}
+
+// The fund's first investment, entered when a closed deal joins the portfolio.
+export interface Investment {
+   instrument: Instrument;
+   amount: number; // USD
+   date: string; // YYYY-MM-DD, the payment
+   stakePct: number | null;
+   valuation: number | null; // USD, post-money
 }
 
 export interface ReportingCycle {

@@ -1,5 +1,5 @@
+import { stageName } from '@modules/Settings/services';
 import { stageNorm } from '@modules/Deals/helpers';
-import { DEAL_STAGE_LABELS } from '@modules/Work/constants';
 import { formatToday } from '@modules/Work/helpers';
 import { useTasks } from '@modules/Work/hooks';
 import {
@@ -141,7 +141,7 @@ const Overview = () => {
                      <BarList
                         items={fund.funnel.map(({ stage, count, overdue }) => ({
                            id: stage,
-                           label: t(DEAL_STAGE_LABELS[stage]),
+                           label: stageName(stage),
                            value: count,
                            overdue,
                         }))}

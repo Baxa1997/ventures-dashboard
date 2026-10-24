@@ -3,6 +3,7 @@ import { formatDate } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { committeeStateOf } from '../helpers';
 
 interface CommitteeLinkProps {
    deal: Deal;
@@ -10,11 +11,12 @@ interface CommitteeLinkProps {
 }
 
 // Where a deal waiting for the committee or the board is decided: the meeting
-// it is on the agenda of, or a new meeting to put it on.
+// it is on the agenda of, or a new meeting to put it on (also once a meeting
+// has put the question off).
 const CommitteeLink = ({ deal, onClick }: CommitteeLinkProps) => {
    const { t } = useTranslation('deals');
 
-   if (!deal.committee)
+   if (!deal.committee || committeeStateOf(deal) === 'postponed')
       return (
          <Link
             className='link'

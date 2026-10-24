@@ -29,6 +29,8 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
 | 5 — Работа, money, downloads | created by Claude Code, checked with `get_dbml` | not started |
 | 6 — Документы фонда | created by Claude Code, checked with `verify.mjs` | not started |
 | 7 — Справочники and status fields | created by Claude Code, checked with `verify.mjs`; rows 4 + 13 + 12 + 8 | not started |
+| 8 — the editable panel | created by Claude Code on 24 October; rows 6 + 8 + 4 + 2 | not started |
+| 9 — data room folders and document templates | created by Claude Code on 24 October; no rows | not started |
 
 - 18 October: the schema read through the MCP (`get_dbml`) and compared with `node scripts/ucode/schema.mjs check`: all 27 tables, every field with its column type and all 25 relations match batches T–3, with no extra fields.
 - 18 October, batches 4 and 5: tables made with the MCP's `create_table` in Admin, fields with `POST /v2/fields/{table}` (see «The ucode MCP»), relations with `update_table`. After them, `check` on `get_dbml`'s output: 39 tables and all 41 relations, every table of batches 4 and 5 ✓ except three fields of `portfolio_companies`, fixed the same day (below).
@@ -54,6 +56,8 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
   - The 5 applications, 5 deals and 9 tasks made before it were linked to the lists from their text fields with `rows.mjs link --write` (19 rows).
   - The new tables and columns named with `admin-ui.mjs all --write`; the Deals view shows «Раунд» and «Источник» instead of `round_stage` and `channel`.
   - `verify.mjs` afterwards: 441 fields and 49 relations, no problems.
+- 24 October, batch 8 (the editable panel): the ucode MCP answered «No valid MCP session», so its tools were done with the admin API they wrap: the 5 tables with `POST /v1/table` (`menu_id` = the Admin sub-folder; each checked in its folder with `GET /v3/menus`), the 47 fields with `fields.mjs create 8`, the 4 pick lists with `fields.mjs options 8 --write`, the 4 relations with `POST /v2/relations/{table}` (`{table_from, table_to, type: "Many2One", view_fields: [], attributes}`; each checked by its LOOKUP field), the rows with `rows.mjs insert 8 --write`. ucode keeps a value a PICK_LIST or STATUS field does not list (a probe row, 24 October), so the fund's own stages and task statuses need no field change. The panel uploads files with the signed-in person's token to `POST /v1/files/folder_upload?folder_name=…` and deletes them with `DELETE /v1/files` (`{objects: [{object_id}]}`). `panel-test.mjs` passed all its checks, those of batch 8 included. The new tables are not yet named in Russian and Uzbek (`names.mjs`, `admin-ui.mjs`).
+- 24 October, batch 9 (data room folders, document templates): the 2 tables with `POST /v1/table` as in batch 8, the 15 fields with `fields.mjs create 9`, the 2 relations with `POST /v2/relations/{table}`, each checked by its LOOKUP field (`deal_folders.deals_id`, `deal_documents.deal_folders_id`). A document points to its folder by that relation, since ucode adds its own `folder_id` to every table. Not yet run through `panel-test.mjs`; its new check (folders inside folders, a document moved, a folder deleted) waits for the next run. The tables are not yet named in Russian and Uzbek.
 - Files uploaded to ucode Files are public: a pitch deck the website stored opens at `https://cdn.u-code.io/<its path>` without a token (checked 19 October). Документы therefore keeps links, not files; the decks need the private folder and §7 of ERP.md.
 - The ucode environment of this project is named "Production" in ucode (its only environment, `9f012d7a-0eb0-4a3a-87c7-16661eafce08`), though it is used for testing; the website's live deployment does not use it (its tables did not exist here until batch T).
 - Folder ids: Admin `60e0336b-5017-49ca-8c96-123aa5e2c9db` (the only folder named Admin), Landing page `39d78d3e-d0dc-49ef-9e99-5491b0968a41`, Startup cabinet `21a20661-d27b-43a4-98ed-37604fe83833`. All three sit under ucode's main menu, `c57eedc3-a954-4262-a0af-376c65b5a284`. Admin's sub-folders are found by their English name (`admin-ui.mjs`).
@@ -938,6 +942,160 @@ Rows for task_types (slug | name_ru | name_uz | name_en | sort_order | is_active
 Every existing row of industries and reject_reasons: is_active true
 ```
 
+## Batch 8 — the editable panel
+
+The client's list of 24 October: the fund edits the platform itself. What it asked for, and what the tables need:
+
+- **Attachments.** Links and files on a deal (Скрининг, a request, a DD workstream) or a company: one table, `section` says where an attachment belongs and `item_id` which request or workstream. A file is uploaded to ucode Files (public by link, as decided on 22 October) and its `link` kept in `url`; `file_id` lets the panel delete the file with its row.
+- **Task statuses become a list** (`task_statuses`), each in one of ucode's groups (`status_group`): the panel's logic follows the group, so a status the fund adds behaves like the others of its group (a status in «complete» closes the task). The six statuses of batch 7 are its system rows (`is_system`): renamed and recoloured, never deleted. `tasks.status` keeps the status's slug; ucode stores a slug its STATUS field does not list (checked 24 October), it only shows it without a colour.
+- **The stages of a deal are `stage_norms`**, which gets names, an order and `is_system`. The system stages (inbox, screening, ic1, dd, ic2, board, closing) carry the platform's rules and are only renamed and given norms; the fund adds, orders and deletes its own (meeting and analysis become the fund's own). `deals.stage` keeps the stage's slug (ucode keeps a slug its pick list does not list, checked 24 October). The website reads `stage_norms` for the inbox's norm only. The `committee` row of batch 1 gives way to `ic1` and `ic2`.
+- **Portfolio metrics and report documents become lists**: `portfolio_metrics` (the eight of batch 4 as system rows; Runway, Churn and the revenue drive the red flags) and `report_documents` (the four of batch 4, each with a template file the companies fill in). A quarter's figures move to `metric_values`, one row per company, metric and quarter; the figures in `quarter_reports`' own columns are still read. A custom document's arrival day goes to `quarter_reports.received`.
+- **Tasks' «Уточнение» becomes rich text** (`tasks.details`, HTML); `context` keeps its plain text for the lists.
+- **A document's file.** `deal_documents.file` keeps the address of a file the fund uploads and `file_id` its ucode Files id, so deleting the document deletes the file. Such a document is written with `uploaded_by` = `fund`, which tells it apart from an applicant's document the fund accepted.
+- **The committee's people per meeting.** A meeting's participants are its `meeting_attendance` rows; a member of the team taking part has a `committee_members` row pointing to the employee.
+
+```
+Batch 8. Same rules: every new table inside the folder "Admin": attachments in "Deals", metric_values in "Portfolio", task_statuses, portfolio_metrics and report_documents in "Settings and lists". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table attachments
+- title: SINGLE_LINE
+- url: SINGLE_LINE
+- file_id: SINGLE_LINE
+- kind: PICK_LIST [link, file]
+- section: SINGLE_LINE
+- item_id: SINGLE_LINE
+- added_by_id: SINGLE_LINE
+- added_at: DATE_TIME
+
+Table task_statuses
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- status_group: PICK_LIST [todo, progress, complete]
+- tone: PICK_LIST [neutral, accent, success, warning, danger]
+- is_system: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table portfolio_metrics
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- format: PICK_LIST [usd, percent, months, number]
+- is_system: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table metric_values
+- quarter: SINGLE_LINE
+- value: NUMBER
+
+Table report_documents
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- file_url: SINGLE_LINE
+- file_name: SINGLE_LINE
+- file_id: SINGLE_LINE
+- is_system: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+New fields in the existing table stage_norms
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- sort_order: NUMBER
+- is_system: BOOLEAN
+- is_active: BOOLEAN
+
+New fields in the existing table quarter_reports
+- received: JSON
+
+New fields in the existing table tasks
+- details: MULTI_LINE
+
+New fields in the existing table committee_members
+- employee_id: SINGLE_LINE
+
+New fields in the existing table deal_documents
+- file_id: SINGLE_LINE
+
+Relations (Many2One, from table → target table; ucode names the field {target}_id)
+- attachments → deals
+- attachments → portfolio_companies
+- metric_values → portfolio_companies
+- metric_values → portfolio_metrics
+
+Rows for task_statuses (slug | name_ru | name_uz | name_en | status_group | tone | is_system | sort_order | is_active)
+- assigned | Назначена | Tayinlangan | Assigned | todo | neutral | true | 1 | true
+- in_progress | В работе | Jarayonda | In progress | progress | accent | true | 2 | true
+- waiting | Ждёт ответа | Javob kutilmoqda | Waiting for reply | progress | warning | true | 3 | true
+- review | На проверке | Tekshiruvda | In review | progress | accent | true | 4 | true
+- postponed | Отложена | Kechiktirilgan | Postponed | progress | neutral | true | 5 | true
+- done | Завершена | Yakunlangan | Done | complete | success | true | 6 | true
+
+Rows for portfolio_metrics (slug | name_ru | name_uz | name_en | format | is_system | sort_order | is_active)
+- mrr | MRR | MRR | MRR | usd | true | 1 | true
+- revenue | Выручка за квартал | Chorakdagi tushum | Quarterly revenue | usd | true | 2 | true
+- margin | Gross margin | Gross margin | Gross margin | percent | true | 3 | true
+- burn | Burn в месяц | Oylik burn | Monthly burn | usd | true | 4 | true
+- runway | Runway | Runway | Runway | months | true | 5 | true
+- clients | Активных клиентов | Faol mijozlar | Active clients | number | true | 6 | true
+- churn | Churn за квартал | Chorakdagi churn | Quarterly churn | percent | true | 7 | true
+- team | Команда, FTE | Jamoa, FTE | Team, FTE | number | true | 8 | true
+
+Rows for report_documents (slug | name_ru | name_uz | name_en | is_system | sort_order | is_active)
+- fund_template | Отчёт по шаблону фонда | Fond shablonidagi hisobot | Report on the fund’s template | true | 1 | true
+- company_template | Отчёт по шаблону компании | Kompaniya shablonidagi hisobot | Report on the company’s template | true | 2 | true
+- form1 | Форма 1 | 1-shakl | Form 1 | true | 3 | true
+- form2 | Форма 2 | 2-shakl | Form 2 | true | 4 | true
+
+Rows for stage_norms (stage | name_ru | name_uz | name_en | norm_text | escalate_to | is_public | is_system | sort_order | is_active)
+- ic1 | ИК-1 | IQ-1 | IC-1 | до заседания | ic_chair | false | true | 50 | true
+- ic2 | ИК-2 | IQ-2 | IC-2 | до заседания | ic_chair | false | true | 70 | true
+```
+
+## Batch 9 — data room folders and document templates
+
+The client's notes of 24 October, second round: the data room is a tree of folders, and the fund keeps templates that applicants fill in.
+
+- **Folders.** A deal's data room has folders inside folders: `deal_folders`, each with the folder it sits in (`parent_id`, '' at the top). A document sits in a folder through the relation `deal_documents → deal_folders` (ucode's own `folder_id` column is left alone). Deleting a folder moves what it holds one level up.
+- **Who uploaded.** `deal_documents.uploaded_by_id` keeps the employee who uploaded a file, also when it is the applicant's filled-in file the fund uploads for them (`uploaded_by` = `applicant`, status `review`). A filled-in file answers a request through the existing `deal_documents → deal_requests` relation.
+- **Templates.** `document_templates` is a list in Настройки → Сделки, each row with its file (as `report_documents`). A request carries the templates the applicant fills in as its attachments (`section` = `request`); a copy keeps the template's address and no `file_id`, so deleting it never deletes the template.
+
+```
+Batch 9. Same rules: every new table inside the folder "Admin": deal_folders in "Deals", document_templates in "Settings and lists". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table deal_folders
+- name: SINGLE_LINE
+- parent_id: SINGLE_LINE
+- sort_order: NUMBER
+- created_by_id: SINGLE_LINE
+
+Table document_templates
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- file_url: SINGLE_LINE
+- file_name: SINGLE_LINE
+- file_id: SINGLE_LINE
+- is_system: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+New fields in the existing table deal_documents
+- uploaded_by_id: SINGLE_LINE
+
+Relations (Many2One, from table → target table; ucode names the field {target}_id)
+- deal_folders → deals
+- deal_documents → deal_folders
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.
@@ -1046,9 +1204,11 @@ Who writes what, as of 18 October (the functions of ERP.md §5 will take over th
 | --- | --- |
 | a Pitch Us application, its deal in the inbox, the deck, the first journal entry, `public_status = submitted` | the website's server (`src/modules/PitchUs/services/intake.server.ts` there) |
 | everything done to a deal in Сделки, its stage history, the applicant's `public_status` and `resubmit_after` | the panel (`src/modules/Deals/services/ucode.ts`), with the signed-in person's token |
+| a deal card's sections: the terms (`instrument`, `round_size`, `pre_money`, `terms_warning`, and the wording in `terms` as JSON), `metrics`, `synergy`, `deal_risks`, the members the owner adds (`deal_team`), the owner's readiness items (`deal_checklists`, `list` = `readiness`); a risk, member or item taken off is deleted | the panel (`src/modules/Deals/services`), from the card's «Обзор» |
 | tasks with their checklist and history, the next occurrence of a recurring task | the panel (`src/modules/Work/services`) |
 | meetings, attendance, agenda items, votes, the protocol, the register of decisions, the conditions as tasks (`origin: ic_condition`) | the panel (`src/modules/Committee/services`) |
-| a report's figures confirmed, a company's request answered, the quarter's reporting cycle (made when the reports are first requested) | the panel (`src/modules/Portfolio/services`); companies, investments, reports and requests themselves come from the import and, in phase 2, the companies' cabinet |
+| a report's figures confirmed, a company's request answered, the quarter's reporting cycle (made when the reports are first requested) | the panel (`src/modules/Portfolio/services`); reports and requests themselves come from the import and, in phase 2, the companies' cabinet |
+| a company and its first investment, when its deal leaves Закрытие («Перевести в портфель») | the panel (`joinPortfolio` in `src/modules/Deals/services`, `addFromDeal` in `src/modules/Portfolio/services`); companies from before the panel come from the import |
 | the mandate, the norms and the flags with their journal, employees added in Настройки | the panel (`src/modules/Settings/services`) |
 | `fund_money` | by hand in ucode, by the chief accountant, until Финансы are connected |
 | whether an email may apply again | the website, from `public_status` and `resubmit_after` |

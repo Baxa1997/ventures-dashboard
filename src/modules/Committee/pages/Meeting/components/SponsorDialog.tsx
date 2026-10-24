@@ -9,6 +9,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { personName } from '@shared/helpers';
+import { useRequest } from '@shared/hooks';
 import type { AgendaItem } from '@shared/types/committee.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +35,9 @@ const SponsorDialog = ({
    const [choice, setChoice] = useState<Choice | null>(null);
    const [note, setNote] = useState('');
    const [error, setError] = useState('');
+   const deciding = useRequest({
+      success: t('Решение спонсора зафиксировано'),
+   });
 
    const close = () => {
       setChoice(null);
@@ -48,8 +52,12 @@ const SponsorDialog = ({
          setError(t('Напишите, почему спонсор отказал'));
          return;
       }
-      await committee.decide(meetingId, item.id, choice, note.trim());
-      close();
+      if (
+         await deciding.run(() =>
+            committee.decide(meetingId, item.id, choice, note.trim()),
+         )
+      )
+         close();
    };
 
    return (
@@ -115,7 +123,11 @@ const SponsorDialog = ({
                <Button variant='ghost' onClick={close}>
                   {t('Отмена')}
                </Button>
-               <Button disabled={!choice} type='submit'>
+               <Button
+                  disabled={!choice}
+                  loading={deciding.pending}
+                  type='submit'
+               >
                   {t('Зафиксировать')}
                </Button>
             </ModalFooter>

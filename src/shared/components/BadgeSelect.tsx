@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import Badge, { type BadgeTone } from './Badge';
+import { Spinner } from './Button';
 
 export interface BadgeOption<T extends string> {
    value: T;
@@ -12,6 +13,7 @@ interface BadgeSelectProps<T extends string> {
    value: T;
    options: BadgeOption<T>[];
    onChange: (value: T) => void;
+   busy?: boolean; // the choice is being saved: a spinner, and it is off
 }
 
 // A status that can be changed in place: the badge shows the choice, and the
@@ -22,6 +24,7 @@ const BadgeSelect = <T extends string>({
    value,
    options,
    onChange,
+   busy = false,
 }: BadgeSelectProps<T>) => {
    const current =
       options.find((option) => option.value === value) ?? options[0];
@@ -30,11 +33,17 @@ const BadgeSelect = <T extends string>({
       <span className='has-focus-visible:outline-accent relative inline-flex shrink-0 rounded-md has-focus-visible:outline-2 has-focus-visible:outline-offset-1'>
          <Badge tone={current.tone}>
             {current.label}
-            <ChevronDown aria-hidden className='-mr-0.5 ml-1 size-3.5' />
+            {busy ? (
+               <Spinner className='-mr-0.5 ml-1 size-3.5' />
+            ) : (
+               <ChevronDown aria-hidden className='-mr-0.5 ml-1 size-3.5' />
+            )}
          </Badge>
          <select
+            aria-busy={busy || undefined}
             aria-label={label}
-            className='absolute inset-0 w-full opacity-0'
+            className='absolute inset-0 w-full opacity-0 disabled:cursor-progress'
+            disabled={busy}
             value={value}
             onChange={(event) => onChange(event.target.value as T)}
          >

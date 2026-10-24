@@ -7,11 +7,14 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { listOf, nameOf } from '@modules/Settings/services';
+import { SETTINGS_PATH } from '@shared/constants';
 import { addWorkingDays, todayISO } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { COMPANY_MAX, TEXT_MAX } from '../constants';
 import deals from '../services';
 import { fieldErrors, requestSchema, type ValidationKey } from '../validations';
@@ -42,6 +45,15 @@ const RequestForm = ({
    });
    const [questionnaire, setQuestionnaire] = useState(false);
    const [errors, setErrors] = useState<Errors>({});
+   // the templates from Настройки that go with the request, by key
+   const templates = listOf('docTemplates').filter((item) => item.file);
+   const [chosen, setChosen] = useState<string[]>([]);
+   const toggleTemplate = (key: string) =>
+      setChosen((prev) =>
+         prev.includes(key)
+            ? prev.filter((item) => item !== key)
+            : [...prev, key],
+      );
 
    const setValue = (key: keyof typeof values, value: string) => {
       setValues((prev) => ({ ...prev, [key]: value }));
@@ -60,6 +72,19 @@ const RequestForm = ({
       setQuestionnaire((prev) => !prev);
    };
 
+   const sending = useAction(
+      (data: Omit<Parameters<typeof deals.addRequest>[1], 'ddQuestionnaire'>) =>
+         deals.addRequest(
+            deal.id,
+            { ...data, ddQuestionnaire: questionnaire },
+            user.id,
+            templates
+               .filter((item) => chosen.includes(item.key) && item.file)
+               .map((item) => ({ title: nameOf(item), url: item.file!.url })),
+         ),
+      { kind: 'send', success: t('Запрос отправлен') },
+   );
+
    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const result = requestSchema.safeParse(values);
@@ -67,12 +92,7 @@ const RequestForm = ({
          setErrors(fieldErrors(result.error));
          return;
       }
-      await deals.addRequest(
-         deal.id,
-         { ...result.data, ddQuestionnaire: questionnaire },
-         user.id,
-      );
-      onClose();
+      if (await sending.run(result.data)) onClose();
    };
 
    return (
@@ -124,13 +144,57 @@ const RequestForm = ({
                      {t('Это DD-вопросник по шаблону фонда')}
                   </span>
                </div>
+               <fieldset>
+                  <legend className='text-meta font-semibold'>
+                     {t('Шаблоны для заполнения')}
+                  </legend>
+                  {templates.length ? (
+                     <ul className='mt-2 flex flex-col gap-2'>
+                        {templates.map((item) => (
+                           <li
+                              key={item.key}
+                              className='text-meta flex items-start gap-2.5'
+                           >
+                              <Checkbox
+                                 checked={chosen.includes(item.key)}
+                                 label={nameOf(item)}
+                                 onChange={() => toggleTemplate(item.key)}
+                              />
+                              <span aria-hidden className='min-w-0'>
+                                 {nameOf(item)}
+                                 <span className='text-ink-soft ml-2 text-xs'>
+                                    {item.file?.name}
+                                 </span>
+                              </span>
+                           </li>
+                        ))}
+                     </ul>
+                  ) : (
+                     <p className='text-ink-soft mt-1 text-xs'>
+                        {t('Шаблонов пока нет.')}{' '}
+                        <Link
+                           className='link'
+                           to={`${SETTINGS_PATH}/doc-templates`}
+                        >
+                           {t('Добавить в Настройках')}
+                        </Link>
+                     </p>
+                  )}
+                  <p className='text-ink-soft mt-2 text-xs'>
+                     {t(
+                        'Заявитель скачает их, заполнит и вернёт; заполненные файлы попадут в data room на проверку. Свой файл можно приложить к запросу после отправки.',
+                     )}
+                  </p>
+               </fieldset>
             </div>
          </ModalBody>
          <ModalFooter note={t('Часы стадии остановятся до ответа заявителя')}>
             <Button variant='text' onClick={onClose}>
                {t('Отмена')}
             </Button>
-            <Button type='submit'>{t('Отправить запрос')}</Button>
+            <Button loading={sending.pending} type='submit'>
+               {t('Отправить запрос')}
+            </Button>
          </ModalFooter>
       </form>
    );

@@ -173,7 +173,6 @@
    "Отмена": "Cancel",
    "Изменить": "Edit",
    "Удалить": "Delete",
-   "Удалить?": "Delete?",
    "Уведомления": "Notifications",
    "Письмо исполнителю в 09:00, если на неделе есть сроки; нет сроков — нет письма. Упоминание в комментарии приходит сразу. Задача без исполнителя уходит директору с пометкой «по умолчанию».": "The assignee gets an email at 09:00 if the week has deadlines; no deadlines — no email. A mention in a comment arrives at once. A task without an assignee goes to the director, marked “by default”.",
    "Редактирование задачи": "Edit task",
@@ -200,5 +199,16 @@
    "В портфеле пока нет компаний": "No companies in the portfolio yet",
    "Открыть": "Open",
    "Выберите": "Choose",
-   "Поручения команды фонда": "The fund team’s assignments"
+   "Поручения команды фонда": "The fund team’s assignments",
+   "Подробности задачи: контрагент, документ, ссылки, списки. Начало текста видно в списке рядом с типом.": "The task's details: counterparty, document, links, lists. The start of the text shows in the list next to the type.",
+   "Удалить задачу?": "Delete the task?",
+   "Задача уйдёт из списка вместе с чек-листом, комментариями и историей.": "The task leaves the list with its checklist, comments and history.",
+   "Действия": "Actions",
+   "Возвращено в работу": "Back in progress",
+   "Отмечено выполненным": "Marked done",
+   "Статус задачи: «{{status}}»": "Task status: “{{status}}”",
+   "Комментарий добавлен": "Comment added",
+   "Задача удалена": "Task deleted",
+   "Задача создана": "Task created",
+   "Отметка сохранена": "Tick saved"
 }

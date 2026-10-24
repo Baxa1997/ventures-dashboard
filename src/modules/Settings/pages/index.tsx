@@ -1,11 +1,13 @@
 import InviteDialog from '@modules/Settings/components/InviteDialog';
+import DeleteListItemDialog from '@modules/Settings/components/DeleteListItemDialog';
+import DeleteStageDialog from '@modules/Settings/components/DeleteStageDialog';
 import ListItemDialog from '@modules/Settings/components/ListItemDialog';
+import StageDialog from '@modules/Settings/components/StageDialog';
 import {
    DEFAULT_SECTION,
    FLAG_FIELDS,
    LIST_SECTIONS,
    MANDATE_FIELDS,
-   NORM_STAGE_LABELS,
    SETTINGS_SECTION_IDS,
    sectionInfo,
    type SettingsSection,
@@ -13,8 +15,12 @@ import {
 import settings, { parseCheck } from '@modules/Settings/services';
 import { Button, Loading, PageBody, PageHeader } from '@shared/components';
 import { SETTINGS_PATH } from '@shared/constants';
-import { useCurrentUser, useServiceData } from '@shared/hooks';
-import type { ListItem, SettingsState } from '@shared/types/settings.types';
+import { useAction, useCurrentUser, useServiceData } from '@shared/hooks';
+import type {
+   ListItem,
+   SettingsState,
+   StageItem,
+} from '@shared/types/settings.types';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useParams } from 'react-router';
@@ -27,18 +33,16 @@ import {
    Mandate,
    SettingsNav,
    Stages,
-   TaskStatuses,
    Users,
 } from './components';
 
 const load = () => settings.getSettings();
 const subscribe = (listener: () => void) => settings.subscribe(listener);
 
-export type Draft = Pick<SettingsState, 'mandate' | 'norms' | 'flags'>;
+export type Draft = Pick<SettingsState, 'mandate' | 'flags'>;
 
 const draftOf = (data: SettingsState): Draft => ({
    mandate: data.mandate,
-   norms: data.norms,
    flags: data.flags,
 });
 
@@ -46,7 +50,6 @@ const draftOf = (data: SettingsState): Draft => ({
 // draft each holds.
 const DRAFT_PARTS: Partial<Record<SettingsSection, keyof Draft>> = {
    mandate: 'mandate',
-   stages: 'norms',
    flags: 'flags',
 };
 
@@ -68,8 +71,26 @@ const SettingsPage = () => {
    const [inviting, setInviting] = useState(false);
    // the list row being edited: null closed, 'new' a new row
    const [editing, setEditing] = useState<ListItem | 'new' | null>(null);
+   const [stage, setStage] = useState<StageItem | 'new' | null>(null);
+   // the row or the stage asked to be deleted
+   const [removing, setRemoving] = useState<ListItem | null>(null);
+   const [removingStage, setRemovingStage] = useState<StageItem | null>(null);
    const title = t('Настройки');
    const director = user.role === 'director';
+
+   const saving = useAction(async (next: Draft) => {
+      const labels: Record<string, string> = {};
+      MANDATE_FIELDS.forEach(({ key, label }) => {
+         labels[`mandate.${key}`] = t('Мандат · {{field}}', {
+            field: t(label),
+         });
+      });
+      FLAG_FIELDS.forEach(({ key, label }) => {
+         labels[`flag.${key}`] = t('Флаг · {{field}}', { field: t(label) });
+      });
+      await settings.save(next, user.id, labels);
+      setDraft(null);
+   });
 
    useEffect(() => {
       if (data && !draft) setDraft(draftOf(data));
@@ -102,38 +123,24 @@ const SettingsPage = () => {
       (id) => changed(DRAFT_PARTS[id]!),
    );
 
-   const save = async () => {
-      const labels: Record<string, string> = {};
-      MANDATE_FIELDS.forEach(({ key, label }) => {
-         labels[`mandate.${key}`] = t('Мандат · {{field}}', {
-            field: t(label),
-         });
-      });
-      data.norms.forEach(({ stage }) => {
-         labels[`norm.${stage}`] = t('Норматив · {{stage}}', {
-            stage: t(NORM_STAGE_LABELS[stage]),
-         });
-      });
-      FLAG_FIELDS.forEach(({ key, label }) => {
-         labels[`flag.${key}`] = t('Флаг · {{field}}', { field: t(label) });
-      });
-      await settings.save(draft, user.id, labels);
-      setDraft(null);
-   };
-
    const saveButton = (
       <>
          {unsaved.length > 0 && (
-            <Button variant='ghost' onClick={() => setDraft(draftOf(data))}>
+            <Button
+               disabled={saving.pending}
+               variant='ghost'
+               onClick={() => setDraft(draftOf(data))}
+            >
                {t('Отменить изменения')}
             </Button>
          )}
          <Button
             disabled={!unsaved.length || !director || !!checkError}
+            loading={saving.pending}
             title={
                director ? undefined : t('Менять правила может только директор')
             }
-            onClick={save}
+            onClick={() => saving.run(draft)}
          >
             {t('Сохранить')}
          </Button>
@@ -156,6 +163,18 @@ const SettingsPage = () => {
                {t('Добавить')}
             </Button>
          );
+      if (section === 'stages')
+         return (
+            <Button
+               disabled={!director}
+               title={
+                  director ? undefined : t('Менять этапы может только директор')
+               }
+               onClick={() => setStage('new')}
+            >
+               {t('Добавить этап')}
+            </Button>
+         );
       if (section === 'users')
          return (
             <Button
@@ -176,6 +195,7 @@ const SettingsPage = () => {
                editable={director}
                items={data.lists[kind]}
                kind={kind}
+               onDelete={setRemoving}
                onEdit={setEditing}
             />
          );
@@ -192,7 +212,13 @@ const SettingsPage = () => {
             );
          case 'stages':
             return (
-               <Stages draft={draft} editable={director} onChange={setDraft} />
+               <Stages
+                  editable={director}
+                  removed={data.removedStages}
+                  stages={data.stages}
+                  onDelete={setRemovingStage}
+                  onEdit={setStage}
+               />
             );
          case 'flags':
             return (
@@ -200,8 +226,6 @@ const SettingsPage = () => {
             );
          case 'committee':
             return <Committee />;
-         case 'task-statuses':
-            return <TaskStatuses />;
          case 'users':
             return <Users data={data} />;
          case 'integrations':
@@ -234,13 +258,29 @@ const SettingsPage = () => {
             </div>
          </PageBody>
          <InviteDialog open={inviting} onClose={() => setInviting(false)} />
+         <StageDialog
+            open={stage !== null}
+            stage={stage === 'new' ? null : stage}
+            onClose={() => setStage(null)}
+         />
+         <DeleteStageDialog
+            stage={removingStage}
+            onClose={() => setRemovingStage(null)}
+         />
          {kind && (
-            <ListItemDialog
-               item={editing === 'new' ? null : editing}
-               kind={kind}
-               open={editing !== null}
-               onClose={() => setEditing(null)}
-            />
+            <>
+               <ListItemDialog
+                  item={editing === 'new' ? null : editing}
+                  kind={kind}
+                  open={editing !== null}
+                  onClose={() => setEditing(null)}
+               />
+               <DeleteListItemDialog
+                  item={removing}
+                  kind={kind}
+                  onClose={() => setRemoving(null)}
+               />
+            </>
          )}
       </>
    );

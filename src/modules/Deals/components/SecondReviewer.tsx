@@ -1,6 +1,7 @@
 import { FilterSelect } from '@shared/components';
 import { SETTINGS_PATH, TEAM } from '@shared/constants';
 import { shortName } from '@shared/helpers';
+import { useAction } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -22,6 +23,10 @@ const SecondReviewer = ({
 }: SecondReviewerProps) => {
    const { t } = useTranslation('deals');
    const colleagues = TEAM.filter(({ id }) => id !== deal.ownerId);
+   const choosing = useAction(
+      (secondId: string) => deals.setScreening(deal.id, { secondId }),
+      { success: t('Второй оценщик сохранён') },
+   );
 
    if (!colleagues.length)
       return (
@@ -44,11 +49,10 @@ const SecondReviewer = ({
                label: shortName(name),
             })),
          ]}
+         busy={choosing.pending}
          showLabel={showLabel}
          value={deal.screening?.secondId ?? ''}
-         onChange={(secondId) =>
-            !disabled && deals.setScreening(deal.id, { secondId })
-         }
+         onChange={(secondId) => !disabled && choosing.run(secondId)}
       />
    );
 };

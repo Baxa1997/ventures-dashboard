@@ -4,7 +4,7 @@ One pass through everything the website and the panel can do today: a startup ap
 
 Each step says what to do and, after →, what you should see. Write down every step where you see something else (see «Reporting» at the end).
 
-Button names are given as the panel shows them in Russian. The panel can be switched to Uzbek or English in the user menu (bottom left); step 16 checks that.
+Button names are given as the panel shows them. The panel is in Russian only for now (`INTERFACE_LANGUAGES`); the Uzbek and English texts are kept for later.
 
 ## 0. Before you start
 
@@ -66,7 +66,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 
 1. Tab «Запросы и документы»: the pitch deck → «Принять» → it is accepted, the history has an entry. Try «Отклонить» on another document if there is one: a reason is required.
 2. «Новый запрос»: title `ZZ Финмодель`, text, due date → the request is «ждём ответа»; on Воронка the deal shows «Ждём заявителя» (the stage clock stands).
-3. «Загрузить от имени фонда», pick any file → a document with that name appears as accepted (only the name is kept: there is no file storage yet).
+3. «Загрузить от имени фонда», pick one or more files → each appears as accepted with «Открыть» (the file opens from ucode Files); the same name again makes version 2; «Изменить» renames one; «Удалить» asks, then removes a document with its file. Each link or file has a pencil (rename, change the address) and a bin (asks first). Under a request: «Добавить ссылку», «Загрузить файлы»; «Ответ получен» with the answer closes it and restarts the clock; «Изменить» and «Удалить» change or withdraw it.
 4. The founder cannot answer a request yet (that is the cabinet, phase 2), so the request stays open.
 
 ## 7. Due diligence
@@ -76,7 +76,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 
 ## 8. Инвесткомитет: ИК-1
 
-1. Инвесткомитет → «Состав и договоры» → «Состав пока пуст». «Добавить члена ИК» three times: `ZZ Член 1` with Роль «председатель ИК», `ZZ Член 2` and `ZZ Член 3` «независимый член» → the three are listed, the chair first. Clicking a name opens it again; «Вывести из состава» takes a member off the list.
+1. Инвесткомитет → «Назначить заседание» → under «Участники», «Добавить человека» three times: `ZZ Член 1` with Роль «председатель ИК», `ZZ Член 2` and `ZZ Член 3` «независимый член» (or a member of the team, picked in «Кто») → each is ticked. Untick one to leave them out; under 3 the dialog warns about the quorum. On the meeting's page, «Участники» lists them: change attendance, «Изменить», «Убрать» (the window asks: from this meeting only, or from the committee), or add someone again before the meeting opens.
 2. On `ZZ Startup A` (at ИК-1): «Следующий шаг» explains the stage and has «Вынести на заседание» (Инвесткомитет → «Заседания ИК» also lists it under «Ждут заседания» when no meeting is planned) → it opens «Назначить заседание» with Тип **ИК-1** and `ZZ Startup A` ticked → pick a date from today on → «Назначить» → the meeting page.
 3. → «Подготовка к заседанию» lists four steps: the agenda (done), at least 3 members (done), who will come (not done), the materials (until the date shown). «Открыть заседание» is off.
 4. Under «Отметить, кто из них будет» set each member to «Будет» → 3 of 4 done, «Открыть заседание» is on. «Добавить сделку» adds another deal waiting for ИК-1 to the agenda.
@@ -86,7 +86,7 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 8. For `ZZ Startup A` record three «За», fill «Условия одобрения» (`ZZ Предоставить отчётность`) → the result box says the question is approved → «Зафиксировать одобрение» → «Решение зафиксировано: одобрено с условиями».
 9. Try the rules on a copy if you have a second item: one «Против» → the decision goes to the sponsor (a window asks the sponsor's decision); two «Против» → refusal; one «Особое мнение» → veto. «Изменить решение» takes a decision back while the meeting is open.
 10. «Сформировать протокол» → the meeting is held, protocol «на подписи». «Скачать протокол» prints it for the members to sign; once they have, «Отметить протокол подписанным» asks for the link to the signed scan (a link not starting with https:// is refused) → «Проведено · протокол подписан», «Открыть подписанный протокол» opens the link, and «Подписан» in «Реестр заседаний».
-11. → «Реестр решений» has the decision (ИК № N, the subject with the amount, «Одобрено с условиями»).
+11. → the meeting's tab «Решения» has the decision (ИК № N, the subject with the amount, «Одобрено с условиями»).
 12. → the deal's tab «Решения ИК и НС» shows it.
 13. → Задачи has a task `ZZ Startup A: ZZ Предоставить отчётность` for the deal's owner, due «до ИК-2», linked to the deal; Инвесткомитет → «Исполнение решений» lists it. «Отметить выполненным» closes it in both places.
 
@@ -94,11 +94,14 @@ Button names are given as the panel shows them in Russian. The panel can be swit
 
 A committee stage is left only after its committee's approval: before step 8, «Перевести в «Детальный DD»» on `ZZ Startup A` shows «Получить одобрение: ИК-1 — Решения пока нет» with a link to the deal's meeting (or «Вынести на заседание»), and «Перевести» is off.
 
-1. On the deal: «Перевести в «Детальный DD»» (the ИК-1 approval of step 8 meets its condition), then «Перевести в «ИК-2»» → `public_status` = `committee`.
+1. On the deal: «Перевести в «Детальный DD»» (the ИК-1 approval of step 8 meets its condition), then «Перевести в «ИК-2»»: the window lists «Выполнить условия ИК-1», met once the task of step 8.13 is done (while it is open, «Открыть задачу» leads to it and «Перевести» is off) → `public_status` = `committee`.
+   - Try to put the deal on a second ИК-1 meeting after step 8: «Назначить заседание» and «Добавить сделку» no longer offer it, since ИК-1 has approved it. A question left on a meeting for a deal decided elsewhere shows «ИК-1 уже одобрил эту сделку на другом заседании» with «Убрать из повестки».
+   - On DD, fill the card's «Обзор»: «Внести условия» (SAFE, round `1000000`, pre-money `4000000`, an exception to the mandate), «Внести метрики» (two rows, one marked «Выделить»), «Добавить риск» twice («Изменить» under one, «Удалить» under the other, confirmed in the window), «Добавить» in «Команда сделки» (an outside party), «Внести синергию». Each card shows what was saved after a reload; in ucode the `deals` row has `instrument`, `round_size`, `pre_money`, `terms_warning`, and `deal_risks`/`deal_team` lose the rows taken off. On «Due diligence», «Добавить направление» → «Передать исполнителю» → «Принять вывод» closes it.
+   - At ИК-2 (before the meeting) the card shows «Готовность к ИК-2» or «к ИК № N»: ИК-1's decision, the terms and each DD conclusion ticked by the panel, a request still waiting unticked; add an item of your own and tick it. Инвесткомитет shows the same count as «Материалы N из M», and the meeting's question shows «Предложение» ($ · SAFE · раунд $), «Исключение из мандата» and «Докладчик» with the owner's role.
 2. Repeat step 8 from 2 with Тип **ИК-2** (no conditions this time) → «Одобрено». «Перевести в «Набсовет»» now lists a second condition, «Получить одобрение директора»: the director presses «Одобряю» in that window (other roles see «Попросите директора…») → both done, «Перевести» is on, and «История» has «Директор одобрил переход».
 3. «Перевести в «Наблюдательный совет»», then hold a board meeting the same way with Орган «Наблюдательный совет» → «Одобрено».
 4. «Перевести в «Закрытие»» → `public_status` = `closing`.
-5. «Перевести в портфель» → the deal's status is «Портфель», `public_status` = `portfolio`. (The portfolio company is not created yet: see «Known gaps».)
+5. «Перевести в портфель»: the window asks for the fund's investment (instrument, amount, payment date; stake and valuation optional; a payment after today is refused) → the deal's status is «Портфель», `public_status` = `portfolio`. Портфель lists `ZZ Startup A`; in ucode a `portfolio_companies` row with `deals_id` = the deal and an `investments` row (`kind` = `initial`, `decisions_id` = the board's approval). The deal's «Следующий шаг» links to the company. If ИК-2 had set conditions, «Перевести в портфель» would wait for their tasks («до подписания»).
 
 ## 10. Rejection and applying again
 
@@ -116,7 +119,7 @@ A committee stage is left only after its committee's approval: before step 8, «
 3. «Взять в работу» → «В работе»; tick one checklist item; «Комментарий» → it shows in the history.
 4. «Изменить» → set «Проверяет» = `ZZ Аналитик` → save. Close it → it goes to «На проверке» instead (somebody else checks it).
 5. Set it to «Завершена» → a new occurrence appears, due a month later, checklist unticked, history «Создана автоматически после закрытия предыдущей».
-6. «Удалить» twice on the copy → it is gone.
+6. On the copy, «Удалить» (next to «Изменить») → the window asks → «Удалить» → it is gone.
 7. Sidebar counters: «Задачи» counts your open tasks, «Мой день» what waits for you.
 
 ## 12. Мой день and Обзор
@@ -145,7 +148,7 @@ Needs the company of step 0.
 1. «Мандат»: set Чек `$50 000 – $300 000`. Beside it, «Из справочников» lists the stages (Pre-seed, Seed), the geography (the five Central Asian countries) and the industries in focus, licensed and excluded, each with a link to its list. → «Этапы и нормативы»: change the screening norm to `6 · публично` → «Флаги портфеля»: change «Churn за квартал выше». The three sections are marked with a dot in the menu → «Сохранить» → «Журнал изменений» lists each change with old and new value.
 2. Сделки → Входящие: a deal asking more than $300 000 now gets «Чек выше $300K»; a new screening deadline counts 6 working days.
 3. Put the values back and save.
-4. «Раунды» → «Добавить»: `ZZ Series B` in the three name fields; the code fills itself (`zz_series_b`); tick «В мандате» → «Добавить» → the row is last, «Используется». Move it up with the arrow and back. Open it again (pencil) → the code cannot be changed; untick «Используется» → «Сохранить» → it stays in the list, dimmed, «Отключён», and Сделки → «Новая сделка» no longer offers it. The journal has both changes. (Ask the developer to delete the `zz_series_b` row afterwards.)
+4. «Раунды» → «Добавить»: `ZZ Series B` in the three name fields; the code fills itself (`zz_series_b`); tick «В мандате» → «Добавить» → the row is last, «Используется». Move it up with the arrow and back. Open it again (pencil) → the code cannot be changed; untick «Используется» → «Сохранить» → it stays in the list, dimmed, «Отключён», and Сделки → «Новая сделка» no longer offers it. The journal has both changes. At the end, the bin next to its pencil → the window says whether anything uses it → «Удалить» → the row is gone and the journal has the deletion.
 5. «Регионы»: a country not «в мандате» (e.g. Россия) → a deal from it gets «География: Россия» in Входящие. «Источники»: the website's options are the rows marked «На сайте»; the fund's channels (Нетворк, Конференция…) are not offered on the site. «Отрасли»: an industry set to «Исключена» makes its applications «Исключённая отрасль».
 6. «Типы задач»: the types of the task form. «Статусы задач»: the six statuses with their colour, group and what each means; they cannot be changed.
 7. «Пользователи и роли»: «Администратор» (Директор, Полный); `ZZ Аналитик` «добавлен <date>, ещё не входил».
@@ -161,19 +164,19 @@ Needs the company of step 0.
 5. «Открытые вопросы управления» → «Добавить»: `ZZ Конфликт интересов`, what is being done, the person responsible → it is listed «В работе»; set it to «Решён» → it leaves the list.
 6. In ucode, Admin → Фонд: `fund_documents` and `governance_issues` hold what you entered.
 
-## 16. Languages and signing out
+## 16. Signing out
 
-1. User menu → Язык → O‘zbek, then English → every page you visited reads in that language; only what people typed (names, notes) stays as written.
+1. The user menu has no language choice: the panel is in Russian only for now.
 2. User menu → «Выйти» → the sign-in page; opening a page again asks to sign in.
 3. Sign in without «Не выходить на этом устройстве», close the tab, open the panel again → you are asked to sign in.
 
 ## Known gaps (not bugs)
 
 - The founder has no cabinet yet: no status page, cannot answer requests or upload documents; no emails are sent (rejection letters, reminders).
-- A deal moved to the portfolio does not create its portfolio company; companies and the fund's money are added in ucode.
+- The fund's money is added in ucode (`fund_money`). A portfolio company is created when its deal closes; companies from before the panel come from the import.
 - A deal cannot be taken off a meeting's agenda before the meeting; at the meeting the question can be postponed («Отложить вопрос»).
 - Staff are invited in Настройки, but a ucode user for them is made with `scripts/ucode/auth.mjs`; only `Sqb-admin` can sign in today, so roles other than the director cannot be tested.
-- No file storage: documents uploaded by the fund on a deal keep their name only, and Документы keeps a link to where the fund stores the file. Files in ucode Files would be open to anyone with the link.
+- Files the fund uploads (data room, attachments, report templates) are in ucode Files and open for anyone who has their link; Документы still keeps links to where the fund stores its own files.
 - Deadlines skip weekends, not holidays; the working-day clock is recounted when a deal changes, not every night.
 - The memorandum tab is empty for a new deal (memorandums are not written in the panel yet).
 - The fund's rules (stage conditions, who may save the settings) are checked in the panel, not yet on the server.
@@ -187,6 +190,6 @@ For each problem write: the step number, what you did, what you expected, what y
 
 ## Cleaning up
 
-Delete the `ZZ` records in the ucode admin when you are done: the `fund_documents` and `governance_issues` rows, the deals with their rows (`deal_events`, `deal_stage_history`, `screening_scores`, `deal_documents`, `deal_requests`, `workstreams`), the meetings with `meeting_attendance`, `agenda_items` and `votes`, the `decisions`, the tasks with `task_checklist` and `task_events`, the website applications, the committee members, the portfolio company with its rows, the `fund_money` and `reporting_cycles` rows, and the `ZZ Аналитик` employee, and the `zz_series_b` row of `round_stages` (Раунды, step 14). Keep «Администратор» in `employees`.
+Delete the `ZZ` records in the ucode admin when you are done: the `fund_documents` and `governance_issues` rows, the deals with their rows (`deal_events`, `deal_stage_history`, `screening_scores`, `deal_documents`, `deal_requests`, `workstreams`), the meetings with `meeting_attendance`, `agenda_items` and `votes`, the `decisions`, the tasks with `task_checklist` and `task_events`, the website applications, the committee members, the portfolio company with its rows, the `fund_money` and `reporting_cycles` rows, and the `ZZ Аналитик` employee. Keep «Администратор» in `employees`.
 
 The automated version of this cycle, `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows`, runs the panel's services through the same flows and deletes what it made; `node scripts/ucode/verify.mjs --rows` then checks the schema and the row counts.

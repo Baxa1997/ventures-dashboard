@@ -1,4 +1,7 @@
-import type { TaskRecurrence, TaskStatus } from '@shared/types/work.types';
+import type {
+   SystemTaskStatus,
+   TaskRecurrence,
+} from '@shared/types/work.types';
 
 // Filter value that matches every assignee, type or relation.
 export const ALL = 'all' as const;
@@ -45,6 +48,9 @@ export const NEXT_STEPS = {
    postponed: { status: 'in_progress', label: 'Вернуть в работу' },
    review: { status: 'done', label: 'Принять' },
    done: { status: 'in_progress', label: 'Вернуть в работу' },
-} as const satisfies Record<TaskStatus, { status: TaskStatus; label: string }>;
+} as const satisfies Record<
+   SystemTaskStatus,
+   { status: SystemTaskStatus; label: string }
+>;
 
 export const CLOSE_STEP = { status: 'done', label: 'Завершить' } as const;

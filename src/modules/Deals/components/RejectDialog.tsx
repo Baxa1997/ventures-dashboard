@@ -8,17 +8,12 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
-import { itemOf, listOf, nameOf } from '@modules/Settings/services';
-import { useCurrentUser } from '@shared/hooks';
+import { itemOf, listOf, nameOf, stageName } from '@modules/Settings/services';
+import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal, RejectReason, Resubmit } from '@shared/types/deals.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-   RESUBMIT_LABELS,
-   RESUBMIT_ORDER,
-   STAGE_LABELS,
-   TEXT_MAX,
-} from '../constants';
+import { RESUBMIT_LABELS, RESUBMIT_ORDER, TEXT_MAX } from '../constants';
 import { formatAmount, mandateLimits, reasonText } from '../helpers';
 import deals from '../services';
 
@@ -104,15 +99,25 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
       if (!letterEdited) setLetter(letterFor(next));
    };
 
+   const rejecting = useAction(
+      (chosen: RejectReason) =>
+         deals.rejectDeal(
+            deal.id,
+            {
+               reason: chosen,
+               letter: letter.trim(),
+               comment: comment.trim(),
+               resubmit,
+            },
+            user.id,
+         ),
+      { success: t('Сделке отказано') },
+   );
+
    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       setTried(true);
-      if (!reason || !valid) return;
-      await deals.rejectDeal(
-         deal.id,
-         { reason, letter: letter.trim(), comment: comment.trim(), resubmit },
-         user.id,
-      );
+      if (!reason || !valid || !(await rejecting.run(reason))) return;
       onClose();
       onDone?.();
    };
@@ -224,7 +229,9 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
             <Button variant='text' onClick={onClose}>
                {t('Отмена')}
             </Button>
-            <Button type='submit'>{t('Отказать')}</Button>
+            <Button loading={rejecting.pending} type='submit'>
+               {t('Отказать')}
+            </Button>
          </ModalFooter>
       </form>
    );
@@ -242,7 +249,7 @@ const RejectDialog = ({ deal, onClose, onDone }: RejectDialogProps) => {
             deal &&
             [
                deal.number,
-               t(STAGE_LABELS[deal.stage]).toLowerCase(),
+               stageName(deal.stage).toLowerCase(),
                t('запрос {{amount}}', {
                   amount: formatAmount(deal.amount, language),
                }),

@@ -8,7 +8,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { addWorkingDays, personName, todayISO } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useCurrentUser, useRequest } from '@shared/hooks';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,10 @@ const DataRequestDialog = ({
    const [dueDate, setDueDate] = useState(() => addWorkingDays(todayISO(), 5));
    const [error, setError] = useState('');
    const [done, setDone] = useState(false);
+   const creating = useRequest({
+      kind: 'create',
+      success: t('Задача создана'),
+   });
 
    const close = () => {
       setText('');
@@ -46,27 +50,31 @@ const DataRequestDialog = ({
          setError(t('Напишите, какие данные нужны'));
          return;
       }
-      await work.createTask(
-         {
-            title: t('Запросить у {{company}}: {{text}}', {
-               company: company.name,
-               text: text.trim(),
-            }),
-            type: 'portfolio',
-            context: company.name,
-            relation: 'portfolio',
-            relationId: company.id,
-            assigneeId: company.ownerId,
-            reviewerId: '',
-            dueDate,
-            priority: 'medium',
-            status: 'assigned',
-            recurrence: 'none',
-            checklist: [],
-         },
-         user.id,
-         { origin: 'data_request' },
+      const created = await creating.run(() =>
+         work.createTask(
+            {
+               title: t('Запросить у {{company}}: {{text}}', {
+                  company: company.name,
+                  text: text.trim(),
+               }),
+               type: 'portfolio',
+               context: company.name,
+               details: '',
+               relation: 'portfolio',
+               relationId: company.id,
+               assigneeId: company.ownerId,
+               reviewerId: '',
+               dueDate,
+               priority: 'medium',
+               status: 'assigned',
+               recurrence: 'none',
+               checklist: [],
+            },
+            user.id,
+            { origin: 'data_request' },
+         ),
       );
+      if (!created) return;
       setDone(true);
    };
 
@@ -130,7 +138,9 @@ const DataRequestDialog = ({
                   <Button variant='ghost' onClick={close}>
                      {t('Отмена')}
                   </Button>
-                  <Button type='submit'>{t('Создать задачу')}</Button>
+                  <Button loading={creating.pending} type='submit'>
+                     {t('Создать задачу')}
+                  </Button>
                </ModalFooter>
             </form>
          )}

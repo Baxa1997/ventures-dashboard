@@ -21,8 +21,13 @@ export interface Employee {
 export type Section =
    'tasks' | 'deals' | 'committee' | 'portfolio' | 'documents';
 
-export type TaskStatus =
+// The statuses the platform's logic names; the fund adds its own in Настройки
+// (task_statuses), each acting as its group does.
+export type SystemTaskStatus =
    'assigned' | 'in_progress' | 'waiting' | 'postponed' | 'review' | 'done';
+
+// A task_statuses slug: one of the system ones, or the fund's own.
+export type TaskStatus = string;
 
 export type TaskPriority = 'low' | 'medium' | 'high';
 
@@ -58,7 +63,8 @@ export type TaskEvent =
 export interface TaskInput {
    title: string;
    type: TaskType;
-   context: string; // counterparty or document, shown next to the type
+   context: string; // the note's text on one line, shown next to the type
+   details: string; // «Уточнение» as written in the rich editor (HTML)
    relation: TaskRelation;
    relationId: string; // the deal or the company, '' without a relation
    assigneeId: string; // '' — not assigned, goes to the director by default
@@ -130,7 +136,9 @@ export interface WaitingItem {
    date: string; // YYYY-MM-DD
 }
 
-export type DealStage =
+// The stages a fund starts with (Настройки → Этапы и нормативы): the system
+// ones carry the platform's rules, meeting and analysis are the fund's own.
+export type DefaultStage =
    | 'inbox'
    | 'screening'
    | 'meeting'
@@ -140,6 +148,9 @@ export type DealStage =
    | 'ic2'
    | 'board'
    | 'closing';
+
+// A stage's key: a default one, or one the fund added (stage_norms).
+export type DealStage = string;
 
 export interface MyDeal {
    id: string; // the address of the deal's card

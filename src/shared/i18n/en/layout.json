@@ -44,7 +44,5 @@
    "Сотрудник": "Staff member",
    "Не удалось загрузить сотрудников фонда из ucode": "Could not load the fund's staff from ucode",
    "Повторить": "Try again",
-   "Сессия закончилась, войдите снова": "The session has ended, sign in again",
-   "ucode не принял изменение или не ответил. Обновите страницу и попробуйте ещё раз.": "ucode refused the change or did not answer. Reload the page and try again.",
    "Закрыть": "Close"
 }

@@ -2,7 +2,6 @@ import {
    TASK_PRIORITY_ORDER,
    TASK_RECURRENCE_ORDER,
    TASK_RELATION_ORDER,
-   TASK_STATUS_ORDER,
    TITLE_MAX,
 } from '@modules/Work/constants';
 import type { RuTranslation } from '@shared/i18n/ru';
@@ -25,6 +24,7 @@ export const taskSchema: z.ZodType<TaskFormValues> = z
       title: z.string().trim().min(1, REQUIRED).max(TITLE_MAX, TOO_LONG),
       type: z.string().min(1, REQUIRED), // a key of Настройки → Типы задач
       context: z.string().trim().max(CONTEXT_MAX, TOO_LONG),
+      details: z.string(), // the rich editor's HTML
       relation: oneOf(TASK_RELATION_ORDER),
       relationId: z.string(),
       assigneeId: z.string(),
@@ -32,7 +32,7 @@ export const taskSchema: z.ZodType<TaskFormValues> = z
       // the deadline is optional
       dueDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, DATE_INVALID),
       priority: oneOf(TASK_PRIORITY_ORDER),
-      status: oneOf(TASK_STATUS_ORDER),
+      status: z.string().min(1, REQUIRED), // a key of Настройки → Статусы задач
       recurrence: oneOf(TASK_RECURRENCE_ORDER),
       checklist: z.string().max(CHECKLIST_MAX, TOO_LONG),
    })

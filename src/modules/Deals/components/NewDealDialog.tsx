@@ -6,20 +6,22 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
-import { listOf, nameOf } from '@modules/Settings/services';
-import { useCurrentUser } from '@shared/hooks';
-import type { Deal } from '@shared/types/deals.types';
+import { listName, listOf, nameOf } from '@modules/Settings/services';
+import { useAction, useCurrentUser } from '@shared/hooks';
+import type { Deal, Fact } from '@shared/types/deals.types';
 import type { ListKind } from '@shared/types/settings.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { COMPANY_MAX, TEXT_MAX } from '../constants';
+import { COMPANY_MAX, FIELD_FACTS, TEXT_MAX } from '../constants';
+import { applicationText } from '../helpers';
 import deals from '../services';
 import { fieldErrors, newDealSchema, type ValidationKey } from '../validations';
 
 interface NewDealDialogProps {
    open: boolean;
+   deal?: Deal; // given: its details are changed instead of a deal added
    onClose: () => void;
-   onCreated: (deal: Deal) => void;
+   onCreated?: (deal: Deal) => void;
 }
 
 type TextKey = 'company' | 'about' | 'industry' | 'amount';
@@ -34,21 +36,43 @@ const preferred = (kind: ListKind, key: string) => {
 };
 
 const NewDealForm = ({
+   deal,
    onClose,
    onCreated,
 }: Omit<NewDealDialogProps, 'open'>) => {
    const { t } = useTranslation('deals');
    const { t: tValidation } = useTranslation('validation');
    const user = useCurrentUser();
-   const [values, setValues] = useState(INITIAL);
+   const [values, setValues] = useState(() =>
+      deal
+         ? {
+              company: deal.company,
+              about: deal.about,
+              industry: deal.industry,
+              amount: deal.amount ? String(deal.amount) : '',
+           }
+         : INITIAL,
+   );
    // the lists of Настройки; an application typed in by hand rarely comes
    // from the website's channels, so the source starts at the fund's network
-   const [choices, setChoices] = useState<Record<ListKey, string>>(() => ({
-      industryKey: '',
-      source: preferred('sources', 'network'),
-      roundStage: preferred('rounds', 'seed'),
-      country: preferred('countries', 'UZ'),
-   }));
+   const [choices, setChoices] = useState<Record<ListKey, string>>(() =>
+      deal
+         ? {
+              industryKey: deal.industryKey,
+              source: deal.source,
+              roundStage: deal.roundStage,
+              country: deal.country,
+           }
+         : {
+              industryKey: '',
+              source: preferred('sources', 'network'),
+              roundStage: preferred('rounds', 'seed'),
+              country: preferred('countries', 'UZ'),
+           },
+   );
+   // the application's other rows, as the card shows them: the contact, the
+   // website, where they heard of the fund, the documents
+   const [facts, setFacts] = useState<Fact[]>(() => deal?.facts ?? []);
    const [errors, setErrors] = useState<
       Partial<Record<TextKey | 'industryKey', ValidationKey>>
    >({});
@@ -63,6 +87,32 @@ const NewDealForm = ({
       return message && tValidation(message);
    };
 
+   // closes the form once ucode has the deal
+   const saving = useAction(
+      async (input: Parameters<typeof deals.createDeal>[0]) => {
+         if (deal) {
+            await deals.updateDetails(
+               deal.id,
+               input,
+               user.id,
+               deal.facts && facts,
+            );
+            onClose();
+            return;
+         }
+         const created = await deals.createDeal(input, user.id);
+         onClose();
+         onCreated?.(created);
+      },
+      deal
+         ? {}
+         : {
+              kind: 'create',
+              success: t('Сделка добавлена во входящие'),
+              error: t('Не удалось добавить сделку'),
+           },
+   );
+
    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const result = newDealSchema.safeParse(values);
@@ -74,12 +124,7 @@ const NewDealForm = ({
          });
          return;
       }
-      const deal = await deals.createDeal(
-         { ...result.data, ...choices },
-         user.id,
-      );
-      onClose();
-      onCreated(deal);
+      saving.run({ ...result.data, ...choices });
    };
 
    const select = (key: ListKey, kind: ListKind, empty?: string) => (
@@ -98,6 +143,13 @@ const NewDealForm = ({
                {nameOf(item)}
             </option>
          ))}
+         {/* a row turned off in Настройки stays on the deal that has it */}
+         {choices[key] &&
+            !listOf(kind).some((item) => item.key === choices[key]) && (
+               <option value={choices[key]}>
+                  {listName(kind, choices[key])}
+               </option>
+            )}
       </select>
    );
 
@@ -168,27 +220,77 @@ const NewDealForm = ({
                <Field label={t('Страна')}>
                   {select('country', 'countries')}
                </Field>
+               {facts.map(
+                  ([label, value], index) =>
+                     !FIELD_FACTS.includes(label) && (
+                        <Field
+                           key={label}
+                           className='sm:col-span-2'
+                           label={applicationText(t, label)}
+                        >
+                           <input
+                              className='field-input'
+                              maxLength={TEXT_MAX}
+                              value={value}
+                              onChange={(event) =>
+                                 setFacts((prev) =>
+                                    prev.map((fact, at) =>
+                                       at === index
+                                          ? ([
+                                               fact[0],
+                                               event.target.value,
+                                               ...fact.slice(2),
+                                            ] as Fact)
+                                          : fact,
+                                    ),
+                                 )
+                              }
+                           />
+                        </Field>
+                     ),
+               )}
             </div>
          </ModalBody>
          <ModalFooter
-            note={t('Заявка попадёт во входящие и пройдёт проверку мандата')}
+            note={
+               deal
+                  ? t('Изменение попадёт в историю сделки')
+                  : t('Заявка попадёт во входящие и пройдёт проверку мандата')
+            }
          >
             <Button variant='text' onClick={onClose}>
                {t('Отмена')}
             </Button>
-            <Button type='submit'>{t('Добавить')}</Button>
+            <Button loading={saving.pending} type='submit'>
+               {deal ? t('Сохранить') : t('Добавить')}
+            </Button>
          </ModalFooter>
       </form>
    );
 };
 
-// An application that did not come through the website is entered by hand.
-const NewDealDialog = ({ open, onClose, onCreated }: NewDealDialogProps) => {
+/* An application that did not come through the website is entered by hand;
+   with a deal, its details are changed (the company, the request, the lists
+   and the application's other rows: contact, website, documents), and the
+   change goes to its history. */
+const NewDealDialog = ({
+   open,
+   deal,
+   onClose,
+   onCreated,
+}: NewDealDialogProps) => {
    const { t } = useTranslation('deals');
 
    return (
-      <Modal open={open} title={t('Новая сделка')} onClose={onClose}>
-         {open && <NewDealForm onClose={onClose} onCreated={onCreated} />}
+      <Modal
+         open={open}
+         subtitle={deal?.number}
+         title={deal ? t('Данные сделки') : t('Новая сделка')}
+         onClose={onClose}
+      >
+         {open && (
+            <NewDealForm deal={deal} onClose={onClose} onCreated={onCreated} />
+         )}
       </Modal>
    );
 };

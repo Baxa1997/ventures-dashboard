@@ -3,13 +3,14 @@ import { useTasks } from '@modules/Work/hooks';
 import {
    Button,
    Card,
+   ConfirmDialog,
    Loading,
    Modal,
    NoData,
    PageBody,
    PageHeader,
 } from '@shared/components';
-import { useCurrentUser } from '@shared/hooks';
+import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Task, TaskInput } from '@shared/types/work.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +51,8 @@ const Tasks = () => {
    const [form, setForm] = useState<FormState>(() =>
       params.has('new') ? {} : null,
    );
+   // the task asked to be deleted from its row
+   const [removing, setRemoving] = useState<Task | null>(null);
    // without a choice in the address, the card shows the first task of the list
    const selected =
       visible.find((task) => task.id === params.get('task')) ?? visible[0];
@@ -75,21 +78,25 @@ const Tasks = () => {
       if (params.has('new')) updateParams({ new: null });
    };
 
-   const handleSubmit = async (values: TaskInput) => {
-      if (form?.task) {
-         await updateTask(form.task.id, values);
-         closeForm();
-         return;
-      }
-      const created = await createTask(values);
-      setForm(null);
-      // show the new task wherever it landed
-      updateParams({
-         new: null,
-         tab: tabParam(isDone(created) ? 'done' : 'open'),
-         task: created.id,
-      });
-   };
+   // closes the form once ucode has the task
+   const saving = useAction(
+      async (values: TaskInput) => {
+         if (form?.task) {
+            await updateTask(form.task.id, values);
+            closeForm();
+            return;
+         }
+         const created = await createTask(values);
+         setForm(null);
+         // show the new task wherever it landed
+         updateParams({
+            new: null,
+            tab: tabParam(isDone(created) ? 'done' : 'open'),
+            task: created.id,
+         });
+      },
+      form?.task ? {} : { kind: 'create', success: t('Задача создана') },
+   );
 
    const content = () => {
       if (loading) return <Loading />;
@@ -99,6 +106,8 @@ const Tasks = () => {
             employees={employees}
             selectedId={selected?.id}
             tasks={visible}
+            onDelete={setRemoving}
+            onEdit={(task) => setForm({ task })}
             onSelect={(id) => updateParams({ task: id })}
          />
       );
@@ -151,8 +160,6 @@ const Tasks = () => {
                            updateTask(selected.id, { status })
                         }
                         onComment={(text) => addComment(selected.id, text)}
-                        onDelete={() => removeTask(selected.id)}
-                        onEdit={() => setForm({ task: selected })}
                         onToggleItem={(itemId) =>
                            toggleChecklistItem(selected.id, itemId)
                         }
@@ -182,11 +189,26 @@ const Tasks = () => {
                   employees={employees}
                   targets={targets}
                   task={form.task}
+                  saving={saving.pending}
                   onCancel={closeForm}
-                  onSubmit={handleSubmit}
+                  onSubmit={saving.run}
                />
             )}
          </Modal>
+         <ConfirmDialog
+            open={removing !== null}
+            subtitle={removing?.title}
+            success={t('Задача удалена')}
+            title={t('Удалить задачу?')}
+            onClose={() => setRemoving(null)}
+            onConfirm={() => removing && removeTask(removing.id)}
+         >
+            <p>
+               {t(
+                  'Задача уйдёт из списка вместе с чек-листом, комментариями и историей.',
+               )}
+            </p>
+         </ConfirmDialog>
       </>
    );
 };

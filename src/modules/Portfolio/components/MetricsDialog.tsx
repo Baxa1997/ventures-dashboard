@@ -1,5 +1,8 @@
-import { METRIC_LABELS } from '@modules/Portfolio/constants';
-import { formatMetric, quarterLabel } from '@modules/Portfolio/helpers';
+import {
+   formatMetric,
+   metricName,
+   quarterLabel,
+} from '@modules/Portfolio/helpers';
 import portfolio from '@modules/Portfolio/services';
 import {
    Button,
@@ -11,7 +14,7 @@ import {
    TH,
 } from '@shared/components';
 import { formatDate } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useCurrentUser, useRequest } from '@shared/hooks';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +30,7 @@ interface MetricsDialogProps {
 const MetricsDialog = ({ company, quarter, onClose }: MetricsDialogProps) => {
    const { t, i18n } = useTranslation('portfolio');
    const user = useCurrentUser();
+   const confirming = useRequest({ success: t('Показатели подтверждены') });
    const language = i18n.resolvedLanguage ?? i18n.language;
    const [year, q] = quarter.split('-Q');
    const previous = Number(q) > 1 ? `${year}-Q${Number(q) - 1}` : null;
@@ -66,7 +70,7 @@ const MetricsDialog = ({ company, quarter, onClose }: MetricsDialogProps) => {
                >
                   {company.metrics.map((metric) => (
                      <tr key={metric.key}>
-                        <td className={TD}>{t(METRIC_LABELS[metric.key])}</td>
+                        <td className={TD}>{metricName(t, metric.key)}</td>
                         {previous && (
                            <td
                               className={clsx(
@@ -111,14 +115,15 @@ const MetricsDialog = ({ company, quarter, onClose }: MetricsDialogProps) => {
                {t('Отмена')}
             </Button>
             <Button
+               loading={confirming.pending}
                onClick={async () => {
-                  if (company)
-                     await portfolio.confirmMetrics(
-                        company.id,
-                        quarter,
-                        user.id,
-                     );
-                  onClose();
+                  if (
+                     !company ||
+                     (await confirming.run(() =>
+                        portfolio.confirmMetrics(company.id, quarter, user.id),
+                     ))
+                  )
+                     onClose();
                }}
             >
                {t('Подтвердить показатели')}

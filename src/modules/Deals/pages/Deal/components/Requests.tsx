@@ -1,36 +1,91 @@
-import {
-   DOCUMENT_STATUS_LABELS,
-   DOCUMENT_STATUS_TONES,
-   STAGE_LABELS,
-   TEXT_MAX,
-} from '@modules/Deals/constants';
-import { formatStamp, isOpen, personName } from '@modules/Deals/helpers';
+import { listOf, nameOf, stageName } from '@modules/Settings/services';
+import { TEXT_MAX } from '@modules/Deals/constants';
+import { isOpen, personName } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import {
+   Attachments,
    Badge,
    Button,
    Card,
+   ConfirmDialog,
    FactList,
+   FilterSelect,
+   ItemActions,
    NoData,
    STACK,
 } from '@shared/components';
 import { ROLE_LABELS, TEAM } from '@shared/constants';
 import { formatDate, todayISO } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
-import type {
-   Deal,
-   DealDocument,
-   DealRequest,
-} from '@shared/types/deals.types';
+import {
+   useAction,
+   useAttachments,
+   useCurrentUser,
+   useRequest,
+} from '@shared/hooks';
+import attachments from '@shared/services/attachments';
+import type { Deal, DealRequest } from '@shared/types/deals.types';
 import dayjs from 'dayjs';
-import { FileText } from 'lucide-react';
-import { useState } from 'react';
+import { FileText, Paperclip, X } from 'lucide-react';
+import { type FormEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import DataRoom from './DataRoom';
 
 interface RequestsProps {
    deal: Deal;
+   folderId: string; // the open folder of the data room
+   onFolder: (folderId: string) => void;
    onRequest: (title: string) => void;
 }
+
+interface TemplatePickerProps {
+   dealId: string;
+   requestId: string;
+}
+
+/* Adds a template from Настройки → Шаблоны документов to a request: the
+   applicant downloads it, fills it in and sends it back. A template already
+   on the request is not offered again. */
+const TemplatePicker = ({ dealId, requestId }: TemplatePickerProps) => {
+   const { t } = useTranslation('deals');
+   const user = useCurrentUser();
+   const place = { dealId, section: 'request', itemId: requestId };
+   const attached = new Set(useAttachments(place).map(({ url }) => url));
+   const templates = listOf('docTemplates').filter(
+      (item) => item.file && !attached.has(item.file.url),
+   );
+   const adding = useAction(
+      (key: string) => {
+         const item = templates.find((template) => template.key === key);
+         return (
+            item?.file &&
+            attachments.addCopies(
+               place,
+               [{ title: nameOf(item), url: item.file.url }],
+               user.id,
+            )
+         );
+      },
+      { kind: 'create', success: t('Шаблон добавлен к запросу') },
+   );
+
+   if (!templates.length) return null;
+   return (
+      <FilterSelect
+         busy={adding.pending}
+         label={t('Добавить шаблон')}
+         options={[
+            { value: '', label: t('Добавить шаблон…') },
+            ...templates.map((item) => ({
+               value: item.key,
+               label: nameOf(item),
+            })),
+         ]}
+         showLabel={false}
+         value=''
+         onChange={(key) => key && adding.run(key)}
+      />
+   );
+};
 
 // Working days from tomorrow to the day, inclusive.
 const workingDaysLeft = (date: string, today = todayISO()) => {
@@ -44,93 +99,355 @@ const workingDaysLeft = (date: string, today = todayISO()) => {
    return count;
 };
 
+interface RequestRowProps {
+   dealId: string;
+   request: DealRequest;
+   line: string;
+   writable: boolean;
+}
+
+/* A request to the applicant: what was asked and until when. While it
+   waits, the fund records the answer (it comes by mail until the founders'
+   cabinet), changes the request or withdraws it; the answer's files go with
+   it. */
+const RequestRow = ({ dealId, request, line, writable }: RequestRowProps) => {
+   const { t } = useTranslation('deals');
+   const user = useCurrentUser();
+   // what is open under the request: the answer, the request's own fields
+   const [mode, setMode] = useState<'answer' | 'edit' | null>(null);
+   const [answer, setAnswer] = useState('');
+   // the applicant's filled-in files, uploaded with the answer
+   const [files, setFiles] = useState<File[]>([]);
+   const fileInput = useRef<HTMLInputElement>(null);
+   const place = { dealId, section: 'request', itemId: request.id };
+   const sent = useAttachments(place);
+   const [draft, setDraft] = useState({
+      title: request.title,
+      text: request.text,
+      dueDate: request.dueDate,
+      detail: request.detail,
+   });
+   const [removing, setRemoving] = useState(false);
+   const waiting = request.status === 'waiting';
+   const answering = useRequest({
+      success: files.length
+         ? t('Запрос закрыт, файлы — в data room на проверке')
+         : t('Запрос закрыт'),
+   });
+   const saving = useRequest();
+
+   const submitAnswer = async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!answer.trim()) return;
+      if (
+         await answering.run(() =>
+            deals.answerRequest(
+               dealId,
+               request.id,
+               answer.trim(),
+               user.id,
+               files,
+            ),
+         )
+      ) {
+         setMode(null);
+         setFiles([]);
+      }
+   };
+
+   const submitEdit = async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!draft.title.trim() || !draft.dueDate) return;
+      if (
+         await saving.run(() =>
+            deals.updateRequest(dealId, request.id, {
+               title: draft.title.trim(),
+               text: draft.text.trim(),
+               dueDate: draft.dueDate,
+               ...(!waiting && { detail: draft.detail.trim() }),
+            }),
+         )
+      )
+         setMode(null);
+   };
+
+   return (
+      <li className='py-3.5'>
+         <div className='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_10rem_7.5rem]'>
+            <div className='min-w-0'>
+               <div className='font-semibold'>{request.title}</div>
+               <div className='text-ink-soft mt-0.5 text-xs'>{line}</div>
+               {request.text && (
+                  <p className='text-meta mt-1'>{request.text}</p>
+               )}
+               {!waiting && request.detail && (
+                  <p className='text-meta mt-1'>
+                     <span className='text-ink-soft'>{t('Ответ')}: </span>
+                     {request.detail}
+                  </p>
+               )}
+               {request.warning && (
+                  <div className='text-warning-ink mt-1 text-xs'>
+                     {request.warning}
+                  </div>
+               )}
+            </div>
+            <div className='text-ink-soft text-meta max-sm:order-last'>
+               {waiting
+                  ? t('Ответ до {{date}}', {
+                       date: formatDate(request.dueDate),
+                    })
+                  : t('Закрыт {{date}}', {
+                       date: formatDate(request.closedAt),
+                    })}
+            </div>
+            <div>
+               {waiting ? (
+                  <Badge tone='warning'>{t('Ждём ответа')}</Badge>
+               ) : (
+                  <Badge tone='success'>{t('Принят')}</Badge>
+               )}
+            </div>
+         </div>
+         {/* what goes to the applicant: templates to fill in, examples */}
+         {(sent.length > 0 || writable) && (
+            <div className='text-ink-soft mt-2.5 text-xs font-medium'>
+               {t('Шаблоны и файлы для заявителя')}
+            </div>
+         )}
+         <Attachments
+            className='mt-1.5'
+            editable={writable}
+            extra={
+               writable && (
+                  <TemplatePicker dealId={dealId} requestId={request.id} />
+               )
+            }
+            place={place}
+         />
+         {writable && mode === null && (
+            <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs'>
+               {waiting && (
+                  <button
+                     type='button'
+                     className='link'
+                     onClick={() => setMode('answer')}
+                  >
+                     {t('Ответ получен')}
+                  </button>
+               )}
+               <ItemActions
+                  name={request.title}
+                  onDelete={() => setRemoving(true)}
+                  onEdit={() => setMode('edit')}
+               />
+            </div>
+         )}
+         <ConfirmDialog
+            open={removing}
+            subtitle={request.title}
+            title={t('Удалить запрос?')}
+            onClose={() => setRemoving(false)}
+            onConfirm={() => deals.removeRequest(dealId, request.id)}
+         >
+            <p>
+               {t(
+                  'Запрос уйдёт из списка вместе с файлами для заявителя; присланные им документы останутся в data room. Если других открытых запросов нет, часы стадии снова пойдут.',
+               )}
+            </p>
+         </ConfirmDialog>
+         {mode === 'answer' && (
+            <form className='mt-3' onSubmit={submitAnswer}>
+               <textarea
+                  aria-label={t('Ответ заявителя')}
+                  autoFocus
+                  className='field-input text-meta'
+                  maxLength={TEXT_MAX}
+                  placeholder={t('Что ответил заявитель')}
+                  rows={2}
+                  value={answer}
+                  onChange={(event) => setAnswer(event.target.value)}
+               />
+               {/* the filled-in templates and other files the applicant sent */}
+               <div className='mt-2 text-xs'>
+                  {files.length > 0 && (
+                     <ul className='mb-1.5 flex flex-col gap-1'>
+                        {files.map((file, index) => (
+                           <li
+                              key={`${file.name}-${index}`}
+                              className='flex items-center gap-2'
+                           >
+                              <Paperclip
+                                 aria-hidden
+                                 className='text-ink-soft size-3.5 shrink-0'
+                              />
+                              <span className='min-w-0 truncate'>
+                                 {file.name}
+                              </span>
+                              <button
+                                 type='button'
+                                 aria-label={t('Убрать файл: {{name}}', {
+                                    name: file.name,
+                                 })}
+                                 className='text-ink-soft hover:text-danger grid size-5 place-items-center rounded'
+                                 onClick={() =>
+                                    setFiles((prev) =>
+                                       prev.filter((_, at) => at !== index),
+                                    )
+                                 }
+                              >
+                                 <X aria-hidden className='size-3.5' />
+                              </button>
+                           </li>
+                        ))}
+                     </ul>
+                  )}
+                  <button
+                     type='button'
+                     className='link'
+                     onClick={() => fileInput.current?.click()}
+                  >
+                     {t('Приложить заполненные файлы')}
+                  </button>
+                  <span className='text-ink-soft'>
+                     {' '}
+                     {t('— они попадут в data room на проверку')}
+                  </span>
+                  <input
+                     ref={fileInput}
+                     hidden
+                     multiple
+                     type='file'
+                     onChange={(event) => {
+                        const chosen = [...(event.target.files ?? [])];
+                        setFiles((prev) => [...prev, ...chosen]);
+                        event.target.value = '';
+                     }}
+                  />
+               </div>
+               <div className='mt-2.5 flex gap-2.5'>
+                  <Button
+                     className='h-9'
+                     disabled={!answer.trim()}
+                     loading={answering.pending}
+                     type='submit'
+                  >
+                     {t('Закрыть запрос')}
+                  </Button>
+                  <Button
+                     className='h-9'
+                     disabled={answering.pending}
+                     variant='text'
+                     onClick={() => setMode(null)}
+                  >
+                     {t('Отмена')}
+                  </Button>
+               </div>
+            </form>
+         )}
+         {mode === 'edit' && (
+            <form
+               className='mt-3 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_10rem]'
+               onSubmit={submitEdit}
+            >
+               <input
+                  aria-label={t('Что запрашиваем')}
+                  autoFocus
+                  className='field-input'
+                  maxLength={160}
+                  placeholder={t('Что запрашиваем')}
+                  value={draft.title}
+                  onChange={(event) =>
+                     setDraft((prev) => ({
+                        ...prev,
+                        title: event.target.value,
+                     }))
+                  }
+               />
+               <input
+                  aria-label={t('Срок ответа')}
+                  className='field-input'
+                  type='date'
+                  value={draft.dueDate}
+                  onChange={(event) =>
+                     setDraft((prev) => ({
+                        ...prev,
+                        dueDate: event.target.value,
+                     }))
+                  }
+               />
+               <textarea
+                  aria-label={t('Текст запроса')}
+                  className='field-input text-meta sm:col-span-2'
+                  maxLength={TEXT_MAX}
+                  placeholder={t('Текст запроса')}
+                  rows={2}
+                  value={draft.text}
+                  onChange={(event) =>
+                     setDraft((prev) => ({ ...prev, text: event.target.value }))
+                  }
+               />
+               {!waiting && (
+                  <textarea
+                     aria-label={t('Ответ заявителя')}
+                     className='field-input text-meta sm:col-span-2'
+                     maxLength={TEXT_MAX}
+                     placeholder={t('Ответ заявителя')}
+                     rows={2}
+                     value={draft.detail}
+                     onChange={(event) =>
+                        setDraft((prev) => ({
+                           ...prev,
+                           detail: event.target.value,
+                        }))
+                     }
+                  />
+               )}
+               <div className='flex gap-2.5 sm:col-span-2'>
+                  <Button
+                     className='h-9'
+                     loading={saving.pending}
+                     type='submit'
+                  >
+                     {t('Сохранить')}
+                  </Button>
+                  <Button
+                     className='h-9'
+                     disabled={saving.pending}
+                     variant='text'
+                     onClick={() => setMode(null)}
+                  >
+                     {t('Отмена')}
+                  </Button>
+               </div>
+            </form>
+         )}
+      </li>
+   );
+};
+
 // What the fund has asked the applicant for, and the documents received.
-const Requests = ({ deal, onRequest }: RequestsProps) => {
+const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
    const { t } = useTranslation('deals');
    const { t: tLayout } = useTranslation('layout');
-   const user = useCurrentUser();
    const requests = deal.requests ?? [];
-   const documents = deal.documents ?? [];
    const open = requests.filter(({ status }) => status === 'waiting');
    const writable = isOpen(deal);
-   // the document being checked, and the reason typed for rejecting it
-   const [reviewId, setReviewId] = useState<string | null>(null);
-   const [reason, setReason] = useState('');
+   const first = open[0];
+   const author = first && TEAM.find(({ id }) => id === first.byId);
+   // what the applicant downloads with the first open request
+   const firstFiles = useAttachments({
+      dealId: deal.id,
+      section: 'request',
+      itemId: first?.id ?? '',
+   });
 
+   // who asked and when; `detail` is the applicant's answer
    const requestLine = (request: DealRequest) =>
-      request.detail ||
       t('Запросил {{name}} · {{date}}', {
          name: personName(request.byId),
          date: formatDate(request.sentAt),
       });
-
-   const documentLine = ({ version, detail, handled }: DealDocument) => {
-      const prefix = version ? `v${version} · ` : '';
-      if (!handled) return prefix + detail;
-      const name = personName(handled.byId);
-      const at = formatStamp(handled.at);
-      if (handled.kind === 'rejected')
-         return `${prefix}${t('отклонил {{name}}: {{reason}}', { name, reason: handled.reason })}`;
-      return `${prefix}${
-         handled.kind === 'uploaded'
-            ? t('загружен от имени фонда · {{name}}', { name })
-            : t('принял {{name}}', { name })
-      } · ${at}`;
-   };
-
-   const review = async (document: DealDocument, accepted: boolean) => {
-      await deals.reviewDocument(
-         deal.id,
-         document.id,
-         accepted,
-         reason.trim(),
-         user.id,
-      );
-      setReviewId(null);
-      setReason('');
-   };
-
-   const documentAction = (document: DealDocument) => {
-      if (document.status === 'review')
-         return (
-            writable && (
-               <button
-                  type='button'
-                  className='link'
-                  onClick={() => setReviewId(document.id)}
-               >
-                  {t('Проверить')}
-               </button>
-            )
-         );
-      if (document.status === 'accepted')
-         return (
-            <button
-               type='button'
-               className='text-ink-faint text-meta cursor-not-allowed font-medium'
-               disabled
-               title={t('Файлы появятся, когда будет подключено хранилище')}
-            >
-               {t('Скачать')}
-            </button>
-         );
-      return (
-         writable && (
-            <button
-               type='button'
-               className='link'
-               onClick={() => onRequest(document.title)}
-            >
-               {document.status === 'rejected'
-                  ? t('Запросить заново')
-                  : t('Запросить')}
-            </button>
-         )
-      );
-   };
-
-   const first = open[0];
-   const author = first && TEAM.find(({ id }) => id === first.byId);
 
    return (
       <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
@@ -145,42 +462,13 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                {requests.length ? (
                   <ul className='divide-line divide-y px-5 py-1'>
                      {requests.map((request) => (
-                        <li
+                        <RequestRow
                            key={request.id}
-                           className='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 py-3.5 sm:grid-cols-[minmax(0,1fr)_10rem_7.5rem]'
-                        >
-                           <div className='min-w-0'>
-                              <div className='font-semibold'>
-                                 {request.title}
-                              </div>
-                              <div className='text-ink-soft mt-0.5 text-xs'>
-                                 {requestLine(request)}
-                              </div>
-                              {request.warning && (
-                                 <div className='text-warning-ink mt-1 text-xs'>
-                                    {request.warning}
-                                 </div>
-                              )}
-                           </div>
-                           <div className='text-ink-soft text-meta max-sm:order-last'>
-                              {request.status === 'waiting'
-                                 ? t('Ответ до {{date}}', {
-                                      date: formatDate(request.dueDate),
-                                   })
-                                 : t('Закрыт {{date}}', {
-                                      date: formatDate(request.closedAt),
-                                   })}
-                           </div>
-                           <div>
-                              {request.status === 'waiting' ? (
-                                 <Badge tone='warning'>
-                                    {t('Ждём ответа')}
-                                 </Badge>
-                              ) : (
-                                 <Badge tone='success'>{t('Принят')}</Badge>
-                              )}
-                           </div>
-                        </li>
+                           dealId={deal.id}
+                           line={requestLine(request)}
+                           request={request}
+                           writable={writable}
+                        />
                      ))}
                   </ul>
                ) : (
@@ -188,131 +476,19 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                )}
             </Card>
 
-            <Card
-               action={
-                  <button
-                     type='button'
-                     className='text-ink-faint text-meta cursor-not-allowed font-medium'
-                     disabled
-                     title={t(
-                        'Файлы появятся, когда будет подключено хранилище',
-                     )}
-                  >
-                     {t('Скачать архив')}
-                  </button>
-               }
-               hint={`${t('{{count}} документ', { count: documents.length })} · ${t(
-                  '{{total}} на проверке',
-                  {
-                     total: documents.filter(
-                        ({ status }) => status === 'review',
-                     ).length,
-                  },
-               )}`}
-               title='Data room'
-            >
-               {documents.length ? (
-                  <div className='p-5'>
-                     <ul className='flex flex-col gap-2.5'>
-                        {documents.map((document) => (
-                           <li
-                              key={document.id}
-                              className='border-line rounded-lg border px-4 py-3'
-                           >
-                              <div className='flex items-center gap-3.5'>
-                                 <span className='bg-ground text-ink-faint grid size-9 shrink-0 place-items-center rounded-md'>
-                                    <FileText aria-hidden className='size-4' />
-                                 </span>
-                                 <div className='min-w-0 flex-1'>
-                                    <div className='flex flex-wrap items-center gap-x-2.5 gap-y-1'>
-                                       <span className='font-semibold'>
-                                          {document.title}
-                                       </span>
-                                       <Badge
-                                          caps
-                                          tone={
-                                             DOCUMENT_STATUS_TONES[
-                                                document.status
-                                             ]
-                                          }
-                                       >
-                                          {t(
-                                             DOCUMENT_STATUS_LABELS[
-                                                document.status
-                                             ],
-                                          )}
-                                       </Badge>
-                                    </div>
-                                    <div className='text-ink-soft mt-0.5 text-xs'>
-                                       {documentLine(document)}
-                                    </div>
-                                 </div>
-                                 {reviewId !== document.id &&
-                                    documentAction(document)}
-                              </div>
-                              {reviewId === document.id && (
-                                 <div className='border-line mt-3 border-t pt-3'>
-                                    <textarea
-                                       aria-label={t('Причина отклонения')}
-                                       className='field-input text-meta'
-                                       maxLength={TEXT_MAX}
-                                       placeholder={t(
-                                          'Причина — нужна, только если документ отклоняется',
-                                       )}
-                                       rows={2}
-                                       value={reason}
-                                       onChange={(event) =>
-                                          setReason(event.target.value)
-                                       }
-                                    />
-                                    <div className='mt-2.5 flex flex-wrap items-center gap-2.5'>
-                                       <Button
-                                          className='h-9'
-                                          onClick={() => review(document, true)}
-                                       >
-                                          {t('Принять')}
-                                       </Button>
-                                       <Button
-                                          className='h-9'
-                                          // a rejection always says why
-                                          disabled={!reason.trim()}
-                                          variant='ghost'
-                                          onClick={() =>
-                                             review(document, false)
-                                          }
-                                       >
-                                          {t('Отклонить')}
-                                       </Button>
-                                       <Button
-                                          className='h-9'
-                                          variant='text'
-                                          onClick={() => setReviewId(null)}
-                                       >
-                                          {t('Отмена')}
-                                       </Button>
-                                    </div>
-                                 </div>
-                              )}
-                           </li>
-                        ))}
-                     </ul>
-                     <p className='text-ink-soft mt-3.5 text-xs'>
-                        {t(
-                           'Каждая версия хранится с автором, временем и хешем файла. Отклонение без причины недоступно — иначе заявитель вернётся в почту.',
-                        )}
-                     </p>
-                  </div>
-               ) : (
-                  <NoData>{t('Документов в data room пока нет')}</NoData>
-               )}
-            </Card>
+            <DataRoom
+               deal={deal}
+               folderId={folderId}
+               onFolder={onFolder}
+               onRequest={onRequest}
+            />
          </div>
 
          <div className={STACK}>
             {deal.days && (
                <Card
                   title={t('Часы стадии «{{stage}}»', {
-                     stage: t(STAGE_LABELS[deal.stage]),
+                     stage: stageName(deal.stage),
                   })}
                >
                   <div className='p-5'>
@@ -424,6 +600,31 @@ const Requests = ({ deal, onRequest }: RequestsProps) => {
                         </div>
                         {first.text && (
                            <p className='text-meta mt-2.5'>{first.text}</p>
+                        )}
+                        {firstFiles.length > 0 && (
+                           <div className='mt-3'>
+                              <div className='text-ink-soft text-xs'>
+                                 {t(
+                                    'Скачайте, заполните и приложите к ответу:',
+                                 )}
+                              </div>
+                              <ul className='mt-1.5 flex flex-col gap-1'>
+                                 {firstFiles.map((item) => (
+                                    <li
+                                       key={item.id}
+                                       className='text-accent text-meta flex items-center gap-2'
+                                    >
+                                       <FileText
+                                          aria-hidden
+                                          className='size-3.5 shrink-0'
+                                       />
+                                       <span className='min-w-0 truncate'>
+                                          {item.title}
+                                       </span>
+                                    </li>
+                                 ))}
+                              </ul>
+                           </div>
                         )}
                         <div className='bg-warning-tint text-warning-ink mt-3 flex items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium'>
                            <span

@@ -10,6 +10,7 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { ROLE_LABELS as SYSTEM_ROLES } from '@shared/constants';
+import { useAction } from '@shared/hooks';
 import type { Access, StaffRole } from '@shared/types/settings.types';
 import type { Role } from '@shared/types/work.types';
 import { useState } from 'react';
@@ -38,6 +39,22 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
       roles?: string;
    }>({});
 
+   const invite = useAction(
+      () =>
+         settings.invite({
+            name: name.trim(),
+            email: email.trim(),
+            position: position.trim(),
+            role,
+            roles,
+            access,
+         }),
+      {
+         success: t('Сотрудник добавлен'),
+         error: t('Не удалось добавить сотрудника'),
+      },
+   );
+
    const close = () => {
       setName('');
       setEmail('');
@@ -65,15 +82,7 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
                };
                setErrors(next);
                if (next.name || next.email || next.roles) return;
-               await settings.invite({
-                  name: name.trim(),
-                  email: email.trim(),
-                  position: position.trim(),
-                  role,
-                  roles,
-                  access,
-               });
-               close();
+               if (await invite.run()) close();
             }}
          >
             <ModalBody>
@@ -181,7 +190,9 @@ const InviteDialog = ({ open, onClose }: InviteDialogProps) => {
                <Button variant='ghost' onClick={close}>
                   {t('Отмена')}
                </Button>
-               <Button type='submit'>{t('Пригласить')}</Button>
+               <Button loading={invite.pending} type='submit'>
+                  {t('Пригласить')}
+               </Button>
             </ModalFooter>
          </form>
       </Modal>

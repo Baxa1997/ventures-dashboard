@@ -1,10 +1,10 @@
+import { stageName } from '@modules/Settings/services';
 import {
    ATTENDANCE,
    ATTENDANCE_ORDER,
    COMMITTEE_PATH,
    MEMBER_ROLE_LABELS,
    RESULTS,
-   STAGE_LABELS,
 } from '@modules/Committee/constants';
 import {
    formatName,
@@ -12,12 +12,14 @@ import {
    materialsOf,
    materialsReady,
    meetingName,
+   participantsOf,
    preparationOf,
    taskDue,
    waitingDeals,
 } from '@modules/Committee/helpers';
 import type { CommitteeData } from '@modules/Committee/hooks';
 import committee from '@modules/Committee/services';
+import { instrumentText } from '@modules/Deals/helpers';
 import {
    Avatar,
    Badge,
@@ -25,6 +27,7 @@ import {
    Button,
    Card,
    NoData,
+   Spinner,
    Table,
    TD,
    TH,
@@ -35,10 +38,11 @@ import {
    formatUsd,
    personName,
 } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useAction, useCurrentUser, useRequest } from '@shared/hooks';
 import type { Attendance, Meeting } from '@shared/types/committee.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
@@ -53,10 +57,23 @@ const Meetings = ({ data, onSchedule }: MeetingsProps) => {
    const { t } = useTranslation('committee');
    const user = useCurrentUser();
    const navigate = useNavigate();
-   const icMeetings = data.meetings
-      .filter(({ body }) => body === 'ic')
-      .sort((a, b) => b.date.localeCompare(a.date));
-   const next = icMeetings.filter(isUpcoming).at(-1);
+   const finishing = useAction(
+      (taskId: string) => committee.setTaskDone(taskId, true, user.id),
+      { success: t('Решение отмечено выполненным') },
+   );
+   // the task being marked, for its spinner
+   const [finishingId, setFinishingId] = useState('');
+   // the committee's and the board's meetings, newest first
+   const allMeetings = [...data.meetings].sort((a, b) =>
+      b.date.localeCompare(a.date),
+   );
+   const next = allMeetings.filter(isUpcoming).at(-1);
+   const typeOf = (meeting: Meeting) =>
+      meeting.body === 'board'
+         ? t('НС')
+         : meeting.stage
+           ? stageName(meeting.stage)
+           : '';
    const openTasks = data.tasks.filter(({ done }) => !done);
 
    const protocolLink = (meeting: Meeting) =>
@@ -75,10 +92,10 @@ const Meetings = ({ data, onSchedule }: MeetingsProps) => {
    const exportRegister = () =>
       downloadCsv('zasedaniya-ik.csv', [
          [t('Заседание'), t('Дата'), t('Тип'), t('Вопросы'), t('Решение')],
-         ...icMeetings.map((meeting) => [
+         ...allMeetings.map((meeting) => [
             meetingName(t, meeting),
             meeting.date,
-            meeting.stage ? t(STAGE_LABELS[meeting.stage]) : '',
+            typeOf(meeting),
             meeting.summary,
             t(RESULTS[meeting.result].label),
          ]),
@@ -117,7 +134,7 @@ const Meetings = ({ data, onSchedule }: MeetingsProps) => {
                      </>
                   }
                >
-                  {icMeetings.map((meeting) => (
+                  {allMeetings.map((meeting) => (
                      <tr
                         key={meeting.id}
                         className='hover:bg-ground/60 cursor-pointer'
@@ -134,14 +151,15 @@ const Meetings = ({ data, onSchedule }: MeetingsProps) => {
                            </div>
                         </td>
                         <td className={clsx(TD, 'text-ink-soft')}>
-                           {meeting.stage
-                              ? t(STAGE_LABELS[meeting.stage])
-                              : '—'}
+                           {typeOf(meeting) || '—'}
                         </td>
                         <td className={TD}>
-                           {meeting.summary || (
-                              <span className='text-ink-faint'>—</span>
-                           )}
+                           {meeting.summary ||
+                              meeting.agenda
+                                 .map(({ title }) => title)
+                                 .join(', ') || (
+                                 <span className='text-ink-faint'>—</span>
+                              )}
                         </td>
                         <td className={TD}>
                            <Badge tone={RESULTS[meeting.result].tone}>
@@ -175,15 +193,20 @@ const Meetings = ({ data, onSchedule }: MeetingsProps) => {
                                  <Badge tone={due.tone}>{due.label}</Badge>
                                  <button
                                     type='button'
-                                    className='text-ink-soft hover:text-accent text-xs'
-                                    onClick={() =>
-                                       committee.setTaskDone(
-                                          task.id,
-                                          true,
-                                          user.id,
-                                       )
+                                    aria-busy={
+                                       finishingId === task.id || undefined
                                     }
+                                    className='text-ink-soft hover:text-accent inline-flex items-center gap-1.5 text-xs disabled:opacity-50'
+                                    disabled={finishing.pending}
+                                    onClick={async () => {
+                                       setFinishingId(task.id);
+                                       await finishing.run(task.id);
+                                       setFinishingId('');
+                                    }}
                                  >
+                                    {finishingId === task.id && (
+                                       <Spinner className='size-3.5' />
+                                    )}
                                     {t('Отметить выполненным')}
                                  </button>
                               </div>
@@ -207,7 +230,7 @@ const NoMeeting = ({ data, onSchedule }: MeetingsProps) => {
       ...(['ic1', 'ic2'] as const).flatMap((stage) =>
          waitingDeals(data.meetings, data.deals, 'ic', stage).map((deal) => ({
             deal,
-            stage: t(STAGE_LABELS[stage]),
+            stage: stageName(stage),
          })),
       ),
       ...waitingDeals(data.meetings, data.deals, 'board', null).map((deal) => ({
@@ -257,10 +280,26 @@ interface NextMeetingProps {
 // confirmed. Materials go out once every question has all of them.
 const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
    const { t, i18n } = useTranslation('committee');
+   const { t: tDeals } = useTranslation('deals');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const user = useCurrentUser();
    const navigate = useNavigate();
-   const confirmed = data.members.filter(
+   const starting = useRequest({ success: t('Заседание открыто') });
+   const sending = useRequest({
+      kind: 'send',
+      success: t('Материалы разосланы'),
+   });
+   const marking = useAction(
+      (memberId: string, value: Attendance) =>
+         committee.setAttendance(meeting.id, memberId, value),
+      { success: t('Участие отмечено') },
+   );
+   // the member whose answer is being saved
+   const [markingId, setMarkingId] = useState('');
+   const dealOf = (dealId?: string) =>
+      data.deals.find(({ id }) => id === dealId);
+   const participants = participantsOf(meeting, data.members);
+   const confirmed = participants.filter(
       ({ id }) => meeting.attendance[id] === 'confirmed',
    ).length;
    const materials = meeting.agenda.map((item) =>
@@ -280,7 +319,12 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
       !started && (user.id === meeting.secretaryId || user.role === 'director');
 
    const open = async () => {
-      if (!started && prepared) await committee.startMeeting(meeting.id);
+      if (
+         !started &&
+         prepared &&
+         !(await starting.run(() => committee.startMeeting(meeting.id)))
+      )
+         return;
       navigate(`${COMMITTEE_PATH}/${meeting.id}`);
    };
 
@@ -325,13 +369,16 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                                 'Разослать можно, когда у всех вопросов готовы все материалы',
                              )
                      }
+                     loading={sending.pending}
                      variant='ghost'
-                     onClick={() => committee.sendMaterials(meeting.id)}
+                     onClick={() =>
+                        sending.run(() => committee.sendMaterials(meeting.id))
+                     }
                   >
                      {t('Разослать материалы')}
                   </Button>
                )}
-               <Button onClick={open}>
+               <Button loading={starting.pending} onClick={open}>
                   {started
                      ? t('Перейти к заседанию')
                      : prepared
@@ -346,6 +393,14 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                <ol className='divide-line mt-1 divide-y'>
                   {meeting.agenda.map((item, index) => {
                      const value = materials[index];
+                     const deal = dealOf(item.dealId);
+                     // the deal's owner presents it, also when assigned later
+                     const speaker = personName(
+                        item.speakerId || deal?.ownerId || '',
+                     );
+                     const instrument =
+                        item.instrument ||
+                        (deal ? instrumentText(tDeals, deal) : '');
                      return (
                         <li
                            key={item.id}
@@ -358,11 +413,11 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                               <div className='font-semibold'>
                                  {[
                                     item.title,
-                                    item.stage && t(STAGE_LABELS[item.stage]),
+                                    item.stage && stageName(item.stage),
                                     item.amount &&
                                        [
                                           formatUsd(item.amount, language),
-                                          item.instrument,
+                                          instrument,
                                        ]
                                           .filter(Boolean)
                                           .join(' '),
@@ -372,7 +427,7 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                               </div>
                               <div className='text-ink-soft mt-0.5 text-xs'>
                                  {t('Докладчик: {{name}}', {
-                                    name: personName(item.speakerId),
+                                    name: speaker || t('не назначен'),
                                  })}
                               </div>
                            </div>
@@ -387,7 +442,9 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                                  {t('Материалы {{ready}} из {{total}}', value)}
                               </Badge>
                            ) : (
-                              <Badge tone='neutral'>{t('Информация')}</Badge>
+                              item.kind === 'info' && (
+                                 <Badge tone='neutral'>{t('Информация')}</Badge>
+                              )
                            )}
                         </li>
                      );
@@ -401,11 +458,11 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                <h3 className='text-ink-soft text-meta'>
                   {t('Кворум: {{confirmed}} из {{total}} подтвердили участие', {
                      confirmed,
-                     total: data.members.length,
+                     total: participants.length,
                   })}
                </h3>
                <ul className='mt-1'>
-                  {data.members.map((member) => {
+                  {participants.map((member) => {
                      const attendance =
                         ATTENDANCE[
                            meeting.attendance[member.id] ?? 'no_answer'
@@ -429,6 +486,7 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                            </div>
                            {canEdit ? (
                               <BadgeSelect<Attendance>
+                                 busy={markingId === member.id}
                                  label={t('Участие: {{name}}', {
                                     name: member.name,
                                  })}
@@ -440,13 +498,11 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                                  value={
                                     meeting.attendance[member.id] ?? 'no_answer'
                                  }
-                                 onChange={(value) =>
-                                    committee.setAttendance(
-                                       meeting.id,
-                                       member.id,
-                                       value,
-                                    )
-                                 }
+                                 onChange={async (value) => {
+                                    setMarkingId(member.id);
+                                    await marking.run(member.id, value);
+                                    setMarkingId('');
+                                 }}
                               />
                            ) : (
                               <Badge tone={attendance.tone}>
@@ -457,14 +513,14 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
                      );
                   })}
                </ul>
-               {data.members.length === 0 && (
+               {participants.length === 0 && (
                   <p className='text-ink-soft py-2'>
-                     {t('В составе ИК пока никого нет.')}{' '}
+                     {t('Участников пока нет.')}{' '}
                      <Link
                         className='link'
-                        to={`${COMMITTEE_PATH}?tab=members`}
+                        to={`${COMMITTEE_PATH}/${meeting.id}?tab=participants`}
                      >
-                        {t('Добавить членов')}
+                        {t('Добавить участников')}
                      </Link>
                   </p>
                )}
