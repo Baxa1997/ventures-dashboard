@@ -984,6 +984,16 @@ export const readinessOf = (t: T, deal: Deal): CheckItem[] => {
             }),
             state: 'waiting',
          });
+      else if (request.status === 'answered')
+         // the founder answered in the cabinet: the fund checks it
+         items.push({
+            id: `request-${request.id}`,
+            text: t('Ответ компании: {{title}}', { title: request.title }),
+            note: t('ответ получен {{date}} · проверьте', {
+               date: formatDate(request.closedAt),
+            }),
+            state: 'attention',
+         });
    for (const document of deal.documents ?? [])
       if (document.status !== 'accepted')
          items.push({

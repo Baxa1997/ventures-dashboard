@@ -222,7 +222,6 @@
    "Откуда платформа берёт новости и отчёты для сайта и портфеля: сайты, Telegram-каналы, RSS.": "Where the platform takes news and reports for the website and the portfolio from: websites, Telegram channels, RSS.",
    "Список источников": "A list of sources",
    "Форма заявки предлагает отрасли, раунды, источники и страны из справочников; заявки попадают во «Входящие».": "The application form offers the industries, rounds, sources and countries of the lists; applications land in the inbox.",
-   "Отчёты портфеля, запросы к фонду и статус заявки — следующая фаза; пока их ведёт фонд.": "Portfolio reports, requests to the fund and the application's status — the next phase; until then the fund keeps them.",
    "К выполнению": "To do",
    "В работе": "In progress",
    "Завершено": "Complete",
@@ -370,5 +369,6 @@
    "латиницей через подчёркивание: dd_questionnaire": "Latin letters with underscores: dd_questionnaire",
    "Файл": "File",
    "Анкеты, формы и таблицы (Excel, Word, PowerPoint, PDF), которые заявитель заполняет. В «Новом запросе» шаблоны выбирают галочками — они уходят с запросом, а заполненные файлы возвращаются в data room на проверку.": "Questionnaires, forms and spreadsheets (Excel, Word, PowerPoint, PDF) the applicant fills in. In «New request» the templates are ticked — they go with the request, and the filled-in files come back to the data room for checking.",
-   "Файлы, которые фонд отправляет заявителю с запросом: он заполняет их и возвращает.": "Files the fund sends the applicant with a request: they fill them in and send them back."
+   "Файлы, которые фонд отправляет заявителю с запросом: он заполняет их и возвращает.": "Files the fund sends the applicant with a request: they fill them in and send them back.",
+   "Кабинет основателя построен (приложение startup-cabinet, те же таблицы ucode): статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Заработает после развёртывания и подключения почты для кодов входа.": "The founder account is built (the startup-cabinet app, the same ucode tables): application status, requests, documents, the questionnaire, and after the investment, reports and requests to the fund. It goes live once deployed with mail for the sign-in codes."
 }

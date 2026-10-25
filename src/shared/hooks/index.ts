@@ -13,3 +13,4 @@ export {
 export { default as useServiceData } from './useServiceData';
 export { default as useAttachments } from './useAttachments';
 export { default as useAction, type ActionKind, useRequest } from './useAction';
+export { default as useRefreshOnReturn } from './useRefreshOnReturn';

@@ -207,7 +207,6 @@
    "Карточка компании открывается по клику на строку.": "Kompaniya kartochkasi qatorni bosganda ochiladi.",
    "Эти компании ещё не сдали все документы. Панель запишет дату напоминания, а написать им нужно самим:": "Bu kompaniyalar hali barcha hujjatlarni topshirmagan. Panel eslatma sanasini yozib qo‘yadi, ularga esa o‘zingiz yozishingiz kerak:",
    "Ответ сохранится в карточке компании — передайте его компании сами": "Javob kompaniya kartochkasida saqlanadi — uni kompaniyaga o‘zingiz yetkazing",
-   "Кабинета компаний пока нет: показатели из отчёта вносит и подтверждает аналитик.": "Kompaniyalar kabineti hali yo‘q: hisobotdagi ko‘rsatkichlarni tahlilchi kiritadi va tasdiqlaydi.",
    "Отчёт запрошен {{date}}. Напомните компании {{auto}} сами — автоматических писем пока нет.": "Hisobot {{date}} so‘ralgan. Kompaniyaga {{auto}} o‘zingiz eslating — avtomatik xatlar hali yo‘q.",
    "Файлы хранятся в ucode.": "Fayllar ucode’da saqlanadi.",
    "Введите число": "Son kiriting",
@@ -227,5 +226,6 @@
    "Задача создана": "Vazifa yaratildi",
    "Follow-on открыт во «Входящих»": "Follow-on «Kiruvchi»da ochildi",
    "Показатели подтверждены": "Ko‘rsatkichlar tasdiqlandi",
-   "Напоминание отправлено": "Eslatma yuborildi"
+   "Напоминание отправлено": "Eslatma yuborildi",
+   "Компании отправляют документы и показатели из кабинета основателя; аналитик проверяет и подтверждает показатели или вносит их сам.": "Kompaniyalar hujjat va ko‘rsatkichlarni asoschi kabinetidan yuboradi; tahlilchi ko‘rsatkichlarni tekshirib tasdiqlaydi yoki o‘zi kiritadi."
 }

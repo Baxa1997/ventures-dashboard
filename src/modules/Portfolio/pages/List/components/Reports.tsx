@@ -20,6 +20,7 @@ import {
    TH,
 } from '@shared/components';
 import { TEAM } from '@shared/constants';
+import { useAttachments } from '@shared/hooks';
 import {
    formatDate,
    personName,
@@ -34,6 +35,40 @@ import { useTranslation } from 'react-i18next';
 interface ReportsProps {
    data: PortfolioData;
 }
+
+interface ReportFilesProps {
+   companyId: string;
+   quarter: string;
+   doc: string;
+}
+
+// The files a company sent for a document of the quarter from the startup
+// cabinet (attachments, section `report`, item `<quarter>:<doc>`).
+const ReportFiles = ({ companyId, quarter, doc }: ReportFilesProps) => {
+   const files = useAttachments({
+      companyId,
+      section: 'report',
+      itemId: `${quarter}:${doc}`,
+   });
+   if (!files.length) return null;
+   return (
+      <ul className='mt-1 flex max-w-40 flex-col gap-0.5'>
+         {files.map((file) => (
+            <li key={file.id} className='truncate'>
+               <a
+                  className='text-accent text-xs hover:underline'
+                  href={file.url}
+                  rel='noreferrer'
+                  target='_blank'
+                  title={file.title}
+               >
+                  {file.title}
+               </a>
+            </li>
+         ))}
+      </ul>
+   );
+};
 
 /* The quarter's reporting: which of the four documents each company has sent,
    and whether the figures from the fund's template are confirmed. Companies
@@ -139,6 +174,11 @@ const Reports = ({ data }: ReportsProps) => {
                                  ) : (
                                     <Badge>{t('Ожидается')}</Badge>
                                  )}
+                                 <ReportFiles
+                                    companyId={company.id}
+                                    doc={doc}
+                                    quarter={quarter}
+                                 />
                               </td>
                            ))}
                            <td className={TD}>
@@ -175,7 +215,7 @@ const Reports = ({ data }: ReportsProps) => {
                </Table>
                <p className='border-line bg-ground/70 text-ink-soft border-t px-5 py-3 text-xs'>
                   {t(
-                     'Кабинета компаний пока нет: показатели из отчёта вносит и подтверждает аналитик.',
+                     'Компании отправляют документы и показатели из кабинета основателя; аналитик проверяет и подтверждает показатели или вносит их сам.',
                   )}
                </p>
             </Card>

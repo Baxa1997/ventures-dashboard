@@ -79,6 +79,11 @@ class Attachments {
       return store.get();
    }
 
+   // Reads them again: files the startup cabinet added meanwhile.
+   async reload() {
+      await store.reload();
+   }
+
    async addLink(
       place: AttachmentPlace,
       link: { title: string; url: string },

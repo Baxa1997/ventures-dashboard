@@ -10,6 +10,13 @@ Written on 24 October 2026, against the panel at `0ea30d1`, the website at `738e
 
 Field names below are ucode slugs. Values in `code` are the exact values to write.
 
+**Status, 25 October 2026.** Part A is built, as a separate app in the venture folder, `venture/startup-cabinet` (React + TypeScript like this panel, with a small Node server of its own), instead of inside the website repo as §2 recommended; everything else in §2 holds: ucode only on the cabinet's server with the project key, a signed httpOnly session cookie, no ucode user per founder. Its README lists what each page reads and writes.
+
+- Decisions taken: D1 (a), a one-time code to the email (needs SMTP; in development the code is shown on the page); D2, four statuses with the stage under them; D3, the fund's files hidden; D4, `answered`; D5, uploads allowed into «Другие документы»; D6, never back; D10, uz/ru/en. D7, D8 and D9 are left for later.
+- Batch 10 is created in the test project: `founder_codes` and `deal_questionnaires` (ucode-migration.md).
+- The panel: P1 (answered requests with «Принять» / «Запросить ещё»), P2 (`is_dd_questionnaire` written and read), P3 (the questionnaire's answers on its request), P4 (the preview's wording), P6 (the applicant named in История), P7 (answers and documents from the cabinet in Мой день), P8 (Сделки and Портфель read again when the person returns to the tab), P9 (a quarter's files from the company in Квартальная отчётность). P5 was done on 24 October.
+- Not done: deploying the cabinet (its address, Vault, SMTP), pointing the website's `FOUNDER_ACCOUNT_URL` at it, and the production rollout of batches 1–10. Part B is unchanged.
+
 ---
 
 ## 1. Where things stand
@@ -26,7 +33,7 @@ Field names below are ucode slugs. Values in `code` are the exact values to writ
 | --- | --- | --- | --- |
 | Website | Live | Pitch Us form: `applications`, then the deal in the inbox (`deals`), the pitch deck (`deal_documents`), the first journal entry (`deal_events`), and `applications.public_status = submitted`. Become a partner form: `partner_requests` | `portfolio`, `news`, `team` and `pages`; the fund's lists (industries, rounds, sources, countries); `stage_norms` and `holidays` |
 | Admin panel | Live on the test project | Everything done to a deal, including `applications.public_status` and `resubmit_after` | All ERP tables |
-| Startup cabinet | Not built | — | — |
+| Startup cabinet | Built (`venture/startup-cabinet`), not deployed | The answers to requests, the founder's documents, the questionnaire, a company's reports, metrics and requests (its README) | The application's status, its deal's requests and the founder's own documents; after the investment, the company's quarter |
 
 **What the website already promises the founder:**
 

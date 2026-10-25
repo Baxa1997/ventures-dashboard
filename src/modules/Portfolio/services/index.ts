@@ -248,6 +248,11 @@ class Portfolio {
       return store.subscribe(listener);
    }
 
+   // Reads the portfolio again: what the companies sent from the startup cabinet.
+   async reload() {
+      await store.reload();
+   }
+
    async getState(): Promise<PortfolioState> {
       return store.get();
    }

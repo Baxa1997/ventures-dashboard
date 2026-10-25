@@ -10,7 +10,9 @@ interface HistoryProps {
    deal: Deal;
 }
 
-// The deal's journal, newest first: stage moves, requests, decisions.
+/* The deal's journal, newest first: stage moves, requests, decisions. An
+   entry without an employee came from the applicant: the website's
+   application, or an answer or a document from the startup cabinet. */
 const History = ({ deal }: HistoryProps) => {
    const { t } = useTranslation('deals');
 
@@ -19,9 +21,11 @@ const History = ({ deal }: HistoryProps) => {
          case 'text':
             return entry.text;
          case 'created':
-            return t('Заявка добавлена вручную · {{name}}', {
-               name: personName(entry.userId),
-            });
+            return entry.userId
+               ? t('Заявка добавлена вручную · {{name}}', {
+                    name: personName(entry.userId),
+                 })
+               : t('Заявка с сайта');
          case 'taken':
             return t('Взята в скрининг · {{name}}', {
                name: personName(entry.userId),
@@ -42,6 +46,15 @@ const History = ({ deal }: HistoryProps) => {
                title: entry.title,
                name: personName(entry.userId),
             });
+         case 'answered':
+            return entry.userId
+               ? t('Ответ заявителя записан: {{title}} · {{name}}', {
+                    title: entry.title,
+                    name: personName(entry.userId),
+                 })
+               : t('Заявитель ответил на запрос в кабинете: {{title}}', {
+                    title: entry.title,
+                 });
          case 'document': {
             const params = {
                title: entry.title,
@@ -51,6 +64,10 @@ const History = ({ deal }: HistoryProps) => {
                return t('Документ принят: {{title}} · {{name}}', params);
             if (entry.result === 'rejected')
                return t('Документ отклонён: {{title}} · {{name}}', params);
+            if (!entry.userId)
+               return t('Заявитель загрузил документ в кабинете: {{title}}', {
+                  title: entry.title,
+               });
             return t(
                'Документ загружен от имени фонда: {{title}} · {{name}}',
                params,

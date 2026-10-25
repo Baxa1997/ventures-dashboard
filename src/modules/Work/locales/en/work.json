@@ -210,5 +210,9 @@
    "Комментарий добавлен": "Comment added",
    "Задача удалена": "Task deleted",
    "Задача создана": "Task created",
-   "Отметка сохранена": "Tick saved"
+   "Отметка сохранена": "Tick saved",
+   "Проверить ответ заявителя: {{title}}": "Check the applicant’s answer: {{title}}",
+   "пришёл из кабинета основателя · {{number}}": "came from the founder account · {{number}}",
+   "Проверить документ: {{title}}": "Check the document: {{title}}",
+   "загружен заявителем в кабинете · {{version}}": "uploaded by the applicant in the founder account · {{version}}"
 }

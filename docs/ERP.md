@@ -12,7 +12,7 @@ Sources: the system map «Операционная платформа фонда
 | 1 | **Admin: Работа** — Обзор, Мой день, Задачи | On ucode (tasks; Мой день and Обзор counted from the tables, §5.7) |
 | 1 | **Admin: Инвестиции** — Сделки, Инвесткомитет, Портфель | On ucode |
 | 1 | **Admin: Настройки** — mandate, stage norms, staff and roles, the reference lists, integrations | On ucode. Сделки take the mandate, the norms and the lists from it; the website's form offers the same lists |
-| 2 | **Startup cabinet** — the applicant's status, the fund's requests and documents; the portfolio company's quarterly reports and requests | Not built |
+| 2 | **Startup cabinet** — the applicant's status, the fund's requests and documents; the portfolio company's quarterly reports and requests | Built as its own app (`venture/startup-cabinet`, docs/cabinet-and-website.md), not deployed |
 | 3 | **Fund: Документы** — the register of the fund's documents and the open governance questions | On ucode (§4.9). A document links to its file where the fund keeps it |
 | 3 | Финансы, Договоры, Закупки, Корреспонденция | Screens built, hidden from the panel until their tables exist (they come back from the repo's history) |
 

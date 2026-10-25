@@ -1,5 +1,6 @@
 import settings from '@modules/Settings/services';
-import { useServiceData } from '@shared/hooks';
+import { useRefreshOnReturn, useServiceData } from '@shared/hooks';
+import attachments from '@shared/services/attachments';
 import portfolio from '../services';
 
 // The portfolio with the thresholds of its risk flags from the settings.
@@ -17,6 +18,13 @@ const subscribe = (listener: () => void) => {
    };
 };
 
-export const usePortfolio = () => useServiceData(load, subscribe);
+// A company's reports and requests from the startup cabinet come in when the
+// person returns to the tab.
+const refresh = () => Promise.all([portfolio.reload(), attachments.reload()]);
+
+export const usePortfolio = () => {
+   useRefreshOnReturn(refresh);
+   return useServiceData(load, subscribe);
+};
 
 export type PortfolioData = NonNullable<ReturnType<typeof usePortfolio>>;

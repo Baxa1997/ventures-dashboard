@@ -207,7 +207,6 @@
    "Карточка компании открывается по клику на строку.": "A company’s card opens on a click on its row.",
    "Эти компании ещё не сдали все документы. Панель запишет дату напоминания, а написать им нужно самим:": "These companies haven’t sent every document yet. The panel records the reminder date; write to them yourself:",
    "Ответ сохранится в карточке компании — передайте его компании сами": "The answer is kept on the company’s card — pass it on to the company yourself",
-   "Кабинета компаний пока нет: показатели из отчёта вносит и подтверждает аналитик.": "There is no company cabinet yet: the analyst enters the report’s figures and confirms them.",
    "Отчёт запрошен {{date}}. Напомните компании {{auto}} сами — автоматических писем пока нет.": "Report requested on {{date}}. Remind the company on {{auto}} yourself — there are no automatic emails yet.",
    "Файлы хранятся в ucode.": "The files are kept in ucode.",
    "Введите число": "Enter a number",
@@ -227,5 +226,6 @@
    "Задача создана": "Task created",
    "Follow-on открыт во «Входящих»": "Follow-on opened in the inbox",
    "Показатели подтверждены": "Metrics confirmed",
-   "Напоминание отправлено": "Reminder sent"
+   "Напоминание отправлено": "Reminder sent",
+   "Компании отправляют документы и показатели из кабинета основателя; аналитик проверяет и подтверждает показатели или вносит их сам.": "Companies send their documents and metrics from the founder account; the analyst checks and confirms the metrics, or enters them."
 }

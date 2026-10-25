@@ -359,6 +359,38 @@ const queueOf = (all: Deal[], userId: string, today: string): QueueItem[] => {
             dueDate: deal.next?.dueDate ?? '',
             decision: { preparedById: deal.ownerId, action: 'decide' },
          });
+      // what the founder sent from the startup cabinet waits for the owner's check
+      if (deal.ownerId === userId) {
+         const answered = (deal.requests ?? []).filter(
+            ({ status }) => status === 'answered',
+         );
+         for (const request of answered)
+            items.push({
+               ...base,
+               id: `answer-${request.id}`,
+               kind: 'answer',
+               title: request.title,
+               note: deal.number,
+               dueDate: '',
+            });
+         // the files of an answer come with it; the others on their own
+         const covered = new Set(answered.map(({ id }) => id));
+         for (const document of deal.documents ?? [])
+            if (
+               document.status === 'review' &&
+               document.uploadedBy === 'applicant' &&
+               !document.uploadedById &&
+               !covered.has(document.requestId)
+            )
+               items.push({
+                  ...base,
+                  id: `document-${document.id}`,
+                  kind: 'document',
+                  title: document.title,
+                  note: `v${document.version}`,
+                  dueDate: '',
+               });
+      }
       return items;
    });
 };

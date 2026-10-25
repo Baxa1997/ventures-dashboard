@@ -49,10 +49,23 @@ Uploaded files are kept in ucode Files and open for anyone who has their link (d
 
 ## What the founder sees
 
-Nothing yet, apart from the website form and its reference number. There is
-no founder cabinet and the panel sends no emails: letters, requests and
-reminders are kept in the panel, and the team sends them itself. The panel
-says so where it matters.
+The startup cabinet (`venture/startup-cabinet`, built, not deployed yet): the
+founder signs in with a one-time code sent to the application's email and sees
+the application's status (four steps, with the stage under them), the fund's
+requests with their templates and deadlines, their own documents, and the DD
+questionnaire when a request asks for it; after the investment, the quarter's
+reports, metrics and requests to the fund.
+
+- An answer from the cabinet closes the request for the stage clock and shows
+  in the panel as «Ответ получен — проверьте», with its files in the data room
+  «На проверке»; the owner accepts it («Принять») or asks for more. Мой день
+  lists it for the deal's owner, and the deal's История names the applicant.
+- A rejected document gets a new version from the cabinet; the old one stays.
+- The founder never sees the owner, scores, notes, committee data, terms, the
+  fund's own files or the journal.
+- The panel sends no emails yet; the cabinet sends only the sign-in code.
+  Letters about requests and decisions are kept in the panel, and the team
+  sends them itself.
 
 ## The rest of the panel
 

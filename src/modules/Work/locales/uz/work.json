@@ -210,5 +210,9 @@
    "Комментарий добавлен": "Izoh qo‘shildi",
    "Задача удалена": "Vazifa o‘chirildi",
    "Задача создана": "Vazifa yaratildi",
-   "Отметка сохранена": "Belgi saqlandi"
+   "Отметка сохранена": "Belgi saqlandi",
+   "Проверить ответ заявителя: {{title}}": "Ariza beruvchi javobini tekshirish: {{title}}",
+   "пришёл из кабинета основателя · {{number}}": "asoschi kabinetidan keldi · {{number}}",
+   "Проверить документ: {{title}}": "Hujjatni tekshirish: {{title}}",
+   "загружен заявителем в кабинете · {{version}}": "ariza beruvchi kabinetda yuklagan · {{version}}"
 }

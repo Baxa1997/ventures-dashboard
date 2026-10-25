@@ -154,6 +154,20 @@ export const queueWording = (
          title: t('Утвердить меморандум v{{version}}', { version: item.note }),
          note: by && t('подготовил {{name}}', { name: by }),
       };
+   if (item.kind === 'answer')
+      return {
+         title: t('Проверить ответ заявителя: {{title}}', { title: item.title }),
+         note: t('пришёл из кабинета основателя · {{number}}', {
+            number: item.note,
+         }),
+      };
+   if (item.kind === 'document')
+      return {
+         title: t('Проверить документ: {{title}}', { title: item.title }),
+         note: t('загружен заявителем в кабинете · {{version}}', {
+            version: item.note,
+         }),
+      };
    return {
       title: t('Подтвердить решение по скринингу'),
       note: by && t('предложил {{name}}', { name: by }),

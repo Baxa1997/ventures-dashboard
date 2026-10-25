@@ -30,6 +30,7 @@ import type {
    Fact,
    JournalEntry,
    Memo,
+   QuestionnaireAnswers,
    RejectReason,
    Risk,
    Screening,
@@ -211,18 +212,35 @@ const toFolder = (row: Row): DealFolder => ({
    createdById: str(row.created_by_id),
 });
 
-const toRequest = (row: Row): DealRequest => ({
-   id: row.guid,
-   title: str(row.title),
-   text: str(row.text),
-   byId: str(row.sent_by_id),
-   sentAt: day(row.sent_at),
-   dueDate: day(row.due_date),
-   status: row.status === 'accepted' || row.status === 'answered' ? 'accepted' : 'waiting',
-   closedAt: day(row.closed_at),
-   detail: str(row.answer),
-   warning: str(row.warning),
-});
+// The cabinet's questionnaire of a request: the latest row, its sections as stored.
+const toQuestionnaire = (rows: Row[]): QuestionnaireAnswers | undefined => {
+   const row = [...rows].sort((a, b) => str(b.created_at).localeCompare(str(a.created_at)))[0];
+   if (!row) return undefined;
+   const stored = fromJson<{ sections?: QuestionnaireAnswers['sections'] }>(row.answers, {});
+   return { sections: stored.sections ?? [], submittedAt: moment(row.submitted_at) };
+};
+
+const REQUEST_STATUSES: DealRequest['status'][] = ['waiting', 'answered', 'accepted'];
+
+const toRequest = (row: Row, questionnaires: Row[]): DealRequest => {
+   const questionnaire = toQuestionnaire(
+      questionnaires.filter((item) => item.deal_requests_id === row.guid),
+   );
+   return {
+      id: row.guid,
+      title: str(row.title),
+      text: str(row.text),
+      byId: str(row.sent_by_id),
+      sentAt: day(row.sent_at),
+      dueDate: day(row.due_date),
+      status: REQUEST_STATUSES.find((status) => status === row.status) ?? 'waiting',
+      closedAt: day(row.closed_at),
+      detail: str(row.answer),
+      warning: str(row.warning),
+      ddQuestionnaire: Boolean(row.is_dd_questionnaire),
+      ...(questionnaire && { questionnaire }),
+   };
+};
 
 const toRisk = (row: Row): Risk => ({
    id: row.guid,
@@ -394,6 +412,7 @@ interface Children {
    memos: Row[];
    history: Row[];
    decisions: Row[];
+   questionnaires: Row[]; // the startup cabinet's (batch 10)
 }
 
 // "Social media" → "social_media": a source as an older row has it in text.
@@ -500,7 +519,7 @@ const toDeal = (
       ...(children.requests.length > 0 && {
          requests: children.requests
             .sort((a, b) => day(a.sent_at).localeCompare(day(b.sent_at)))
-            .map(toRequest),
+            .map((request) => toRequest(request, children.questionnaires)),
       }),
       ...(children.documents.length > 0 && { documents: children.documents.map(toDocument) }),
       ...(children.folders.length > 0 && {
@@ -546,8 +565,9 @@ export const loadDeals = async (): Promise<Deal[]> => {
       decisions,
       applications,
       meetings,
-   ] = await Promise.all(
-      [
+      questionnaires,
+   ] = await Promise.all([
+      ...[
          'deals',
          'deal_events',
          'deal_documents',
@@ -564,7 +584,12 @@ export const loadDeals = async (): Promise<Deal[]> => {
          'applications',
          'meetings',
       ].map((table) => listRows(table)),
-   );
+      // the startup cabinet's table (batch 10): a project without it reads none
+      listRows('deal_questionnaires').catch((error: unknown) => {
+         console.warn('deal_questionnaires could not be read', error);
+         return [];
+      }),
+   ]);
 
    const meetingRows = new Map(meetings.map((row) => [row.guid, row]));
    const applicationRows = new Map(applications.map((row) => [row.guid, row]));
@@ -581,6 +606,7 @@ export const loadDeals = async (): Promise<Deal[]> => {
       memos: groupByDeal(memos),
       history: groupByDeal(history),
       decisions: groupByDeal(decisions),
+      questionnaires: groupByDeal(questionnaires),
    };
 
    links.clear();
@@ -835,6 +861,7 @@ export const saveDeal = async (before: Deal, after: Deal) => {
          closed_at: item.closedAt || null,
          answer: item.detail,
          warning: item.warning,
+         is_dd_questionnaire: item.ddQuestionnaire,
          deals_id: after.id,
       })),
       ...syncItems('deal_documents', before.documents, after.documents, (item: DealDocument) => ({

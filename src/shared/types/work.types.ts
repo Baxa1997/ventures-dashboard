@@ -105,7 +105,15 @@ export type DecisionAction = 'memo' | 'decide';
    - next: the next step of a deal they own, due within 5 working days;
    - memo: a memorandum waiting for them, its sponsor, to approve;
    - screening: a screening decision waiting for them, the second reviewer. */
-export type QueueKind = 'inbox' | 'next' | 'memo' | 'screening';
+// answer, document: what the founder sent from the startup cabinet, for the
+// deal's owner to check
+export type QueueKind =
+   | 'inbox'
+   | 'next'
+   | 'memo'
+   | 'screening'
+   | 'answer'
+   | 'document';
 
 export interface QueueItem {
    id: string;

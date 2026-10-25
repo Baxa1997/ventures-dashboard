@@ -222,7 +222,6 @@
    "Откуда платформа берёт новости и отчёты для сайта и портфеля: сайты, Telegram-каналы, RSS.": "Platforma sayt va portfel uchun yangiliklar va hisobotlarni qayerdan oladi: saytlar, Telegram-kanallar, RSS.",
    "Список источников": "Manbalar ro‘yxati",
    "Форма заявки предлагает отрасли, раунды, источники и страны из справочников; заявки попадают во «Входящие».": "Ariza shakli ma’lumotnomalardagi sohalar, raundlar, manbalar va davlatlarni taklif qiladi; arizalar «Kiruvchilar»ga tushadi.",
-   "Отчёты портфеля, запросы к фонду и статус заявки — следующая фаза; пока их ведёт фонд.": "Portfel hisobotlari, fondga so‘rovlar va ariza holati — keyingi bosqich; hozircha ularni fond yuritadi.",
    "К выполнению": "Bajarilishi kerak",
    "В работе": "Jarayonda",
    "Завершено": "Yakunlangan",
@@ -370,5 +369,6 @@
    "латиницей через подчёркивание: dd_questionnaire": "lotin harflarida pastki chiziq bilan: dd_questionnaire",
    "Файл": "Fayl",
    "Анкеты, формы и таблицы (Excel, Word, PowerPoint, PDF), которые заявитель заполняет. В «Новом запросе» шаблоны выбирают галочками — они уходят с запросом, а заполненные файлы возвращаются в data room на проверку.": "Ariza beruvchi to‘ldiradigan anketalar, shakllar va jadvallar (Excel, Word, PowerPoint, PDF). «Yangi so‘rov»da shablonlar belgilanadi — ular so‘rov bilan ketadi, to‘ldirilgan fayllar esa tekshiruv uchun data roomga qaytadi.",
-   "Файлы, которые фонд отправляет заявителю с запросом: он заполняет их и возвращает.": "Fond ariza beruvchiga so‘rov bilan yuboradigan fayllar: u ularni to‘ldirib qaytaradi."
+   "Файлы, которые фонд отправляет заявителю с запросом: он заполняет их и возвращает.": "Fond ariza beruvchiga so‘rov bilan yuboradigan fayllar: u ularni to‘ldirib qaytaradi.",
+   "Кабинет основателя построен (приложение startup-cabinet, те же таблицы ucode): статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Заработает после развёртывания и подключения почты для кодов входа.": "Asoschi kabineti tayyor (startup-cabinet ilovasi, ucode’ning o‘sha jadvallari): ariza holati, so‘rovlar, hujjatlar, anketa, investitsiyadan keyin — hisobotlar va fondga so‘rovlar. Joylashtirilgandan va kirish kodlari uchun pochta ulangandan keyin ishlaydi."
 }

@@ -104,13 +104,67 @@ interface RequestRowProps {
    request: DealRequest;
    line: string;
    writable: boolean;
+   onRequest: (title: string) => void; // a new request, prefilled
 }
 
-/* A request to the applicant: what was asked and until when. While it
-   waits, the fund records the answer (it comes by mail until the founders'
-   cabinet), changes the request or withdraws it; the answer's files go with
-   it. */
-const RequestRow = ({ dealId, request, line, writable }: RequestRowProps) => {
+// The founder's answers to the DD questionnaire, as the cabinet stored them.
+const QuestionnaireAnswers = ({ request }: { request: DealRequest }) => {
+   const { t } = useTranslation('deals');
+   const questionnaire = request.questionnaire;
+   if (!questionnaire)
+      return request.ddQuestionnaire ? (
+         <p className='text-ink-soft mt-1 text-xs'>
+            {t('DD-вопросник: заявитель заполняет анкету в кабинете основателя')}
+         </p>
+      ) : null;
+   const answered = questionnaire.sections.filter((section) =>
+      section.items.every((item) => item.answer.trim()),
+   ).length;
+   return (
+      <details className='border-line mt-2 rounded-lg border'>
+         <summary className='text-meta cursor-pointer px-3 py-2 font-medium'>
+            {questionnaire.submittedAt
+               ? t('Анкета заявителя · отправлена {{date}}', {
+                    date: formatDate(questionnaire.submittedAt.slice(0, 10)),
+                 })
+               : t('Анкета заявителя · заполняется: {{done}} из {{total}} разделов', {
+                    done: answered,
+                    total: questionnaire.sections.length,
+                 })}
+         </summary>
+         <div className='divide-line divide-y px-3 pb-2'>
+            {questionnaire.sections.map((section) => (
+               <div key={section.id} className='py-2'>
+                  <div className='text-meta font-semibold'>{section.title}</div>
+                  <dl className='mt-1 grid gap-1.5'>
+                     {section.items.map((item) => (
+                        <div key={item.id} className='text-xs'>
+                           <dt className='text-ink-soft'>{item.question}</dt>
+                           <dd className='text-ink mt-0.5 whitespace-pre-line'>
+                              {item.answer || '—'}
+                           </dd>
+                        </div>
+                     ))}
+                  </dl>
+               </div>
+            ))}
+         </div>
+      </details>
+   );
+};
+
+/* A request to the applicant: what was asked and until when. The founder
+   answers in the startup cabinet: the request is then «Ответ получен —
+   проверьте» until the fund accepts it or asks for more. For a deal without
+   a cabinet the fund records the answer itself; it changes the request or
+   withdraws it, and the answer's files go with it. */
+const RequestRow = ({
+   dealId,
+   request,
+   line,
+   writable,
+   onRequest,
+}: RequestRowProps) => {
    const { t } = useTranslation('deals');
    const user = useCurrentUser();
    // what is open under the request: the answer, the request's own fields
@@ -129,6 +183,8 @@ const RequestRow = ({ dealId, request, line, writable }: RequestRowProps) => {
    });
    const [removing, setRemoving] = useState(false);
    const waiting = request.status === 'waiting';
+   const answered = request.status === 'answered';
+   const accepting = useRequest({ success: t('Ответ принят') });
    const answering = useRequest({
       success: files.length
          ? t('Запрос закрыт, файлы — в data room на проверке')
@@ -180,6 +236,7 @@ const RequestRow = ({ dealId, request, line, writable }: RequestRowProps) => {
                {request.text && (
                   <p className='text-meta mt-1'>{request.text}</p>
                )}
+               <QuestionnaireAnswers request={request} />
                {!waiting && request.detail && (
                   <p className='text-meta mt-1'>
                      <span className='text-ink-soft'>{t('Ответ')}: </span>
@@ -197,13 +254,19 @@ const RequestRow = ({ dealId, request, line, writable }: RequestRowProps) => {
                   ? t('Ответ до {{date}}', {
                        date: formatDate(request.dueDate),
                     })
-                  : t('Закрыт {{date}}', {
-                       date: formatDate(request.closedAt),
-                    })}
+                  : answered
+                    ? t('Ответ получен {{date}}', {
+                         date: formatDate(request.closedAt),
+                      })
+                    : t('Закрыт {{date}}', {
+                         date: formatDate(request.closedAt),
+                      })}
             </div>
             <div>
                {waiting ? (
                   <Badge tone='warning'>{t('Ждём ответа')}</Badge>
+               ) : answered ? (
+                  <Badge tone='accent'>{t('Ответ получен — проверьте')}</Badge>
                ) : (
                   <Badge tone='success'>{t('Принят')}</Badge>
                )}
@@ -225,6 +288,30 @@ const RequestRow = ({ dealId, request, line, writable }: RequestRowProps) => {
             }
             place={place}
          />
+         {answered && writable && mode === null && (
+            <div className='mt-2.5 flex flex-wrap items-center gap-2.5'>
+               <Button
+                  className='h-8 px-3 text-xs'
+                  loading={accepting.pending}
+                  onClick={() =>
+                     accepting.run(() => deals.acceptAnswer(dealId, request.id))
+                  }
+               >
+                  {t('Принять')}
+               </Button>
+               <Button
+                  className='h-8 px-3 text-xs'
+                  disabled={accepting.pending}
+                  variant='ghost'
+                  onClick={() => onRequest(request.title)}
+               >
+                  {t('Запросить ещё')}
+               </Button>
+               <span className='text-ink-soft text-xs'>
+                  {t('Файлы ответа — в data room «На проверке»')}
+               </span>
+            </div>
+         )}
          {writable && mode === null && (
             <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs'>
                {waiting && (
@@ -432,6 +519,7 @@ const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
    const { t: tLayout } = useTranslation('layout');
    const requests = deal.requests ?? [];
    const open = requests.filter(({ status }) => status === 'waiting');
+   const checking = requests.filter(({ status }) => status === 'answered');
    const writable = isOpen(deal);
    const first = open[0];
    const author = first && TEAM.find(({ id }) => id === first.byId);
@@ -453,10 +541,15 @@ const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
       <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
          <div className={STACK}>
             <Card
-               hint={`${t('{{count}} открытый', { count: open.length })} · ${t(
-                  '{{count}} закрыт',
-                  { count: requests.length - open.length },
-               )}`}
+               hint={[
+                  t('{{count}} открытый', { count: open.length }),
+                  ...(checking.length
+                     ? [t('{{count}} ответ на проверке', { count: checking.length })]
+                     : []),
+                  t('{{count}} закрыт', {
+                     count: requests.length - open.length - checking.length,
+                  }),
+               ].join(' · ')}
                title={t('Запросы заявителю')}
             >
                {requests.length ? (
@@ -468,6 +561,7 @@ const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
                            line={requestLine(request)}
                            request={request}
                            writable={writable}
+                           onRequest={onRequest}
                         />
                      ))}
                   </ul>
@@ -566,14 +660,18 @@ const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
                >
                   <div className='p-5'>
                      <p className='text-ink-soft text-xs'>
-                        {deal.applicantEmail
+                        {deal.fromSite
                            ? t(
-                                'Кабинета заявителя пока нет: отправьте запрос на {{email}} сами. Ниже — как он будет выглядеть в кабинете.',
-                                { email: deal.applicantEmail },
+                                'Заявитель видит запрос в кабинете основателя и отвечает там; ответ и файлы придут сюда. Ниже — как запрос выглядит у него.',
                              )
-                           : t(
-                                'Кабинета заявителя пока нет: отправьте запрос заявителю сами. Ниже — как он будет выглядеть в кабинете.',
-                             )}
+                           : deal.applicantEmail
+                             ? t(
+                                  'У сделки без заявки с сайта нет кабинета: отправьте запрос на {{email}} сами. Ниже — как он выглядел бы в кабинете.',
+                                  { email: deal.applicantEmail },
+                               )
+                             : t(
+                                  'У сделки без заявки с сайта нет кабинета: отправьте запрос заявителю сами. Ниже — как он выглядел бы в кабинете.',
+                               )}
                      </p>
                      {/* a picture of the applicant's screen, not controls */}
                      <div

@@ -495,6 +495,7 @@ class Deals {
                      closedAt: '',
                      detail: '',
                      warning: '',
+                     ddQuestionnaire: input.ddQuestionnaire,
                   },
                   ...(deal.requests ?? []),
                ],
@@ -751,6 +752,20 @@ class Deals {
             { kind: 'answered', title, userId },
          );
       });
+   }
+
+   /* The fund accepts what the founder answered in the cabinet: the request
+      was closed for the stage clock when the answer came (decision D4), and
+      now leaves «Ответ получен — проверьте». */
+   async acceptAnswer(id: string, requestId: string) {
+      await change(id, (deal) => ({
+         ...deal,
+         requests: deal.requests?.map((item) =>
+            item.id === requestId && item.status === 'answered'
+               ? { ...item, status: 'accepted' as const }
+               : item,
+         ),
+      }));
    }
 
    // A request's wording and deadline; for an answered one, its answer too.

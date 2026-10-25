@@ -31,6 +31,7 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
 | 7 — Справочники and status fields | created by Claude Code, checked with `verify.mjs`; rows 4 + 13 + 12 + 8 | not started |
 | 8 — the editable panel | created by Claude Code on 24 October; rows 6 + 8 + 4 + 2 | not started |
 | 9 — data room folders and document templates | created by Claude Code on 24 October; no rows | not started |
+| 10 — the startup cabinet | created by Claude Code on 25 October; no rows | not started |
 
 - 18 October: the schema read through the MCP (`get_dbml`) and compared with `node scripts/ucode/schema.mjs check`: all 27 tables, every field with its column type and all 25 relations match batches T–3, with no extra fields.
 - 18 October, batches 4 and 5: tables made with the MCP's `create_table` in Admin, fields with `POST /v2/fields/{table}` (see «The ucode MCP»), relations with `update_table`. After them, `check` on `get_dbml`'s output: 39 tables and all 41 relations, every table of batches 4 and 5 ✓ except three fields of `portfolio_companies`, fixed the same day (below).
@@ -58,6 +59,7 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
   - `verify.mjs` afterwards: 441 fields and 49 relations, no problems.
 - 24 October, batch 8 (the editable panel): the ucode MCP answered «No valid MCP session», so its tools were done with the admin API they wrap: the 5 tables with `POST /v1/table` (`menu_id` = the Admin sub-folder; each checked in its folder with `GET /v3/menus`), the 47 fields with `fields.mjs create 8`, the 4 pick lists with `fields.mjs options 8 --write`, the 4 relations with `POST /v2/relations/{table}` (`{table_from, table_to, type: "Many2One", view_fields: [], attributes}`; each checked by its LOOKUP field), the rows with `rows.mjs insert 8 --write`. ucode keeps a value a PICK_LIST or STATUS field does not list (a probe row, 24 October), so the fund's own stages and task statuses need no field change. The panel uploads files with the signed-in person's token to `POST /v1/files/folder_upload?folder_name=…` and deletes them with `DELETE /v1/files` (`{objects: [{object_id}]}`). `panel-test.mjs` passed all its checks, those of batch 8 included. The new tables are not yet named in Russian and Uzbek (`names.mjs`, `admin-ui.mjs`).
 - 24 October, batch 9 (data room folders, document templates): the 2 tables with `POST /v1/table` as in batch 8, the 15 fields with `fields.mjs create 9`, the 2 relations with `POST /v2/relations/{table}`, each checked by its LOOKUP field (`deal_folders.deals_id`, `deal_documents.deal_folders_id`). A document points to its folder by that relation, since ucode adds its own `folder_id` to every table. `panel-test.mjs` passed all 92 checks on 24 October, the folders, the templates and an answer's filled-in files included; `verify.mjs` found all 503 fields and 55 relations, and `verify.mjs --writes` found every field the run wrote (38 tables). The tables are not yet named in Russian and Uzbek.
+- 25 October, batch 10 (the startup cabinet): `founder_codes` and `deal_questionnaires` made with the MCP's `create_table` in the folder Startup cabinet (`menu_id` `21a20661-…`), their 9 fields with `fields.mjs create 10`, the 2 relations of `deal_questionnaires` with the MCP's `update_table`; read back with `GET /v2/fields/{table}`: every field with its type, `deals_id` and `deal_requests_id` as LOOKUP fields. The tables are not yet named in Russian and Uzbek. The cabinet (`venture/startup-cabinet`) reads `deal_questionnaires` as empty where the table is missing, so a project without batch 10 still opens it; signing in needs `founder_codes`.
 - Files uploaded to ucode Files are public: a pitch deck the website stored opens at `https://cdn.u-code.io/<its path>` without a token (checked 19 October). Документы therefore keeps links, not files; the decks need the private folder and §7 of ERP.md.
 - The ucode environment of this project is named "Production" in ucode (its only environment, `9f012d7a-0eb0-4a3a-87c7-16661eafce08`), though it is used for testing; the website's live deployment does not use it (its tables did not exist here until batch T).
 - Folder ids: Admin `60e0336b-5017-49ca-8c96-123aa5e2c9db` (the only folder named Admin), Landing page `39d78d3e-d0dc-49ef-9e99-5491b0968a41`, Startup cabinet `21a20661-d27b-43a4-98ed-37604fe83833`. All three sit under ucode's main menu, `c57eedc3-a954-4262-a0af-376c65b5a284`. Admin's sub-folders are found by their English name (`admin-ui.mjs`).
@@ -1094,6 +1096,36 @@ New fields in the existing table deal_documents
 Relations (Many2One, from table → target table; ucode names the field {target}_id)
 - deal_folders → deals
 - deal_documents → deal_folders
+```
+
+## Batch 10 — the startup cabinet
+
+The founders' cabinet (`venture/startup-cabinet`; the spec is [cabinet-and-website.md](cabinet-and-website.md)). Its server calls ucode with the project key, so a founder has no ucode user; it needs two tables of its own, in the folder **Startup cabinet**.
+
+- **Sign-in codes.** A founder signs in with a one-time code sent to the application's email (decision D1 (a)). `founder_codes` keeps each code as an HMAC hash with its expiry and wrong attempts, so every container of the cabinet sees it; nothing else reads it.
+- **The DD questionnaire.** `deal_questionnaires` holds a deal's answers to the fund's questionnaire, one row per request marked as the DD questionnaire (`deal_requests.is_dd_questionnaire`, batch 2). `answers` is JSON: `{sections: [{id, title, items: [{id, question, answer, value}]}]}`, the wording in Russian, so the panel shows the answers as asked. `submitted_at` is set when the founder sends it; the request is then answered like any other.
+- **What the cabinet writes to the existing tables** needs no new field: `deal_requests` (`status` `answered`, `answer`, `closed_at`), `deal_documents` (`uploaded_by` `applicant`, `uploaded_by_id` empty, `status` `review`), `deal_events` (`employee_id` empty), `deals` (`waiting`, `paused_days`, `paused_since`), and, for a portfolio company, `quarter_reports`, `metric_values`, `company_requests` and `attachments` (`section` `report`, `item_id` `<quarter>:<slug>`).
+- `cabinet_members` (more people per startup, D9) and the `notified_at` fields of the letters (D8) wait for those decisions.
+
+```
+Batch 10. Same rules: every new table inside the folder "Startup cabinet". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table founder_codes
+- email: EMAIL
+- code_hash: SINGLE_LINE
+- expires_at: DATE_TIME
+- attempts: NUMBER
+- used_at: DATE_TIME
+- ip: SINGLE_LINE
+
+Table deal_questionnaires
+- answers: JSON
+- sections_done: NUMBER
+- submitted_at: DATE_TIME
+
+Relations (Many2One, from table → target table; ucode names the field {target}_id)
+- deal_questionnaires → deals
+- deal_questionnaires → deal_requests
 ```
 
 ## Checking what was created

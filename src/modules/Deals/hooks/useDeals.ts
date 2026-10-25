@@ -1,4 +1,5 @@
 import type { Deal, DealsSummary } from '@shared/types/deals.types';
+import { useRefreshOnReturn } from '@shared/hooks';
 import { useEffect, useState } from 'react';
 import deals from '../services';
 
@@ -37,6 +38,8 @@ const useDeals = () => {
          unsubscribe();
       };
    }, []);
+   // an answer from the startup cabinet comes in when the person returns
+   useRefreshOnReturn(() => deals.reload());
 
    return state;
 };

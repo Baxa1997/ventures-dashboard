@@ -109,6 +109,17 @@ export interface Screening {
    completedAt: string | null; // YYYY-MM-DD
 }
 
+// The founders' DD questionnaire as the startup cabinet stores it
+// (deal_questionnaires, ucode batch 10): each question with its answer, in Russian.
+export interface QuestionnaireAnswers {
+   sections: {
+      id: string;
+      title: string;
+      items: { id: string; question: string; answer: string }[];
+   }[];
+   submittedAt: string; // YYYY-MM-DD HH:mm, '' while the founder fills it in
+}
+
 export interface DealRequest {
    id: string;
    title: string;
@@ -116,10 +127,14 @@ export interface DealRequest {
    byId: string;
    sentAt: string; // YYYY-MM-DD
    dueDate: string; // YYYY-MM-DD
-   status: 'waiting' | 'accepted';
+   // answered: the founder answered in the cabinet and the fund checks it;
+   // accepted: closed, by the fund's check or an answer the fund recorded itself
+   status: 'waiting' | 'answered' | 'accepted';
    closedAt: string; // YYYY-MM-DD, '' while waiting
    detail: string; // the applicant's answer, once it came
    warning: string; // what holds the request up, if anything
+   ddQuestionnaire: boolean; // the fund's DD questionnaire, answered in the cabinet
+   questionnaire?: QuestionnaireAnswers; // its answers, once the founder starts
 }
 
 export type DocumentStatus = 'review' | 'accepted' | 'rejected' | 'required';
