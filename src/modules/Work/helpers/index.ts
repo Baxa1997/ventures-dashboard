@@ -161,6 +161,13 @@ export const queueWording = (
             number: item.note,
          }),
       };
+   if (item.kind === 'company_answer')
+      return {
+         title: t('Проверить ответ компании: {{title}}', { title: item.title }),
+         note: item.note
+            ? t('ответил в кабинете {{email}}', { email: item.note })
+            : '',
+      };
    if (item.kind === 'document')
       return {
          title: t('Проверить документ: {{title}}', { title: item.title }),

@@ -90,6 +90,13 @@ const History = ({ deal }: HistoryProps) => {
                name: personName(entry.userId),
             });
          case 'moved': {
+            // the founder withdrew the application in the startup cabinet
+            if (!entry.userId && entry.status === 'withdrawn')
+               return entry.reason
+                  ? t('Заявитель отозвал заявку в кабинете: {{reason}}', {
+                       reason: entry.reason,
+                    })
+                  : t('Заявитель отозвал заявку в кабинете');
             const moved = {
                stage: stageName(entry.stage),
                status: t(STATUS_LABELS[entry.status]).toLowerCase(),

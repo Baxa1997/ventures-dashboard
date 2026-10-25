@@ -549,7 +549,34 @@ class Work {
    async getQueue(userId: string): Promise<QueueItem[]> {
       const today = todayISO();
       const done = readQueueDone();
-      return queueOf(await deals.getDeals(), userId, today).map((item) => ({
+      const [all, holdings] = await Promise.all([
+         deals.getDeals(),
+         portfolio.getState(),
+      ]);
+      // a company's answer from the startup cabinet, for its owner to check
+      const companyAnswers = holdings.dataRequests.flatMap(
+         (request): QueueItem[] => {
+            const company = holdings.companies.find(
+               ({ id }) => id === request.companyId,
+            );
+            return request.status === 'answered' && company?.ownerId === userId
+               ? [
+                    {
+                       id: `company-answer-${request.id}`,
+                       kind: 'company_answer',
+                       ownerId: userId,
+                       subject: company.name,
+                       section: 'portfolio',
+                       title: request.title,
+                       note: request.answeredBy,
+                       dueDate: '',
+                       completedAt: null,
+                    },
+                 ]
+               : [];
+         },
+      );
+      return [...queueOf(all, userId, today), ...companyAnswers].map((item) => ({
          ...item,
          completedAt: done[item.id] ?? null,
       }));
@@ -610,6 +637,27 @@ class Work {
                     date: cycle.due,
                  }))
             : [];
+      // the fund's requests for data the companies have not answered yet
+      const fromCompanyRequests = holdings.dataRequests.flatMap(
+         (request): WaitingItem[] => {
+            const company = holdings.companies.find(
+               ({ id }) => id === request.companyId,
+            );
+            return request.status === 'waiting' && company?.ownerId === userId
+               ? [
+                    {
+                       id: `data-${request.id}`,
+                       ownerId: userId,
+                       from: company.name,
+                       source: 'company',
+                       title: request.title,
+                       when: 'until',
+                       date: request.dueDate,
+                    },
+                 ]
+               : [];
+         },
+      );
       const fromColleagues = tasks
          .filter(
             (task) =>
@@ -630,7 +678,12 @@ class Work {
                      event.kind === 'status' && event.status === 'waiting',
                )?.date ?? task.createdAt,
          }));
-      return [...fromApplicants, ...fromCompanies, ...fromColleagues];
+      return [
+         ...fromApplicants,
+         ...fromCompanies,
+         ...fromCompanyRequests,
+         ...fromColleagues,
+      ];
    }
 
    // The deals a person runs, the furthest along first.

@@ -1,4 +1,5 @@
 import DataRequestDialog from '@modules/Portfolio/components/DataRequestDialog';
+import DataRequests from '@modules/Portfolio/components/DataRequests';
 import FollowOnDialog from '@modules/Portfolio/components/FollowOnDialog';
 import QuarterMetricsDialog from '@modules/Portfolio/components/QuarterMetricsDialog';
 import ReportDocTitle from '@modules/Portfolio/components/ReportDocTitle';
@@ -102,8 +103,16 @@ const CompanyView = ({ data, company }: ViewProps) => {
       ({ companyId, status }) =>
          companyId === company.id && status !== 'closed',
    ).length;
+   const dataRequests = data.dataRequests.filter(
+      ({ companyId }) => companyId === company.id,
+   );
+   // waiting for the company, or for the fund's check
+   const openData = dataRequests.filter(
+      ({ status }) => status !== 'accepted',
+   ).length;
    const counts: Partial<Record<CardTab, number>> = {
       reports: reportDocs().length,
+      data: openData || undefined,
       pilots: company.pilots.length || undefined,
       requests: openRequests || undefined,
    };
@@ -185,6 +194,13 @@ const CompanyView = ({ data, company }: ViewProps) => {
             )}
             {tab === 'reports' && (
                <ReportsTab company={company} cycle={data.cycle} />
+            )}
+            {tab === 'data' && (
+               <DataRequests
+                  company={company}
+                  requests={dataRequests}
+                  onNew={() => setRequesting(true)}
+               />
             )}
             {tab === 'pilots' && <Pilots companyId={company.id} data={data} />}
             {tab === 'requests' && (

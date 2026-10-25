@@ -386,7 +386,7 @@ The panel counts this for the screen (`tallyVotes`); `protocol_form` counts it a
 
 **company_request_open**: a `company_requests` row and a `company_request` task for the owner; **company_request_answer** closes both.
 
-**data_request**(company, text): a `data_request` task for the company's owner, as «Запросить данные» does now.
+**data_request**(company, text): a request in `company_data_requests` (batch 11), which the company answers in its startup cabinet, as «Запросить данные» does now.
 
 **follow_on_open**(company): a deal in Сделки linked to the company, as «Открыть follow-on» does now.
 

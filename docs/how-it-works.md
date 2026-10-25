@@ -61,6 +61,12 @@ reports, metrics and requests to the fund.
   «На проверке»; the owner accepts it («Принять») or asks for more. Мой день
   lists it for the deal's owner, and the deal's История names the applicant.
 - A rejected document gets a new version from the cabinet; the old one stays.
+- The founder who applied adds the startup's people in «Участники», each with a
+  role (CEO, CFO, CTO, participant), and can withdraw the application; a
+  withdrawn or rejected application makes the cabinet read-only.
+- After the investment, «Запросить данные» on the company's card reaches the
+  company's cabinet; its answer and files come back to the card's «Запросы
+  данных» for «Принять».
 - The founder never sees the owner, scores, notes, committee data, terms, the
   fund's own files or the journal.
 - The panel sends no emails yet; the cabinet sends only the sign-in code.

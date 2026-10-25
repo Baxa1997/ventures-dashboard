@@ -214,5 +214,7 @@
    "Проверить ответ заявителя: {{title}}": "Check the applicant’s answer: {{title}}",
    "пришёл из кабинета основателя · {{number}}": "came from the founder account · {{number}}",
    "Проверить документ: {{title}}": "Check the document: {{title}}",
-   "загружен заявителем в кабинете · {{version}}": "uploaded by the applicant in the founder account · {{version}}"
+   "загружен заявителем в кабинете · {{version}}": "uploaded by the applicant in the founder account · {{version}}",
+   "Проверить ответ компании: {{title}}": "Check the company’s answer: {{title}}",
+   "ответил в кабинете {{email}}": "answered in the founder account by {{email}}"
 }

@@ -62,6 +62,31 @@ export interface CompanyRequest {
    answer: string;
 }
 
+/* A request for data from the fund to a company (company_data_requests, ucode
+   batch 11). The company answers it in the startup cabinet; its files are the
+   company's attachments: the fund's under `data_request`, the answer's under
+   `data_answer`, by the request's id. */
+export interface CompanyDataRequest {
+   id: string;
+   companyId: string;
+   title: string;
+   text: string;
+   byId: string; // the employee who asked
+   sentAt: string; // YYYY-MM-DD
+   dueDate: string; // YYYY-MM-DD
+   // answered: the company answered in the cabinet and the fund checks it
+   status: 'waiting' | 'answered' | 'accepted';
+   answer: string;
+   closedAt: string; // YYYY-MM-DD, '' while waiting
+   answeredBy: string; // who answered in the cabinet (email), '' when the fund recorded it
+}
+
+export interface DataRequestInput {
+   title: string;
+   text: string;
+   dueDate: string;
+}
+
 export interface PortfolioCompany {
    id: string; // also the address of the company's card
    name: string;

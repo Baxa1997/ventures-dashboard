@@ -214,5 +214,7 @@
    "Проверить ответ заявителя: {{title}}": "Ariza beruvchi javobini tekshirish: {{title}}",
    "пришёл из кабинета основателя · {{number}}": "asoschi kabinetidan keldi · {{number}}",
    "Проверить документ: {{title}}": "Hujjatni tekshirish: {{title}}",
-   "загружен заявителем в кабинете · {{version}}": "ariza beruvchi kabinetda yuklagan · {{version}}"
+   "загружен заявителем в кабинете · {{version}}": "ariza beruvchi kabinetda yuklagan · {{version}}",
+   "Проверить ответ компании: {{title}}": "Kompaniya javobini tekshirish: {{title}}",
+   "ответил в кабинете {{email}}": "kabinetda javob berdi: {{email}}"
 }

@@ -838,5 +838,7 @@
    "Заявка с сайта": "Saytdan ariza",
    "Ответ заявителя записан: {{title}} · {{name}}": "Ariza beruvchi javobi yozildi: {{title}} · {{name}}",
    "Заявитель ответил на запрос в кабинете: {{title}}": "Ariza beruvchi kabinetda so‘rovga javob berdi: {{title}}",
-   "Заявитель загрузил документ в кабинете: {{title}}": "Ariza beruvchi kabinetda hujjat yukladi: {{title}}"
+   "Заявитель загрузил документ в кабинете: {{title}}": "Ariza beruvchi kabinetda hujjat yukladi: {{title}}",
+   "Заявитель отозвал заявку в кабинете: {{reason}}": "Ariza beruvchi arizani kabinetda qaytarib oldi: {{reason}}",
+   "Заявитель отозвал заявку в кабинете": "Ariza beruvchi arizani kabinetda qaytarib oldi"
 }

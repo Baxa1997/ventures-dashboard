@@ -15,7 +15,8 @@ Field names below are ucode slugs. Values in `code` are the exact values to writ
 - Decisions taken: D1 (a), a one-time code to the email (needs SMTP; in development the code is shown on the page); D2, four statuses with the stage under them; D3, the fund's files hidden; D4, `answered`; D5, uploads allowed into «Другие документы»; D6, never back; D10, uz/ru/en. D7, D8 and D9 are left for later.
 - Batch 10 is created in the test project: `founder_codes` and `deal_questionnaires` (ucode-migration.md).
 - The panel: P1 (answered requests with «Принять» / «Запросить ещё»), P2 (`is_dd_questionnaire` written and read), P3 (the questionnaire's answers on its request), P4 (the preview's wording), P6 (the applicant named in История), P7 (answers and documents from the cabinet in Мой день), P8 (Сделки and Портфель read again when the person returns to the tab), P9 (a quarter's files from the company in Квартальная отчётность). P5 was done on 24 October.
-- Not done: deploying the cabinet (its address, Vault, SMTP), pointing the website's `FOUNDER_ACCOUNT_URL` at it, and the production rollout of batches 1–10. Part B is unchanged.
+- Also built, on 25 October (batch 11): the members (D9: the CEO adds the startup's people with roles; each signs in with a code to their own email), withdrawing the application (D7), the fund's data requests to a portfolio company reaching its cabinet, sessions that end on sign-out (a revoked sign-in), old sign-in codes cleaned up, and the cabinet reading the account again when the founder returns to the tab. A deal the fund rejected makes the cabinet read-only.
+- Not done: letters (D8, left out on purpose for now), deploying the cabinet (its address, Vault, SMTP), pointing the website's `FOUNDER_ACCOUNT_URL` at it, and the production rollout of batches 1–11. Part B is unchanged.
 
 ---
 
@@ -275,7 +276,7 @@ When the deal joins the portfolio (`public_status` = `portfolio`), the cabinet a
 
 - The founder opens one as a `company_requests` row: `title`, `note`, `opened_at` = today, `status` = `waiting_fund`, `portfolio_companies_id`.
 - The fund answers in the panel: `status` = `closed`, `answer`, `answered_at`. The cabinet shows the answer.
-- **Gap:** when the fund asks a company for data («Запросить данные»), the panel only makes a task for the fund (`origin` = `data_request`). Nothing reaches the company yet.
+- **Done (batch 11):** when the fund asks a company for data («Запросить данные»), the request (`company_data_requests`) reaches the company's cabinet, which answers it with a text and files; the answer waits on the company's card for «Принять».
 
 ## 9. Rules the cabinet keeps
 

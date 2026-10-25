@@ -139,7 +139,7 @@ Needs the company of step 0.
 3. «Квартальная отчётность»: the company's documents for the quarter, and its figures «Заполнено из шаблона …» → «Проверить» → «Подтвердить показатели» → «Подтверждены».
 4. «Запросы компаний»: the request waits for the fund (the sidebar «Портфель» counter is 1) → answer it → closed, the counter goes to 0.
 5. «Пилоты с SQB»: the pilot with its status.
-6. Open the company's card → its seven tabs; «Запросить данные» with a text → a task for the company's owner, linked to the company, in Задачи. «Открыть follow-on» → a new deal for the company in Сделки → Входящие.
+6. Open the company's card → its eight tabs; «Запросить данные» with what is needed and a date → the tab «Запросы данных» lists it «Ждём ответа», and the owner's Мой день has it under «Ждёте от других». A company with a startup cabinet answers it there; then it is «Ответ получен — проверьте» with the files, and «Принять» closes it. For a company without a cabinet, «Ответ получен» records the answer. «Открыть follow-on» → a new deal for the company in Сделки → Входящие.
 
 ## 14. Настройки
 

@@ -13,9 +13,12 @@ import {
 } from '@shared/api/ucode';
 import settings, { listIdOf, listKeyOf } from '@modules/Settings/services';
 import { createStore, newId, todayISO } from '@shared/helpers';
+import attachments from '@shared/services/attachments';
 import type { Deal } from '@shared/types/deals.types';
 import type {
+   CompanyDataRequest,
    CompanyRequest,
+   DataRequestInput,
    Instrument,
    Investment,
    MetricKey,
@@ -42,7 +45,8 @@ import {
 
 export interface PortfolioState {
    companies: PortfolioCompany[];
-   requests: CompanyRequest[];
+   requests: CompanyRequest[]; // the companies' requests to the fund
+   dataRequests: CompanyDataRequest[]; // the fund's requests for data, newest first
    cycle: ReportingCycle;
 }
 
@@ -146,6 +150,22 @@ const toRequest = (row: Row): CompanyRequest => ({
    answer: str(row.answer),
 });
 
+const DATA_STATUSES: CompanyDataRequest['status'][] = ['waiting', 'answered', 'accepted'];
+
+const toDataRequest = (row: Row): CompanyDataRequest => ({
+   id: row.guid,
+   companyId: str(row.portfolio_companies_id),
+   title: str(row.title),
+   text: str(row.text),
+   byId: str(row.sent_by_id),
+   sentAt: day(row.sent_at),
+   dueDate: day(row.due_date),
+   status: DATA_STATUSES.find((status) => status === row.status) ?? 'waiting',
+   answer: str(row.answer),
+   closedAt: day(row.closed_at),
+   answeredBy: str(row.answered_by),
+});
+
 // The rows behind the state, to write changes back to.
 let rowIds = {
    cycle: '',
@@ -162,8 +182,11 @@ const valueKey = (companyId: string, metric: string, quarter: string) =>
 const store = createStore<PortfolioState>(async () => {
    // the companies' sectors are rows of Настройки's industries
    await settings.getSettings();
-   const [companies, investments, reports, pilots, requests, cycles, values] =
-      await Promise.all(
+   const [
+      [companies, investments, reports, pilots, requests, cycles, values],
+      dataRequests,
+   ] = await Promise.all([
+      Promise.all(
          [
             'portfolio_companies',
             'investments',
@@ -173,7 +196,13 @@ const store = createStore<PortfolioState>(async () => {
             'reporting_cycles',
             'metric_values',
          ].map((table) => listRows(table)),
-      );
+      ),
+      // the startup cabinet's table (batch 11): a project without it reads none
+      listRows('company_data_requests').catch((error: unknown) => {
+         console.warn('company_data_requests could not be read', error);
+         return [];
+      }),
+   ]);
    const by = {
       investments: groupBy(investments, 'portfolio_companies_id'),
       reports: groupBy(reports, 'portfolio_companies_id'),
@@ -232,6 +261,9 @@ const store = createStore<PortfolioState>(async () => {
       requests: requests
          .map(toRequest)
          .sort((a, b) => b.openedAt.localeCompare(a.openedAt)),
+      dataRequests: dataRequests
+         .map(toDataRequest)
+         .sort((a, b) => b.sentAt.localeCompare(a.sentAt)),
       cycle: {
          quarter,
          due: (latest && day(latest.due)) || rule.due,
@@ -398,6 +430,62 @@ class Portfolio {
       });
       await store.reload();
       return id;
+   }
+
+   /* A request for data to a company: it shows in the company's startup
+      cabinet («Компания» → «Запросы от фонда»), which answers it there. */
+   async addDataRequest(companyId: string, input: DataRequestInput, userId: string) {
+      await createRow('company_data_requests', {
+         guid: newId(),
+         title: input.title,
+         text: input.text,
+         due_date: input.dueDate || null,
+         sent_by_id: userId,
+         sent_at: todayISO(),
+         status: 'waiting',
+         answer: '',
+         portfolio_companies_id: companyId,
+      });
+      await store.reload();
+   }
+
+   async updateDataRequest(id: string, input: DataRequestInput) {
+      await updateRow('company_data_requests', {
+         guid: id,
+         title: input.title,
+         text: input.text,
+         due_date: input.dueDate || null,
+      });
+      await store.reload();
+   }
+
+   // The fund records an answer that came another way (a company without a cabinet).
+   async recordDataAnswer(id: string, answer: string) {
+      await updateRow('company_data_requests', {
+         guid: id,
+         status: 'accepted',
+         answer,
+         closed_at: todayISO(),
+         answered_by: '',
+      });
+      await store.reload();
+   }
+
+   // The fund checked what the company answered in the cabinet.
+   async acceptDataAnswer(id: string) {
+      await updateRow('company_data_requests', { guid: id, status: 'accepted' });
+      await store.reload();
+   }
+
+   // Deletes a request with its files: the fund's and those of the answer.
+   async removeDataRequest(id: string, companyId: string) {
+      await deleteRow('company_data_requests', id);
+      await Promise.all(
+         ['data_request', 'data_answer'].map((section) =>
+            attachments.removeAt({ companyId, section, itemId: id }),
+         ),
+      );
+      await store.reload();
    }
 
    async answerRequest(id: string, answer: string) {

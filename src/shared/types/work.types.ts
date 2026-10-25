@@ -106,14 +106,16 @@ export type DecisionAction = 'memo' | 'decide';
    - memo: a memorandum waiting for them, its sponsor, to approve;
    - screening: a screening decision waiting for them, the second reviewer. */
 // answer, document: what the founder sent from the startup cabinet, for the
-// deal's owner to check
+// deal's owner to check; company_answer: a portfolio company's answer to the
+// fund's request for data, for the company's owner
 export type QueueKind =
    | 'inbox'
    | 'next'
    | 'memo'
    | 'screening'
    | 'answer'
-   | 'document';
+   | 'document'
+   | 'company_answer';
 
 export interface QueueItem {
    id: string;

@@ -838,5 +838,7 @@
    "Заявка с сайта": "Application from the website",
    "Ответ заявителя записан: {{title}} · {{name}}": "Applicant’s answer recorded: {{title}} · {{name}}",
    "Заявитель ответил на запрос в кабинете: {{title}}": "The applicant answered in the founder account: {{title}}",
-   "Заявитель загрузил документ в кабинете: {{title}}": "The applicant uploaded a document in the founder account: {{title}}"
+   "Заявитель загрузил документ в кабинете: {{title}}": "The applicant uploaded a document in the founder account: {{title}}",
+   "Заявитель отозвал заявку в кабинете: {{reason}}": "The applicant withdrew the application in the founder account: {{reason}}",
+   "Заявитель отозвал заявку в кабинете": "The applicant withdrew the application in the founder account"
 }
