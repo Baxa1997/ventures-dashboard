@@ -723,19 +723,28 @@ const eventRow = (entry: JournalEntry, deal: Deal): Record<string, unknown> => {
    return row;
 };
 
-// Creates the rows of new items and changes the rows of changed ones; the panel removes none.
+/* Creates the rows of new items and changes the rows of changed ones; the
+   panel removes none. A changed row gets only the fields that changed, so
+   what the startup cabinet wrote to the others meanwhile (a founder's answer
+   to a request while the deal was open here) is not written over. */
 const syncItems = <T extends { id: string }>(
    table: string,
    before: T[] | undefined,
    after: T[] | undefined,
    toRow: (item: T, index: number) => Record<string, unknown>,
 ) => {
-   const old = new Map((before ?? []).map((item) => [item.id, item]));
+   const old = new Map((before ?? []).map((item, index) => [item.id, { item, index }]));
    return (after ?? []).map((item, index) => {
       const previous = old.get(item.id);
       if (!previous) return createRow(table, { guid: item.id, ...toRow(item, index) });
-      if (!same(previous, item)) return updateRow(table, { guid: item.id, ...toRow(item, index) });
-      return Promise.resolve();
+      if (same(previous.item, item)) return Promise.resolve();
+      const was = toRow(previous.item, previous.index);
+      const changed = Object.fromEntries(
+         Object.entries(toRow(item, index)).filter(([key, value]) => !same(value, was[key])),
+      );
+      return Object.keys(changed).length
+         ? updateRow(table, { guid: item.id, ...changed })
+         : Promise.resolve();
    });
 };
 
