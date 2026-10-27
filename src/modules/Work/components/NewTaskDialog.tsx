@@ -3,10 +3,15 @@ import { useAction } from '@shared/hooks';
 import type { TaskInput } from '@shared/types/work.types';
 import { useTranslation } from 'react-i18next';
 import { closeNewTask, useNewTask, useTasks } from '../hooks';
+import type { NewTaskPreset } from '../hooks/useNewTask';
 import TaskForm from './TaskForm';
 
+interface NewTaskProps {
+   preset: NewTaskPreset;
+}
+
 // The form, mounted while the dialog is open, so the tasks are read then.
-const NewTask = () => {
+const NewTask = ({ preset }: NewTaskProps) => {
    const { t } = useTranslation('work');
    const { employees, targets, createTask } = useTasks();
    const saving = useAction(
@@ -20,6 +25,7 @@ const NewTask = () => {
    return (
       <TaskForm
          employees={employees}
+         preset={preset}
          saving={saving.pending}
          targets={targets}
          onSubmit={saving.run}
@@ -27,20 +33,21 @@ const NewTask = () => {
    );
 };
 
-// A new task over whatever page is open: the top bar's «+» and the
-// dashboard's «Новая задача» open it, and the person stays where they were.
+// A new task over whatever page is open: the top bar's «+», the dashboard's
+// «Новая задача» and Мой день's «Задача на сегодня» open it, and the person
+// stays where they were.
 const NewTaskDialog = () => {
    const { t } = useTranslation('work');
-   const open = useNewTask();
+   const preset = useNewTask();
 
    return (
       <Modal
-         open={open}
+         open={preset !== null}
          size='wide'
          title={t('Новая задача')}
          onClose={closeNewTask}
       >
-         {open && <NewTask />}
+         {preset && <NewTask preset={preset} />}
       </Modal>
    );
 };

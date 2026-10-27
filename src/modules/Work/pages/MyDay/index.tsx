@@ -1,124 +1,165 @@
-import { formatToday } from '@modules/Work/helpers';
+import { openNewTask } from '@modules/Work/hooks';
+import { todayISO } from '@modules/Work/helpers';
 import {
-   buttonClass,
+   Button,
    Card,
    Loading,
    NoData,
    PageBody,
    PageHeader,
+   Tabs,
 } from '@shared/components';
-import { SECTION_PATHS } from '@shared/constants';
+import { formatNumericDate } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
+import type { Task } from '@shared/types/work.types';
+import { ListChecks, Plus, Stamp } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
-import { Deadlines, MyDeals, TaskRow, Waiting } from './components';
-import { formatRange } from './helpers';
+import { useSearchParams } from 'react-router';
+import {
+   Approvals,
+   DayList,
+   QuickAdd,
+   Schedule,
+   SendBackDialog,
+   Upcoming,
+} from './components';
+import { UPCOMING_SHOWN } from './constants';
+import { formatDayTitle, toTab } from './helpers';
 import { useMyDay } from './hooks';
 
+/* Мой день, as the design draws it: the person's tasks by deadline and what
+   waits for their approval, in two tabs, beside today's schedule and the
+   deadlines ahead. */
 const MyDay = () => {
    const { t } = useTranslation('work');
-   const { t: tLayout } = useTranslation('layout');
    const user = useCurrentUser();
    const day = useMyDay(user.id);
-   const waitingCount = day.waiting.length + day.waitingTasks.length;
+   const [params, setParams] = useSearchParams();
+   const tab = toTab(params.get('tab'));
+   const [sendingBack, setSendingBack] = useState<Task | null>(null);
+   const today = todayISO();
+   const dueNow = day.overdue.length + day.today.length;
 
-   const meta = [
-      formatToday(),
-      [
-         t('{{count}} дело на неделю', { count: day.openCount }),
-         day.overdueCount > 0 &&
-            t('{{count}} просрочено', { count: day.overdueCount }),
-      ]
-         .filter(Boolean)
-         .join(', '),
-      t('всё, что ждёт именно вас, из сделок, портфеля и задач'),
-   ].join(' · ');
+   const meta = `${formatDayTitle(today)}. ${[
+      t('{{count}} встреча', { count: day.schedule.length }),
+      t('{{count}} задача на сегодня', { count: dueNow }),
+      t('{{count}} ждёт вашего согласования', {
+         count: day.approvals.length,
+      }),
+   ].join(', ')}.`;
 
    return (
       <>
          <PageHeader
-            section={tLayout('Работа')}
             title={t('Мой день')}
             meta={!day.loading && meta}
             actions={
-               <Link
-                  className={buttonClass('ghost')}
-                  to={`${SECTION_PATHS.tasks}?new=1`}
-               >
-                  {t('Новая задача')}
-               </Link>
+               <Button onClick={() => openNewTask({ dueDate: today })}>
+                  <Plus aria-hidden />
+                  {t('Задача на сегодня')}
+               </Button>
             }
-         />
-         <PageBody className='gap-section grid xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
-            <Card title={t('Нужно сделать вам')} hint={t('по сроку')}>
-               {day.loading ? (
-                  <Loading />
-               ) : day.items.length ? (
-                  <ul className='divide-line divide-y px-5 py-1'>
-                     {day.items.map((item) => (
-                        <TaskRow
-                           key={item.key}
-                           item={item}
-                           onToggle={day.toggle}
-                        />
-                     ))}
-                  </ul>
-               ) : (
-                  <NoData>{t('Дел, которые ждут вас, нет')}</NoData>
-               )}
-            </Card>
-
-            <div className='gap-section flex flex-col'>
-               <Card title={t('Ждёте от других')} hint={waitingCount}>
-                  {waitingCount ? (
-                     <Waiting items={day.waiting} tasks={day.waitingTasks} />
+         >
+            <Tabs
+               active={tab}
+               label={t('Мой день')}
+               items={[
+                  {
+                     id: 'mine',
+                     label: t('Мои задачи'),
+                     icon: ListChecks,
+                     count: dueNow || undefined,
+                  },
+                  {
+                     id: 'approve',
+                     label: t('Ждут моего согласования'),
+                     icon: Stamp,
+                     count: day.approvals.length || undefined,
+                  },
+               ]}
+               onChange={(id) =>
+                  setParams(id === 'mine' ? {} : { tab: id }, { replace: true })
+               }
+            />
+         </PageHeader>
+         <PageBody className='gap-section grid items-start xl:grid-cols-[minmax(0,1fr)_21.25rem]'>
+            {tab === 'mine' ? (
+               <Card>
+                  <QuickAdd onAdd={day.addToday} />
+                  {day.loading ? (
+                     <Loading />
                   ) : (
-                     <NoData>{t('Вы ни от кого не ждёте ответа')}</NoData>
+                     <DayList
+                        day={day}
+                        targetName={day.targetName}
+                        onTickItem={day.tickItem}
+                        onTickTask={day.tickTask}
+                     />
                   )}
                </Card>
+            ) : (
                <Card
-                  title={t('Сроки на неделю')}
-                  hint={formatRange(day.week.start, day.week.end)}
+                  title={t('Ждут моего согласования')}
                   action={
-                     <Link className='link' to={SECTION_PATHS.tasks}>
-                        {t('Календарь')}
-                     </Link>
+                     <span className='text-ink-soft text-xs'>
+                        {day.approvals.length}
+                     </span>
                   }
                >
-                  {day.deadlines.length ? (
-                     <Deadlines items={day.deadlines} />
+                  {day.loading ? (
+                     <Loading />
+                  ) : day.approvals.length ? (
+                     <Approvals
+                        approvals={day.approvals}
+                        targetName={day.targetName}
+                        onApprove={day.approve}
+                        onApproveMemo={day.approveMemo}
+                        onSendBack={setSendingBack}
+                     />
                   ) : (
-                     <NoData>{t('На этой неделе сроков нет')}</NoData>
+                     <NoData>
+                        {t('Сейчас ничего не ждёт вашего согласования.')}
+                     </NoData>
                   )}
-               </Card>
-               <Card
-                  className='flex-1'
-                  title={t('Мои сделки')}
-                  hint={day.deals.length}
-                  action={
-                     <Link className='link' to={SECTION_PATHS.deals}>
-                        {t('Воронка')}
-                     </Link>
-                  }
-               >
-                  {day.deals.length ? (
-                     <MyDeals deals={day.deals} />
-                  ) : (
-                     <NoData>{t('Сделок, которые ведёте вы, нет')}</NoData>
-                  )}
-               </Card>
-               <div className='px-4'>
-                  <h2 className='text-meta font-semibold'>
-                     {t('Напоминания')}
-                  </h2>
-                  <p className='text-ink-soft mt-1 text-xs leading-4.25'>
+                  <p className='border-line text-ink-soft border-t px-3.5 py-2.5 text-xs'>
                      {t(
-                        'Каждый день в 09:00 письмо на рабочую почту, если есть сроки. Если сроков нет — письма нет.',
+                        'Сюда попадают задачи на проверке, где вы согласующий, меморандумы, которые вы утверждаете как спонсор, и скрининги, где вы второй оценщик',
                      )}
                   </p>
-               </div>
+               </Card>
+            )}
+
+            <div className='gap-section grid'>
+               <Card
+                  title={t('Расписание')}
+                  action={
+                     <span className='text-ink-soft text-xs'>
+                        {formatNumericDate(today)}
+                     </span>
+                  }
+               >
+                  {day.schedule.length ? (
+                     <Schedule items={day.schedule} />
+                  ) : (
+                     <NoData>{t('Встреч нет.')}</NoData>
+                  )}
+               </Card>
+               <Card title={t('Ближайшие сроки')}>
+                  {day.upcoming.length ? (
+                     <Upcoming items={day.upcoming.slice(0, UPCOMING_SHOWN)} />
+                  ) : (
+                     <NoData>{t('Сроков на две недели нет.')}</NoData>
+                  )}
+               </Card>
             </div>
          </PageBody>
+
+         <SendBackDialog
+            task={sendingBack}
+            onClose={() => setSendingBack(null)}
+            onSendBack={day.sendBack}
+         />
       </>
    );
 };

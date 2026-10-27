@@ -1,4 +1,6 @@
-export { default as Deadlines } from './Deadlines';
-export { default as MyDeals } from './MyDeals';
-export { default as TaskRow } from './TaskRow';
-export { default as Waiting } from './Waiting';
+export { default as Approvals } from './Approvals';
+export { default as DayList } from './DayList';
+export { default as QuickAdd } from './QuickAdd';
+export { default as Schedule } from './Schedule';
+export { default as SendBackDialog } from './SendBackDialog';
+export { default as Upcoming } from './Upcoming';

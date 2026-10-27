@@ -4,6 +4,7 @@ import {
    isDone,
    isOverdue,
    statusAfterTick,
+   targetNameOf,
    todayISO,
 } from '@modules/Work/helpers';
 import { useTasks, useWorkQuery } from '@modules/Work/hooks';
@@ -33,18 +34,11 @@ const useDashboard = (userId: string) => {
       };
    }, [tasks, userId]);
 
-   // the deal or the company a task is attached to
-   const targetName = (task: Task) =>
-      task.relation === 'none'
-         ? ''
-         : (targets[task.relation].find(({ id }) => id === task.relationId)
-              ?.name ?? '');
-
    return {
       board: board.data,
       myTasks: mine.tasks,
       overdueTasks: mine.overdue,
-      targetName,
+      targetName: (task: Task) => targetNameOf(targets, task),
       loading: board.loading || loading,
       // ticking a task closes it, or sends it to whoever checks it
       tickTask: (task: Task) =>

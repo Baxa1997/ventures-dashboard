@@ -3,7 +3,6 @@ import {
    committeeStateOf,
    getDeadline,
    isLate,
-   stageKeys,
    triageDue,
 } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
@@ -21,7 +20,7 @@ import {
    str,
    updateRow,
 } from '@shared/api/ucode';
-import { TEAM } from '@shared/constants';
+import { directorId, TEAM } from '@shared/constants';
 import { addWorkingDays, createStore, daysUntil, newId } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
 import type {
@@ -30,17 +29,16 @@ import type {
    Dashboard,
    Employee,
    FunnelGroup,
-   MyDeal,
    NextMeeting,
    Notice,
    QueueItem,
+   ScheduleItem,
    SectionCounters,
    Task,
    TaskEvent,
    TaskInput,
    TaskTargets,
-   WaitingItem,
-   WeekDeadline,
+   UpcomingItem,
 } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import { DATE_FORMAT, RECURRENCE_MONTHS } from '../constants';
@@ -48,20 +46,23 @@ import {
    getAssigneeId,
    isDone,
    isMine,
-   needsAction,
+   myDayCount,
+   myDayOf,
    shiftMonths,
    statusGroup,
    todayISO,
 } from '../helpers';
 
 /* Работа in ucode (docs/ucode-migration.md, batch 5): tasks with their
-   task_checklist and task_events rows. Мой день, the week's deadlines, the
-   dashboard and the sidebar counters have no tables of their own: they are
-   counted from the deals, the portfolio, the meetings and the tasks
-   (docs/ERP.md §5.7). */
+   task_checklist and task_events rows. Мой день, the dashboard and the
+   sidebar counters have no tables of their own: they are counted from the
+   deals, the portfolio, the meetings and the tasks (docs/ERP.md §5.7). */
 
 const QUEUE_DONE_KEY = 'sqbv_dashboard_queue_done';
 const NEXT_STEP_DAYS = 5; // a deal's next step this close comes to Мой день
+// how far ahead Мой день's «Ближайшие сроки» look, in days
+const UPCOMING_MEETING_DAYS = 14; // the meetings and the quarterly reports
+const UPCOMING_STAGE_DAYS = 7; // the deals' stage deadlines
 const RECENT_ACTIONS = 7; // the dashboard's latest actions
 // How far back or ahead the bell looks, in days: tasks given to the person,
 // new applications, the committee's next meeting.
@@ -477,8 +478,6 @@ const queueOf = (all: Deal[], userId: string, today: string): QueueItem[] => {
    });
 };
 
-const BODY_NAMES: Record<string, string> = { ic: 'ИК', board: 'НС' };
-
 class Work {
    // Calls the listener after every change to the data the pages show.
    subscribe(listener: () => void) {
@@ -676,172 +675,116 @@ class Work {
       notify();
    }
 
-   // Answers the person waits for: from applicants on their deals, from their
-   // companies after the reporting deadline, from colleagues on tasks they check.
-   async getWaiting(userId: string): Promise<WaitingItem[]> {
-      const [all, holdings, tasks] = await Promise.all([
-         deals.getDeals(),
-         portfolio.getState(),
-         store.get(),
-      ]);
+   // Мой день's «Расписание»: the meetings of the committee and the board
+   // held today, and the next steps of the person's deals set for an hour
+   // today; by the hour.
+   async getSchedule(userId: string): Promise<ScheduleItem[]> {
+      const [rows, all] = await Promise.all([meetings.get(), deals.getDeals()]);
       const today = todayISO();
-      const fromApplicants = all
-         .filter((deal) => deal.ownerId === userId && deal.status === 'active')
-         .flatMap((deal) =>
-            (deal.requests ?? [])
-               .filter(({ status }) => status === 'waiting')
-               .map((request): WaitingItem => ({
-                  id: `request-${request.id}`,
-                  ownerId: userId,
-                  from: deal.company,
-                  source: 'applicant',
-                  title: request.title,
-                  when: 'until',
-                  date: request.dueDate,
-               })),
-         );
-      const { cycle } = holdings;
-      const fromCompanies =
-         cycle && cycle.due && cycle.due < today
-            ? holdings.companies
-                 .filter(
-                    (company) =>
-                       company.ownerId === userId &&
-                       !hasAllDocs(company, cycle.quarter),
-                 )
-                 .map((company): WaitingItem => ({
-                    id: `report-${company.id}-${cycle.quarter}`,
-                    ownerId: userId,
-                    from: company.name,
-                    source: 'company',
-                    title: cycle.quarter,
-                    when: 'after',
-                    date: cycle.due,
-                 }))
-            : [];
-      // the fund's requests for data the companies have not answered yet
-      const fromCompanyRequests = holdings.dataRequests.flatMap(
-         (request): WaitingItem[] => {
-            const company = holdings.companies.find(
-               ({ id }) => id === request.companyId,
-            );
-            return request.status === 'waiting' && company?.ownerId === userId
-               ? [
-                    {
-                       id: `data-${request.id}`,
-                       ownerId: userId,
-                       from: company.name,
-                       source: 'company',
-                       title: request.title,
-                       when: 'until',
-                       date: request.dueDate,
-                    },
-                 ]
-               : [];
-         },
-      );
-      const fromColleagues = tasks
+      const fromMeetings = rows
+         .filter((row) => row.date && day(row.date) === today)
+         .map((row): ScheduleItem => ({
+            id: `meeting-${row.guid}`,
+            kind: 'meeting',
+            time: str(row.time),
+            meetingId: row.guid,
+            body: str(row.body) === 'board' ? 'board' : 'ic',
+            number: str(row.number),
+            format: str(row.format),
+            live: ['live', 'break'].includes(str(row.status)),
+         }));
+      const fromDeals = all
          .filter(
-            (task) =>
-               task.status === 'waiting' &&
-               (task.reviewerId === userId || task.createdById === userId) &&
-               getAssigneeId(task) !== userId,
+            (deal) =>
+               deal.status === 'active' &&
+               deal.ownerId === userId &&
+               deal.next?.dueDate === today &&
+               !!deal.next.time,
          )
-         .map((task): WaitingItem => ({
-            id: `task-${task.id}`,
-            ownerId: userId,
-            from: TEAM.find(({ id }) => id === getAssigneeId(task))?.name ?? '',
-            source: 'colleague',
-            title: task.title,
-            when: 'since',
-            date:
-               task.history.find(
-                  (event) =>
-                     event.kind === 'status' && event.status === 'waiting',
-               )?.date ?? task.createdAt,
-         }));
-      return [
-         ...fromApplicants,
-         ...fromCompanies,
-         ...fromCompanyRequests,
-         ...fromColleagues,
-      ];
-   }
-
-   // The deals a person runs, the furthest along first.
-   async getMyDeals(userId: string): Promise<MyDeal[]> {
-      const all = await deals.getDeals();
-      const keys = stageKeys();
-      return all
-         .filter((deal) => deal.status === 'active' && deal.ownerId === userId)
-         .sort((a, b) => keys.indexOf(b.stage) - keys.indexOf(a.stage))
-         .map((deal) => ({
-            id: deal.id,
+         .map((deal): ScheduleItem => ({
+            id: `deal-${deal.id}`,
+            kind: 'deal',
+            time: deal.next?.time ?? '',
+            dealId: deal.id,
             company: deal.company,
+            title: deal.next?.title ?? '',
             stage: deal.stage,
-            stageDate: deal.committee?.date ?? '',
          }));
+      return [...fromMeetings, ...fromDeals].sort((a, b) =>
+         (a.time || '~').localeCompare(b.time || '~'),
+      );
    }
 
-   // The fund's deadlines: meetings, the deals' next steps, open tasks and the
-   // quarterly reports. The page keeps the ones of its week.
-   async getDeadlines(): Promise<WeekDeadline[]> {
-      const [rows, all, tasks, holdings] = await Promise.all([
+   // Мой день's «Ближайшие сроки»: the planned meetings of the coming two
+   // weeks, the stage deadlines of the person's deals (of every deal, for the
+   // director) within the coming week or already past, and the companies'
+   // quarterly reports; the nearest first.
+   async getUpcoming(userId: string): Promise<UpcomingItem[]> {
+      const [rows, all, holdings] = await Promise.all([
          meetings.get(),
          deals.getDeals(),
-         store.get(),
          portfolio.getState(),
       ]);
+      const today = todayISO();
+      const within = (date: string, days: number) =>
+         date >= today && daysUntil(date, today) <= days;
       const fromMeetings = rows
-         .filter((row) => row.date && str(row.status) !== 'held')
-         .map((row): WeekDeadline => ({
+         .filter(
+            (row) =>
+               str(row.status) === 'planned' &&
+               row.date &&
+               within(day(row.date), UPCOMING_MEETING_DAYS),
+         )
+         .map((row): UpcomingItem => ({
             id: `meeting-${row.guid}`,
             kind: 'meeting',
             date: day(row.date),
-            title: `${BODY_NAMES[str(row.body)] ?? 'ИК'} № ${str(row.number)}`,
-            section: 'committee',
-            note: [str(row.time), str(row.summary)].filter(Boolean).join(' · '),
-            keyEvent: true,
+            meetingId: row.guid,
+            body: str(row.body) === 'board' ? 'board' : 'ic',
+            number: str(row.number),
          }));
-      const fromDeals = all
-         .filter((deal) => deal.status === 'active' && deal.next?.dueDate)
-         .map((deal): WeekDeadline => ({
-            id: `deal-${deal.id}`,
-            kind: 'deal',
-            date: deal.next?.dueDate ?? '',
-            title: deal.company,
-            section: 'deals',
-            note: deal.next?.title ?? '',
-            stage: deal.stage,
-            keyEvent: false,
-         }));
-      const fromTasks = tasks
-         .filter((task) => !isDone(task) && task.dueDate)
-         .map((task): WeekDeadline => ({
-            id: `task-${task.id}`,
-            kind: 'task',
-            date: task.dueDate,
-            title: task.title,
-            section: 'tasks',
-            note: TEAM.find(({ id }) => id === getAssigneeId(task))?.name ?? '',
-            keyEvent: false,
-         }));
+      const fromStages = all
+         .filter((deal) => userId === directorId() || deal.ownerId === userId)
+         .flatMap((deal): UpcomingItem[] => {
+            const deadline = getDeadline(deal);
+            if (deadline.kind !== 'overdue' && deadline.kind !== 'left')
+               return [];
+            const overdue = deadline.kind === 'overdue';
+            const date = addWorkingDays(
+               today,
+               overdue ? -deadline.days : deadline.days,
+            );
+            return overdue || within(date, UPCOMING_STAGE_DAYS)
+               ? [
+                    {
+                       id: `stage-${deal.id}`,
+                       kind: 'stage',
+                       date,
+                       dealId: deal.id,
+                       company: deal.company,
+                       stage: deal.stage,
+                       overdue,
+                    },
+                 ]
+               : [];
+         });
       const { cycle } = holdings;
-      const fromReports: WeekDeadline[] =
-         cycle?.due && holdings.companies.length
+      const fromReports: UpcomingItem[] =
+         cycle?.due &&
+         holdings.companies.length &&
+         within(cycle.due, UPCOMING_MEETING_DAYS)
             ? [
                  {
                     id: `reports-${cycle.quarter}`,
                     kind: 'reports',
                     date: cycle.due,
-                    title: cycle.quarter,
-                    section: 'portfolio',
-                    note: '',
-                    keyEvent: false,
+                    quarter: cycle.quarter,
                  },
               ]
             : [];
-      return [...fromMeetings, ...fromDeals, ...fromTasks, ...fromReports];
+      return [...fromMeetings, ...fromStages, ...fromReports].sort((a, b) =>
+         a.date.localeCompare(b.date),
+      );
    }
 
    async getDashboard(): Promise<Dashboard> {
@@ -974,7 +917,7 @@ class Work {
       );
       return [
          ...queue
-            .filter((item) => item.decision && !item.completedAt)
+            .filter((item) => item.decision)
             .map((item): Notice => ({
                id: `decision-${item.id}`,
                kind: 'decision',
@@ -1043,9 +986,7 @@ class Work {
          portfolio.getState(),
       ]);
       return {
-         myDay:
-            queue.filter((item) => !item.completedAt).length +
-            tasks.filter((task) => needsAction(task, userId)).length,
+         myDay: myDayCount(myDayOf(tasks, queue, userId)),
          tasks: tasks.filter((task) => !isDone(task) && isMine(task, userId))
             .length,
          // applications nobody has taken yet

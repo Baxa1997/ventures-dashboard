@@ -13,8 +13,8 @@ export const TITLE_MAX = 120;
 export const CONTEXT_MAX = 80; // the note's text on one line, next to the type
 export const CHECKLIST_MAX = 1000; // the checklist's items together
 
-// A deadline this many days away, or closer, is highlighted.
-export const SOON_DAYS = 3;
+// Мой день shows the tasks due within this many days as «На этой неделе».
+export const MY_DAY_WEEK = 7;
 
 // The system statuses as batch 8 starts them (Настройки → Статусы задач has
 // the list the fund keeps): their order, names (keys of the "work"

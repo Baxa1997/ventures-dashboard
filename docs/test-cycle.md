@@ -52,7 +52,7 @@ Button names are given as the panel shows them. The panel is in Russian only for
 
 1. Open `ZZ Startup A` → tab «Скрининг и оценка». For each of the 7 criteria choose a score 1–5 and write a reason → the counter goes up to «заполнено 7 из 7». A score without a reason does not count.
 2. «Второй оценщик» → choose «Администратор» (the owner is `ZZ Аналитик`, so you can).
-3. Open Мой день → «Подтвердить решение по скринингу» for `ZZ Startup A` is in your list (you are its second reviewer).
+3. Open Мой день → «Ждут моего согласования» → «Подтвердить решение по скринингу» for `ZZ Startup A` is there (you are its second reviewer); «Открыть» leads to its screening.
 4. Back on the deal, the decision is «Встреча»; «Завершить скрининг» → the deal moves to Встреча; the history tab has the screening and the stage move. In ucode, `public_status` = `meeting`.
 5. (The same move is possible from Обзор → «Перевести в «Встреча»»: the window lists the exit conditions, and «Перевести» stays off until both are met. An unmet score links to the scoring tab; the second reviewer is chosen in the window itself, and with nobody else in the team the window links to Настройки to invite someone.)
 
@@ -79,7 +79,7 @@ Button names are given as the panel shows them. The panel is in Russian only for
 2. On `ZZ Startup A` (at ИК-1): «Следующий шаг» explains the stage and has «Вынести на заседание» (Инвесткомитет → «Заседания ИК» also lists it under «Ждут заседания» when no meeting is planned) → it opens «Назначить заседание» with Тип **ИК-1** and `ZZ Startup A` ticked → pick a date from today on → «Назначить» → the meeting page.
 3. → «Подготовка к заседанию» lists four steps: the agenda (done), at least 3 members (done), who will come (not done), the materials (until the date shown). «Открыть заседание» is off.
 4. Under «Отметить, кто из них будет» set each member to «Будет» → 3 of 4 done, «Открыть заседание» is on. «Добавить сделку» adds another deal waiting for ИК-1 to the agenda.
-5. Back on the deal → the next step now says «Открыть ИК № N · date» and leads to the meeting. Мой день → «Сроки на неделю» shows the meeting if it is this week, and the dashboard's «Ближайшее заседание» shows it with its deals.
+5. Back on the deal → the next step now says «Открыть ИК № N · date» and leads to the meeting. Мой день → «Ближайшие сроки» shows the meeting if it is within two weeks, and the dashboard's «Ближайшее заседание» shows it with its deals.
 6. «Разослать материалы» → «материалы разосланы» with today's date.
 7. «Открыть заседание» → «Кворум есть: 3 из 3 членов»; the votes appear.
 8. For `ZZ Startup A` record three «За», fill «Условия одобрения» (`ZZ Предоставить отчётность`) → the result box says the question is approved → «Зафиксировать одобрение» → «Решение зафиксировано: одобрено с условиями».
@@ -123,12 +123,13 @@ A committee stage is left only after its committee's approval: before step 8, «
 
 ## 12. Мой день and the dashboard
 
-1. Мой день → «Нужно сделать вам»: your tasks, deal steps due within 5 working days, decisions waiting for you. Tick an item that comes from a deal → it moves to the end until tomorrow (kept in this browser only).
-2. «Ждёте от других»: open requests to applicants on your deals (step 6.2 if the deal is yours), tasks you check that are «Ждёт ответа».
-3. «Мои сделки»: the active deals you own, the furthest stage first. «Сроки на неделю»: the meetings, deal steps, tasks and the reporting date of the coming work week.
-4. Дашборд → the five figures (deals in work match Сделки' Входящие and Воронка; «Мои открытые задачи» match Задачи → Мои; «Ближайший ИК» the next planned ИК with its deals), «Воронка сделок» (the deals by group, on an axis), «Вложено по отраслям» (a ring of the portfolio's sectors; hover a piece for its sum and share). «Новая задача» (or «+» in the top bar) opens the task card over the page; «Создать» saves it and you stay on the dashboard.
-5. «Мои задачи»: tick one → it leaves the list and «Отмечено выполненным»; a task somebody else checks goes to «На проверке» instead. «Требует внимания»: a deal past its stage's norm, a request past its date, a committee stage with no meeting — each opens its card. «Последние действия»: the latest journal lines, each opening the deal's «История».
-6. The top bar: ⌘K (or the search field) → type part of a deal's or a task's name → Enter opens the first result; the bell counts what you have not seen, opening it clears the count.
+1. Мой день → the line under the title counts today's meetings, the tasks due today or overdue, and what waits for your approval; the tab «Мои задачи» shows your tasks and your deals' work in «Просрочено», «Сегодня», «На этой неделе», «Выполнено сегодня». Type a title in «Быстро добавить…» and Enter → a task due today appears under «Сегодня». Tick an item that comes from a deal → it moves to «Выполнено сегодня» until tomorrow (kept in this browser only).
+2. «Задача на сегодня» opens the task card with today's deadline. A task with «Согласует» = somebody else: tick it → «Отправлено на согласование», and it stays under «Выполнено сегодня», ticked, with «На согласовании»; untick it → back in work. Click a task's row → Задачи opens on that task (a closed one on «Завершённые»).
+3. As that approver, the tab «Ждут моего согласования» lists it with «Открыть», «Вернуть», «Согласовать». «Вернуть» asks what to fix → the comment is in the task's history and the task is «В работе» again; «Согласовать» closes it. A memorandum waiting for you as sponsor has «Согласовать» too; a screening you score second has «Открыть».
+4. «Расписание»: today's committee meetings (the one going on is marked «идёт сейчас») and your deals' steps set for an hour today. «Ближайшие сроки»: meetings of two weeks, your deals' stage deadlines (the director's: every deal's) of the coming week or past, the quarterly reports' date.
+5. Дашборд → the five figures (deals in work match Сделки' Входящие and Воронка; «Мои открытые задачи» match Задачи → Мои; «Ближайший ИК» the next planned ИК with its deals), «Воронка сделок» (the deals by group, on an axis), «Вложено по отраслям» (a ring of the portfolio's sectors; hover a piece for its sum and share). «Новая задача» (or «+» in the top bar) opens the task card over the page; «Создать» saves it and you stay on the dashboard.
+6. «Мои задачи»: tick one → it leaves the list and «Отмечено выполненным»; a task somebody else checks goes to «На проверке» instead. «Требует внимания»: a deal past its stage's norm, a request past its date, a committee stage with no meeting — each opens its card. «Последние действия»: the latest journal lines, each opening the deal's «История».
+7. The top bar: ⌘K (or the search field) → type part of a deal's or a task's name → Enter opens the first result; the bell counts what you have not seen, opening it clears the count.
 
 ## 13. Портфель
 
@@ -139,7 +140,7 @@ Needs the company of step 0.
 3. «Квартальная отчётность»: the company's documents for the quarter, and its figures «Заполнено из шаблона …» → «Проверить» → «Подтвердить показатели» → «Подтверждены».
 4. «Запросы компаний»: the request waits for the fund (the sidebar «Портфель» counter is 1) → answer it → closed, the counter goes to 0.
 5. «Пилоты с SQB»: the pilot with its status.
-6. Open the company's card → its eight tabs; «Запросить данные» with what is needed and a date → the tab «Запросы данных» lists it «Ждём ответа», and the owner's Мой день has it under «Ждёте от других». A company with a startup cabinet answers it there; then it is «Ответ получен — проверьте» with the files, and «Принять» closes it. For a company without a cabinet, «Ответ получен» records the answer. «Открыть follow-on» → a new deal for the company in Сделки → Входящие.
+6. Open the company's card → its eight tabs; «Запросить данные» with what is needed and a date → the tab «Запросы данных» lists it «Ждём ответа», A company with a startup cabinet answers it there, and the owner's Мой день lists «Проверить ответ компании»; then it is «Ответ получен — проверьте» with the files, and «Принять» closes it. For a company without a cabinet, «Ответ получен» records the answer. «Открыть follow-on» → a new deal for the company in Сделки → Входящие.
 
 ## 14. Настройки
 

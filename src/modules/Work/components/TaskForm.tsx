@@ -52,6 +52,7 @@ import {
    taskStatuses,
    toChecklist,
 } from '../helpers';
+import type { NewTaskPreset } from '../hooks/useNewTask';
 import {
    getFieldErrors,
    type TaskFormErrors,
@@ -60,6 +61,7 @@ import {
 
 interface TaskFormProps {
    task?: Task; // none: a new task
+   preset?: NewTaskPreset; // a new task's values set in advance
    employees: Employee[];
    targets: TaskTargets;
    onSubmit: (values: TaskInput) => void;
@@ -139,6 +141,7 @@ const Section = ({ icon: Icon, title, count, children }: SectionProps) => (
    right. Closing it without saving is the modal's cross. */
 const TaskForm = ({
    task,
+   preset,
    employees,
    targets,
    onSubmit,
@@ -147,7 +150,10 @@ const TaskForm = ({
    const { t } = useTranslation('work');
    const { t: tValidation } = useTranslation('validation');
    const user = useCurrentUser();
-   const [values, setValues] = useState(() => getInitialValues(task, user.id));
+   const [values, setValues] = useState(() => ({
+      ...getInitialValues(task, user.id),
+      ...preset,
+   }));
    const [errors, setErrors] = useState<TaskFormErrors>({});
    const [item, setItem] = useState(''); // the checklist item being written
 

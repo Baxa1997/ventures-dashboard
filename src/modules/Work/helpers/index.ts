@@ -11,12 +11,11 @@ import type {
    Task,
    TaskInput,
    TaskStatus,
-   WeekDeadline,
+   TaskTargets,
 } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
 import {
-   capitalize,
    daysUntil,
    personName,
    textToHtml,
@@ -24,7 +23,7 @@ import {
 } from '@shared/helpers';
 import {
    DATE_FORMAT,
-   SOON_DAYS,
+   MY_DAY_WEEK,
    TASK_STATUS_GROUPS,
    TASK_STATUS_LABELS,
    TASK_STATUS_ORDER,
@@ -43,16 +42,6 @@ export {
 export const shiftMonths = (date: string, months: number) =>
    dayjs(date).add(months, 'month').format(DATE_FORMAT);
 
-// Пн, 5 окт
-export const formatWeekday = (date: string) =>
-   capitalize(dayjs(date).format('dd, D MMM'));
-
-// Пятница, 2 октября 2026
-export const formatToday = (withYear = false) =>
-   capitalize(
-      dayjs(todayISO()).format(withYear ? 'dddd, D MMMM YYYY' : 'dddd, D MMMM'),
-   );
-
 // "сегодня", "завтра", "через 3 дня" — or nothing for a date further than a week.
 export const relativeDue = (
    t: TFunction<'work'>,
@@ -68,11 +57,27 @@ export const relativeDue = (
    return '';
 };
 
-export const dueTone = (date: string, today = todayISO()): BadgeTone => {
+// "сегодня", "завтра", "вчера", "через 3 дн.", "2 дн. назад"
+export const relativeDay = (
+   t: TFunction<'work'>,
+   date: string,
+   today = todayISO(),
+) => {
    const days = daysUntil(date, today);
-   if (days < 0) return 'danger';
-   return days <= SOON_DAYS ? 'warning' : 'accent';
+   if (days === 0) return t('сегодня');
+   if (days === 1) return t('завтра');
+   if (days === -1) return t('вчера');
+   return days < 0
+      ? t('{{days}} дн. назад', { days: -days })
+      : t('через {{days}} дн.', { days });
 };
+
+// 2026-Q3 → Q3 2026
+export const formatQuarter = (quarter: string) => {
+   const [year, number] = quarter.split('-Q');
+   return number ? `Q${number} ${year}` : quarter;
+};
+
 
 const isSystemStatus = (status: string): status is SystemTaskStatus =>
    status in TASK_STATUS_GROUPS;
@@ -131,12 +136,122 @@ export const getAssigneeId = (task: Task) => task.assigneeId || directorId();
 export const isMine = (task: Task, userId: string) =>
    getAssigneeId(task) === userId || task.reviewerId === userId;
 
-// Tasks that wait for this person today: theirs to do, or theirs to check.
-export const needsAction = (task: Task, userId: string) =>
-   task.status === 'review'
-      ? task.reviewerId === userId
-      : getAssigneeId(task) === userId &&
-        (task.status === 'assigned' || task.status === 'in_progress');
+// The name of the deal or the company a task is attached to, '' — none.
+export const targetNameOf = (targets: TaskTargets, task: Task) =>
+   task.relation === 'none'
+      ? ''
+      : (targets[task.relation].find(({ id }) => id === task.relationId)
+           ?.name ?? '');
+
+// Мой день's tasks: open ones the person does, except those sent to be
+// checked, which wait in the reviewer's «Ждут моего согласования».
+export const isMyOpenTask = (task: Task, userId: string) =>
+   getAssigneeId(task) === userId &&
+   !isDone(task) &&
+   task.status !== 'review';
+
+// A task sent to the person, who checks it, for approval.
+export const awaitsApproval = (task: Task, userId: string) =>
+   task.status === 'review' && task.reviewerId === userId;
+
+// Where a piece of work falls in Мой день: past its deadline, due today, due
+// within the coming week, or later or with no deadline, which it does not show.
+export type DayGroup = 'overdue' | 'today' | 'week' | 'later';
+
+export const dayGroupOf = (dueDate: string, today = todayISO()): DayGroup => {
+   if (!dueDate) return 'later';
+   if (dueDate < today) return 'overdue';
+   if (dueDate === today) return 'today';
+   return daysUntil(dueDate, today) <= MY_DAY_WEEK ? 'week' : 'later';
+};
+
+// A task the person did and sent to somebody else to check.
+export const isSentForApproval = (task: Task, userId: string) =>
+   task.status === 'review' &&
+   getAssigneeId(task) === userId &&
+   task.reviewerId !== userId;
+
+// The day a task was last sent to be checked, '' if it never was.
+const sentOn = (task: Task) =>
+   task.history.find(
+      (event) => event.kind === 'status' && event.status === 'review',
+   )?.date ?? '';
+
+// A line of Мой день's «Мои задачи»: a task, or a piece of work a deal or a
+// company brings (an application to take, a next step, an answer to check).
+export type DayItem = { key: string; dueDate: string; done: boolean } & (
+   { kind: 'queue'; item: QueueItem } | { kind: 'task'; task: Task }
+);
+
+// A line of «Ждут моего согласования»: a task sent to the person to check,
+// or a decision of a deal that waits for them (a memorandum, a screening).
+export type Approval = { key: string; dueDate: string } & (
+   { kind: 'task'; task: Task } | { kind: 'decision'; item: QueueItem }
+);
+
+export interface MyDayGroups {
+   overdue: DayItem[];
+   today: DayItem[];
+   week: DayItem[];
+   done: DayItem[]; // closed today
+   approvals: Approval[];
+}
+
+/* What waits for the person in Мой день: their tasks and the work their deals
+   and companies bring, by deadline, and what they have to approve. A deal's
+   piece of work without a deadline is for today; a task without one is not
+   shown, as the tasks due later are not. A task sent to be checked today
+   stays among the day's done ones. */
+export const myDayOf = (
+   tasks: Task[],
+   queue: QueueItem[],
+   userId: string,
+   today = todayISO(),
+): MyDayGroups => {
+   const day: MyDayGroups = {
+      overdue: [],
+      today: [],
+      week: [],
+      done: [],
+      approvals: [],
+   };
+   const place = (item: DayItem, dueDate: string) => {
+      const group = dayGroupOf(dueDate, today);
+      if (group !== 'later') day[group].push(item);
+   };
+   for (const task of tasks) {
+      const line = { key: task.id, dueDate: task.dueDate };
+      if (awaitsApproval(task, userId))
+         day.approvals.push({ ...line, kind: 'task', task });
+      else if (isMyOpenTask(task, userId))
+         place({ ...line, kind: 'task', done: false, task }, task.dueDate);
+      else if (
+         (task.completedAt === today && getAssigneeId(task) === userId) ||
+         (isSentForApproval(task, userId) && sentOn(task) === today)
+      )
+         day.done.push({ ...line, kind: 'task', done: true, task });
+   }
+   for (const item of queue) {
+      const line = { key: item.id, dueDate: item.dueDate };
+      if (item.decision)
+         day.approvals.push({ ...line, kind: 'decision', item });
+      else if (item.completedAt === today)
+         day.done.push({ ...line, kind: 'queue', done: true, item });
+      else if (!item.completedAt)
+         place(
+            { ...line, kind: 'queue', done: false, item },
+            item.dueDate || today,
+         );
+   }
+   const groups = ['overdue', 'today', 'week', 'done', 'approvals'] as const;
+   for (const group of groups) day[group].sort(byDueDate);
+   return day;
+};
+
+// The figure next to Мой день in the menu: what is due by today, and what
+// waits for the person's approval.
+export const myDayCount = (day: MyDayGroups) =>
+   day.overdue.length + day.today.length + day.approvals.length;
 
 // A task type's badge colour, by its place in Настройки → Типы задач, so a
 // type keeps its colour wherever it shows.
@@ -154,12 +269,15 @@ export const typeTone = (type: string): BadgeTone => {
    return index < 0 ? 'neutral' : TYPE_TONES[index % TYPE_TONES.length];
 };
 
-// Ticking a task that somebody else checks sends it to them instead of closing it.
+// Ticking a task that somebody else checks sends it to them instead of closing
+// it; its checker's tick closes it, its doer's takes it back to work.
 export const statusAfterTick = (task: Task, userId: string): TaskStatus => {
    if (isDone(task)) return 'in_progress';
-   const checkedByOther = task.reviewerId && task.reviewerId !== userId;
-   return checkedByOther && task.status !== 'review' ? 'review' : 'done';
+   if (task.status === 'review')
+      return task.reviewerId === userId ? 'done' : 'in_progress';
+   return task.reviewerId && task.reviewerId !== userId ? 'review' : 'done';
 };
+
 
 // How a Мой день item that comes from a deal reads, in the interface language.
 export const queueWording = (
@@ -210,26 +328,6 @@ export const queueWording = (
       title: t('Подтвердить решение по скринингу'),
       note: by && t('предложил {{name}}', { name: by }),
    };
-};
-
-// How a deadline of the week reads; the deals' and the reports' are worded here.
-export const deadlineWording = (
-   t: TFunction<'work'>,
-   tDeals: TFunction<'deals'>,
-   item: WeekDeadline,
-) => {
-   if (item.kind === 'reports')
-      return {
-         title: t('Квартальные отчёты компаний'),
-         note: item.title.replace(/^(\d{4})-Q(\d)$/, 'Q$2 $1'),
-      };
-   if (item.kind === 'deal')
-      return {
-         title: item.title,
-         note:
-            item.note || (item.stage ? stageNextLabel(tDeals, item.stage) : ''),
-      };
-   return { title: item.title, note: item.note };
 };
 
 // The form edits the checklist as text, one item per line.

@@ -1,3 +1,4 @@
+import type { CommitteeBody } from './committee.types';
 import type { JournalEntry } from './deals.types';
 
 // employees.role in ucode.
@@ -136,19 +137,6 @@ export interface QueueItem {
    dealId?: string; // the deal the item is about
 }
 
-export type WaitingSource = 'applicant' | 'company' | 'colleague';
-
-// An answer the owner is waiting for from somebody else.
-export interface WaitingItem {
-   id: string;
-   ownerId: string;
-   from: string;
-   source: WaitingSource;
-   title: string;
-   when: 'until' | 'since' | 'after';
-   date: string; // YYYY-MM-DD
-}
-
 // The stages a fund starts with (Настройки → Этапы и нормативы): the system
 // ones carry the platform's rules, meeting and analysis are the fund's own.
 export type DefaultStage =
@@ -165,24 +153,48 @@ export type DefaultStage =
 // A stage's key: a default one, or one the fund added (stage_norms).
 export type DealStage = string;
 
-export interface MyDeal {
-   id: string; // the address of the deal's card
-   company: string;
-   stage: DealStage;
-   stageDate: string; // YYYY-MM-DD of the stage's event, or ''
-}
-
-export interface WeekDeadline {
+// A line of Мой день's «Расписание»: a meeting of the committee or the
+// board that day, or the next step of the person's deal set for an hour that
+// day (a call, a meeting with the team).
+export type ScheduleItem = {
    id: string;
-   // "reports" is worded when shown: its title is the quarter
-   kind: 'meeting' | 'deal' | 'task' | 'reports';
+   time: string; // HH:mm, '' — no hour set
+} & (
+   | {
+        kind: 'meeting';
+        meetingId: string;
+        body: CommitteeBody;
+        number: string;
+        format: string; // how it is held: in person, online
+        live: boolean; // started and not over yet
+     }
+   | {
+        kind: 'deal';
+        dealId: string;
+        company: string;
+        title: string; // the next step, '' — the stage's own
+        stage: DealStage;
+     }
+);
+
+// A line of Мой день's «Ближайшие сроки», worded when shown: a meeting of
+// the coming two weeks, the stage deadline of a deal (the person's, or any
+// for the director) of the coming week or already past, the quarterly
+// reports of the companies.
+export type UpcomingItem = {
+   id: string;
    date: string; // YYYY-MM-DD
-   title: string;
-   section: Section;
-   note: string; // for a deal, its next step; '' — the stage's own
-   stage?: DealStage; // for a deal
-   keyEvent: boolean; // the event of the week, e.g. a committee meeting
-}
+} & (
+   | { kind: 'meeting'; meetingId: string; body: CommitteeBody; number: string }
+   | {
+        kind: 'stage';
+        dealId: string;
+        company: string;
+        stage: DealStage;
+        overdue: boolean;
+     }
+   | { kind: 'reports'; quarter: string } // 2026-Q3
+);
 
 // The dashboard's funnel, grouped as the design groups the deals: new
 // applications, the work before and between the committees, the committee

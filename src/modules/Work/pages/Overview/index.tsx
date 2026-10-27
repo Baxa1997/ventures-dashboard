@@ -53,7 +53,7 @@ const Overview = () => {
                      <Sun aria-hidden />
                      {t('Мой день')}
                   </Link>
-                  <Button onClick={openNewTask}>
+                  <Button onClick={() => openNewTask()}>
                      <Plus aria-hidden />
                      {t('Новая задача')}
                   </Button>

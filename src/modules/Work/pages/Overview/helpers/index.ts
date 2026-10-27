@@ -7,12 +7,6 @@ export const formatMoneyShort = (amount: number) => {
    return `$${Math.round(amount)}`;
 };
 
-// 2026-Q3 → Q3 2026
-export const formatQuarter = (quarter: string) => {
-   const [year, number] = quarter.split('-Q');
-   return number ? `Q${number} ${year}` : quarter;
-};
-
 // The first word of a name, for the greeting: «Abdullo Khidoyatov» → Abdullo.
 export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? '';
 

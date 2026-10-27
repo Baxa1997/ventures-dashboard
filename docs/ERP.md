@@ -266,7 +266,7 @@ The conditions somebody has to carry out become **tasks** (§4.7) with `origin =
 
 **task_events** (the task's history): task_id, date, kind (PICK_LIST: status, recurred, comment, note), status, text, employee_id.
 
-Мой день, «Жду ответа», the week's deadlines and the sidebar counters have no tables of their own: §5.7 lists the queries behind them.
+Мой день and the sidebar counters have no tables of their own: §5.7 lists the queries behind them.
 
 ### 4.8 Обзор: money, until Финансы are connected
 
@@ -426,13 +426,14 @@ Paused and withdrawn deals keep the status they had.
 
 ### 5.7 Read-only views
 
-These are not tables. Each is a query: a ucode custom endpoint or one function that returns the shape the page already uses (`FundOverview`, `QueueItem[]`, `WaitingItem[]`, `WeekDeadline[]`, `SectionCounters`), so the pages do not change.
+These are not tables. Each is a query: a ucode custom endpoint or one function that returns the shape the page already uses (`Dashboard`, `QueueItem[]`, `ScheduleItem[]`, `UpcomingItem[]`, `SectionCounters`), so the pages do not change.
 
 | View | Made from |
 | --- | --- |
-| Мой день — to do | tasks assigned to me in assigned or in_progress; tasks I review in review; my deals whose next step is due within 5 wd |
-| Мой день — waiting for an answer | waiting `deal_requests` of my deals (applicant); missing quarterly documents of my companies after the due date (company); tasks I review or created that somebody else holds in waiting (colleague) |
-| Мой день — my deals | active deals I own, furthest stage first |
+| Мой день — Мои задачи | my open tasks (not those sent for review) due by a week from today, and those I closed today; from my deals: applications offered to me, next steps due within 5 wd, answers and documents from the cabinet to check |
+| Мой день — Ждут моего согласования | tasks in review that I check; memorandums waiting for me as sponsor; screenings waiting for me as the second reviewer |
+| Мой день — Расписание | today's meetings of ИК and НС; my deals' next steps set for an hour today |
+| Мой день — Ближайшие сроки | planned meetings of the coming 14 days; stage deadlines of my deals (every deal for the director) within 7 days or past; the quarterly reports' due date within 14 days |
 | Обзор — decisions waiting for me | my tasks with origin memo_approval or screening_confirm; approvals of contracts, acts and letters in phase 3 |
 | Обзор — deadlines this week | meetings (the week's key event), deals' stage due dates, task due dates, the reporting due date; letters and payments in phase 3 |
 | Обзор — funnel | deals by stage; overdue where `days_used` > norm |

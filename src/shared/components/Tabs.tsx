@@ -1,8 +1,10 @@
 import clsx from 'clsx';
+import type { LucideIcon } from 'lucide-react';
 
 export interface TabItem<T extends string> {
    id: T;
    label: string;
+   icon?: LucideIcon;
    count?: number;
 }
 
@@ -42,6 +44,9 @@ const Tabs = <T extends string>({
                )}
                onClick={() => onChange(item.id)}
             >
+               {item.icon && (
+                  <item.icon aria-hidden className='size-4 self-center' />
+               )}
                {item.label}
                {item.count !== undefined && (
                   <span className='text-ink-faint text-[11px] font-normal tabular-nums'>

@@ -63,7 +63,7 @@ const wordingOf = (
             meta: notice.item.subject,
             to: notice.item.dealId
                ? `${SECTION_PATHS.deals}/${notice.item.dealId}`
-               : MY_DAY_PATH,
+               : `${MY_DAY_PATH}?tab=approve`,
          };
       case 'overdue':
          return {

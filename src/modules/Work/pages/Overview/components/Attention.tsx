@@ -1,4 +1,5 @@
 import { stageName } from '@modules/Settings/services';
+import { formatQuarter } from '@modules/Work/helpers';
 import { Badge, CompanyMark } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
 import type { AttentionItem } from '@shared/types/work.types';
@@ -6,7 +7,6 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ATTENTION_TONES } from '../constants';
-import { formatQuarter } from '../helpers';
 
 interface AttentionProps {
    items: AttentionItem[];

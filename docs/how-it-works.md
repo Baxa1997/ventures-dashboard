@@ -76,7 +76,7 @@ reports, metrics and requests to the fund.
 ## The rest of the panel
 
 - **Дашборд**: the fund at a glance — deals, portfolio, money invested, your open tasks, the next committee meeting, the funnel and the money by sector; your tasks, what needs attention (late stages and requests, untaken applications, missing reports, deals with no meeting) and the latest actions.
-- **Мой день**: what is yours today — applications to decide, scorings, tasks, what you wait for, and the week's deadlines.
+- **Мой день**: what is yours today — your tasks and the deals' work by deadline, what waits for your approval, today's meetings and the deadlines ahead.
 - **Задачи**: tasks, linked to a deal or a company if needed; committee conditions land here.
 - **Инвесткомитет**: meetings, agenda, votes, protocol, the register of decisions.
 - **Портфель**: companies, quarterly reports (the analyst enters and confirms the figures), requests from companies.

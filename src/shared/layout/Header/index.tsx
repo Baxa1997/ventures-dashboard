@@ -64,7 +64,7 @@ const Header = ({ onMenuClick, crumbsRef }: HeaderProps) => {
                aria-label={t('Новая задача')}
                className={ICON_BUTTON}
                title={t('Новая задача')}
-               onClick={openNewTask}
+               onClick={() => openNewTask()}
             >
                <CirclePlus aria-hidden className='size-4' />
             </button>

@@ -43,7 +43,14 @@ const Tasks = () => {
       addComment,
    } = useTasks();
    const [params, setParams] = useSearchParams();
-   const tab = toTab(params.get('tab'));
+   // a link to a task that names no tab (from Мой день, the dashboard, the
+   // search, the bell) opens the tab the task is in
+   const linked = tasks.find((task) => task.id === params.get('task'));
+   const tab = params.has('tab')
+      ? toTab(params.get('tab'))
+      : linked && isDone(linked)
+        ? 'done'
+        : DEFAULT_TAB;
    const { filters, setFilter, visible, counts, summary } = useTaskFilters(
       tasks,
       tab,

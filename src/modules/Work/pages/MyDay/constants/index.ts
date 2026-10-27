@@ -1,8 +1,15 @@
-import type { WaitingSource } from '@shared/types/work.types';
+export const MY_DAY_TABS = ['mine', 'approve'] as const;
 
-// Who an answer is expected from, written after the name. A colleague needs
-// no note. Labels are keys of the "work" translations.
-export const WAITING_SOURCE_LABELS = {
-   applicant: 'заявитель',
-   company: 'компания',
-} as const satisfies Record<Exclude<WaitingSource, 'colleague'>, string>;
+export type MyDayTab = (typeof MY_DAY_TABS)[number];
+
+// «Ближайшие сроки» lists this many, the nearest first.
+export const UPCOMING_SHOWN = 6;
+
+// The groups of «Мои задачи», in their order. Labels are keys of the "work"
+// translations.
+export const DAY_GROUP_LABELS = {
+   overdue: 'Просрочено',
+   today: 'Сегодня',
+   week: 'На этой неделе',
+   done: 'Выполнено сегодня',
+} as const;

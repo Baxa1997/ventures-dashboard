@@ -22,9 +22,9 @@ const Checkbox = ({
       aria-checked={checked}
       aria-label={label}
       className={clsx(
-         'relative grid size-4.5 shrink-0 place-items-center rounded-[5px] border transition-colors after:absolute after:-inset-2 disabled:cursor-progress',
+         'relative grid size-4.5 shrink-0 place-items-center rounded-[5px] border-[1.5px] transition-colors after:absolute after:-inset-2 disabled:cursor-progress',
          checked
-            ? 'border-accent bg-accent text-white'
+            ? 'border-success bg-success text-white'
             : 'border-line-strong hover:border-accent bg-white text-transparent',
       )}
       disabled={busy}
