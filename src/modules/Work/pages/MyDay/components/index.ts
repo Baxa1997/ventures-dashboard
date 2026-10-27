@@ -1,3 +1,4 @@
+export { default as Deadlines } from './Deadlines';
 export { default as MyDeals } from './MyDeals';
 export { default as TaskRow } from './TaskRow';
 export { default as Waiting } from './Waiting';

@@ -18,6 +18,7 @@ import type { Deal } from '@shared/types/deals.types';
 import type {
    CompanyDataRequest,
    CompanyRequest,
+   CompanyStatus,
    DataRequestInput,
    Instrument,
    Investment,
@@ -49,6 +50,8 @@ export interface PortfolioState {
    dataRequests: CompanyDataRequest[]; // the fund's requests for data, newest first
    cycle: ReportingCycle;
 }
+
+const COMPANY_STATUSES: CompanyStatus[] = ['active', 'exit', 'written_off'];
 
 // The days the documents of batch 4 came, in their own columns; the fund's
 // own documents keep theirs in `received`.
@@ -109,6 +112,8 @@ const toCompany = (
       invested: investments.reduce((sum, item) => sum + num(item.amount), 0),
       since: num(row.since),
       ownerId: str(row.owner_id),
+      status:
+         COMPANY_STATUSES.find((status) => status === row.status) ?? 'active',
       now: str(row.current_note),
       ...(row.deals_id ? { dealId: str(row.deals_id) } : {}),
       facts: fromJson<{ label: string; value: string }[]>(row.facts, []),

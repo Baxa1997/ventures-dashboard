@@ -4,16 +4,24 @@ import type { BadgeTone } from '@shared/components';
 import { directorId } from '@shared/constants';
 import type { ListItem, StatusGroup } from '@shared/types/settings.types';
 import type {
+   ChecklistItem,
    Employee,
    QueueItem,
    SystemTaskStatus,
    Task,
+   TaskInput,
    TaskStatus,
    WeekDeadline,
 } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
-import { capitalize, daysUntil, personName, todayISO } from '@shared/helpers';
+import {
+   capitalize,
+   daysUntil,
+   personName,
+   textToHtml,
+   todayISO,
+} from '@shared/helpers';
 import {
    DATE_FORMAT,
    SOON_DAYS,
@@ -130,6 +138,29 @@ export const needsAction = (task: Task, userId: string) =>
       : getAssigneeId(task) === userId &&
         (task.status === 'assigned' || task.status === 'in_progress');
 
+// A task type's badge colour, by its place in Настройки → Типы задач, so a
+// type keeps its colour wherever it shows.
+const TYPE_TONES: BadgeTone[] = [
+   'accent',
+   'info',
+   'indigo',
+   'success',
+   'warning',
+   'neutral',
+];
+
+export const typeTone = (type: string): BadgeTone => {
+   const index = listOf('taskTypes', true).findIndex(({ key }) => key === type);
+   return index < 0 ? 'neutral' : TYPE_TONES[index % TYPE_TONES.length];
+};
+
+// Ticking a task that somebody else checks sends it to them instead of closing it.
+export const statusAfterTick = (task: Task, userId: string): TaskStatus => {
+   if (isDone(task)) return 'in_progress';
+   const checkedByOther = task.reviewerId && task.reviewerId !== userId;
+   return checkedByOther && task.status !== 'review' ? 'review' : 'done';
+};
+
 // How a Мой день item that comes from a deal reads, in the interface language.
 export const queueWording = (
    t: TFunction<'work'>,
@@ -200,3 +231,46 @@ export const deadlineWording = (
       };
    return { title: item.title, note: item.note };
 };
+
+// The form edits the checklist as text, one item per line.
+export type TaskFormValues = Omit<TaskInput, 'checklist'> & {
+   checklist: string;
+};
+
+export const getInitialValues = (
+   task: Task | undefined,
+   userId: string,
+): TaskFormValues => ({
+   title: task?.title ?? '',
+   type: task?.type ?? 'other',
+   context: task?.context ?? '',
+   // a task from before the rich editor has only the one-line text
+   details: task?.details || textToHtml(task?.context ?? ''),
+   relation: task?.relation ?? 'none',
+   relationId: task?.relationId ?? '',
+   assigneeId: task ? task.assigneeId : userId,
+   reviewerId: task?.reviewerId ?? '',
+   dueDate: task?.dueDate ?? '',
+   priority: task?.priority ?? 'medium',
+   status: task?.status ?? 'assigned',
+   recurrence: task?.recurrence ?? 'none',
+   checklist: task?.checklist.map(({ text }) => text).join('\n') ?? '',
+});
+
+// Items whose text was not changed keep their tick.
+export const toChecklist = (
+   text: string,
+   previous: ChecklistItem[] = [],
+): ChecklistItem[] =>
+   text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map(
+         (line) =>
+            previous.find((item) => item.text === line) ?? {
+               id: crypto.randomUUID(),
+               text: line,
+               done: false,
+            },
+      );

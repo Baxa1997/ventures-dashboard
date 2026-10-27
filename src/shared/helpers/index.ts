@@ -21,6 +21,14 @@ export const formatDate = (date: string) =>
 export const formatDayYear = (date: string) =>
    date ? dayjs(date).format('D MMM YYYY') : '—';
 
+// 05.10.2026
+export const formatNumericDate = (date: string) =>
+   date ? dayjs(date).format('DD.MM.YYYY') : '—';
+
+// 05.10.2026 17:05, in the person's own time
+export const formatNumericStamp = (moment: string) =>
+   moment ? dayjs(moment).format('DD.MM.YYYY HH:mm') : '—';
+
 // The day that is `count` working days (Monday to Friday) after `date`;
 // a negative count goes back.
 export const addWorkingDays = (date: string, count: number) => {

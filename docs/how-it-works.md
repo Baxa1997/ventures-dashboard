@@ -29,7 +29,7 @@ logic; in ucode a table is just a table.
 - The owner moves a deal with «Перевести в …» on its card. The window lists what is still missing and where to do it.
 - A committee's refusal does not close the deal by itself: the owner presses «Отказать с причиной».
 - A rejection, at any stage, needs a reason. The website then takes a new application from that email only after the resubmission date (at once for a mandate reason, otherwise 6 or 12 months).
-- Each stage has a norm in working days (Настройки → «Этапы и нормативы»). Past it, the deal shows as late in Сделки, Мой день and Обзор.
+- Each stage has a norm in working days (Настройки → «Этапы и нормативы»). Past it, the deal shows as late in Сделки, Мой день and the dashboard.
 - An approval with conditions gives the owner a task, «до ИК-2» or «до подписания».
 - The members sign the printed protocol; the secretary then marks it signed with a link to the signed scan, kept where the fund keeps its files.
 
@@ -75,7 +75,8 @@ reports, metrics and requests to the fund.
 
 ## The rest of the panel
 
-- **Мой день**: what is yours today — applications to decide, scorings, tasks, what you wait for.
+- **Дашборд**: the fund at a glance — deals, portfolio, money invested, your open tasks, the next committee meeting, the funnel and the money by sector; your tasks, what needs attention (late stages and requests, untaken applications, missing reports, deals with no meeting) and the latest actions.
+- **Мой день**: what is yours today — applications to decide, scorings, tasks, what you wait for, and the week's deadlines.
 - **Задачи**: tasks, linked to a deal or a company if needed; committee conditions land here.
 - **Инвесткомитет**: meetings, agenda, votes, protocol, the register of decisions.
 - **Портфель**: companies, quarterly reports (the analyst enters and confirms the figures), requests from companies.

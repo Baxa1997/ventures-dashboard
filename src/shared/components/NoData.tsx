@@ -8,7 +8,7 @@ interface NoDataProps {
 const NoData = ({ children }: NoDataProps) => {
    const { t } = useTranslation('components');
    return (
-      <p className='text-ink-soft my-auto px-4 py-8 text-center'>
+      <p className='text-ink-soft my-auto px-5 py-12 text-center'>
          {children ?? t('Нет данных')}
       </p>
    );

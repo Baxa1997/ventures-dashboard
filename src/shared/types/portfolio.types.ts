@@ -87,9 +87,13 @@ export interface DataRequestInput {
    dueDate: string;
 }
 
+// portfolio_companies.status: held by the fund, sold, or written off.
+export type CompanyStatus = 'active' | 'exit' | 'written_off';
+
 export interface PortfolioCompany {
    id: string; // also the address of the company's card
    name: string;
+   status: CompanyStatus;
    tagline: string; // the line under the name in the list
    about: string; // the line under the name on the card
    industryKey: string; // an industries key; '' when not set

@@ -8,22 +8,22 @@ import {
 import type { Section, SectionCounters } from '@shared/types/work.types';
 import {
    Briefcase,
-   CalendarCheck,
-   Folder,
-   Funnel,
-   Landmark,
-   LayoutGrid,
+   FolderOpen,
+   Gavel,
+   Handshake,
+   LayoutDashboard,
    ListChecks,
    type LucideIcon,
-   SlidersHorizontal,
+   Settings,
+   Sun,
 } from 'lucide-react';
 
 const SECTION_ICONS: Record<Section, LucideIcon> = {
    tasks: ListChecks,
-   deals: Funnel,
-   committee: Landmark,
+   deals: Handshake,
+   committee: Gavel,
    portfolio: Briefcase,
-   documents: Folder,
+   documents: FolderOpen,
 };
 
 const section = (id: Section) => ({
@@ -37,13 +37,23 @@ const section = (id: Section) => ({
 // names the figure shown at the end of the row.
 export const NAV_GROUPS = [
    {
+      label: 'Главное',
+      items: [
+         {
+            label: 'Дашборд',
+            to: OVERVIEW_PATH,
+            icon: LayoutDashboard,
+            counter: null,
+         },
+      ],
+   },
+   {
       label: 'Работа',
       items: [
-         { label: 'Обзор', to: OVERVIEW_PATH, icon: LayoutGrid, counter: null },
          {
             label: 'Мой день',
             to: MY_DAY_PATH,
-            icon: CalendarCheck,
+            icon: Sun,
             counter: 'myDay',
          },
          section('tasks'),
@@ -64,5 +74,19 @@ export const NAV_GROUPS = [
 export const SETTINGS_ITEM = {
    label: 'Настройки',
    to: SETTINGS_PATH,
-   icon: SlidersHorizontal,
+   icon: Settings,
 } as const;
+
+// A menu item's name: a key of the "layout" translations.
+export type NavLabel =
+   | (typeof NAV_GROUPS)[number]['items'][number]['label']
+   | typeof SETTINGS_ITEM.label;
+
+// Every item of the menu, in its order, for the search.
+export const MENU_ITEMS = [
+   ...NAV_GROUPS.flatMap(
+      (group): readonly { label: NavLabel; to: string; icon: LucideIcon }[] =>
+         group.items,
+   ),
+   SETTINGS_ITEM,
+];

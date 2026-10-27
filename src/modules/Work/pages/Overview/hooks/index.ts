@@ -1,1 +1,1 @@
-export { default as useOverview } from './useOverview';
+export { default as useDashboard } from './useDashboard';

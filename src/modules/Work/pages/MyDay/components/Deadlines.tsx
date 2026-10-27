@@ -25,11 +25,11 @@ const Deadlines = ({ items }: DeadlinesProps) => {
    const { t: tDeals } = useTranslation('deals');
 
    return (
-      <ul className='divide-line divide-y px-5 py-1.5'>
+      <ul className='divide-line divide-y px-4.5 py-1'>
          {items.map((item) => {
             const { title, note } = deadlineWording(tWork, tDeals, item);
             return (
-               <li key={item.id} className='flex gap-3 py-3.5'>
+               <li key={item.id} className='flex gap-3 py-3'>
                   <time
                      dateTime={item.date}
                      className={clsx(
@@ -40,7 +40,7 @@ const Deadlines = ({ items }: DeadlinesProps) => {
                      {formatWeekday(item.date)}
                   </time>
                   <div className='min-w-0'>
-                     <div className='text-meta'>{title}</div>
+                     <div className='font-medium'>{title}</div>
                      <div className='text-ink-soft mt-px text-xs'>
                         {[t(SECTION_LABELS[item.section]), note]
                            .filter(Boolean)

@@ -48,6 +48,7 @@ const toEmployee = (row: Record<string, unknown> & { guid: string }) => {
    return {
       id: row.guid,
       name: str(row.short_name || row.full_name || row.email),
+      fullName: str(row.full_name),
       role: ROLES.includes(role) ? role : 'other',
    } satisfies Employee;
 };

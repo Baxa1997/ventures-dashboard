@@ -11,7 +11,8 @@ import { SECTION_PATHS } from '@shared/constants';
 import { useCurrentUser } from '@shared/hooks';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { MyDeals, TaskRow, Waiting } from './components';
+import { Deadlines, MyDeals, TaskRow, Waiting } from './components';
+import { formatRange } from './helpers';
 import { useMyDay } from './hooks';
 
 const MyDay = () => {
@@ -73,6 +74,21 @@ const MyDay = () => {
                      <Waiting items={day.waiting} tasks={day.waitingTasks} />
                   ) : (
                      <NoData>{t('Вы ни от кого не ждёте ответа')}</NoData>
+                  )}
+               </Card>
+               <Card
+                  title={t('Сроки на неделю')}
+                  hint={formatRange(day.week.start, day.week.end)}
+                  action={
+                     <Link className='link' to={SECTION_PATHS.tasks}>
+                        {t('Календарь')}
+                     </Link>
+                  }
+               >
+                  {day.deadlines.length ? (
+                     <Deadlines items={day.deadlines} />
+                  ) : (
+                     <NoData>{t('На этой неделе сроков нет')}</NoData>
                   )}
                </Card>
                <Card

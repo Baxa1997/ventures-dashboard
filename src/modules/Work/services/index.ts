@@ -1,4 +1,6 @@
 import {
+   COMMITTEE_STAGES,
+   committeeStateOf,
    getDeadline,
    isLate,
    stageKeys,
@@ -20,13 +22,17 @@ import {
    updateRow,
 } from '@shared/api/ucode';
 import { TEAM } from '@shared/constants';
-import { addWorkingDays, createStore, newId } from '@shared/helpers';
+import { addWorkingDays, createStore, daysUntil, newId } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
 import type {
+   AttentionItem,
    ChecklistItem,
+   Dashboard,
    Employee,
-   FundOverview,
+   FunnelGroup,
    MyDeal,
+   NextMeeting,
+   Notice,
    QueueItem,
    SectionCounters,
    Task,
@@ -37,7 +43,7 @@ import type {
    WeekDeadline,
 } from '@shared/types/work.types';
 import dayjs from 'dayjs';
-import { RECURRENCE_MONTHS } from '../constants';
+import { DATE_FORMAT, RECURRENCE_MONTHS } from '../constants';
 import {
    getAssigneeId,
    isDone,
@@ -50,13 +56,92 @@ import {
 
 /* Работа in ucode (docs/ucode-migration.md, batch 5): tasks with their
    task_checklist and task_events rows. Мой день, the week's deadlines, the
-   overview and the sidebar counters have no tables of their own: they are
+   dashboard and the sidebar counters have no tables of their own: they are
    counted from the deals, the portfolio, the meetings and the tasks
-   (docs/ERP.md §5.7). The money of the overview is the one row of fund_money,
-   kept by the chief accountant until Финансы are connected (§4.8). */
+   (docs/ERP.md §5.7). */
 
 const QUEUE_DONE_KEY = 'sqbv_dashboard_queue_done';
 const NEXT_STEP_DAYS = 5; // a deal's next step this close comes to Мой день
+const RECENT_ACTIONS = 7; // the dashboard's latest actions
+// How far back or ahead the bell looks, in days: tasks given to the person,
+// new applications, the committee's next meeting.
+const NOTICE_TASK_DAYS = 7;
+const NOTICE_APPLICATION_DAYS = 14;
+const NOTICE_MEETING_DAYS = 7;
+
+// The dashboard's funnel, in its order.
+const FUNNEL_GROUPS: FunnelGroup[] = [
+   'new',
+   'work',
+   'committee',
+   'invested',
+   'rejected',
+   'exit',
+];
+
+// The order of «Требует внимания»: what the fund is late with first.
+const ATTENTION_ORDER: AttentionItem['kind'][] = [
+   'stage',
+   'requests',
+   'inbox',
+   'report',
+   'agenda',
+];
+
+// Journal entries of different deals in the order they were made; an entry
+// made here and not read back yet has no moment and is the newest of its day.
+const momentOf = ({ date, at }: { date: string; at?: string }) =>
+   `${date}|${at || '~'}`;
+
+// What on a deal needs somebody's attention, the stage's lateness first.
+const attentionOf = (deal: Deal, today: string): AttentionItem[] => {
+   const base = { subject: deal.company, dealId: deal.id };
+   if (deal.status === 'review')
+      return isLate(deal, today)
+         ? [
+              {
+                 ...base,
+                 id: `inbox-${deal.id}`,
+                 kind: 'inbox',
+                 days: -daysUntil(deal.receivedAt.slice(0, 10), today),
+              },
+           ]
+         : [];
+   if (deal.status !== 'active') return [];
+   const items: AttentionItem[] = [];
+   const deadline = getDeadline(deal);
+   if (deadline.kind === 'overdue')
+      items.push({
+         ...base,
+         id: `stage-${deal.id}`,
+         kind: 'stage',
+         stage: deal.stage,
+         days: deadline.days,
+      });
+   const late = (deal.requests ?? []).filter(
+      ({ status, dueDate }) =>
+         status === 'waiting' && dueDate && dueDate < today,
+   ).length;
+   if (late)
+      items.push({
+         ...base,
+         id: `requests-${deal.id}`,
+         kind: 'requests',
+         count: late,
+      });
+   // a committee stage waits for a meeting nobody has put the deal on
+   if (
+      COMMITTEE_STAGES.includes(deal.stage) &&
+      committeeStateOf(deal) === 'none'
+   )
+      items.push({
+         ...base,
+         id: `agenda-${deal.id}`,
+         kind: 'agenda',
+         stage: deal.stage,
+      });
+   return items;
+};
 
 const toEvent = (row: Row): TaskEvent => {
    const base = { id: row.guid, date: day(row.date) };
@@ -182,16 +267,13 @@ const store = createStore(async () => {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 });
 
-// The meetings for the week's deadlines and the fund_money row for the overview.
+// The meetings, for the week's deadlines, the dashboard and the bell.
 const meetings = createStore(() => listRows('meetings'));
-const money = createStore(
-   async () => (await listRows('fund_money'))[0] ?? null,
-);
 
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
 // The pages of this module also show deals and companies.
-[store, meetings, money].forEach((item) => item.subscribe(notify));
+[store, meetings].forEach((item) => item.subscribe(notify));
 deals.subscribe(notify);
 portfolio.subscribe(notify);
 
@@ -762,91 +844,195 @@ class Work {
       return [...fromMeetings, ...fromDeals, ...fromTasks, ...fromReports];
    }
 
-   async getFundOverview(): Promise<FundOverview> {
-      const [all, row, holdings] = await Promise.all([
+   async getDashboard(): Promise<Dashboard> {
+      const [all, holdings, meetingRows] = await Promise.all([
          deals.getDeals(),
-         money.get(),
          portfolio.getState(),
+         meetings.get(),
       ]);
-      const { cycle } = holdings;
-      const invested = holdings.companies.reduce(
-         (sum, company) => sum + company.invested,
-         0,
-      );
+      const today = todayISO();
+      const { cycle, companies } = holdings;
+      const held = companies.filter(({ status }) => status === 'active');
+      const exits = companies.filter(({ status }) => status === 'exit');
+
+      const sectors = new Map<string, number>();
+      for (const company of companies)
+         if (company.invested > 0)
+            sectors.set(
+               company.industryKey,
+               (sectors.get(company.industryKey) ?? 0) + company.invested,
+            );
+
+      // the committee's earliest meeting from today on that has not been held
+      const next = meetingRows
+         .filter(
+            (item) =>
+               str(item.body) !== 'board' &&
+               item.date &&
+               day(item.date) >= today &&
+               str(item.status) !== 'held',
+         )
+         .sort((a, b) =>
+            `${day(a.date)} ${str(a.time)}`.localeCompare(
+               `${day(b.date)} ${str(b.time)}`,
+            ),
+         )[0];
+      const nextMeeting: NextMeeting | null = next
+         ? {
+              id: next.guid,
+              number: str(next.number),
+              date: day(next.date),
+              deals: all.filter(({ committee }) => committee?.id === next.guid)
+                 .length,
+           }
+         : null;
+
+      // a company's documents for the quarter count once its due date has passed
+      const missingReports: AttentionItem[] =
+         cycle?.due && cycle.due < today
+            ? held
+                 .filter((company) => !hasAllDocs(company, cycle.quarter))
+                 .map((company) => ({
+                    id: `report-${company.id}-${cycle.quarter}`,
+                    kind: 'report',
+                    subject: company.name,
+                    companyId: company.id,
+                    quarter: cycle.quarter,
+                 }))
+            : [];
+
+      const active = all.filter(({ status }) => status === 'active');
+      const atCommittee = (deal: Deal) =>
+         COMMITTEE_STAGES.includes(deal.stage) || deal.stage === 'closing';
+      const funnel: Record<FunnelGroup, number> = {
+         new: all.filter(({ status }) => status === 'review').length,
+         work: active.filter((deal) => !atCommittee(deal)).length,
+         committee: active.filter(atCommittee).length,
+         invested: held.length,
+         rejected: all.filter(({ status }) => status === 'rejected').length,
+         exit: exits.length,
+      };
+
       return {
-         updatedAt: dayjs().format('HH:mm'),
-         // money free for deals: on the accounts, less approved payments,
-         // the follow-on reserve and the operating budget
-         money: row && {
-            onAccounts: num(row.on_accounts),
-            capital: num(row.capital),
-            plan: {
-               year: num(row.plan_year) || dayjs().year(),
-               amount: num(row.plan_direct_deals),
-               invested,
-               approved: num(row.approved_unpaid),
-            },
-            parts: [
-               {
-                  part: 'free',
-                  amount: Math.max(
-                     0,
-                     num(row.on_accounts) -
-                        num(row.approved_unpaid) -
-                        num(row.follow_on_reserve) -
-                        num(row.operating_left),
-                  ),
-                  note: '',
-               },
-               {
-                  part: 'approved',
-                  amount: num(row.approved_unpaid),
-                  note: str(row.approved_note),
-               },
-               {
-                  part: 'reserve',
-                  amount: num(row.follow_on_reserve),
-                  note: str(row.follow_on_note),
-               },
-               {
-                  part: 'operating',
-                  amount: num(row.operating_left),
-                  note: str(row.operating_note),
-               },
-            ],
+         deals: {
+            inWork: funnel.new + active.length,
+            applications: funnel.new,
          },
          portfolio: {
-            quarter: cycle ? Number(cycle.quarter.slice(-1)) || null : null,
-            reportsDue: cycle?.due ?? '',
-            requestedAt: cycle?.requestedAt ?? '',
-            companies: holdings.companies.map((company) => ({
-               id: company.id,
-               name: company.name,
-               invested: company.invested,
-               reportReceived: cycle
-                  ? hasAllDocs(company, cycle.quarter)
-                  : false,
-               nextStep: company.now,
-            })),
+            companies: held.length,
+            exits: exits.length,
+            invested: companies.reduce(
+               (sum, company) => sum + company.invested,
+               0,
+            ),
          },
-         // incoming applications, then the deals in work on each stage
-         funnel: stageKeys().map((stage) => {
-            const group = all.filter((deal) =>
-               stage === 'inbox'
-                  ? deal.status === 'review'
-                  : deal.status === 'active' && deal.stage === stage,
-            );
-            return {
-               stage,
-               count: group.length,
-               overdue: group.filter((deal) =>
-                  stage === 'inbox'
-                     ? isLate(deal)
-                     : getDeadline(deal).kind === 'overdue',
-               ).length,
-            };
-         }),
+         nextMeeting,
+         funnel: FUNNEL_GROUPS.map((group) => ({
+            group,
+            count: funnel[group],
+         })),
+         industries: [...sectors]
+            .map(([key, amount]) => ({ key, invested: amount }))
+            .sort((a, b) => b.invested - a.invested),
+         attention: [
+            ...all.flatMap((deal) => attentionOf(deal, today)),
+            ...missingReports,
+         ].sort(
+            (a, b) =>
+               ATTENTION_ORDER.indexOf(a.kind) -
+               ATTENTION_ORDER.indexOf(b.kind),
+         ),
+         recent: all
+            .flatMap((deal) =>
+               deal.journal.map((entry) => ({
+                  dealId: deal.id,
+                  company: deal.company,
+                  entry,
+               })),
+            )
+            .sort((a, b) => momentOf(b.entry).localeCompare(momentOf(a.entry)))
+            .slice(0, RECENT_ACTIONS),
       };
+   }
+
+   // The bell's notifications: decisions waiting for the person, their tasks
+   // past the deadline or newly given to them by somebody else, the
+   // applications of the last two weeks and the committee's meeting of the
+   // coming week.
+   async getNotices(userId: string): Promise<Notice[]> {
+      const [queue, tasks, all, meetingRows] = await Promise.all([
+         this.getQueue(userId),
+         store.get(),
+         deals.getDeals(),
+         meetings.get(),
+      ]);
+      const today = todayISO();
+      const since = (days: number) =>
+         dayjs(today).subtract(days, 'day').format(DATE_FORMAT);
+      const mine = tasks.filter(
+         (task) => !isDone(task) && getAssigneeId(task) === userId,
+      );
+      return [
+         ...queue
+            .filter((item) => item.decision && !item.completedAt)
+            .map((item): Notice => ({
+               id: `decision-${item.id}`,
+               kind: 'decision',
+               item,
+            })),
+         ...mine
+            .filter((task) => task.dueDate && task.dueDate < today)
+            .map((task): Notice => ({
+               id: `overdue-${task.id}-${task.dueDate}`,
+               kind: 'overdue',
+               taskId: task.id,
+               title: task.title,
+               dueDate: task.dueDate,
+            })),
+         ...mine
+            .filter(
+               (task) =>
+                  task.createdById &&
+                  task.createdById !== userId &&
+                  task.createdAt >= since(NOTICE_TASK_DAYS),
+            )
+            .map((task): Notice => ({
+               id: `assigned-${task.id}`,
+               kind: 'assigned',
+               taskId: task.id,
+               title: task.title,
+               fromId: task.createdById,
+            })),
+         ...all
+            .filter(
+               (deal) =>
+                  deal.status === 'review' &&
+                  deal.receivedAt.slice(0, 10) >=
+                     since(NOTICE_APPLICATION_DAYS),
+            )
+            .map((deal): Notice => ({
+               id: `application-${deal.id}`,
+               kind: 'application',
+               dealId: deal.id,
+               company: deal.company,
+               date: deal.receivedAt.slice(0, 10),
+            })),
+         ...meetingRows
+            .filter(
+               (item) =>
+                  str(item.body) !== 'board' &&
+                  str(item.status) === 'planned' &&
+                  day(item.date) >= today &&
+                  daysUntil(day(item.date), today) <= NOTICE_MEETING_DAYS,
+            )
+            .map((item): Notice => ({
+               id: `meeting-${item.guid}`,
+               kind: 'meeting',
+               meetingId: item.guid,
+               number: str(item.number),
+               date: day(item.date),
+            })),
+      ];
    }
 
    async getCounters(userId: string): Promise<SectionCounters> {

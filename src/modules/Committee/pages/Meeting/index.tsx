@@ -81,6 +81,8 @@ const BOX_TONES: Record<BadgeTone, string> = {
    warning: 'bg-warning-tint',
    danger: 'bg-danger-tint',
    neutral: 'bg-ground',
+   indigo: 'bg-indigo-tint',
+   info: 'bg-info-tint',
 };
 
 const TITLE_TONES: Record<BadgeTone, string> = {
@@ -89,6 +91,8 @@ const TITLE_TONES: Record<BadgeTone, string> = {
    warning: 'text-warning-ink',
    danger: 'text-danger',
    neutral: 'text-ink',
+   indigo: 'text-indigo-ink',
+   info: 'text-info-ink',
 };
 
 /* A meeting of the committee or the board. While it is open the secretary

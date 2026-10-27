@@ -1,12 +1,13 @@
 import {
+   CHECKLIST_MAX,
+   CONTEXT_MAX,
    TASK_PRIORITY_ORDER,
    TASK_RECURRENCE_ORDER,
    TASK_RELATION_ORDER,
    TITLE_MAX,
-} from '@modules/Work/constants';
+} from '../constants';
 import type { RuTranslation } from '@shared/i18n/ru';
 import { z } from 'zod';
-import { CHECKLIST_MAX, CONTEXT_MAX } from '../constants';
 import type { TaskFormValues } from '../helpers';
 
 // Messages are keys of the "validation" translations.

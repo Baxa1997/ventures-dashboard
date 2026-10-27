@@ -1,3 +1,4 @@
+import { TaskForm } from '@modules/Work/components';
 import { isDone } from '@modules/Work/helpers';
 import { useTasks } from '@modules/Work/hooks';
 import {
@@ -15,7 +16,7 @@ import type { Task, TaskInput } from '@shared/types/work.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
-import { Tabs, TaskDetail, TaskForm, TasksTable, Toolbar } from './components';
+import { Tabs, TaskDetail, TasksTable, Toolbar } from './components';
 import { DEFAULT_TAB, type TaskTab } from './constants';
 import { toTab } from './helpers';
 import { useTaskFilters } from './hooks';
@@ -180,6 +181,7 @@ const Tasks = () => {
          </PageBody>
          <Modal
             open={form !== null}
+            size='wide'
             title={form?.task ? t('Редактирование задачи') : t('Новая задача')}
             onClose={closeForm}
          >
@@ -190,7 +192,6 @@ const Tasks = () => {
                   targets={targets}
                   task={form.task}
                   saving={saving.pending}
-                  onCancel={closeForm}
                   onSubmit={saving.run}
                />
             )}

@@ -121,7 +121,7 @@ const groupByDeal = (rows: Row[]) => {
 // ---- rows → Deal
 
 const toEntry = (row: Row): JournalEntry => {
-   const base = { id: row.guid, date: localDay(row.at) };
+   const base = { id: row.guid, date: localDay(row.at), at: str(row.at) };
    const userId = str(row.employee_id);
    switch (row.kind) {
       case 'created':

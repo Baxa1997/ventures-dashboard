@@ -6,6 +6,7 @@ export { default as Card, STACK } from './Card';
 export { default as Checkbox } from './Checkbox';
 export { default as CheckList } from './CheckList';
 export { default as ChoiceCards, type Choice } from './ChoiceCards';
+export { default as CompanyMark } from './CompanyMark';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as FactList, type FactRow } from './FactList';
 export { default as Field } from './Field';
@@ -20,7 +21,11 @@ export { default as PageHeader } from './PageHeader';
 export { default as Person } from './Person';
 export { default as Progress } from './Progress';
 export { default as SearchField } from './SearchField';
-export { default as StatTile, type StatTone } from './StatTile';
+export {
+   default as StatTile,
+   type StatColor,
+   type StatTone,
+} from './StatTile';
 export { default as Table, TD, TH } from './Table';
 export { default as Tabs, type TabItem } from './Tabs';
 export { default as Toaster } from './Toaster';

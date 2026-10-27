@@ -1,7 +1,4 @@
-import { stageName } from '@modules/Settings/services';
-import { stageNorm } from '@modules/Deals/helpers';
-import { formatToday } from '@modules/Work/helpers';
-import { useTasks } from '@modules/Work/hooks';
+import { openNewTask } from '@modules/Work/hooks';
 import {
    Button,
    buttonClass,
@@ -12,175 +9,140 @@ import {
    PageHeader,
 } from '@shared/components';
 import { MY_DAY_PATH, SECTION_PATHS } from '@shared/constants';
+import { formatNumericDate, todayISO } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
+import { Plus, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import {
-   BarList,
-   Deadlines,
-   Decisions,
-   FundMoney,
-   Portfolio,
+   Attention,
+   Figures,
+   FunnelChart,
+   MyTasks,
+   RecentActions,
+   SectorDonut,
 } from './components';
-import { DECISIONS_LIMIT, QUARTERS } from './constants';
-import { formatRange, formatUsd } from './helpers';
-import { useOverview } from './hooks';
+import { ATTENTION_SHOWN, TASKS_SHOWN } from './constants';
+import { firstName } from './helpers';
+import { useDashboard } from './hooks';
 
+/* The dashboard: the fund's figures, the deal funnel and the money invested
+   by sector, then the signed-in person's open tasks, what needs attention
+   and the latest actions of the deals. */
 const Overview = () => {
-   const { t, i18n } = useTranslation('work');
+   const { t } = useTranslation('work');
    const { t: tLayout } = useTranslation('layout');
    const user = useCurrentUser();
-   const { employees } = useTasks();
-   const { fund, decisions, week, deadlines } = useOverview(user.id);
-   const language = i18n.resolvedLanguage ?? i18n.language;
+   const dashboard = useDashboard(user.id);
+   const { board } = dashboard;
 
    return (
       <>
          <PageHeader
-            section={tLayout('Работа')}
-            title={t('Обзор фонда')}
-            meta={
-               fund &&
-               `${formatToday(true)} · ${t('данные обновлены в {{time}}', {
-                  time: fund.updatedAt,
-               })}`
-            }
+            label={tLayout('Дашборд')}
+            title={t('Добрый день, {{name}}', {
+               name: firstName(user.fullName || user.name),
+            })}
+            meta={t(
+               'Сводка по воронке сделок, портфелю и вашим задачам на {{date}}.',
+               { date: formatNumericDate(todayISO()) },
+            )}
             actions={
                <>
-                  <Button variant='ghost' onClick={() => window.print()}>
-                     {t('Выгрузить для НС')}
-                  </Button>
-                  <Link
-                     className={buttonClass()}
-                     to={`${SECTION_PATHS.deals}?new=1`}
-                  >
-                     {t('Новая сделка')}
+                  <Link className={buttonClass('ghost')} to={MY_DAY_PATH}>
+                     <Sun aria-hidden />
+                     {t('Мой день')}
                   </Link>
+                  <Button onClick={openNewTask}>
+                     <Plus aria-hidden />
+                     {t('Новая задача')}
+                  </Button>
                </>
             }
          />
-         {!fund ? (
+         {!board || dashboard.loading ? (
             <Loading />
          ) : (
             <PageBody className='gap-section flex flex-col'>
-               <div className='gap-section grid xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
+               <Figures
+                  board={board}
+                  myTasks={dashboard.myTasks.length}
+                  overdueTasks={dashboard.overdueTasks}
+               />
+
+               <div className='gap-section grid xl:grid-cols-[1.6fr_1fr]'>
                   <Card
-                     className='flex flex-col'
-                     title={t('Требуют вашего решения')}
-                     hint={decisions.length}
+                     title={t('Воронка сделок')}
                      action={
-                        <Link className='link' to={MY_DAY_PATH}>
-                           {t('Все решения')}
+                        <Link className='head-link' to={SECTION_PATHS.deals}>
+                           {t('Все сделки')}
                         </Link>
                      }
                   >
-                     {decisions.length ? (
-                        <Decisions
-                           employees={employees}
-                           items={decisions.slice(0, DECISIONS_LIMIT)}
-                        />
-                     ) : (
-                        <NoData>{t('Решений, которые ждут вас, нет')}</NoData>
-                     )}
+                     <FunnelChart bars={board.funnel} />
                   </Card>
                   <Card
                      className='flex flex-col'
-                     title={t('Сроки на неделю')}
-                     hint={formatRange(week.start, week.end)}
+                     title={t('Вложено по отраслям')}
                      action={
-                        <Link className='link' to={SECTION_PATHS.tasks}>
-                           {t('Календарь')}
+                        <Link className='head-link' to={SECTION_PATHS.portfolio}>
+                           {t('Портфель')}
                         </Link>
                      }
                   >
-                     {deadlines.length ? (
-                        <Deadlines items={deadlines} />
+                     {board.industries.length ? (
+                        <SectorDonut sectors={board.industries} />
                      ) : (
-                        <NoData>{t('На этой неделе сроков нет')}</NoData>
+                        <NoData>{t('В портфеле пока нет вложений')}</NoData>
                      )}
                   </Card>
                </div>
 
-               <Card
-                  title={t('Деньги фонда')}
-                  hint={
-                     fund.money &&
-                     t('на счетах {{amount}} · капитал {{capital}}', {
-                        amount: formatUsd(fund.money.onAccounts, language),
-                        capital: formatUsd(fund.money.capital, language),
-                     })
-                  }
-               >
-                  {fund.money ? (
-                     <FundMoney money={fund.money} />
-                  ) : (
-                     <NoData>
-                        {t(
-                           'Остатки фонда ещё не внесены: их ведёт главный бухгалтер в таблице fund_money, пока не подключены Финансы.',
-                        )}
-                     </NoData>
-                  )}
-               </Card>
-
-               <div className='gap-section grid xl:grid-cols-2'>
+               <div className='gap-section grid xl:grid-cols-3'>
                   <Card
                      className='flex flex-col'
-                     title={t('Воронка по стадиям')}
-                     hint={t('{{count}} сделка', {
-                        count: fund.funnel.reduce(
-                           (sum, { count }) => sum + count,
-                           0,
-                        ),
-                     })}
+                     title={t('Мои задачи')}
                      action={
-                        <Link className='link' to={SECTION_PATHS.deals}>
-                           {t('Открыть воронку')}
+                        <Link
+                           className='head-link'
+                           to={`${SECTION_PATHS.tasks}?tab=mine`}
+                        >
+                           {t('Все задачи')}
                         </Link>
                      }
                   >
-                     <BarList
-                        items={fund.funnel.map(({ stage, count, overdue }) => ({
-                           id: stage,
-                           label: stageName(stage),
-                           value: count,
-                           overdue,
-                        }))}
-                     />
-                     <p className='text-ink-soft mt-auto px-5 pt-2 pb-4 text-xs'>
-                        {t(
-                           'Нормативы стадий: входящие — {{inbox}} рабочих дня, скрининг — {{screening}}, анализ — {{analysis}}, детальный DD — {{dd}}. Красным — сделки, где срок нарушен по вине фонда.',
-                           {
-                              inbox: stageNorm('inbox'),
-                              screening: stageNorm('screening'),
-                              analysis: stageNorm('analysis'),
-                              dd: stageNorm('dd'),
-                           },
-                        )}
-                     </p>
+                     {dashboard.myTasks.length ? (
+                        <MyTasks
+                           targetName={dashboard.targetName}
+                           tasks={dashboard.myTasks.slice(0, TASKS_SHOWN)}
+                           onTick={dashboard.tickTask}
+                        />
+                     ) : (
+                        <NoData>{t('Открытых задач нет.')}</NoData>
+                     )}
                   </Card>
                   <Card
-                     title={t('Портфель')}
-                     hint={[
-                        t('{{count}} компания', {
-                           count: fund.portfolio.companies.length,
-                        }),
-                        fund.portfolio.quarter &&
-                           t('отчёты за {{quarter}} квартал', {
-                              quarter: QUARTERS[fund.portfolio.quarter - 1],
-                           }),
-                     ]
-                        .filter(Boolean)
-                        .join(' · ')}
+                     className='flex flex-col'
+                     title={t('Требует внимания')}
                      action={
-                        <Link className='link' to={SECTION_PATHS.portfolio}>
-                           {t('Открыть портфель')}
-                        </Link>
+                        <span className='text-ink-soft text-xs'>
+                           {board.attention.length}
+                        </span>
                      }
                   >
-                     {fund.portfolio.companies.length ? (
-                        <Portfolio portfolio={fund.portfolio} />
+                     {board.attention.length ? (
+                        <Attention
+                           items={board.attention.slice(0, ATTENTION_SHOWN)}
+                        />
                      ) : (
-                        <NoData>{t('В портфеле пока нет компаний')}</NoData>
+                        <NoData>{t('Всё по плану.')}</NoData>
+                     )}
+                  </Card>
+                  <Card className='flex flex-col' title={t('Последние действия')}>
+                     {board.recent.length ? (
+                        <RecentActions items={board.recent} />
+                     ) : (
+                        <NoData>{t('Действий пока нет.')}</NoData>
                      )}
                   </Card>
                </div>

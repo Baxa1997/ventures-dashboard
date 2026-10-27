@@ -1,3 +1,5 @@
+import type { JournalEntry } from './deals.types';
+
 // employees.role in ucode.
 export type Role =
    | 'director'
@@ -12,7 +14,8 @@ export type Role =
 
 export interface Employee {
    id: string;
-   name: string;
+   name: string; // the short name the lists show
+   fullName?: string; // as written in employees, '' when not filled in
    role: Role;
 }
 
@@ -181,45 +184,72 @@ export interface WeekDeadline {
    keyEvent: boolean; // the event of the week, e.g. a committee meeting
 }
 
-export type MoneyPart = 'free' | 'approved' | 'reserve' | 'operating';
+// The dashboard's funnel, grouped as the design groups the deals: new
+// applications, the work before and between the committees, the committee
+// stages and closing, the portfolio, rejections and exits.
+export type FunnelGroup =
+   | 'new'
+   | 'work'
+   | 'committee'
+   | 'invested'
+   | 'rejected'
+   | 'exit';
 
-export interface FunnelStage {
-   stage: DealStage;
+export interface FunnelBar {
+   group: FunnelGroup;
    count: number;
-   overdue: number; // of them, late because of the fund
 }
 
-export interface PortfolioCompany {
+// The investment committee's next meeting.
+export interface NextMeeting {
    id: string;
-   name: string;
-   invested: number; // USD
-   reportReceived: boolean;
-   nextStep: string;
+   number: string;
+   date: string; // YYYY-MM-DD
+   deals: number; // on its agenda
 }
 
-// What the fund overview shows; amounts are in USD. The money is null until
-// the chief accountant fills in fund_money (docs/ERP.md §4.8).
-export interface FundOverview {
-   updatedAt: string; // HH:mm of the last data refresh
-   money: {
-      onAccounts: number;
-      capital: number;
-      plan: {
-         year: number;
-         amount: number;
-         invested: number;
-         approved: number;
-      };
-      parts: { part: MoneyPart; amount: number; note: string }[];
-   } | null;
-   funnel: FunnelStage[];
-   portfolio: {
-      quarter: number | null; // null before the first reporting cycle
-      reportsDue: string; // YYYY-MM-DD, '' without a cycle
-      requestedAt: string; // YYYY-MM-DD, '' until the reports are requested
-      companies: PortfolioCompany[];
-   };
+// Why a deal or a company is on the dashboard's «Требует внимания»; worded
+// when shown. stage: past the stage's norm; requests: requests to the
+// applicant past their date; inbox: an application nobody took in time;
+// report: the quarter's documents missing after the due date; agenda: a
+// committee stage with no meeting.
+export type AttentionItem = { id: string; subject: string } & (
+   | { kind: 'stage'; dealId: string; stage: DealStage; days: number }
+   | { kind: 'requests'; dealId: string; count: number }
+   | { kind: 'inbox'; dealId: string; days: number }
+   | { kind: 'report'; companyId: string; quarter: string }
+   | { kind: 'agenda'; dealId: string; stage: DealStage }
+);
+
+// A line of a deal's journal, among the dashboard's latest actions.
+export interface RecentAction {
+   dealId: string;
+   company: string;
+   entry: JournalEntry;
 }
+
+// What the dashboard shows (docs/ERP.md §5.7), counted from the deals, the
+// portfolio and the meetings; amounts are in USD.
+export interface Dashboard {
+   deals: { inWork: number; applications: number }; // applications: untaken
+   portfolio: { companies: number; exits: number; invested: number };
+   nextMeeting: NextMeeting | null;
+   funnel: FunnelBar[];
+   industries: { key: string; invested: number }[]; // by sector, largest first
+   attention: AttentionItem[]; // the most pressing first
+   recent: RecentAction[]; // newest first
+}
+
+// A notification of the top bar's bell, worded when shown: what waits for the
+// person's decision, their overdue and newly assigned tasks, new applications
+// and the committee's next meeting.
+export type Notice = { id: string } & (
+   | { kind: 'decision'; item: QueueItem }
+   | { kind: 'overdue'; taskId: string; title: string; dueDate: string }
+   | { kind: 'assigned'; taskId: string; title: string; fromId: string }
+   | { kind: 'application'; dealId: string; company: string; date: string }
+   | { kind: 'meeting'; meetingId: string; number: string; date: string }
+);
 
 // Counters shown next to the sidebar items.
 export type SectionCounters = Partial<Record<Section | 'myDay', number>>;

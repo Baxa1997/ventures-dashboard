@@ -217,6 +217,7 @@ export interface Decision {
 interface JournalBase {
    id: string;
    date: string; // YYYY-MM-DD
+   at?: string; // the moment, as ucode keeps it; none until read back
 }
 
 // A line of a deal's journal. What this app records is worded when shown, so

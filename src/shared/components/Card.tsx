@@ -12,15 +12,15 @@ interface CardProps {
 const Card = ({ title, hint, action, className, children }: CardProps) => (
    <section
       className={clsx(
-         'border-line animate-rise rounded-lg border bg-white',
+         'border-line shadow-card animate-rise rounded-xl border bg-white',
          className,
       )}
    >
       {title && (
-         <header className='border-line flex min-h-11.5 flex-wrap items-center gap-x-2 border-b px-5 py-2'>
-            <h2 className='text-title font-bold'>{title}</h2>
+         <header className='border-line flex min-h-11 flex-wrap items-center gap-x-2 border-b px-4.5 py-2'>
+            <h2 className='text-meta font-bold'>{title}</h2>
             {hint !== undefined && (
-               <span className='text-ink-soft text-meta'>{hint}</span>
+               <span className='text-ink-soft text-xs'>{hint}</span>
             )}
             {action && <span className='ml-auto pl-3'>{action}</span>}
          </header>

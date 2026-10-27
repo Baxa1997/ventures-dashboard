@@ -6,10 +6,6 @@ import type {
 // Filter value that matches every assignee, type or relation.
 export const ALL = 'all' as const;
 
-export const CONTEXT_MAX = 80;
-
-export const CHECKLIST_MAX = 1000;
-
 export const COMMENT_MAX = 500;
 
 export const TASK_TABS = [

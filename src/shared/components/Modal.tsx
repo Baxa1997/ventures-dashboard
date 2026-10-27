@@ -1,4 +1,5 @@
 import { raiseToasts } from '@shared/helpers/toast';
+import clsx from 'clsx';
 import { X } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,9 +8,15 @@ interface ModalProps {
    open: boolean;
    title: string;
    subtitle?: ReactNode; // shown under the title
+   size?: 'md' | 'wide'; // wide: a card with columns, such as a task's
    onClose: () => void;
    children: ReactNode;
 }
+
+const WIDTHS = {
+   md: 'w-[min(36rem,calc(100vw-2rem))]',
+   wide: 'w-[min(73.75rem,calc(100vw-2rem))]',
+};
 
 interface ModalPartProps {
    children: ReactNode;
@@ -23,7 +30,14 @@ interface ModalFooterProps extends ModalPartProps {
    The title stays at the top and the buttons at the bottom; only the content
    between them scrolls. Put the content in ModalBody and the buttons in
    ModalFooter; a form wraps both with the MODAL_FORM class. */
-const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
+const Modal = ({
+   open,
+   title,
+   subtitle,
+   size = 'md',
+   onClose,
+   children,
+}: ModalProps) => {
    const { t } = useTranslation('components');
    const ref = useRef<HTMLDialogElement>(null);
    const titleId = useId();
@@ -44,7 +58,10 @@ const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
       <dialog
          ref={ref}
          aria-labelledby={titleId}
-         className='border-line text-ink shadow-popup backdrop:bg-navy/50 open:animate-pop backdrop:animate-fade m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border bg-white p-0 open:flex'
+         className={clsx(
+            'border-line text-ink shadow-popup backdrop:bg-navy-deep/45 open:animate-pop backdrop:animate-fade m-auto max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-xl border bg-white p-0 open:flex',
+            WIDTHS[size],
+         )}
          onClose={onClose}
          onClick={(event) => {
             if (event.target === ref.current) onClose();
@@ -52,7 +69,7 @@ const Modal = ({ open, title, subtitle, onClose, children }: ModalProps) => {
       >
          <header className='border-line flex shrink-0 items-start justify-between gap-3 border-b px-5 py-3.5'>
             <div className='min-w-0'>
-               <h2 id={titleId} className='text-lg leading-6 font-bold'>
+               <h2 id={titleId} className='text-base leading-6 font-bold'>
                   {title}
                </h2>
                {subtitle && (

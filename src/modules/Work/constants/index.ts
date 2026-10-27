@@ -1,5 +1,4 @@
-import type { BadgeTone } from '@shared/components';
-import type { StatusGroup } from '@shared/types/settings.types';
+import type { ItemTone, StatusGroup } from '@shared/types/settings.types';
 import type {
    Section,
    SystemTaskStatus,
@@ -11,6 +10,8 @@ import type {
 export { DATE_FORMAT } from '@shared/constants';
 
 export const TITLE_MAX = 120;
+export const CONTEXT_MAX = 80; // the note's text on one line, next to the type
+export const CHECKLIST_MAX = 1000; // the checklist's items together
 
 // A deadline this many days away, or closer, is highlighted.
 export const SOON_DAYS = 3;
@@ -36,7 +37,7 @@ export const TASK_STATUS_LABELS = {
    done: 'Завершена',
 } as const satisfies Record<SystemTaskStatus, string>;
 
-export const TASK_STATUS_TONES: Record<SystemTaskStatus, BadgeTone> = {
+export const TASK_STATUS_TONES: Record<SystemTaskStatus, ItemTone> = {
    assigned: 'neutral',
    in_progress: 'accent',
    waiting: 'warning',

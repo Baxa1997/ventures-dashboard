@@ -2,7 +2,7 @@ import { INTERFACE_LANGUAGES } from '@shared/constants';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 
-// Shown inside the user menu of the sidebar, on its dark surface.
+// Shown inside the user menu of the top bar.
 const Language = () => {
    const { t, i18n } = useTranslation('layout');
 
@@ -18,8 +18,8 @@ const Language = () => {
                   className={clsx(
                      'flex-1 rounded-md py-1.5 text-[11px] font-semibold uppercase transition-colors',
                      active
-                        ? 'bg-white/15 text-white'
-                        : 'text-on-dark-soft hover:bg-white/10 hover:text-white',
+                        ? 'bg-accent-tint text-ink-strong'
+                        : 'text-ink-soft hover:bg-hover hover:text-ink',
                   )}
                   onClick={() => i18n.changeLanguage(language)}
                >

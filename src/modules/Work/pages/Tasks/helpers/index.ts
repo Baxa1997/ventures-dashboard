@@ -6,12 +6,9 @@ import {
    isOverdue,
    statusGroup,
 } from '@modules/Work/helpers';
-import { textToHtml } from '@shared/helpers';
 import type {
-   ChecklistItem,
    SystemTaskStatus,
    Task,
-   TaskInput,
    TaskRelation,
    TaskType,
 } from '@shared/types/work.types';
@@ -104,46 +101,3 @@ export const getNextStep = (task: Task) => {
    if (group === 'complete') return NEXT_STEPS.done;
    return task.reviewerId ? NEXT_STEPS.in_progress : CLOSE_STEP;
 };
-
-// The form edits the checklist as text, one item per line.
-export type TaskFormValues = Omit<TaskInput, 'checklist'> & {
-   checklist: string;
-};
-
-export const getInitialValues = (
-   task: Task | undefined,
-   userId: string,
-): TaskFormValues => ({
-   title: task?.title ?? '',
-   type: task?.type ?? 'other',
-   context: task?.context ?? '',
-   // a task from before the rich editor has only the one-line text
-   details: task?.details || textToHtml(task?.context ?? ''),
-   relation: task?.relation ?? 'none',
-   relationId: task?.relationId ?? '',
-   assigneeId: task ? task.assigneeId : userId,
-   reviewerId: task?.reviewerId ?? '',
-   dueDate: task?.dueDate ?? '',
-   priority: task?.priority ?? 'medium',
-   status: task?.status ?? 'assigned',
-   recurrence: task?.recurrence ?? 'none',
-   checklist: task?.checklist.map(({ text }) => text).join('\n') ?? '',
-});
-
-// Items whose text was not changed keep their tick.
-export const toChecklist = (
-   text: string,
-   previous: ChecklistItem[] = [],
-): ChecklistItem[] =>
-   text
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map(
-         (line) =>
-            previous.find((item) => item.text === line) ?? {
-               id: crypto.randomUUID(),
-               text: line,
-               done: false,
-            },
-      );

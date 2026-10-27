@@ -3,17 +3,26 @@ import { LoaderCircle } from 'lucide-react';
 import type { ButtonHTMLAttributes } from 'react';
 
 type ButtonVariant = 'primary' | 'ghost' | 'text' | 'danger';
+type ButtonSize = 'md' | 'sm';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
    variant?: ButtonVariant;
+   size?: ButtonSize;
    loading?: boolean; // its request is on its way: a spinner, and it is off
 }
 
 const VARIANTS: Record<ButtonVariant, string> = {
-   primary: 'bg-accent text-white hover:bg-accent-strong',
-   ghost: 'border border-line-strong bg-white text-ink hover:bg-ground',
+   primary: 'bg-accent font-bold text-white hover:bg-accent-strong',
+   ghost: 'border border-line-strong text-ink hover:bg-hover',
    text: 'text-accent hover:underline',
-   danger: 'bg-danger text-white hover:bg-danger/90',
+   danger: 'border border-danger/40 text-danger hover:bg-danger/12',
+};
+
+// 36px, like the inputs and filters, so a row of controls lines up; a small
+// button sits inside a row of a list or a card.
+const SIZES: Record<ButtonSize, string> = {
+   md: 'h-9 px-3.5 text-meta',
+   sm: 'h-7 px-2.5 text-xs',
 };
 
 // Also used to make a link look like a button. A busy button is not faded
@@ -22,12 +31,14 @@ export const buttonClass = (
    variant: ButtonVariant = 'primary',
    className?: string,
    busy = false,
+   size: ButtonSize = 'md',
 ) =>
    clsx(
-      'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold whitespace-nowrap transition-colors',
+      'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg font-semibold whitespace-nowrap transition-colors [&_svg]:size-4 [&_svg]:shrink-0',
       busy
          ? 'cursor-progress opacity-85'
-         : 'disabled:cursor-not-allowed disabled:opacity-50',
+         : 'disabled:cursor-not-allowed disabled:opacity-45',
+      SIZES[size],
       VARIANTS[variant],
       className,
    );
@@ -42,6 +53,7 @@ export const Spinner = ({ className }: { className?: string }) => (
 
 const Button = ({
    variant = 'primary',
+   size = 'md',
    type = 'button',
    loading = false,
    disabled,
@@ -52,7 +64,7 @@ const Button = ({
    <button
       type={type}
       aria-busy={loading || undefined}
-      className={buttonClass(variant, className, loading)}
+      className={buttonClass(variant, className, loading, size)}
       disabled={disabled || loading}
       {...props}
    >

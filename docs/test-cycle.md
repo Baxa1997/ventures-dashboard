@@ -23,7 +23,6 @@ Button names are given as the panel shows them. The panel is in Russian only for
 | Needed for | Table (folder in Admin) | What to add |
 | --- | --- | --- |
 | step 4, the second reviewer | — | done in the panel: Настройки → Пользователи и роли → «Пригласить пользователя», name `ZZ Аналитик`, any email, role «Аналитик» |
-| step 12, the fund's money | Настройки и справочники → `fund_money` (Деньги фонда) | one row: `as_of` today, `capital` 10000000, `on_accounts` 3000000, `approved_unpaid` 300000, `follow_on_reserve` 500000, `operating_left` 400000, `plan_year` 2026, `plan_direct_deals` 1500000 |
 | step 13, a portfolio company | Портфель → `portfolio_companies` (Компании портфеля) and its tables | a company `ZZ Portfolio Co` (`owner_id` = the guid of «Администратор» in `employees`, `instrument` safe, `since` 2025, `current_note` any text); in `investments` two rows for it (`amount` 100000 and 50000); in `quarter_reports` one row (`quarter` 2026-Q3, `fund_template_at` and `form1_at` some October dates, `metrics_state` check, `mrr` 12000, `runway` 9); in `company_requests` one row (`title`, `opened_at`, `status` waiting_fund); in `pilots` one row (`title`, `customer` SQB, `status` in_progress) |
 
 ## 1. Sign-in
@@ -32,7 +31,7 @@ Button names are given as the panel shows them. The panel is in Russian only for
 2. Enter `Sqb-admin` and a wrong password, «Войти» → «Неверный логин или пароль».
 3. Enter the right password, keep «Не выходить на этом устройстве» ticked → you land on Сделки (the page you asked for); the sidebar shows «Администратор · Директор».
 4. Reload the page → still signed in.
-5. The sidebar shows Обзор, Мой день, Задачи, Сделки, Инвесткомитет, Портфель, Документы (under «Фонд») and Настройки. Open http://localhost:3000/finance → «Страница не найдена».
+5. The sidebar shows Дашборд, Мой день, Задачи, Сделки, Инвесткомитет, Портфель, Документы (under «Фонд») and Настройки. Open http://localhost:3000/finance → «Страница не найдена».
 
 ## 2. A startup applies (website)
 
@@ -80,7 +79,7 @@ Button names are given as the panel shows them. The panel is in Russian only for
 2. On `ZZ Startup A` (at ИК-1): «Следующий шаг» explains the stage and has «Вынести на заседание» (Инвесткомитет → «Заседания ИК» also lists it under «Ждут заседания» when no meeting is planned) → it opens «Назначить заседание» with Тип **ИК-1** and `ZZ Startup A` ticked → pick a date from today on → «Назначить» → the meeting page.
 3. → «Подготовка к заседанию» lists four steps: the agenda (done), at least 3 members (done), who will come (not done), the materials (until the date shown). «Открыть заседание» is off.
 4. Under «Отметить, кто из них будет» set each member to «Будет» → 3 of 4 done, «Открыть заседание» is on. «Добавить сделку» adds another deal waiting for ИК-1 to the agenda.
-5. Back on the deal → the next step now says «Открыть ИК № N · date» and leads to the meeting. Обзор → «Сроки на неделю» shows the meeting if it is this week.
+5. Back on the deal → the next step now says «Открыть ИК № N · date» and leads to the meeting. Мой день → «Сроки на неделю» shows the meeting if it is this week, and the dashboard's «Ближайшее заседание» shows it with its deals.
 6. «Разослать материалы» → «материалы разосланы» with today's date.
 7. «Открыть заседание» → «Кворум есть: 3 из 3 членов»; the votes appear.
 8. For `ZZ Startup A` record three «За», fill «Условия одобрения» (`ZZ Предоставить отчётность`) → the result box says the question is approved → «Зафиксировать одобрение» → «Решение зафиксировано: одобрено с условиями».
@@ -122,13 +121,14 @@ A committee stage is left only after its committee's approval: before step 8, «
 6. On the copy, «Удалить» (next to «Изменить») → the window asks → «Удалить» → it is gone.
 7. Sidebar counters: «Задачи» counts your open tasks, «Мой день» what waits for you.
 
-## 12. Мой день and Обзор
+## 12. Мой день and the dashboard
 
 1. Мой день → «Нужно сделать вам»: your tasks, deal steps due within 5 working days, decisions waiting for you. Tick an item that comes from a deal → it moves to the end until tomorrow (kept in this browser only).
 2. «Ждёте от других»: open requests to applicants on your deals (step 6.2 if the deal is yours), tasks you check that are «Ждёт ответа».
-3. «Мои сделки»: the active deals you own, the furthest stage first.
-4. Обзор → «Требуют вашего решения», «Сроки на неделю», «Воронка по стадиям» (counts match Сделки), «Портфель».
-5. «Деньги фонда»: before the `fund_money` row → «Остатки фонда ещё не внесены…»; after it → free money 1.8M of 3M on the accounts (3 000 000 − 300 000 − 500 000 − 400 000).
+3. «Мои сделки»: the active deals you own, the furthest stage first. «Сроки на неделю»: the meetings, deal steps, tasks and the reporting date of the coming work week.
+4. Дашборд → the five figures (deals in work match Сделки' Входящие and Воронка; «Мои открытые задачи» match Задачи → Мои; «Ближайший ИК» the next planned ИК with its deals), «Воронка сделок» (the deals by group, on an axis), «Вложено по отраслям» (a ring of the portfolio's sectors; hover a piece for its sum and share). «Новая задача» (or «+» in the top bar) opens the task card over the page; «Создать» saves it and you stay on the dashboard.
+5. «Мои задачи»: tick one → it leaves the list and «Отмечено выполненным»; a task somebody else checks goes to «На проверке» instead. «Требует внимания»: a deal past its stage's norm, a request past its date, a committee stage with no meeting — each opens its card. «Последние действия»: the latest journal lines, each opening the deal's «История».
+6. The top bar: ⌘K (or the search field) → type part of a deal's or a task's name → Enter opens the first result; the bell counts what you have not seen, opening it clears the count.
 
 ## 13. Портфель
 
@@ -173,7 +173,7 @@ Needs the company of step 0.
 ## Known gaps (not bugs)
 
 - The founder has no cabinet yet: no status page, cannot answer requests or upload documents; no emails are sent (rejection letters, reminders).
-- The fund's money is added in ucode (`fund_money`). A portfolio company is created when its deal closes; companies from before the panel come from the import.
+- The fund's money (`fund_money`) is not shown in the panel for now. A portfolio company is created when its deal closes; companies from before the panel come from the import.
 - A deal cannot be taken off a meeting's agenda before the meeting; at the meeting the question can be postponed («Отложить вопрос»).
 - Staff are invited in Настройки, but a ucode user for them is made with `scripts/ucode/auth.mjs`; only `Sqb-admin` can sign in today, so roles other than the director cannot be tested.
 - Files the fund uploads (data room, attachments, report templates) are in ucode Files and open for anyone who has their link; Документы still keeps links to where the fund stores its own files.

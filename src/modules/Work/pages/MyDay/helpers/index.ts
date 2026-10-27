@@ -1,5 +1,31 @@
-import { byDueDate, isDone, isMine, needsAction } from '@modules/Work/helpers';
-import type { QueueItem, Task, TaskStatus } from '@shared/types/work.types';
+import { DATE_FORMAT } from '@modules/Work/constants';
+import {
+   byDueDate,
+   formatDate,
+   isDone,
+   isMine,
+   needsAction,
+} from '@modules/Work/helpers';
+import type { QueueItem, Task } from '@shared/types/work.types';
+import dayjs from 'dayjs';
+
+// The work week (Monday to Friday) of the next working day: on a Friday the
+// deadlines already look at the week ahead.
+export const getDeadlineWeek = (today: string) => {
+   let day = dayjs(today).add(1, 'day');
+   while (day.day() === 0 || day.day() === 6) day = day.add(1, 'day');
+   const monday = day.subtract(day.day() - 1, 'day');
+   return {
+      start: monday.format(DATE_FORMAT),
+      end: monday.add(4, 'day').format(DATE_FORMAT),
+   };
+};
+
+// 5–9 октября
+export const formatRange = (start: string, end: string) =>
+   dayjs(start).isSame(end, 'month')
+      ? `${dayjs(start).format('D')}–${formatDate(end)}`
+      : `${formatDate(start)} – ${formatDate(end)}`;
 
 // A row of "Нужно сделать вам": either an item that comes from a deal, the
 // portfolio or a letter, or a task from the task list.
@@ -40,11 +66,4 @@ export const toDayItems = (
    return [...fromQueue, ...fromTasks].sort(
       (a, b) => Number(a.done) - Number(b.done) || byDueDate(a, b),
    );
-};
-
-// Ticking a task that somebody else checks sends it to them instead of closing it.
-export const statusAfterTick = (task: Task, userId: string): TaskStatus => {
-   if (isDone(task)) return 'in_progress';
-   const checkedByOther = task.reviewerId && task.reviewerId !== userId;
-   return checkedByOther && task.status !== 'review' ? 'review' : 'done';
 };

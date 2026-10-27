@@ -14,7 +14,7 @@ interface TabsProps<T extends string> {
 }
 
 // Sits at the bottom of a page header; the active tab's line lies on the
-// header's border.
+// border under the tabs.
 const Tabs = <T extends string>({
    label,
    items,
@@ -24,7 +24,7 @@ const Tabs = <T extends string>({
    <div
       role='tablist'
       aria-label={label}
-      className='-mb-px flex gap-7 overflow-x-auto'
+      className='-mb-px flex gap-1 overflow-x-auto'
    >
       {items.map((item) => {
          const selected = item.id === active;
@@ -35,16 +35,16 @@ const Tabs = <T extends string>({
                role='tab'
                aria-selected={selected}
                className={clsx(
-                  'flex shrink-0 items-baseline gap-1.5 border-b-2 px-0.5 pb-2.5 transition-colors',
+                  'flex shrink-0 items-baseline gap-1.5 border-b-2 px-3.5 py-2.5 font-semibold whitespace-nowrap transition-colors',
                   selected
-                     ? 'border-accent font-semibold'
+                     ? 'border-accent text-ink-strong'
                      : 'text-ink-soft hover:text-ink border-transparent',
                )}
                onClick={() => onChange(item.id)}
             >
                {item.label}
                {item.count !== undefined && (
-                  <span className='text-ink-soft text-[11px] font-normal tabular-nums'>
+                  <span className='text-ink-faint text-[11px] font-normal tabular-nums'>
                      {item.count}
                   </span>
                )}

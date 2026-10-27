@@ -1,60 +1,81 @@
 @import 'tailwindcss';
 
-/* SQB Ventures ERP design tokens. Colours are taken from the ERP V2 screens
-   (Figma, "SQB VC Website"); text shades are set so small text passes 4.5:1. */
+/* SQB Ventures design tokens, from the brandbook (Aug 2025) as the design
+   system of the October prototype turns it into an interface. Brand values
+   are exact; the other shades are derived from them. */
 @theme {
-   --font-sans: 'Golos Text', system-ui, -apple-system, 'Segoe UI', sans-serif;
+   --font-sans: 'Mulish', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-   /* page rhythm: p-page around a page's content, gap-section between its
+   /* page rhythm: px-page beside a page's content, gap-section between its
       blocks (filters, cards, columns) */
-   --spacing-page: 0.9375rem;
-   --spacing-section: 0.75rem;
+   --spacing-page: 1.5rem;
+   --spacing-section: 1rem;
 
-   /* type steps between Tailwind's xs (12px) and base (16px) */
+   /* type steps between Tailwind's xs (12px) and base (16px), and the page
+      title */
    --text-meta: 0.8125rem;
    --text-meta--line-height: 1.125rem;
    --text-title: 0.9375rem;
    --text-title--line-height: 1.375rem;
-   --text-display: 1.625rem;
-   --text-display--line-height: 2rem;
+   --text-display: 1.375rem;
+   --text-display--line-height: 1.75rem;
 
-   /* dark surface: sidebar, and the "free" part of the fund's money */
-   --color-navy: #0d1431;
-   --color-navy-raised: #1b2347;
-   --color-navy-pill: #253057;
-   --color-navy-line: #192244;
-   --color-on-dark-soft: #a3abc7;
-   --color-on-dark-faint: #7c85a8;
+   /* brand palette (brandbook p. 7) */
+   --color-navy: #262f70; /* the sidebar, the strongest fills */
+   --color-navy-deep: #1b2254;
+   --color-sky: #407cea; /* the accent on dark, chart fills */
+   --color-indigo: #5764ca;
+   --color-lavender: #acb2e4;
+   --color-mist: #d1d8de;
+   --color-on-dark-soft: #c9cee8;
+   --color-on-dark-faint: #9aa1cf;
 
-   /* accent: buttons, links, selected state, chart fills */
-   --color-accent: #3750d8;
-   --color-accent-strong: #2a40b8;
-   --color-accent-soft: #93a4f9;
-   --color-accent-faint: #cbd4fc;
-   --color-accent-tint: #e9edfc;
+   /* accent: buttons, links, selected state. Sky darkened so small white text
+      and links pass 4.5:1. */
+   --color-accent: #2e63d4;
+   --color-accent-strong: #2456bd;
+   --color-accent-soft: #96b7f3;
+   --color-accent-faint: #c6d8f9;
+   --color-accent-tint: #e4ecfc;
+   --color-accent-ink: #2f54a7;
 
    /* surfaces and lines */
-   --color-ground: #f6f7fb;
-   --color-track: #edf0f6;
-   --color-line: #edf0f6;
-   --color-line-strong: #cfd4df;
+   --color-ground: #f3f5f8;
+   --color-hover: #edf1f7;
+   --color-track: #edf1f7;
+   --color-line: #dde2e9;
+   --color-line-strong: #b9c2ce;
 
-   /* text */
-   --color-ink: #151b2f;
-   --color-ink-soft: #6a7189;
-   --color-ink-faint: #8a90a5;
+   /* text: navy, as the brandbook sets it */
+   --color-ink: #262f70;
+   --color-ink-strong: #1b2254;
+   --color-ink-soft: #565e8c;
+   --color-ink-faint: #8189ab;
 
-   /* status */
-   --color-success-ink: #2a7250;
-   --color-success-tint: #e4f1ea;
-   --color-warning-ink: #86621c;
-   --color-warning-tint: #f9f1e0;
-   --color-danger: #a23142;
-   --color-danger-tint: #f8e8ec;
-   --color-neutral-ink: #5d647c;
-   --color-neutral-tint: #edeff4;
+   /* status, for badges and marks: the colour (a badge's dot), its tint (16%
+      on white) and its ink (55% with navy-deep) */
+   --color-success: #1f9d6b;
+   --color-success-tint: #dbefe7;
+   --color-success-ink: #1d6661;
+   --color-warning: #c98a12;
+   --color-warning-tint: #f6ecd9;
+   --color-warning-ink: #7b5b30;
+   --color-danger: #d64545;
+   --color-danger-tint: #f8e1e1;
+   --color-danger-ink: #82354c;
+   --color-info: #1e9bb8;
+   --color-info-tint: #dbeff4;
+   --color-info-ink: #1d658b;
+   --color-indigo-tint: #e4e6f7;
+   --color-indigo-ink: #3c4695;
+   --color-neutral: #8a93a6;
+   --color-neutral-tint: #eceef1;
+   --color-neutral-ink: #586081;
 
-   --shadow-popup: 0 16px 48px rgba(13, 20, 49, 0.2);
+   /* borders before shadows: a card has a hairline and the faintest shadow */
+   --shadow-card: 0 1px 2px rgba(38, 47, 112, 0.05);
+   --shadow-raised: 0 4px 16px rgba(38, 47, 112, 0.1);
+   --shadow-popup: 0 16px 48px rgba(38, 47, 112, 0.2);
 
    /* motion: blocks rise into place, bars fill from their start, chart
       columns grow from the axis, dialogs pop. All of it is switched off for
@@ -111,6 +132,10 @@
 @layer base {
    body {
       @apply bg-ground text-ink font-sans text-sm antialiased;
+   }
+   h1,
+   h2,
+   h3 {
       letter-spacing: -0.01em;
    }
    button,
@@ -120,6 +145,15 @@
    :focus-visible {
       outline: 2px solid var(--color-accent);
       outline-offset: 1px;
+   }
+   ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+   }
+   ::-webkit-scrollbar-thumb {
+      background: var(--color-line-strong);
+      border: 2px solid var(--color-ground);
+      border-radius: 8px;
    }
    @media (prefers-reduced-motion: reduce) {
       *,
@@ -135,7 +169,11 @@
 
 @layer components {
    .link {
-      @apply text-accent text-meta font-medium whitespace-nowrap hover:underline;
+      @apply text-accent text-meta font-semibold whitespace-nowrap hover:underline;
+   }
+   /* a card's link at the right of its header: «Все сделки», «Портфель» */
+   .head-link {
+      @apply text-accent-strong text-xs whitespace-nowrap hover:underline;
    }
    /* The brandbook's cover: its gradient under the "V" pattern. */
    .brand-art {
@@ -144,8 +182,9 @@
             0 0 / 60px 56px,
          linear-gradient(180deg, #407cea 0%, #3157b8 55%, #262f70 100%);
    }
+   /* 36px, like the buttons, so a row of controls lines up */
    .field-input {
-      @apply border-line-strong text-ink placeholder:text-ink-faint h-10 w-full rounded-lg border bg-white px-3 text-sm font-normal;
+      @apply border-line-strong text-ink placeholder:text-ink-faint bg-ground focus:border-accent focus:ring-accent/12 h-9 w-full rounded-lg border px-2.5 text-sm font-normal outline-none focus:ring-3;
    }
    textarea.field-input {
       @apply h-auto py-2;
@@ -156,7 +195,7 @@
    select.field-input {
       appearance: none;
       padding-right: 2.25rem;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236a7189' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23565e8c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
       background-position: right 0.75rem center;
       background-size: 1rem;
       background-repeat: no-repeat;

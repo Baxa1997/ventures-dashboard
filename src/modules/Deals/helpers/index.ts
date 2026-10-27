@@ -15,6 +15,7 @@ import type {
    Criterion,
    Deal,
    Fact,
+   JournalEntry,
    PathStep,
    TeamMember,
    Tone,
@@ -239,6 +240,97 @@ export const countryText = (deal: Deal) => listName('countries', deal.country);
 export const sourceText = (deal: Deal) => listName('sources', deal.source);
 
 export const reasonText = (reason: string) => listName('reasons', reason);
+
+/* What a line of a deal's journal records, in the interface language,
+   without who did it (journalAuthor). An entry without an employee came from
+   the applicant: the website's application, or an answer or a document from
+   the startup cabinet. */
+export const journalAction = (t: T, entry: JournalEntry) => {
+   switch (entry.kind) {
+      case 'text':
+         return entry.text;
+      case 'created':
+         return entry.userId
+            ? t('Заявка добавлена вручную')
+            : t('Заявка с сайта');
+      case 'taken':
+         return t('Взята в скрининг');
+      case 'stage':
+         return entry.stage === 'portfolio'
+            ? t('Переведена в портфель')
+            : t('Переведена в стадию «{{stage}}»', {
+                 stage: stageName(entry.stage),
+              });
+      case 'rejected':
+         return t('Отказ: {{reason}}', {
+            reason: reasonText(entry.reason).toLowerCase(),
+         });
+      case 'request':
+         return t('Запрос заявителю: {{title}}', { title: entry.title });
+      case 'answered':
+         return entry.userId
+            ? t('Ответ заявителя записан: {{title}}', { title: entry.title })
+            : t('Заявитель ответил на запрос в кабинете: {{title}}', {
+                 title: entry.title,
+              });
+      case 'document': {
+         const params = { title: entry.title };
+         if (entry.result === 'accepted')
+            return t('Документ принят: {{title}}', params);
+         if (entry.result === 'rejected')
+            return t('Документ отклонён: {{title}}', params);
+         if (!entry.userId)
+            return t(
+               'Заявитель загрузил документ в кабинете: {{title}}',
+               params,
+            );
+         return t('Документ загружен от имени фонда: {{title}}', params);
+      }
+      case 'screening':
+         return t('Скрининг завершён');
+      case 'memo':
+         return t('Меморандум утверждён спонсором');
+      case 'approved':
+         return t('Директор одобрил переход');
+      case 'edited':
+         return t('Данные сделки изменены');
+      case 'moved': {
+         // the founder withdrew the application in the startup cabinet
+         if (!entry.userId && entry.status === 'withdrawn')
+            return entry.reason
+               ? t('Заявитель отозвал заявку в кабинете: {{reason}}', {
+                    reason: entry.reason,
+                 })
+               : t('Заявитель отозвал заявку в кабинете');
+         const moved = {
+            stage: stageName(entry.stage),
+            status: t(STATUS_LABELS[entry.status]).toLowerCase(),
+            reason: entry.reason,
+         };
+         // the reason is written only when one was given
+         return entry.reason
+            ? t('Вручную: «{{stage}}», {{status}} — {{reason}}', moved)
+            : t('Вручную: «{{stage}}», {{status}}', moved);
+      }
+      case 'workstream':
+         return entry.handed
+            ? t('Направление DD передано исполнителю: {{name}}', {
+                 name: entry.name,
+              })
+            : t('Добавлено направление DD: {{name}}', { name: entry.name });
+   }
+};
+
+// The employee who made a journal entry; '' — the applicant, or nobody.
+export const journalAuthor = (entry: JournalEntry) =>
+   'userId' in entry ? entry.userId : '';
+
+// A journal line as History shows it: what happened · who did it.
+export const journalText = (t: T, entry: JournalEntry) => {
+   const author = journalAuthor(entry);
+   const action = journalAction(t, entry);
+   return author ? `${action} · ${personName(author)}` : action;
+};
 
 // "с сайта" or "нетворк", as in "SQBV-2026-0172 · с сайта · 2 октября".
 export const sourceFrom = (t: T, deal: Deal) =>
