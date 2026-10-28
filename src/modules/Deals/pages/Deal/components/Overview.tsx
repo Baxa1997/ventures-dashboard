@@ -25,6 +25,7 @@ import { Check } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import MandateCard from './MandateCard';
 import MetricsCard from './MetricsCard';
 import NextStep from './NextStep';
 import ReadinessCard from './ReadinessCard';
@@ -245,6 +246,7 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
             </div>
 
             <div className={STACK}>
+               {deal.status === 'review' && <MandateCard deal={deal} />}
                {preparing && <ReadinessCard deal={deal} editable={editable} />}
                {(deal.next ||
                   deal.status === 'active' ||

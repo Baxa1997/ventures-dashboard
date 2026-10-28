@@ -145,7 +145,7 @@ const Search = ({ open, setOpen }: SearchProps) => {
                  },
                  {
                     key: 'inbox',
-                    to: `${SECTION_PATHS.deals}?tab=inbox`,
+                    to: `${SECTION_PATHS.deals}?stage=stage:inbox`,
                     icon: Inbox,
                     text: t('Новые заявки'),
                  },

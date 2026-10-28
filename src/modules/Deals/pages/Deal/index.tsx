@@ -15,11 +15,10 @@ import {
    type CardTab,
    CRITERIA,
    DEALS_PATH,
-   LIST_TAB_LABELS,
-   type ListTab,
    RESUBMIT_LABELS,
 } from '@modules/Deals/constants';
 import {
+   columnOf,
    dayOf,
    industryText,
    reasonText,
@@ -65,13 +64,6 @@ import {
 
 const toTab = (value: string | null): CardTab =>
    CARD_TABS.find((tab) => tab === value) ?? 'overview';
-
-// The tab of the list a deal is found on.
-const listTabOf = (deal: Deal): ListTab => {
-   if (deal.status === 'review') return 'inbox';
-   if (deal.status === 'active') return 'funnel';
-   return isClosed(deal) ? 'closed' : 'all';
-};
 
 /* A deal's card. The address keeps the open tab (?tab=dd). The two buttons in
    the header belong to the tab: each tab has its own next step. */
@@ -135,20 +127,22 @@ const DealCard = () => {
    const status = statusOf(t, deal);
    const badge = headerBadge(t, deal);
    const counts = tabCounts(deal);
-   const listTab = listTabOf(deal);
+   // Сделки filtered to where the deal stands: its stage, or its status
+   const column = columnOf(deal);
+   const filter = column.startsWith('status:') ? column : `stage:${column}`;
+   const listLink = `${DEALS_PATH}?stage=${filter}`;
    const next = nextStageOf(deal.stage);
    const { memo, screening } = deal;
 
    const crumbs = (
       <>
-         <Link className='hover:underline' to={`${DEALS_PATH}?tab=all`}>
+         <Link className='hover:underline' to={`${DEALS_PATH}?stage=all`}>
             {t('Сделки')}
          </Link>
          {' · '}
-         <Link className='hover:underline' to={`${DEALS_PATH}?tab=${listTab}`}>
-            {t(LIST_TAB_LABELS[listTab])}
+         <Link className='hover:underline' to={listLink}>
+            {deal.status === 'review' ? stageName('inbox') : status.label}
          </Link>
-         {deal.status !== 'review' && ` · ${status.label}`}
       </>
    );
 

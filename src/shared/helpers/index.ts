@@ -163,3 +163,5 @@ const CYRILLIC: Record<string, string> = {
 // "Серия Б" → "seriya b": Cyrillic letters in Latin, for a code made from a name.
 export const toLatin = (text: string) =>
    [...text.toLowerCase()].map((letter) => CYRILLIC[letter] ?? letter).join('');
+
+export * from './timeline';

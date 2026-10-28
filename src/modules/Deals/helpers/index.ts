@@ -64,9 +64,12 @@ export { downloadCsv, personName, stageName };
 
 export const stageKeys = () => stagesOf().map(({ key }) => key);
 
-// The funnel's columns: every stage after Входящие.
-export const funnelStages = () =>
-   stageKeys().filter((stage) => stage !== 'inbox');
+// Where a deal stands in Сделки' funnel and filter: a new application in
+// «inbox», a deal in work in its stage, a closed one in «status:<status>».
+export const columnOf = (deal: Deal) => {
+   if (deal.status === 'review') return 'inbox';
+   return deal.status === 'active' ? deal.stage : `status:${deal.status}`;
+};
 
 // The stage after this one; null after the last (the deal joins the portfolio).
 export const nextStageOf = (stage: DealStage): DealStage | null => {
@@ -340,12 +343,6 @@ export const sourceFrom = (t: T, deal: Deal) =>
 // fund, or the fund's own channel.
 export const sourceLine = (t: T, deal: Deal) =>
    [deal.fromSite && t('Сайт'), sourceText(deal)].filter(Boolean).join(' · ');
-
-// "B2B SaaS · сайт": the industry and what else tells the deal apart.
-export const dealLine = (t: T, deal: Deal) =>
-   [industryText(deal), deal.tags || sourceFrom(t, deal)]
-      .filter(Boolean)
-      .join(' · ');
 
 // The last column of the register: what comes next, or how the deal ended.
 export const outcomeOf = (t: T, deal: Deal) => {

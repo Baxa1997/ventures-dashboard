@@ -15,25 +15,39 @@ import { exitConditions, stageKeys, stageName } from '../helpers';
 import { useDealLinks } from '../hooks';
 import deals from '../services';
 
-type MoveStatus = 'active' | 'paused' | 'withdrawn';
+export type MoveStatus = 'active' | 'paused' | 'withdrawn';
+
+// Where the dialog opens set to: the column a card was dropped on.
+export interface MoveTarget {
+   stage?: string;
+   status?: MoveStatus;
+}
 
 const STATUSES: MoveStatus[] = ['active', 'paused', 'withdrawn'];
 
 interface MoveDealDialogProps {
    deal: Deal | null; // null: the dialog is closed
+   to?: MoveTarget;
    onClose: () => void;
 }
 
-const MoveForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => {
+interface MoveFormProps {
+   deal: Deal;
+   to: MoveTarget;
+   onClose: () => void;
+}
+
+const MoveForm = ({ deal, to: target, onClose }: MoveFormProps) => {
    const { t } = useTranslation('deals');
    const user = useCurrentUser();
    const { tasks } = useDealLinks(deal.id);
    const keys = stageKeys();
    const [stage, setStage] = useState(
-      keys.includes(deal.stage) ? deal.stage : (keys[1] ?? deal.stage),
+      target.stage ??
+         (keys.includes(deal.stage) ? deal.stage : (keys[1] ?? deal.stage)),
    );
    // a closed or paused deal is most often reopened
-   const [status, setStatus] = useState<MoveStatus>('active');
+   const [status, setStatus] = useState<MoveStatus>(target.status ?? 'active');
    const [reason, setReason] = useState('');
    const moving = useAction(
       () => deals.moveDeal(deal.id, { stage, status }, reason.trim(), user.id),
@@ -164,7 +178,7 @@ const MoveForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => {
    stage, ahead past the conditions (shown as a warning), paused, withdrawn
    or reopened. The move is logged with who made it, and the reason when one
    is written. */
-const MoveDealDialog = ({ deal, onClose }: MoveDealDialogProps) => {
+const MoveDealDialog = ({ deal, to = {}, onClose }: MoveDealDialogProps) => {
    const { t } = useTranslation('deals');
 
    return (
@@ -174,7 +188,9 @@ const MoveDealDialog = ({ deal, onClose }: MoveDealDialogProps) => {
          title={t('Этап и статус сделки')}
          onClose={onClose}
       >
-         {deal && <MoveForm key={deal.id} deal={deal} onClose={onClose} />}
+         {deal && (
+            <MoveForm key={deal.id} deal={deal} to={to} onClose={onClose} />
+         )}
       </Modal>
    );
 };

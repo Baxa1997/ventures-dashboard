@@ -40,13 +40,14 @@ Button names are given as the panel shows them. The panel is in Russian only for
 3. Fill in the form again with the same email → it is refused with a message that this email has already applied.
 4. «Стать партнёром» form (if you test it): the request appears in `partner_requests` in ucode. The panel does not show partner requests yet.
 
-## 3. Входящие
+## 3. A new application
 
-1. Panel → Сделки → «Входящие» → `ZZ Startup A` is there with the next deal number (`SQBV-2026-000N`), the amount, the source «Сайт» and a mandate verdict.
+1. Panel → Сделки (stage filter «В работе») → `ZZ Startup A` is there with the stage «Входящие», the amount and the source «Сайт»; set the stage filter to «Входящие» → only new applications.
 2. Open its card → Обзор shows «Из заявки» with what the form sent; «Запросы и документы» shows the pitch deck «Принят», «загружен заявителем · date» (the website files it as accepted).
-3. Back in Входящие, choose the owner `ZZ Аналитик` in the card's owner select (so that step 4 can use «Администратор» as the second reviewer).
-4. «Взять в скрининг» → the deal leaves Входящие and appears in «Воронка» on Скрининг, with «Осталось 5 р.д.» (or the norm set in Настройки). In ucode `applications`, `public_status` = `screening`.
-5. Also enter one deal by hand: Сделки → «Новая сделка», company `ZZ Manual B`; Отрасль, Источник, Стадия раунда and Страна are chosen from Настройки's lists, Ниша is free text and may stay empty → «Добавить» → it appears in Входящие, offered to you; it will be used in step 10.
+3. On Обзор, «Проверка мандата» shows the verdict and the rules; choose the owner `ZZ Аналитик` there (so that step 4 can use «Администратор» as the second reviewer).
+4. «Взять в скрининг» → the deal's stage is Скрининг (in «Воронка» it is in that column), with «Осталось 5 р.д.» (or the norm set in Настройки). In ucode `applications`, `public_status` = `screening`.
+5. Also enter one deal by hand: Сделки → «Новая сделка», company `ZZ Manual B`; Отрасль, Источник, Стадия раунда and Страна are chosen from Настройки's lists, Ниша is free text and may stay empty → «Добавить» → it appears with the stage «Входящие», offered to you; it will be used in step 10.
+6. «Воронка» → drag a deal in work to another stage: it follows the pointer and a gap opens where it would drop; drop it → «Этап и статус сделки» opens set to that stage. Drop one on «Отказ» (stage filter «Все этапы») → the refusal opens. «Таймлайн» → each deal's stages as bars, the current one to its deadline.
 
 ## 4. Скрининг
 
@@ -105,9 +106,9 @@ A committee stage is left only after its committee's approval: before step 8, «
 ## 10. Rejection and applying again
 
 1. Open `ZZ Manual B` (step 3.5) → «Отказать с причиной»: reason «Нет подтверждённого спроса», a letter, resubmit «через 6 месяцев» → the deal is in «Отказы и пауза» with the reason.
-2. On the website, apply as `ZZ Startup C` with a new email → it appears in Входящие.
-3. Reject it from Входящие with a mandate reason («Вне мандата: …») → resubmit is «сразу» by default. In ucode its application has `public_status` = `rejected` and `resubmit_after` = today.
-4. Apply again with `ZZ Startup C`'s email → accepted at once, a new deal in Входящие.
+2. On the website, apply as `ZZ Startup C` with a new email → it appears in Сделки with the stage «Входящие».
+3. Open it → reject it with a mandate reason («Вне мандата: …») → resubmit is «сразу» by default. In ucode its application has `public_status` = `rejected` and `resubmit_after` = today.
+4. Apply again with `ZZ Startup C`'s email → accepted at once, a new deal at «Входящие».
 5. Reject that new deal with «Нет подтверждённого спроса» and «через 6 месяцев» → apply again with the same email → refused, and the message names the date six months on.
 6. In ucode, set that application's `resubmit_after` to yesterday → apply again → accepted.
 
@@ -128,7 +129,7 @@ A committee stage is left only after its committee's approval: before step 8, «
 2. «Задача на сегодня» opens the task card with today's deadline. A task with «Согласует» = somebody else: tick it → «Отправлено на согласование», and it stays under «Выполнено сегодня», ticked, with «На согласовании»; untick it → back in work. Click a task's row → its card opens over Мой день.
 3. As that approver, the tab «Ждут моего согласования» lists it with «Открыть», «Вернуть», «Согласовать». «Вернуть» asks what to fix → the comment is in the task's history and the task is «В работе» again; «Согласовать» closes it. A memorandum waiting for you as sponsor has «Согласовать» too; a screening you score second has «Открыть».
 4. «Расписание»: today's committee meetings (the one going on is marked «идёт сейчас») and your deals' steps set for an hour today. «Ближайшие сроки»: meetings of two weeks, your deals' stage deadlines (the director's: every deal's) of the coming week or past, the quarterly reports' date.
-5. Дашборд → the five figures (deals in work match Сделки' Входящие and Воронка; «Мои открытые задачи» match Задачи → Мои; «Ближайший ИК» the next planned ИК with its deals), «Воронка сделок» (the deals by group, on an axis), «Вложено по отраслям» (a ring of the portfolio's sectors; hover a piece for its sum and share). «Новая задача» (or «+» in the top bar) opens the task card over the page; «Создать» saves it and you stay on the dashboard.
+5. Дашборд → the five figures (deals in work match Сделки' «В работе»; «Мои открытые задачи» match Задачи → Мои; «Ближайший ИК» the next planned ИК with its deals), «Воронка сделок» (the deals by group, on an axis), «Вложено по отраслям» (a ring of the portfolio's sectors; hover a piece for its sum and share). «Новая задача» (or «+» in the top bar) opens the task card over the page; «Создать» saves it and you stay on the dashboard.
 6. «Мои задачи»: tick one → it leaves the list and «Отмечено выполненным»; a task somebody else checks goes to «На проверке» instead. «Требует внимания»: a deal past its stage's norm, a request past its date, a committee stage with no meeting — each opens its card. «Последние действия»: the latest journal lines, each opening the deal's «История».
 7. The top bar: ⌘K (or the search field) → type part of a deal's or a task's name → Enter opens the first result; the bell counts what you have not seen, opening it clears the count.
 
@@ -148,10 +149,10 @@ Needs the company of step 0.
 Настройки open on «Мандат» (`/settings/mandate`); the menu on the left groups the sections: Фонд, Сделки, Задачи, Команда, Система. On a narrow window it is a select above the page.
 
 1. «Мандат»: set Чек `$50 000 – $300 000`. Beside it, «Из справочников» lists the stages (Pre-seed, Seed), the geography (the five Central Asian countries) and the industries in focus, licensed and excluded, each with a link to its list. → «Этапы и нормативы»: change the screening norm to `6 · публично` → «Флаги портфеля»: change «Churn за квартал выше». The three sections are marked with a dot in the menu → «Сохранить» → «Журнал изменений» lists each change with old and new value.
-2. Сделки → Входящие: a deal asking more than $300 000 now gets «Чек выше $300K»; a new screening deadline counts 6 working days.
+2. A new application asking more than $300 000 now gets «Чек выше $300K» in its card's «Проверка мандата»; a new screening deadline counts 6 working days.
 3. Put the values back and save.
 4. «Раунды» → «Добавить»: `ZZ Series B` in the three name fields; the code fills itself (`zz_series_b`); tick «В мандате» → «Добавить» → the row is last, «Используется». Move it up with the arrow and back. Open it again (pencil) → the code cannot be changed; untick «Используется» → «Сохранить» → it stays in the list, dimmed, «Отключён», and Сделки → «Новая сделка» no longer offers it. The journal has both changes. At the end, the bin next to its pencil → the window says whether anything uses it → «Удалить» → the row is gone and the journal has the deletion.
-5. «Регионы»: a country not «в мандате» (e.g. Россия) → a deal from it gets «География: Россия» in Входящие. «Источники»: the website's options are the rows marked «На сайте»; the fund's channels (Нетворк, Конференция…) are not offered on the site. «Отрасли»: an industry set to «Исключена» makes its applications «Исключённая отрасль».
+5. «Регионы»: a country not «в мандате» (e.g. Россия) → a deal from it gets «География: Россия» in its «Проверка мандата». «Источники»: the website's options are the rows marked «На сайте»; the fund's channels (Нетворк, Конференция…) are not offered on the site. «Отрасли»: an industry set to «Исключена» makes its applications «Исключённая отрасль».
 6. «Типы задач»: the types of the task form. «Статусы задач»: the six statuses with their colour, group and what each means; they cannot be changed.
 7. «Пользователи и роли»: «Администратор» (Директор, Полный); `ZZ Аналитик` «добавлен <date>, ещё не входил».
 8. «Интеграции»: Почта, Telegram-бот, ИИ and Контент «Не подключено», with what each needs; the fund's systems below.

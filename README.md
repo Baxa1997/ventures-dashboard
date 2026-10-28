@@ -86,11 +86,8 @@ The section "Работа" (`/work`) is built:
 
 The section "Сделки" (`/deals`, `src/modules/Deals`) is built:
 
-- The list (`/deals`) has four tabs, kept in the address as `?tab=`:
-   - Входящие (`inbox`) — applications waiting for a decision, each checked against the mandate, and the card of the open one: take it into screening, ask for data, or reject it.
-   - Воронка (`funnel`, the default) — deals in work grouped by stage, with the fund's own deadline on each. A stage tile filters the table to that stage.
-   - Отказы и пауза (`closed`) and Все сделки (`all`) — the register, with its figures on the second.
-   - `?new=1` opens the form for a deal entered by hand. "Экспорт в Excel" saves the rows the tab shows, after its filters, as a CSV file.
+- The list (`/deals`), as the prototype draws it — three views: «Таблица» (startup, stage, round and ask, manager, the screening's score, the application), «Воронка» (a column per stage; a card is carried as on a Notion board, and dropping it on another stage, a pause or a refusal opens the move or the refusal; a new application is taken in its card) and «Таймлайн» (each deal's stages as bars, the current one to its deadline with the late part hatched, the next ones at their norms). The stage filter shows the deals in work (new applications and the funnel) unless set to all, one stage or a closed status; then industry, manager and a search. The address keeps the view and the stage (`?view=board&stage=stage:ic1`); `?new=1` opens the form for a deal entered by hand; «Экспорт в Excel» saves the rows shown as a CSV file.
+- A new application is sorted in its card: Обзор shows «Проверка мандата» (the rules, the verdict, by when to decide, the owner), and the header «Взять в скрининг», «Запросить данные», «Отказать с причиной».
 - A deal's card (`/deals/<id>`, tab in `?tab=`) has seven tabs: Обзор, Скрининг и оценка (`screening`), Запросы и документы (`requests`), Due diligence (`dd`), Меморандум (`memo`), Решения ИК и НС (`decisions`), История (`history`). The two buttons in the header belong to the open tab.
 - Three dialogs in `src/modules/Deals/components`: rejection with a reason, moving a deal to the next stage (possible only when the stage's exit conditions are met) and a request to the applicant.
 

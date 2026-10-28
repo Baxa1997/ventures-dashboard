@@ -1,63 +1,82 @@
 import {
+   MoveDealDialog,
+   type MoveStatus,
+   type MoveTarget,
    NewDealDialog,
    RejectDialog,
-   RequestDialog,
 } from '@modules/Deals/components';
-import {
-   CLOSED_STATUSES,
-   DEFAULT_LIST_TAB,
-   LIST_TAB_LABELS,
-   LIST_TABS,
-   type ListTab,
-} from '@modules/Deals/constants';
 import {
    dayOf,
    downloadCsv,
    formatAmount,
    industryText,
-   isLate,
    outcomeOf,
    personName,
    sourceLine,
-   stageNorm,
    statusOf,
-   sumAmounts,
 } from '@modules/Deals/helpers';
 import { useDeals } from '@modules/Deals/hooks';
-import {
-   Button,
-   Loading,
-   PageBody,
-   PageHeader,
-   Tabs,
-} from '@shared/components';
+import { Button, Loading, PageBody, PageHeader } from '@shared/components';
+import { toast } from '@shared/helpers/toast';
 import type { Deal } from '@shared/types/deals.types';
-import { type ReactNode, useCallback, useRef, useState } from 'react';
+import { Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
-import { Funnel, Inbox, Registry } from './components';
+import {
+   DealBoard,
+   type DealFilters,
+   DealsToolbar,
+   DealTable,
+   DealTimeline,
+} from './components';
+import { DEFAULT_STAGE_FILTER, type StageFilter } from './constants';
+import {
+   columnOf,
+   matchesSearch,
+   matchesStage,
+   toStageFilter,
+   toView,
+} from './helpers';
 
-const toTab = (value: string | null): ListTab =>
-   LIST_TABS.find((tab) => tab === value) ?? DEFAULT_LIST_TAB;
-
-/* Сделки: incoming applications, the funnel, closed deals and the register.
-   The address keeps the tab (?tab=inbox); ?new=1 opens the form for a new deal. */
+/* Сделки, as the design draws them: the deals as a table, a funnel by stage
+   or a timeline of their stages; the stage filter shows the deals in work
+   (new applications and the funnel) unless told otherwise. A new
+   application is taken, refused or asked for more in its card. The address
+   keeps the view and the stage (?view=board&stage=all); ?new=1 opens the
+   form for a new deal. */
 const DealsList = () => {
    const { t, i18n } = useTranslation('deals');
-   const { t: tLayout } = useTranslation('layout');
    const navigate = useNavigate();
-   const { deals, summary, loading } = useDeals();
+   const { deals, loading } = useDeals();
    const [params, setParams] = useSearchParams();
-   const tab = toTab(params.get('tab'));
+   const view = toView(params.get('view'));
+   const stage = toStageFilter(params.get('stage'), params.get('tab'));
+   const [filters, setFilters] = useState<DealFilters>({
+      industry: '',
+      ownerId: '',
+      query: '',
+   });
    const [creating, setCreating] = useState(() => params.has('new'));
    const [rejecting, setRejecting] = useState<Deal | null>(null);
-   const [requesting, setRequesting] = useState<Deal | null>(null);
-   // the rows the open tab shows after its filters, for the Excel export
-   const visible = useRef<Deal[]>([]);
-   const setVisible = useCallback((rows: Deal[]) => {
-      visible.current = rows;
-   }, []);
+   const [moving, setMoving] = useState<{
+      deal: Deal;
+      to: MoveTarget;
+   } | null>(null);
    const language = i18n.resolvedLanguage ?? i18n.language;
+
+   // the view and the stage stay in the address; the defaults are left out
+   const setParam = (key: 'view' | 'stage', value: string, initial: string) =>
+      setParams(
+         (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('tab');
+            if (value === initial) next.delete(key);
+            else next.set(key, value);
+            return next;
+         },
+         { replace: true },
+      );
 
    const closeCreating = () => {
       setCreating(false);
@@ -72,6 +91,22 @@ const DealsList = () => {
          );
    };
 
+   // the newest application first
+   const shown = useMemo(
+      () =>
+         deals
+            .filter(
+               (deal) =>
+                  matchesStage(stage, deal) &&
+                  (!filters.industry ||
+                     deal.industryKey === filters.industry) &&
+                  (!filters.ownerId || deal.ownerId === filters.ownerId) &&
+                  matchesSearch(deal, filters.query),
+            )
+            .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)),
+      [deals, stage, filters],
+   );
+
    const exportRows = () =>
       downloadCsv('sdelki.csv', [
          [
@@ -85,7 +120,7 @@ const DealsList = () => {
             t('Поступила'),
             t('Следующий шаг или итог'),
          ],
-         ...visible.current.map((deal) => [
+         ...shown.map((deal) => [
             deal.number,
             deal.company,
             industryText(deal),
@@ -98,131 +133,78 @@ const DealsList = () => {
          ]),
       ]);
 
-   if (loading || !summary)
-      return (
-         <>
-            <PageHeader
-               section={`${tLayout('Инвестиции')} · ${t('Сделки')}`}
-               title={t('Сделки')}
-            />
-            <Loading />
-         </>
-      );
-
-   const active = deals.filter(({ status }) => status === 'active');
-   const late = active.filter((deal) => isLate(deal)).length;
-   const counts: Record<ListTab, number> = {
-      inbox: summary.byStatus.review,
-      funnel: summary.byStatus.active,
-      closed: CLOSED_STATUSES.reduce(
-         (sum, key) => sum + summary.byStatus[key],
-         0,
-      ),
-      all: summary.total,
+   /* A card dropped on another column of the funnel: a stage or a pause asks
+      how to move it there, a refusal for the reason. A new application is
+      taken into screening in its card, and a deal reaches the portfolio
+      from its card, after closing. */
+   const drop = (deal: Deal, column: string) => {
+      if (column === 'status:rejected') {
+         if (deal.status === 'review' || deal.status === 'active')
+            setRejecting(deal);
+         else toast.error(t('Эта сделка уже закрыта'));
+         return;
+      }
+      if (column === 'status:portfolio') {
+         toast.error(
+            t('В портфель сделка переходит из своей карточки — после закрытия'),
+         );
+         return;
+      }
+      if (deal.status === 'review') {
+         toast.error(t('Новую заявку берут в скрининг в её карточке'));
+         navigate(`/deals/${deal.id}`);
+         return;
+      }
+      if (column.startsWith('status:'))
+         setMoving({
+            deal,
+            to: { stage: deal.stage, status: column.slice(7) as MoveStatus },
+         });
+      else setMoving({ deal, to: { stage: column, status: 'active' } });
    };
 
-   const meta: Record<ListTab, string> = {
-      inbox: [
-         t('{{count}} заявка ждёт разбора', { count: counts.inbox }),
-         t('норма — {{count}} рабочий день с момента поступления', {
-            count: stageNorm('inbox') ?? 0,
-         }),
-      ].join(' · '),
-      funnel: [
-         t('{{count}} сделка в работе', { count: counts.funnel }),
-         t('запрошено {{amount}} млн', {
-            amount: `$${new Intl.NumberFormat(language, {
-               maximumFractionDigits: 1,
-            }).format(sumAmounts(active) / 1_000_000)}`,
-         }),
-         late > 0 &&
-            t('у {{count}} сделки нарушен срок фонда', { count: late }),
-      ]
-         .filter(Boolean)
-         .join(' · '),
-      closed: t(
-         'Отказы, паузы и отозванные заявки — закрытые сделки открываются только на чтение',
-      ),
-      all: t(
-         'Реестр всех заявок и сделок с {{year}} года — от входящей до портфеля, включая отказы и паузы',
-         { year: summary.since },
-      ),
-   };
-
-   const exportButton = (label: string) => (
-      <Button variant='ghost' onClick={exportRows}>
-         {label}
-      </Button>
-   );
-   const addButton = (
-      <Button variant='ghost' onClick={() => setCreating(true)}>
-         {t('Добавить вручную')}
-      </Button>
-   );
-   const actions: Record<ListTab, ReactNode> = {
-      inbox: addButton,
-      funnel: (
-         <>
-            {exportButton(t('Экспорт в Excel'))}
-            <Button onClick={() => setCreating(true)}>
-               {t('Новая сделка')}
-            </Button>
-         </>
-      ),
-      closed: exportButton(t('Выгрузить в Excel')),
-      all: (
-         <>
-            {exportButton(t('Выгрузить в Excel'))}
-            {addButton}
-         </>
-      ),
+   const content = () => {
+      if (loading) return <Loading />;
+      if (view === 'board')
+         return <DealBoard deals={shown} stage={stage} onDrop={drop} />;
+      if (view === 'timeline') return <DealTimeline deals={shown} />;
+      return <DealTable deals={shown} />;
    };
 
    return (
       <>
          <PageHeader
-            actions={actions[tab]}
-            meta={meta[tab]}
-            section={`${tLayout('Инвестиции')} · ${t('Сделки')}`}
             title={t('Сделки')}
-         >
-            <Tabs
-               active={tab}
-               items={LIST_TABS.map((id) => ({
-                  id,
-                  label: t(LIST_TAB_LABELS[id]),
-                  count: counts[id],
-               }))}
-               label={t('Сделки')}
-               onChange={(next) =>
-                  setParams(next === DEFAULT_LIST_TAB ? {} : { tab: next }, {
-                     replace: true,
-                  })
+            meta={t(
+               'Воронка от заявки до решения ИК. Карточка сделки открывается по клику.',
+            )}
+            actions={
+               <>
+                  <Button variant='ghost' onClick={exportRows}>
+                     {t('Экспорт в Excel')}
+                  </Button>
+                  <Button onClick={() => setCreating(true)}>
+                     <Plus aria-hidden />
+                     {t('Новая сделка')}
+                  </Button>
+               </>
+            }
+         />
+         <PageBody>
+            <DealsToolbar
+               deals={deals}
+               filters={filters}
+               stage={stage}
+               view={view}
+               onFilter={(patch) =>
+                  setFilters((prev) => ({ ...prev, ...patch }))
                }
+               onStage={(next: StageFilter) =>
+                  setParam('stage', next, DEFAULT_STAGE_FILTER)
+               }
+               onView={(next) => setParam('view', next, 'table')}
             />
-         </PageHeader>
-         <PageBody className='flex flex-col'>
-            {tab === 'inbox' && (
-               <Inbox
-                  deals={deals}
-                  summary={summary}
-                  onReject={setRejecting}
-                  onRequest={setRequesting}
-                  onVisible={setVisible}
-               />
-            )}
-            {tab === 'funnel' && (
-               <Funnel deals={deals} onVisible={setVisible} />
-            )}
-            {(tab === 'all' || tab === 'closed') && (
-               <Registry
-                  key={tab}
-                  closedOnly={tab === 'closed'}
-                  deals={deals}
-                  summary={summary}
-                  onVisible={setVisible}
-               />
-            )}
+            {content()}
          </PageBody>
          <NewDealDialog
             open={creating}
@@ -230,7 +212,11 @@ const DealsList = () => {
             onCreated={(deal) => navigate(`/deals/${deal.id}`)}
          />
          <RejectDialog deal={rejecting} onClose={() => setRejecting(null)} />
-         <RequestDialog deal={requesting} onClose={() => setRequesting(null)} />
+         <MoveDealDialog
+            deal={moving?.deal ?? null}
+            to={moving?.to}
+            onClose={() => setMoving(null)}
+         />
       </>
    );
 };

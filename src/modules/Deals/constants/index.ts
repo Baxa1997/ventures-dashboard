@@ -78,18 +78,6 @@ export const CONDITION_STAGES: Partial<Record<DealStage, string>> = {
    closing: CONDITION_DUE.signing,
 };
 
-// The steps of the conversion strip on "Все сделки".
-export const REACHED_LABELS = {
-   received: 'Поступило',
-   screening: 'Скрининг',
-   meeting: 'Встреча',
-   analysis: 'Анализ',
-   ic1: 'ИК-1',
-   dd: 'Дет. DD',
-   ic2: 'ИК-2',
-   portfolio: 'Портфель',
-} as const;
-
 // Order of the legend under the register's bar.
 export const STATUS_ORDER: DealStatus[] = [
    'active',
@@ -118,17 +106,7 @@ export const STATUS_TONES: Record<DealStatus, Tone> = {
    rejected: 'danger',
 };
 
-// Fills of the register's bar; each part is also named and counted in the legend.
-export const STATUS_FILLS: Record<DealStatus, string> = {
-   active: 'bg-accent',
-   review: 'bg-accent-faint',
-   paused: 'bg-warning-ink',
-   portfolio: 'bg-success-ink',
-   withdrawn: 'bg-neutral-ink',
-   rejected: 'bg-line-strong',
-};
-
-// Statuses of the "Отказы и пауза" tab.
+// The statuses of a closed deal.
 export const CLOSED_STATUSES: DealStatus[] = [
    'rejected',
    'paused',
@@ -274,19 +252,6 @@ export const RISK_LEVEL_LABELS = {
    medium: 'Средний',
 } as const;
 
-export const LIST_TABS = ['inbox', 'funnel', 'closed', 'all'] as const;
-
-export type ListTab = (typeof LIST_TABS)[number];
-
-export const DEFAULT_LIST_TAB: ListTab = 'funnel';
-
-export const LIST_TAB_LABELS = {
-   inbox: 'Входящие',
-   funnel: 'Воронка',
-   closed: 'Отказы и пауза',
-   all: 'Все сделки',
-} as const satisfies Record<ListTab, string>;
-
 export const CARD_TABS = [
    'overview',
    'screening',
@@ -308,10 +273,3 @@ export const CARD_TAB_LABELS = {
    decisions: 'Решения ИК и НС',
    history: 'История',
 } as const satisfies Record<CardTab, string>;
-
-// Filter value that matches everything.
-export const ALL = 'all' as const;
-
-// How many rows of the register are shown at first, and added by "Показать ещё".
-export const REGISTER_FIRST = 12;
-export const REGISTER_STEP = 50;

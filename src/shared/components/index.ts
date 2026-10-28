@@ -1,6 +1,7 @@
 export { default as Avatar } from './Avatar';
 export { default as Badge, type BadgeTone, TONE_COLORS } from './Badge';
 export { default as BadgeSelect, type BadgeOption } from './BadgeSelect';
+export { default as BoardGap } from './BoardGap';
 export { default as Button, buttonClass, Spinner } from './Button';
 export { default as Card, STACK } from './Card';
 export { default as Checkbox } from './Checkbox';
@@ -29,6 +30,7 @@ export {
 } from './StatTile';
 export { default as Table, TD, TH } from './Table';
 export { default as Tabs, type TabItem } from './Tabs';
+export { default as Timeline, type TimelineRow } from './Timeline';
 export { default as Toaster } from './Toaster';
 export { default as Attachments } from './Attachments';
 export { RichText, RichTextEditor } from './RichText';

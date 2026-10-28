@@ -24,7 +24,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 1. Left menu → **Сделки** → **«Новая сделка»**.
 2. Fill in: Компания `ZZ Test Startup`, Чем занимается `Тест`, Отрасль — choose **FinTech**, Запрос `150000`. Источник, Стадия раунда and Страна are already chosen (Нетворк, Seed, Узбекистан). Click **«Добавить»**.
 
-✓ The deal is in the **«Входящие»** tab, and its mandate check says **«Соответствует»**.
+✓ The deal is in Сделки with the stage **«Входящие»**, and its card's **«Проверка мандата»** says **«Соответствует»**.
 
 ## 3. Take it into screening
 
@@ -99,7 +99,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 1. **Сделки** → **«Новая сделка»** → `ZZ Reject Startup` → **«Добавить»**.
 2. Open it → **«Отказать с причиной»** → pick a Причина → **«Отказать»**.
 
-✓ It moves to the **«Отказы и пауза»** tab.
+✓ Its stage is **«Отказ»**: it shows in Сделки with the stage filter set to «Отказ» or «Все этапы».
 
 ---
 

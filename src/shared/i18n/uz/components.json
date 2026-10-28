@@ -47,5 +47,12 @@
    "Файлы загружены: {{count}}_one": "Fayllar yuklandi: {{count}}",
    "Файлы загружены: {{count}}_few": "Fayllar yuklandi: {{count}}",
    "Файлы загружены: {{count}}_many": "Fayllar yuklandi: {{count}}",
-   "Файлы загружены: {{count}}_other": "Fayllar yuklandi: {{count}}"
+   "Файлы загружены: {{count}}_other": "Fayllar yuklandi: {{count}}",
+   "Раньше": "Oldinroq",
+   "Позже": "Keyinroq",
+   "Сегодня": "Bugun",
+   "Масштаб": "Masshtab",
+   "День": "Kun",
+   "Неделя": "Hafta",
+   "Месяц": "Oy"
 }

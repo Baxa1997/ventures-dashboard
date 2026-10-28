@@ -21,22 +21,5 @@ export const TASK_WHO_LABELS = {
    all: 'Вся команда',
 } as const satisfies Record<TaskWho, string>;
 
-export const TIMELINE_SCALES = ['day', 'week', 'month'] as const;
-
-export type TimelineScale = (typeof TIMELINE_SCALES)[number];
-
-export const TIMELINE_SCALE_LABELS = {
-   day: 'День',
-   week: 'Неделя',
-   month: 'Месяц',
-} as const satisfies Record<TimelineScale, string>;
-
-// The columns a scale shows: four weeks of days, sixteen weeks, a year.
-export const TIMELINE_COLUMNS: Record<TimelineScale, number> = {
-   day: 28,
-   week: 16,
-   month: 12,
-};
-
 // A day of the calendar lists this many tasks, then «ещё N».
 export const CALENDAR_SHOWN = 4;

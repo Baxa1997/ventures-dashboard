@@ -1,5 +1,9 @@
 export { default as CommitteeLink } from './CommitteeLink';
-export { default as MoveDealDialog } from './MoveDealDialog';
+export {
+   default as MoveDealDialog,
+   type MoveStatus,
+   type MoveTarget,
+} from './MoveDealDialog';
 export { default as NewDealDialog } from './NewDealDialog';
 export { default as PortfolioDialog } from './PortfolioDialog';
 export { default as RejectDialog } from './RejectDialog';
