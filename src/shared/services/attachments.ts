@@ -15,10 +15,10 @@ import type {
 } from '@shared/types/attachments.types';
 import dayjs from 'dayjs';
 
-/* The links and files kept on deals and portfolio companies, in ucode's
-   attachments table. A file goes to ucode Files first (a folder per section
-   of the panel) and its row keeps the address; removing the row removes the
-   file. */
+/* The links and files kept on deals, portfolio companies and tasks, in
+   ucode's attachments table. A file goes to ucode Files first (a folder per
+   section of the panel) and its row keeps the address; removing the row
+   removes the file. */
 
 const toAttachment = (row: Row): Attachment => ({
    id: row.guid,
@@ -116,7 +116,11 @@ class Attachments {
 
    // Stores the files one by one; those stored before a failure are kept.
    async uploadFiles(place: AttachmentPlace, files: File[], userId: string) {
-      const folder = place.companyId ? 'Portfolio' : 'Deals';
+      const folder = place.companyId
+         ? 'Portfolio'
+         : place.dealId
+           ? 'Deals'
+           : 'Tasks';
       try {
          for (const file of files) {
             const stored = await uploadFile(file, folder);

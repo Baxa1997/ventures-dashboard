@@ -16,6 +16,17 @@ interface BadgeProps {
    children?: ReactNode; // none: the dot alone, where the line says the rest
 }
 
+// Each tone's own colour, for what is not a pill: a board's column, a bar.
+export const TONE_COLORS: Record<BadgeTone, string> = {
+   accent: 'var(--color-sky)',
+   warning: 'var(--color-warning)',
+   danger: 'var(--color-danger)',
+   success: 'var(--color-success)',
+   neutral: 'var(--color-neutral)',
+   indigo: 'var(--color-indigo)',
+   info: 'var(--color-info)',
+};
+
 // A pill in the tone's tint, its text in the tone's ink, and a dot in the
 // tone's own colour.
 const TONES: Record<BadgeTone, { pill: string; dot: string }> = {

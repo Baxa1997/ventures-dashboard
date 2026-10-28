@@ -1,85 +1,100 @@
 import { listOf, nameOf } from '@modules/Settings/services';
+import { Segmented } from '@shared/components';
 import {
-   TASK_RELATION_LABELS,
-   TASK_RELATION_ORDER,
-} from '@modules/Work/constants';
-import { shortName } from '@modules/Work/helpers';
-import { FilterBar, FilterSelect } from '@shared/components';
-import type { Employee } from '@shared/types/work.types';
-import { Search } from 'lucide-react';
+   CalendarDays,
+   Columns3,
+   GanttChart,
+   List,
+   type LucideIcon,
+   Search,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ALL } from '../constants';
+import {
+   TASK_VIEW_LABELS,
+   TASK_VIEWS,
+   TASK_WHO,
+   TASK_WHO_LABELS,
+   type TaskView,
+   type TaskWho,
+} from '../constants';
 import type { TaskFilters } from '../helpers';
 
+const VIEW_ICONS: Record<TaskView, LucideIcon> = {
+   list: List,
+   board: Columns3,
+   calendar: CalendarDays,
+   timeline: GanttChart,
+};
+
 interface ToolbarProps {
+   view: TaskView;
+   who: TaskWho;
    filters: TaskFilters;
-   employees: Employee[];
-   onFilter: <K extends keyof TaskFilters>(
-      key: K,
-      value: TaskFilters[K],
-   ) => void;
+   onView: (view: TaskView) => void;
+   onWho: (who: TaskWho) => void;
+   onFilter: (patch: Partial<TaskFilters>) => void;
 }
 
-const Toolbar = ({ filters, employees, onFilter }: ToolbarProps) => {
+// The view, whose tasks, their type, and the search, in one row.
+const Toolbar = ({
+   view,
+   who,
+   filters,
+   onView,
+   onWho,
+   onFilter,
+}: ToolbarProps) => {
    const { t } = useTranslation('work');
-   const all = { value: ALL, label: t('все') };
 
    return (
-      <FilterBar>
-         <div className='relative w-full sm:w-70'>
+      <div className='mb-3.5 flex flex-wrap items-center gap-2'>
+         <Segmented
+            items={TASK_VIEWS.map((id) => ({
+               id,
+               label: t(TASK_VIEW_LABELS[id]),
+               icon: VIEW_ICONS[id],
+            }))}
+            label={t('Вид')}
+            value={view}
+            onChange={onView}
+         />
+         <Segmented
+            items={TASK_WHO.map((id) => ({
+               id,
+               label: t(TASK_WHO_LABELS[id]),
+            }))}
+            label={t('Чьи задачи')}
+            value={who}
+            onChange={onWho}
+         />
+         <select
+            aria-label={t('Тип задачи')}
+            className='field-input w-auto bg-white pr-8'
+            value={filters.type}
+            onChange={(event) => onFilter({ type: event.target.value })}
+         >
+            <option value=''>{t('Все типы')}</option>
+            {listOf('taskTypes').map((item) => (
+               <option key={item.key} value={item.key}>
+                  {nameOf(item)}
+               </option>
+            ))}
+         </select>
+         <label className='relative w-full sm:ml-auto sm:w-60'>
             <Search
                aria-hidden
-               className='text-ink-soft pointer-events-none absolute top-2.5 left-3 size-4'
+               className='text-ink-faint pointer-events-none absolute top-2.5 left-2.5 size-4'
             />
             <input
-               aria-label={t('Поиск по задачам')}
-               className='field-input text-meta h-9 pl-9'
-               placeholder={t('Поиск по задачам')}
+               aria-label={t('Найти задачу или сделку')}
+               className='field-input bg-white pl-8.5'
+               placeholder={t('Найти задачу или сделку')}
                type='search'
-               value={filters.search}
-               onChange={(event) => onFilter('search', event.target.value)}
+               value={filters.query}
+               onChange={(event) => onFilter({ query: event.target.value })}
             />
-         </div>
-         <FilterSelect
-            label={t('Исполнитель')}
-            options={[
-               all,
-               ...employees.map(({ id, name }) => ({
-                  value: id,
-                  label: shortName(name),
-               })),
-            ]}
-            value={filters.assigneeId}
-            onChange={(value) => onFilter('assigneeId', value)}
-         />
-         <FilterSelect
-            label={t('Тип')}
-            options={[
-               all,
-               ...listOf('taskTypes').map((item) => ({
-                  value: item.key,
-                  label: nameOf(item),
-               })),
-            ]}
-            value={filters.type}
-            onChange={(value) => onFilter('type', value)}
-         />
-         <FilterSelect
-            label={t('Связано с')}
-            options={[
-               all,
-               ...TASK_RELATION_ORDER.map((relation) => ({
-                  value: relation,
-                  label: t(TASK_RELATION_LABELS[relation]),
-               })),
-            ]}
-            value={filters.relation}
-            onChange={(value) => onFilter('relation', value)}
-         />
-         <span className='text-ink-soft text-meta ml-auto pr-1'>
-            {t('Сортировка: по сроку')}
-         </span>
-      </FilterBar>
+         </label>
+      </div>
    );
 };
 

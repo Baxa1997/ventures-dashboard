@@ -105,7 +105,7 @@ const Overview = () => {
                      action={
                         <Link
                            className='head-link'
-                           to={`${SECTION_PATHS.tasks}?tab=mine`}
+                           to={SECTION_PATHS.tasks}
                         >
                            {t('Все задачи')}
                         </Link>

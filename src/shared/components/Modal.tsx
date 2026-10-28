@@ -8,6 +8,9 @@ interface ModalProps {
    open: boolean;
    title: string;
    subtitle?: ReactNode; // shown under the title
+   // the top line in place of the title, which screen readers still get:
+   // a task's card shows what it is about and its buttons there
+   header?: ReactNode;
    size?: 'md' | 'wide'; // wide: a card with columns, such as a task's
    onClose: () => void;
    children: ReactNode;
@@ -34,6 +37,7 @@ const Modal = ({
    open,
    title,
    subtitle,
+   header,
    size = 'md',
    onClose,
    children,
@@ -67,15 +71,31 @@ const Modal = ({
             if (event.target === ref.current) onClose();
          }}
       >
-         <header className='border-line flex shrink-0 items-start justify-between gap-3 border-b px-5 py-3.5'>
-            <div className='min-w-0'>
-               <h2 id={titleId} className='text-base leading-6 font-bold'>
-                  {title}
-               </h2>
-               {subtitle && (
-                  <div className='text-ink-soft text-meta mt-1'>{subtitle}</div>
-               )}
-            </div>
+         <header
+            className={clsx(
+               'border-line flex shrink-0 justify-between gap-3 border-b',
+               header ? 'items-center px-4 py-2.5' : 'items-start px-5 py-3.5',
+            )}
+         >
+            {header ? (
+               <div className='min-w-0 flex-1'>
+                  <h2 id={titleId} className='sr-only'>
+                     {title}
+                  </h2>
+                  {header}
+               </div>
+            ) : (
+               <div className='min-w-0'>
+                  <h2 id={titleId} className='text-base leading-6 font-bold'>
+                     {title}
+                  </h2>
+                  {subtitle && (
+                     <div className='text-ink-soft text-meta mt-1'>
+                        {subtitle}
+                     </div>
+                  )}
+               </div>
+            )}
             <button
                type='button'
                aria-label={t('Закрыть')}

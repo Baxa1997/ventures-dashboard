@@ -86,6 +86,8 @@
    --animate-pop: pop 0.22s var(--ease-settle) both;
    --animate-fill: fill 0.8s var(--ease-settle) 0.1s both;
    --animate-grow: grow 0.6s var(--ease-settle) both;
+   --animate-open: open 0.16s var(--ease-settle) both;
+   --animate-lift: lift 0.16s var(--ease-settle) both;
 
    @keyframes rise {
       from {
@@ -116,6 +118,20 @@
    @keyframes grow {
       from {
          transform: scaleY(0);
+      }
+   }
+   /* the gap a board's card will drop into opens from nothing */
+   @keyframes open {
+      from {
+         height: 0;
+         opacity: 0;
+      }
+   }
+   /* a card picked up from a board tilts as it leaves the column */
+   @keyframes lift {
+      from {
+         rotate: 0deg;
+         scale: 1;
       }
    }
 
@@ -201,6 +217,16 @@
       background-repeat: no-repeat;
       text-overflow: ellipsis;
    }
+   /* A select with a look of its own (a task's details, its status) gets the
+      same chevron, 8px in; its padding keeps the text clear of it. */
+   .select-chevron {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23565e8c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-position: right 0.5rem center;
+      background-size: 1rem;
+      background-repeat: no-repeat;
+      text-overflow: ellipsis;
+   }
    .field-input[aria-invalid='true'] {
       @apply border-danger;
    }
@@ -278,4 +304,12 @@
 }
 .stagger > :nth-child(n + 5) {
    animation-delay: 200ms;
+}
+
+/* While a card is carried across a board: the closed hand everywhere, and no
+   text selected on the way. */
+body.dragging,
+body.dragging * {
+   cursor: grabbing !important;
+   user-select: none;
 }

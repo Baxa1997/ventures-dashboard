@@ -12,6 +12,7 @@ export { DATE_FORMAT } from '@shared/constants';
 export const TITLE_MAX = 120;
 export const CONTEXT_MAX = 80; // the note's text on one line, next to the type
 export const CHECKLIST_MAX = 1000; // the checklist's items together
+export const COMMENT_MAX = 500;
 
 // Мой день shows the tasks due within this many days as «На этой неделе».
 export const MY_DAY_WEEK = 7;
@@ -68,12 +69,6 @@ export const TASK_RELATION_ORDER: TaskRelation[] = [
    'portfolio',
    'none',
 ];
-
-export const TASK_RELATION_LABELS = {
-   deal: 'Сделка',
-   portfolio: 'Компания портфеля',
-   none: 'Без связи',
-} as const satisfies Record<TaskRelation, string>;
 
 // Where the thing a task is attached to lives; its card is under this path.
 export const TASK_RELATION_SECTIONS: Record<

@@ -22,6 +22,7 @@ import {
 } from '@shared/api/ucode';
 import { directorId, TEAM } from '@shared/constants';
 import { addWorkingDays, createStore, daysUntil, newId } from '@shared/helpers';
+import attachments from '@shared/services/attachments';
 import type { Deal } from '@shared/types/deals.types';
 import type {
    AttentionItem,
@@ -169,8 +170,14 @@ const newest = (a: Row, b: Row) =>
    str(b.date).localeCompare(str(a.date)) ||
    str(b.created_at).localeCompare(str(a.created_at));
 
-const toTask = (row: Row, checklist: Row[], events: Row[]): Task => ({
+const toTask = (
+   row: Row,
+   checklist: Row[],
+   events: Row[],
+   number: number,
+): Task => ({
    id: row.guid,
+   number,
    title: str(row.title),
    type:
       listKeyOf('taskTypes', row.task_types_id) ?? (str(row.type) || 'other'),
@@ -261,9 +268,24 @@ const store = createStore(async () => {
    );
    const checks = groupBy(checklist, 'tasks_id');
    const history = groupBy(events, 'tasks_id');
+   // numbered in the order they were made: the first is SQV-1
+   const numbers = new Map(
+      [...tasks]
+         .sort(
+            (a, b) =>
+               str(a.created_at).localeCompare(str(b.created_at)) ||
+               a.guid.localeCompare(b.guid),
+         )
+         .map((row, index) => [row.guid, index + 1]),
+   );
    return tasks
       .map((row) =>
-         toTask(row, checks.get(row.guid) ?? [], history.get(row.guid) ?? []),
+         toTask(
+            row,
+            checks.get(row.guid) ?? [],
+            history.get(row.guid) ?? [],
+            numbers.get(row.guid) ?? 0,
+         ),
       )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 });
@@ -289,6 +311,10 @@ const readQueueDone = (): Record<string, string> => {
       return {};
    }
 };
+
+// The number the next task made gets.
+const nextNumber = (tasks: Task[]) =>
+   tasks.reduce((top, { number }) => Math.max(top, number), 0) + 1;
 
 const findTask = (tasks: Task[], id: string) => {
    const task = tasks.find((item) => item.id === id);
@@ -363,7 +389,10 @@ const change = async (
    const tasks = await store.get();
    const before = findTask(tasks, id);
    const after = apply(before);
-   const extra = added(after);
+   const extra = added(after).map((task, index) => ({
+      ...task,
+      number: nextNumber(tasks) + index,
+   }));
    store.set((current) => [
       ...extra,
       ...current.map((task) => (task.id === id ? after : task)),
@@ -519,11 +548,12 @@ class Work {
          Pick<Task, 'basis' | 'dueLabel' | 'origin' | 'decisionId'>
       > = {},
    ): Promise<Task> {
-      await store.get();
+      const tasks = await store.get();
       const today = todayISO();
       const task: Task = {
          ...input,
          id: newId(),
+         number: nextNumber(tasks),
          basis: '',
          dueLabel: '',
          origin: 'manual',
@@ -587,6 +617,8 @@ class Work {
             ...task.history.map((event) => deleteRow('task_events', event.id)),
          ]);
          await deleteRow('tasks', id);
+         // its files and links go with it
+         await attachments.removeAt({ section: 'task', itemId: id });
       } catch (error) {
          await store.reload();
          throw error;

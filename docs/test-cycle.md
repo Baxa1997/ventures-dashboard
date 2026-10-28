@@ -113,18 +113,19 @@ A committee stage is left only after its committee's approval: before step 8, «
 
 ## 11. Задачи
 
-1. Задачи → «Новая задача»: title `ZZ задача`, «Связано с» = «Сделка» → a second select lists the deals; save without choosing → it is refused; choose `ZZ Startup A`; assignee «Администратор»; due date in 3 days; priority high; «Повтор» monthly; checklist two lines → «Сохранить».
-2. The task is in «Мои» and «Все открытые»; its card shows «Сделка: ZZ Startup A» as a link to the deal.
-3. «Взять в работу» → «В работе»; tick one checklist item; «Комментарий» → it shows in the history.
-4. «Изменить» → set «Проверяет» = `ZZ Аналитик` → save. Close it → it goes to «На проверке» instead (somebody else checks it).
-5. Set it to «Завершена» → a new occurrence appears, due a month later, checklist unticked, history «Создана автоматически после закрытия предыдущей».
-6. On the copy, «Удалить» (next to «Изменить») → the window asks → «Удалить» → it is gone.
-7. Sidebar counters: «Задачи» counts your open tasks, «Мой день» what waits for you.
+1. Задачи → «Новая задача»: title `ZZ задача`; «Сделка» = `ZZ Startup A`; «Исполнитель» «Администратор»; «Дедлайн» in 3 days; «Приоритет» high; «Повтор» monthly; two checklist items → «Создать». The card closes and the task is in «Список» under «Мои».
+2. Click the row → its card opens over the page: the top line names the deal and the type; the arrow next to «Сделка» opens the deal. Change «Приоритет» → close the card → the table shows the new priority (saved without a button). «Скопировать ссылку» → open the link in a new tab → Задачи opens with the card.
+3. In the card: set the status «В работе»; tick one checklist item (the bar shows 50 %); add a third item and remove it; «Вложения» → upload a file and add a link; write a comment and press Enter → it shows under «Комментарии», the status change under «История».
+4. «Согласует» = `ZZ Аналитик` → the button beside the status says «На согласование» → press it → «На согласовании»; as `ZZ Аналитик` the task waits in Мой день → «Ждут моего согласования».
+5. As the director, set the status «Завершена» → a new occurrence appears, due a month later, checklist unticked, history «Создана автоматически после закрытия предыдущей».
+6. «Доска» → drag the copy: it follows the pointer, its place closes and a dashed gap opens where it would drop; drop it in another column → «Статус: …». Drag a card above another in its column → it stays there after a reload (this browser). Esc while dragging puts it back. «Календарь» → the task is on its deadline; double-click another day → the form opens with that deadline. «Таймлайн» → its bar runs from today to the deadline; «Неделя» and «Месяц» change the scale.
+7. On the copy, the bin in the card's top line → the window asks → «Удалить» → it is gone, with its files.
+8. Sidebar counters: «Задачи» counts your open tasks, «Мой день» what waits for you.
 
 ## 12. Мой день and the dashboard
 
 1. Мой день → the line under the title counts today's meetings, the tasks due today or overdue, and what waits for your approval; the tab «Мои задачи» shows your tasks and your deals' work in «Просрочено», «Сегодня», «На этой неделе», «Выполнено сегодня». Type a title in «Быстро добавить…» and Enter → a task due today appears under «Сегодня». Tick an item that comes from a deal → it moves to «Выполнено сегодня» until tomorrow (kept in this browser only).
-2. «Задача на сегодня» opens the task card with today's deadline. A task with «Согласует» = somebody else: tick it → «Отправлено на согласование», and it stays under «Выполнено сегодня», ticked, with «На согласовании»; untick it → back in work. Click a task's row → Задачи opens on that task (a closed one on «Завершённые»).
+2. «Задача на сегодня» opens the task card with today's deadline. A task with «Согласует» = somebody else: tick it → «Отправлено на согласование», and it stays under «Выполнено сегодня», ticked, with «На согласовании»; untick it → back in work. Click a task's row → its card opens over Мой день.
 3. As that approver, the tab «Ждут моего согласования» lists it with «Открыть», «Вернуть», «Согласовать». «Вернуть» asks what to fix → the comment is in the task's history and the task is «В работе» again; «Согласовать» closes it. A memorandum waiting for you as sponsor has «Согласовать» too; a screening you score second has «Открыть».
 4. «Расписание»: today's committee meetings (the one going on is marked «идёт сейчас») and your deals' steps set for an hour today. «Ближайшие сроки»: meetings of two weeks, your deals' stage deadlines (the director's: every deal's) of the coming week or past, the quarterly reports' date.
 5. Дашборд → the five figures (deals in work match Сделки' Входящие and Воронка; «Мои открытые задачи» match Задачи → Мои; «Ближайший ИК» the next planned ИК with its deals), «Воронка сделок» (the deals by group, on an axis), «Вложено по отраслям» (a ring of the portfolio's sectors; hover a piece for its sum and share). «Новая задача» (or «+» in the top bar) opens the task card over the page; «Создать» saves it and you stay on the dashboard.

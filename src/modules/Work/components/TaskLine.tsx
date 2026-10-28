@@ -6,13 +6,8 @@ import type { Task } from '@shared/types/work.types';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { TASK_RELATION_SECTIONS } from '../constants';
-import {
-   isDone,
-   isOverdue,
-   isSentForApproval,
-   statusAfterTick,
-   typeTone,
-} from '../helpers';
+import { isOverdue, tickOf, typeTone } from '../helpers';
+import { openTask } from '../hooks/useTaskDialog';
 import WorkLine from './WorkLine';
 
 interface TaskLineProps {
@@ -22,34 +17,26 @@ interface TaskLineProps {
 }
 
 // A task: its type, what it is about, its checklist and its deadline. The
-// row opens the task in Задачи. A task the person sent to be checked shows
-// ticked; unticking takes it back.
+// row opens the task's card over the page. A task the person sent to be
+// checked shows ticked; unticking takes it back.
 const TaskLine = ({ task, target, onTick }: TaskLineProps) => {
    const { t } = useTranslation('work');
    const user = useCurrentUser();
-   const sent = isSentForApproval(task, user.id);
-   const done = isDone(task) || sent;
+   const { done, sent, note } = tickOf(task, user.id);
    const ticked = task.checklist.filter((item) => item.done).length;
    const targetPath =
       task.relation === 'none'
          ? ''
          : `${SECTION_PATHS[TASK_RELATION_SECTIONS[task.relation]]}/${task.relationId}`;
 
-   const success = () => {
-      if (done) return t('Возвращено в работу');
-      return statusAfterTick(task, user.id) === 'review'
-         ? t('Отправлено на согласование')
-         : t('Отмечено выполненным');
-   };
-
    return (
       <WorkLine
          done={done}
          dueDate={task.dueDate}
          overdue={!sent && isOverdue(task)}
-         success={success()}
+         success={t(note)}
          title={task.title}
-         to={`${SECTION_PATHS.tasks}?task=${task.id}`}
+         onOpen={() => openTask(task.id)}
          meta={
             <>
                <Badge tone={typeTone(task.type)}>

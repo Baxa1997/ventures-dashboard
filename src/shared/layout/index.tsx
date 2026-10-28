@@ -1,4 +1,4 @@
-import { NewTaskDialog } from '@modules/Work/components';
+import { TaskDialog } from '@modules/Work/components';
 import { type PropsWithChildren, useState } from 'react';
 import Header from './Header';
 import { CrumbsContext } from './Header/crumbs';
@@ -20,7 +20,7 @@ const Layout = ({ children }: PropsWithChildren) => {
                <main className='flex flex-1 flex-col'>{children}</main>
             </div>
          </div>
-         <NewTaskDialog />
+         <TaskDialog />
       </CrumbsContext>
    );
 };

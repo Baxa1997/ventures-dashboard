@@ -4,6 +4,7 @@ import {
    getAssigneeId,
    queueWording,
 } from '@modules/Work/helpers';
+import { openTask } from '@modules/Work/hooks';
 import { Button, buttonClass } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
 import { formatNumericDate, personName } from '@shared/helpers';
@@ -47,7 +48,7 @@ const useWording = (
          title: task.title,
          fromId: getAssigneeId(task),
          about: [listName('taskTypes', task.type), targetName(task)],
-         to: `${SECTION_PATHS.tasks}?task=${task.id}`,
+         to: '', // the task's card opens over the page
       };
    }
    const { item } = approval;
@@ -109,12 +110,22 @@ const ApprovalLine = ({
             </div>
          </div>
          <div className='flex flex-wrap gap-1.5 max-sm:w-full sm:justify-end'>
-            <Link
-               className={buttonClass('ghost', '', false, 'sm')}
-               to={wording.to}
-            >
-               {t('Открыть')}
-            </Link>
+            {task ? (
+               <Button
+                  size='sm'
+                  variant='ghost'
+                  onClick={() => openTask(task.id)}
+               >
+                  {t('Открыть')}
+               </Button>
+            ) : (
+               <Link
+                  className={buttonClass('ghost', '', false, 'sm')}
+                  to={wording.to}
+               >
+                  {t('Открыть')}
+               </Link>
+            )}
             {task && (
                <Button
                   size='sm'

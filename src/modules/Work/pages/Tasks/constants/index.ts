@@ -1,52 +1,42 @@
-import type {
-   SystemTaskStatus,
-   TaskRecurrence,
-} from '@shared/types/work.types';
+// The views of Задачи, as the design has them. Labels are keys of the
+// "work" translations.
+export const TASK_VIEWS = ['list', 'board', 'calendar', 'timeline'] as const;
 
-// Filter value that matches every assignee, type or relation.
-export const ALL = 'all' as const;
+export type TaskView = (typeof TASK_VIEWS)[number];
 
-export const COMMENT_MAX = 500;
+export const TASK_VIEW_LABELS = {
+   list: 'Список',
+   board: 'Доска',
+   calendar: 'Календарь',
+   timeline: 'Таймлайн',
+} as const satisfies Record<TaskView, string>;
 
-export const TASK_TABS = [
-   'mine',
-   'open',
-   'unassigned',
-   'recurring',
-   'done',
-] as const;
+// Whose tasks: the person's (to do or to check), or the whole team's.
+export const TASK_WHO = ['me', 'all'] as const;
 
-export type TaskTab = (typeof TASK_TABS)[number];
+export type TaskWho = (typeof TASK_WHO)[number];
 
-export const DEFAULT_TAB: TaskTab = 'open';
+export const TASK_WHO_LABELS = {
+   me: 'Мои',
+   all: 'Вся команда',
+} as const satisfies Record<TaskWho, string>;
 
-// Labels are keys of the "work" translations.
-export const TASK_TAB_LABELS = {
-   mine: 'Мои',
-   open: 'Все открытые',
-   unassigned: 'Не распределены',
-   recurring: 'Повторяющиеся',
-   done: 'Завершённые',
-} as const satisfies Record<TaskTab, string>;
+export const TIMELINE_SCALES = ['day', 'week', 'month'] as const;
 
-export const RECURS_LABELS = {
-   monthly: 'Повторяется ежемесячно',
-   quarterly: 'Повторяется ежеквартально',
-} as const satisfies Record<Exclude<TaskRecurrence, 'none'>, string>;
+export type TimelineScale = (typeof TIMELINE_SCALES)[number];
 
-// The main button of the task card: the status it moves the task to and
-// what it says. A task in work that nobody checks is closed straight away;
-// see getNextStep.
-export const NEXT_STEPS = {
-   assigned: { status: 'in_progress', label: 'Взять в работу' },
-   in_progress: { status: 'review', label: 'На проверку' },
-   waiting: { status: 'in_progress', label: 'Вернуть в работу' },
-   postponed: { status: 'in_progress', label: 'Вернуть в работу' },
-   review: { status: 'done', label: 'Принять' },
-   done: { status: 'in_progress', label: 'Вернуть в работу' },
-} as const satisfies Record<
-   SystemTaskStatus,
-   { status: SystemTaskStatus; label: string }
->;
+export const TIMELINE_SCALE_LABELS = {
+   day: 'День',
+   week: 'Неделя',
+   month: 'Месяц',
+} as const satisfies Record<TimelineScale, string>;
 
-export const CLOSE_STEP = { status: 'done', label: 'Завершить' } as const;
+// The columns a scale shows: four weeks of days, sixteen weeks, a year.
+export const TIMELINE_COLUMNS: Record<TimelineScale, number> = {
+   day: 28,
+   week: 16,
+   month: 12,
+};
+
+// A day of the calendar lists this many tasks, then «ещё N».
+export const CALENDAR_SHOWN = 4;

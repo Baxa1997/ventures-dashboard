@@ -1,5 +1,6 @@
 // A link or a file kept on a deal or a portfolio company: on Скрининг, on a
-// request, on a DD workstream, on a company (docs/ucode-migration.md, batch 8).
+// request, on a DD workstream, on a company (docs/ucode-migration.md, batch 8);
+// or on a task: section 'task', its id as itemId.
 export interface Attachment {
    id: string;
    kind: 'link' | 'file';

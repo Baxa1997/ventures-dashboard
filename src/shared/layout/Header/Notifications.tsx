@@ -1,4 +1,5 @@
 import { queueWording, relativeDue } from '@modules/Work/helpers';
+import { openTask } from '@modules/Work/hooks';
 import work from '@modules/Work/services';
 import { MY_DAY_PATH, SECTION_PATHS } from '@shared/constants';
 import { formatNumericDate, personName } from '@shared/helpers';
@@ -27,6 +28,9 @@ const ICONS: Record<Notice['kind'], LucideIcon> = {
    meeting: Gavel,
 };
 
+const NOTICE =
+   'border-line hover:bg-hover flex w-full gap-2.5 border-b px-3.5 py-2.5 text-left';
+
 // What the person has seen, kept in this browser: their notices' ids.
 const seenKey = (userId: string) => `sqbv_seen_notices_${userId}`;
 
@@ -46,14 +50,14 @@ const writeSeen = (userId: string, ids: string[]) => {
    }
 };
 
-// A notice's line, the line under it, and where it leads.
+// A notice's line, the line under it, and where it leads: a page, or a
+// task's card over the page ('' for to).
 const wordingOf = (
    t: TFunction<'layout'>,
    tWork: TFunction<'work'>,
    tDeals: TFunction<'deals'>,
    notice: Notice,
 ) => {
-   const task = (id: string) => `${SECTION_PATHS.tasks}?task=${id}`;
    switch (notice.kind) {
       case 'decision':
          return {
@@ -61,6 +65,7 @@ const wordingOf = (
                title: queueWording(tWork, tDeals, notice.item).title,
             }),
             meta: notice.item.subject,
+            taskId: '',
             to: notice.item.dealId
                ? `${SECTION_PATHS.deals}/${notice.item.dealId}`
                : `${MY_DAY_PATH}?tab=approve`,
@@ -71,13 +76,15 @@ const wordingOf = (
             meta: t('срок {{date}}', {
                date: formatNumericDate(notice.dueDate),
             }),
-            to: task(notice.taskId),
+            taskId: notice.taskId,
+            to: '',
          };
       case 'assigned':
          return {
             text: t('Вам назначена задача: {{title}}', { title: notice.title }),
             meta: t('от {{name}}', { name: personName(notice.fromId) }),
-            to: task(notice.taskId),
+            taskId: notice.taskId,
+            to: '',
          };
       case 'application':
          return {
@@ -85,6 +92,7 @@ const wordingOf = (
             meta: t('подана {{date}}', {
                date: formatNumericDate(notice.date),
             }),
+            taskId: '',
             to: `${SECTION_PATHS.deals}/${notice.dealId}`,
          };
       case 'meeting':
@@ -96,6 +104,7 @@ const wordingOf = (
             ]
                .filter(Boolean)
                .join(' · '),
+            taskId: '',
             to: `${SECTION_PATHS.committee}/${notice.meetingId}`,
          };
    }
@@ -193,19 +202,14 @@ const Notifications = () => {
                {notices.length ? (
                   notices.map((notice) => {
                      const Icon = ICONS[notice.kind];
-                     const { text, meta, to } = wordingOf(
+                     const { text, meta, to, taskId } = wordingOf(
                         t,
                         tWork,
                         tDeals,
                         notice,
                      );
-                     return (
-                        <Link
-                           key={notice.id}
-                           className='border-line hover:bg-hover flex gap-2.5 border-b px-3.5 py-2.5'
-                           to={to}
-                           onClick={() => setOpen(false)}
-                        >
+                     const content = (
+                        <>
                            <span
                               aria-hidden
                               className={clsx(
@@ -224,6 +228,28 @@ const Notifications = () => {
                                  {meta}
                               </span>
                            </span>
+                        </>
+                     );
+                     return taskId ? (
+                        <button
+                           key={notice.id}
+                           type='button'
+                           className={NOTICE}
+                           onClick={() => {
+                              setOpen(false);
+                              openTask(taskId);
+                           }}
+                        >
+                           {content}
+                        </button>
+                     ) : (
+                        <Link
+                           key={notice.id}
+                           className={NOTICE}
+                           to={to}
+                           onClick={() => setOpen(false)}
+                        >
+                           {content}
                         </Link>
                      );
                   })

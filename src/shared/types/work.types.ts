@@ -82,6 +82,7 @@ export interface TaskInput {
 
 export interface Task extends TaskInput {
    id: string;
+   number: number; // its place in the order the tasks were made: SQV-12
    basis: string; // the document the task comes from
    dueLabel: string; // «до ИК-2» when the deadline is an event, not a date
    origin: string; // manual, ic_condition, …: what made the task

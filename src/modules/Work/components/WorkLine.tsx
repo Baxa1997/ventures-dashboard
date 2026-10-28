@@ -6,16 +6,20 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import TaskCheck from './TaskCheck';
 
-interface WorkLineProps {
+// Where the row leads: a page, or the task card over this one.
+type Opens =
+   | { to: string; onOpen?: never }
+   | { onOpen: () => void; to?: never };
+
+type WorkLineProps = Opens & {
    title: string;
-   to: string; // where the row leads
    done: boolean;
    dueDate: string; // YYYY-MM-DD, '' — no deadline
    overdue: boolean;
    meta: ReactNode; // the line under the title
    success: string; // the note after a tick
    onToggle: () => Promise<unknown>;
-}
+};
 
 /* A piece of work as the design lists it: its tick, its title, the line
    about it and its deadline. The row opens it; the tick and the links do
@@ -23,6 +27,7 @@ interface WorkLineProps {
 const WorkLine = ({
    title,
    to,
+   onOpen,
    done,
    dueDate,
    overdue,
@@ -36,11 +41,16 @@ const WorkLine = ({
 
    const open = (event: MouseEvent) => {
       if ((event.target as HTMLElement).closest('a, button')) return;
-      navigate(to);
+      if (onOpen) onOpen();
+      else navigate(to);
    };
+   const titleClass = clsx(
+      'block text-left font-semibold',
+      done && 'text-ink-faint line-through',
+   );
 
    return (
-      // the row's click is for the mouse; the title is the keyboard's link
+      // the row's click is for the mouse; the title is the keyboard's way
       <li
          className='border-line hover:bg-hover flex cursor-pointer items-start gap-3 border-b px-4.5 py-2.75 transition-colors last:border-b-0'
          onClick={open}
@@ -54,15 +64,15 @@ const WorkLine = ({
             />
          </span>
          <div className='min-w-0 flex-1'>
-            <Link
-               className={clsx(
-                  'block font-semibold',
-                  done && 'text-ink-faint line-through',
-               )}
-               to={to}
-            >
-               {title}
-            </Link>
+            {onOpen ? (
+               <button type='button' className={titleClass} onClick={onOpen}>
+                  {title}
+               </button>
+            ) : (
+               <Link className={titleClass} to={to}>
+                  {title}
+               </Link>
+            )}
             <div className='text-ink-faint mt-1 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs'>
                {meta}
             </div>

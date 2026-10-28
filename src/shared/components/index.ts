@@ -1,5 +1,5 @@
 export { default as Avatar } from './Avatar';
-export { default as Badge, type BadgeTone } from './Badge';
+export { default as Badge, type BadgeTone, TONE_COLORS } from './Badge';
 export { default as BadgeSelect, type BadgeOption } from './BadgeSelect';
 export { default as Button, buttonClass, Spinner } from './Button';
 export { default as Card, STACK } from './Card';
@@ -21,6 +21,7 @@ export { default as PageHeader } from './PageHeader';
 export { default as Person } from './Person';
 export { default as Progress } from './Progress';
 export { default as SearchField } from './SearchField';
+export { default as Segmented, type SegmentedItem } from './Segmented';
 export {
    default as StatTile,
    type StatColor,

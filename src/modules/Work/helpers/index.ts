@@ -5,7 +5,6 @@ import { directorId } from '@shared/constants';
 import type { ListItem, StatusGroup } from '@shared/types/settings.types';
 import type {
    ChecklistItem,
-   Employee,
    QueueItem,
    SystemTaskStatus,
    Task,
@@ -126,15 +125,15 @@ export const isOverdue = (task: Task, today = todayISO()) =>
 export const byDueDate = (a: { dueDate: string }, b: { dueDate: string }) =>
    (a.dueDate || '9').localeCompare(b.dueDate || '9');
 
-export const getEmployee = (employees: Employee[], id: string) =>
-   employees.find((employee) => employee.id === id);
-
 // A task nobody is assigned to is the director's by default.
 export const getAssigneeId = (task: Task) => task.assigneeId || directorId();
 
 // "Мои": tasks a person does or checks.
 export const isMine = (task: Task, userId: string) =>
    getAssigneeId(task) === userId || task.reviewerId === userId;
+
+// SQV-12: a task's number as the design writes it.
+export const taskKey = (task: Task) => `SQV-${task.number}`;
 
 // The name of the deal or the company a task is attached to, '' — none.
 export const targetNameOf = (targets: TaskTargets, task: Task) =>
@@ -170,6 +169,21 @@ export const isSentForApproval = (task: Task, userId: string) =>
    task.status === 'review' &&
    getAssigneeId(task) === userId &&
    task.reviewerId !== userId;
+
+// What a task's tick in a list shows, and the note after it: a task the
+// person sent to be checked shows ticked, and unticking takes it back.
+export const tickOf = (task: Task, userId: string) => {
+   const sent = isSentForApproval(task, userId);
+   const done = isDone(task) || sent;
+   let note:
+      | 'Возвращено в работу'
+      | 'Отправлено на согласование'
+      | 'Отмечено выполненным' = 'Отмечено выполненным';
+   if (done) note = 'Возвращено в работу';
+   else if (statusAfterTick(task, userId) === 'review')
+      note = 'Отправлено на согласование';
+   return { done, sent, note };
+};
 
 // The day a task was last sent to be checked, '' if it never was.
 const sentOn = (task: Task) =>
