@@ -760,6 +760,15 @@ class Committee {
       );
    }
 
+   // Who chairs a meeting that has not opened yet.
+   async setChair(id: string, memberId: string) {
+      await apply(
+         withMeeting(id, (meeting) => ({ ...meeting, chairId: memberId })),
+         () =>
+            updateRow('meetings', { guid: id, committee_members_id: memberId }),
+      );
+   }
+
    // Whether a member confirmed, before the meeting opens.
    async setAttendance(id: string, memberId: string, attendance: Attendance) {
       await apply(

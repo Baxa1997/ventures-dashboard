@@ -84,6 +84,23 @@ export const columnTone = (column: string): BadgeTone => {
    return 'warning';
 };
 
+// The screening's score, 1 to 5: the mean of the criteria scored so far.
+export const scoreOf = ({ screening }: Deal) => {
+   const scored = (screening?.criteria ?? []).filter(
+      ({ score }) => score !== null,
+   );
+   return scored.length
+      ? scored.reduce((sum, { score }) => sum + (score ?? 0), 0) /
+           scored.length
+      : null;
+};
+
+// Green from 4, amber from 3.2, red below, as the design colours the score.
+export const scoreClass = (score: number) => {
+   if (score >= 4) return 'text-success';
+   return score >= 3.2 ? 'text-warning' : 'text-danger';
+};
+
 // The stage after this one; null after the last (the deal joins the portfolio).
 export const nextStageOf = (stage: DealStage): DealStage | null => {
    const keys = stageKeys();

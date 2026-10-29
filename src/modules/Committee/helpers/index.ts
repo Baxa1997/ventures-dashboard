@@ -1,4 +1,5 @@
 import { readinessOf } from '@modules/Deals/helpers';
+import { stageName } from '@modules/Settings/services';
 import type { BadgeTone } from '@shared/components';
 import { daysUntil, formatDate } from '@shared/helpers';
 import type {
@@ -13,7 +14,13 @@ import type {
 } from '@shared/types/committee.types';
 import type { Deal } from '@shared/types/deals.types';
 import type { TFunction } from 'i18next';
-import { BODY_LABELS, FORMAT_OPTIONS, IC_RULES } from '../constants';
+import {
+   BODY_LABELS,
+   FORMAT_OPTIONS,
+   IC_RULES,
+   MEETING_STATUS,
+   OUTCOMES,
+} from '../constants';
 
 type T = TFunction<'committee'>;
 
@@ -23,6 +30,50 @@ export const meetingName = (t: T, meeting: Pick<Meeting, 'body' | 'number'>) =>
       body: t(BODY_LABELS[meeting.body]),
       number: meeting.number,
    });
+
+// Заседание ИК № 7
+export const meetingTitle = (
+   t: T,
+   meeting: Pick<Meeting, 'body' | 'number'>,
+) => t('Заседание {{name}}', { name: meetingName(t, meeting) });
+
+// What the meeting decides on: ИК-1, ИК-2, or the board.
+export const meetingType = (t: T, meeting: Meeting) =>
+   meeting.body === 'board'
+      ? t('Наблюдательный совет')
+      : meeting.stage
+        ? stageName(meeting.stage)
+        : t('ИК');
+
+// The meeting's status as its head shows it: with the time it opened or
+// broke off, and where its protocol is once it is held.
+export const statusBadge = (
+   t: T,
+   meeting: Meeting,
+): { label: string; tone: BadgeTone } => {
+   const { label, tone } = MEETING_STATUS[meeting.status];
+   if (meeting.status === 'live')
+      return {
+         tone,
+         label: t('Идёт заседание · с {{time}}', {
+            time: meeting.startedAt ?? '',
+         }),
+      };
+   if (meeting.status === 'break')
+      return {
+         tone,
+         label: t('Перерыв · с {{time}}', { time: meeting.breakAt ?? '' }),
+      };
+   if (meeting.status === 'held')
+      return {
+         tone,
+         label:
+            meeting.protocol === 'signed'
+               ? t('Проведено · протокол подписан')
+               : t('Проведено · протокол на подписи'),
+      };
+   return { label: t(label), tone };
+};
 
 export const isUpcoming = ({ status }: Meeting) => status !== 'held';
 
@@ -55,6 +106,18 @@ export const presentMembers = (
       meeting.status === 'planned' || !item
          ? meeting.attendance[member.id] === 'confirmed'
          : item.votes[member.id]?.choice !== 'absent',
+   );
+
+// Who took part once the meeting opened: those not marked absent in its votes.
+export const attendedMembers = (
+   meeting: Meeting,
+   members: CommitteeMember[],
+) =>
+   participantsOf(meeting, members).filter(
+      (member) =>
+         !meeting.agenda.some(
+            (item) => item.votes[member.id]?.choice === 'absent',
+         ),
    );
 
 export const hasQuorum = (present: number) => present >= IC_RULES.quorum;
@@ -180,6 +243,56 @@ export const materialsReady = (meeting: Meeting, deals: Deal[]) =>
             : null;
       return value === null || value.ready === value.total;
    });
+
+// The deal's owner presents it, also when assigned after it was scheduled.
+export const speakerOf = (item: AgendaItem, deal?: Deal) =>
+   item.speakerId || deal?.ownerId || '';
+
+// A question as a pill: its outcome, «Ожидается» before the meeting,
+// «Голосование» while the meeting is open.
+export const itemBadge = (
+   t: T,
+   meeting: Meeting,
+   item: AgendaItem,
+): { label: string; tone: BadgeTone } => {
+   if (item.outcome)
+      return {
+         label: t(OUTCOMES[item.outcome].label),
+         tone: OUTCOMES[item.outcome].tone,
+      };
+   if (item.kind === 'info') return { label: t('Информация'), tone: 'neutral' };
+   return meeting.status === 'planned'
+      ? { label: t('Ожидается'), tone: 'accent' }
+      : { label: t('Голосование'), tone: 'accent' };
+};
+
+// Why a deal no longer waits for a question on a meeting not held yet: it was
+// approved at that stage elsewhere, or has left the stage; '' when it waits.
+export const staleNote = (
+   t: T,
+   meeting: Meeting,
+   item: AgendaItem,
+   deal: Deal | undefined,
+) => {
+   if (!deal || item.kind !== 'decision' || item.outcome) return '';
+   if (meeting.status === 'held') return '';
+   const stage =
+      meeting.body === 'board' ? 'board' : (item.stage ?? meeting.stage);
+   if (!stage) return '';
+   const label =
+      stage === 'board' ? t('Наблюдательный совет') : stageName(stage);
+   if (approvedAt(deal, stage))
+      return t(
+         '{{stage}} уже одобрил эту сделку на другом заседании — вопрос можно убрать из повестки.',
+         { stage: label },
+      );
+   if (deal.status !== 'active' || deal.stage !== stage)
+      return t(
+         'Сделка уже не на стадии «{{stage}}» — вопрос можно убрать из повестки.',
+         { stage: label },
+      );
+   return '';
+};
 
 export const isDecided = (item: AgendaItem) =>
    item.kind === 'info' || item.outcome !== null;

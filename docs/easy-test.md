@@ -52,17 +52,17 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 
 1. In «Следующий шаг», click **«Вынести на заседание»**.
 2. The window already has Тип **ИК-1** and `ZZ Test Startup` ticked. Pick today's date or later → **«Назначить»**.
-3. On the meeting page, under **«Отметить, кто из них будет»**, set all three members to **«Будет»**.
+3. On the meeting page («Обзор»), in **«Состав заседания»**, set all three members to **«Будет»**.
 4. Click **«Открыть заседание»** (top right).
-5. In **«Голосование»**, set all three votes to **«За»**.
-6. Click **«Зафиксировать одобрение»**, then **«Сформировать протокол»**.
+5. Open the tab **«Голосование»** and press **«За»** for all three members.
+6. Under the table, click **«Зафиксировать одобрение»**, then **«Сформировать протокол»** (top right).
 7. Click **«Отметить протокол подписанным»**, paste `https://example.com/zz` → **«Сохранить»**.
 
 ✓ The meeting shows «Проведено · протокол подписан», and «Открыть подписанный протокол» is there.
 
 ## 7. Detailed DD
 
-1. Back on the deal (the agenda has a «Карточка сделки» link) → **«Перевести в «Детальный DD»»**.
+1. Back on the deal (the tab «Участники (стартапы)» has a «Карточка сделки» link) → **«Перевести в «Детальный DD»»**.
 
 ✓ The window says «выполнено 1 из 1» and **«Перевести»** is on. Click it.
 
@@ -90,7 +90,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 
 ## 10. Quick checks
 
-- **Инвесткомитет**, each meeting's tab **«Решения»**: the decisions for `ZZ Test Startup`.
+- **Инвесткомитет → «Решения»**: the decisions for `ZZ Test Startup`; each meeting's tab **«Протокол»** has its own.
 - **The deal → «Решения ИК и НС»**: the same three.
 - **Настройки**: the menu on the left has Типы задач, Статусы задач, Этапы сделки, Отрасли, Раунды, Источники, Регионы, Причины отказа, Мандат and more. «Мандат» → «Из справочников» shows Pre-seed and Seed and the five Central Asian countries as the mandate.
 
@@ -107,7 +107,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 
 - Applications sent on the live website (sqbvc.uz) do not reach the panel yet: the site still uses another ucode project. That is why deals for testing are created with «Новая сделка».
 - The board meeting uses the same members as the investment committee for now.
-- The panel deletes a meeting only before it opens («Удалить» on its page), and no deals. When you finish, take members off the committee with «Убрать» → «Из состава ИК» on a planned meeting's «Участники» (or «Убрать» next to a person in «Назначить заседание»), and ask the developer to delete the `ZZ` meetings and deals.
+- The panel deletes a meeting only before it opens («Удалить» on its page), and no deals. When you finish, take members off the committee with «Убрать» → «Из состава ИК» on a planned meeting's «Участники ИК» (or «Убрать» next to a person in «Назначить заседание»), and ask the developer to delete the `ZZ` meetings and deals.
 
 ## Reporting a problem
 

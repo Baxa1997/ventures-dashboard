@@ -3,6 +3,8 @@ import {
    columnOf,
    columnTone,
    industryText,
+   scoreClass,
+   scoreOf,
    stageKeys,
    stageName,
 } from '@modules/Deals/helpers';
@@ -31,7 +33,7 @@ export const CLOSED_COLUMNS: Exclude<DealStatus, 'review' | 'active'>[] = [
 
 const inWork = ({ status }: Deal) => status === 'review' || status === 'active';
 
-export { columnOf, columnTone };
+export { columnOf, columnTone, scoreClass, scoreOf };
 
 // ?stage= of the address; ?tab=inbox, of the page before, as the inbox stage.
 export const toStageFilter = (
@@ -105,21 +107,4 @@ export const matchesSearch = (deal: Deal, search: string) => {
          .toLowerCase()
          .includes(query)
    );
-};
-
-// The screening's score, 1 to 5: the mean of the criteria scored so far.
-export const scoreOf = ({ screening }: Deal) => {
-   const scored = (screening?.criteria ?? []).filter(
-      ({ score }) => score !== null,
-   );
-   return scored.length
-      ? scored.reduce((sum, { score }) => sum + (score ?? 0), 0) /
-           scored.length
-      : null;
-};
-
-// Green from 4, amber from 3.2, red below, as the design colours the score.
-export const scoreClass = (score: number) => {
-   if (score >= 4) return 'text-success';
-   return score >= 3.2 ? 'text-warning' : 'text-danger';
 };

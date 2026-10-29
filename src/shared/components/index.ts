@@ -23,6 +23,7 @@ export { default as FilterSelect } from './FilterSelect';
 export { default as ItemActions } from './ItemActions';
 export { default as Loading } from './Loading';
 export { default as Modal, MODAL_FORM, ModalBody, ModalFooter } from './Modal';
+export { default as MonthCalendar } from './MonthCalendar';
 export { default as NoData } from './NoData';
 export { default as Notice } from './Notice';
 export { default as PageBody } from './PageBody';

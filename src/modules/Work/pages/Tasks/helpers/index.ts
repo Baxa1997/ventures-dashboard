@@ -1,7 +1,5 @@
-import { DATE_FORMAT } from '@modules/Work/constants';
 import { byDueDate, isDone, isMine, taskKey } from '@modules/Work/helpers';
 import type { Task } from '@shared/types/work.types';
-import dayjs from 'dayjs';
 import {
    TASK_VIEWS,
    TASK_WHO,
@@ -52,24 +50,3 @@ export const byDeadline = (tasks: Task[]) =>
             ? (b.completedAt ?? '').localeCompare(a.completedAt ?? '')
             : byDueDate(a, b)),
    );
-
-// ---- the calendar: a month, Monday first
-
-export const monthOf = (date: string) =>
-   dayjs(date).startOf('month').format(DATE_FORMAT);
-
-export const shiftMonth = (month: string, months: number) =>
-   dayjs(month).add(months, 'month').format(DATE_FORMAT);
-
-// The cells of a month: empty ones (null) up to its first day's weekday,
-// then its days.
-export const monthCells = (month: string): (string | null)[] => {
-   const first = dayjs(month);
-   const lead = (first.day() + 6) % 7;
-   return [
-      ...Array<null>(lead).fill(null),
-      ...Array.from({ length: first.daysInMonth() }, (_, index) =>
-         first.add(index, 'day').format(DATE_FORMAT),
-      ),
-   ];
-};

@@ -41,6 +41,27 @@ export const addWorkingDays = (date: string, count: number) => {
    return day.format(DATE_FORMAT);
 };
 
+// ---- a calendar's month, Monday first
+
+export const monthOf = (date: string) =>
+   dayjs(date).startOf('month').format(DATE_FORMAT);
+
+export const shiftMonth = (month: string, months: number) =>
+   dayjs(month).add(months, 'month').format(DATE_FORMAT);
+
+// The cells of a month: empty ones (null) up to its first day's weekday,
+// then its days.
+export const monthCells = (month: string): (string | null)[] => {
+   const first = dayjs(month);
+   const lead = (first.day() + 6) % 7;
+   return [
+      ...Array<null>(lead).fill(null),
+      ...Array.from({ length: first.daysInMonth() }, (_, index) =>
+         first.add(index, 'day').format(DATE_FORMAT),
+      ),
+   ];
+};
+
 // "Тигран Бекмуллин" → "Т. Бекмуллин"; a name already given with an initial stays as is.
 export const shortName = (name: string) => {
    const [first, ...rest] = name.split(' ');
