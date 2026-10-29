@@ -9,7 +9,7 @@ import {
    todayISO,
    workingDaysBetween,
 } from '@shared/helpers';
-import type { FactRow } from '@shared/components';
+import type { BadgeTone, FactRow } from '@shared/components';
 import type {
    CheckItem,
    Criterion,
@@ -69,6 +69,19 @@ export const stageKeys = () => stagesOf().map(({ key }) => key);
 export const columnOf = (deal: Deal) => {
    if (deal.status === 'review') return 'inbox';
    return deal.status === 'active' ? deal.stage : `status:${deal.status}`;
+};
+
+/* A stage's colour, by the part of the way it belongs to, as the dashboard's
+   funnel colours them: a new application, the work on the deal, the
+   committees and closing; then the portfolio, a refusal, a pause. */
+export const columnTone = (column: string): BadgeTone => {
+   if (column === 'inbox') return 'accent';
+   if (COMMITTEE_STAGES.includes(column) || column === 'closing')
+      return 'indigo';
+   if (column === 'status:portfolio') return 'success';
+   if (column === 'status:rejected') return 'danger';
+   if (column.startsWith('status:')) return 'neutral';
+   return 'warning';
 };
 
 // The stage after this one; null after the last (the deal joins the portfolio).

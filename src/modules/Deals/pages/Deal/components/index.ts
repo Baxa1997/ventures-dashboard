@@ -1,3 +1,5 @@
+export { default as DealHeader } from './DealHeader';
+export { default as DealStepper } from './DealStepper';
 export { default as Decisions } from './Decisions';
 export { default as DueDiligence } from './DueDiligence';
 export { default as History } from './History';

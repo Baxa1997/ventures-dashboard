@@ -2,6 +2,7 @@ import { stageName } from '@modules/Settings/services';
 import {
    concludable,
    MoveDealDialog,
+   type MoveTarget,
    NewDealDialog,
    RejectDialog,
    RequestDialog,
@@ -19,12 +20,7 @@ import {
 } from '@modules/Deals/constants';
 import {
    columnOf,
-   dayOf,
-   industryText,
    reasonText,
-   sourceFrom,
-   formatAmount,
-   headerBadge,
    isClosed,
    isOpen,
    isScored,
@@ -36,7 +32,6 @@ import {
 import { useDeals } from '@modules/Deals/hooks';
 import deals from '@modules/Deals/services';
 import {
-   Badge,
    Button,
    buttonClass,
    Card,
@@ -48,11 +43,22 @@ import {
 } from '@shared/components';
 import { formatDate } from '@shared/helpers';
 import { useAction, useCurrentUser } from '@shared/hooks';
-import type { Deal } from '@shared/types/deals.types';
+import {
+   FileText,
+   FolderLock,
+   Gavel,
+   History as HistoryIcon,
+   LayoutPanelLeft,
+   type LucideIcon,
+   ScanSearch,
+   ShieldCheck,
+} from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
 import {
+   DealHeader,
+   DealStepper,
    Decisions,
    DueDiligence,
    History,
@@ -62,13 +68,23 @@ import {
    Screening,
 } from './components';
 
+const TAB_ICONS: Record<CardTab, LucideIcon> = {
+   overview: LayoutPanelLeft,
+   screening: ScanSearch,
+   requests: FolderLock,
+   dd: ShieldCheck,
+   memo: FileText,
+   decisions: Gavel,
+   history: HistoryIcon,
+};
+
 const toTab = (value: string | null): CardTab =>
    CARD_TABS.find((tab) => tab === value) ?? 'overview';
 
 /* A deal's card. The address keeps the open tab (?tab=dd). The two buttons in
    the header belong to the tab: each tab has its own next step. */
 const DealCard = () => {
-   const { t, i18n } = useTranslation('deals');
+   const { t } = useTranslation('deals');
    const { id } = useParams();
    const user = useCurrentUser();
    const { deals: all, loading } = useDeals();
@@ -77,13 +93,13 @@ const DealCard = () => {
    const [rejecting, setRejecting] = useState(false);
    const [transferring, setTransferring] = useState(false);
    const [editing, setEditing] = useState(false);
-   const [moving, setMoving] = useState(false);
+   // «Сменить этап»: closed, or open set to a stage the stepper was clicked on
+   const [moving, setMoving] = useState<MoveTarget | null>(null);
    // the open folder of the data room, kept while the card's tabs change
    const [folderId, setFolderId] = useState('');
    // null: the request dialog is closed; otherwise what the request starts with
    const [requestTitle, setRequestTitle] = useState<string | null>(null);
    const [workstream, setWorkstream] = useState<WorkstreamMode | null>(null);
-   const language = i18n.resolvedLanguage ?? i18n.language;
    const deal = all.find((item) => item.id === id);
    const taking = useAction(
       (dealId: string, ownerId: string) =>
@@ -125,7 +141,6 @@ const DealCard = () => {
 
    const open = isOpen(deal);
    const status = statusOf(t, deal);
-   const badge = headerBadge(t, deal);
    const counts = tabCounts(deal);
    // Сделки filtered to where the deal stands: its stage, or its status
    const column = columnOf(deal);
@@ -146,28 +161,18 @@ const DealCard = () => {
       </>
    );
 
-   const meta =
-      tab === 'memo' && memo
-         ? t(
-              'Инвестиционный меморандум · версия {{version}} от {{date}} · автор {{author}} · спонсор {{sponsor}}',
-              {
-                 version: memo.version,
-                 date: formatDate(memo.versionDate),
-                 author: personName(memo.authorId),
-                 sponsor: personName(memo.sponsorId),
-              },
-           )
-         : [
-              deal.number,
-              deal.meta ??
-                 [
-                    deal.about || industryText(deal),
-                    `${sourceFrom(t, deal)} ${formatDate(dayOf(deal.receivedAt))}`,
-                    t('запрос {{amount}}', {
-                       amount: formatAmount(deal.amount, language),
-                    }),
-                 ].join(' · '),
-           ].join(' · ');
+   // the memorandum's version, above it
+   const memoLine =
+      memo &&
+      t(
+         'Инвестиционный меморандум · версия {{version}} от {{date}} · автор {{author}} · спонсор {{sponsor}}',
+         {
+            version: memo.version,
+            date: formatDate(memo.versionDate),
+            author: personName(memo.authorId),
+            sponsor: personName(memo.sponsorId),
+         },
+      );
 
    const requestButton = (
       <Button variant='ghost' onClick={() => setRequestTitle('')}>
@@ -304,36 +309,16 @@ const DealCard = () => {
 
    return (
       <>
-         <PageHeader
-            // a closed deal opens for reading only; the memorandum can still be printed
-            actions={(open || tab === 'memo') && actions[tab]}
-            badge={<Badge tone={badge.tone}>{badge.label}</Badge>}
-            meta={meta}
-            section={crumbs}
-            title={deal.company}
-         >
-            <Tabs
-               active={tab}
-               items={CARD_TABS.map((key) => ({
-                  id: key,
-                  label: t(CARD_TAB_LABELS[key]),
-                  count:
-                     (key === 'requests' ||
-                        key === 'dd' ||
-                        key === 'decisions') &&
-                     counts[key]
-                        ? counts[key]
-                        : undefined,
-               }))}
-               label={deal.company}
-               onChange={(key) =>
-                  setParams(key === 'overview' ? {} : { tab: key }, {
-                     replace: true,
-                  })
-               }
+         <PageHeader bare section={crumbs} title={deal.company} />
+         <PageBody className='flex flex-col pt-5'>
+            <DealHeader
+               // a closed deal is read only; its memorandum still prints
+               actions={(open || tab === 'memo') && actions[tab]}
+               deal={deal}
+               editable={open}
+               onEdit={() => setEditing(true)}
+               onMove={() => setMoving({})}
             />
-         </PageHeader>
-         <PageBody className='flex flex-col'>
             {(isClosed(deal) || deal.status === 'paused') && deal.closed && (
                <div className='bg-neutral-tint text-meta mb-section flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg px-5 py-3.5'>
                   <span className='min-w-0 flex-1'>
@@ -355,17 +340,45 @@ const DealCard = () => {
                         .join(' · ')}
                   </span>
                   {deal.status !== 'portfolio' && (
-                     <Button variant='ghost' onClick={() => setMoving(true)}>
+                     <Button variant='ghost' onClick={() => setMoving({})}>
                         {t('Вернуть в работу')}
                      </Button>
                   )}
                </div>
             )}
+            <DealStepper
+               deal={deal}
+               onMove={(stage) => setMoving({ stage })}
+               onTransfer={() => setTransferring(true)}
+            />
+            <div className='border-line mb-4.5 border-b'>
+               <Tabs
+                  active={tab}
+                  items={CARD_TABS.map((key) => ({
+                     id: key,
+                     label: t(CARD_TAB_LABELS[key]),
+                     icon: TAB_ICONS[key],
+                     count:
+                        (key === 'requests' ||
+                           key === 'dd' ||
+                           key === 'decisions') &&
+                        counts[key]
+                           ? counts[key]
+                           : undefined,
+                  }))}
+                  label={deal.company}
+                  onChange={(key) =>
+                     setParams(key === 'overview' ? {} : { tab: key }, {
+                        replace: true,
+                     })
+                  }
+               />
+            </div>
             {tab === 'overview' && (
                <Overview
                   deal={deal}
                   onEdit={() => setEditing(true)}
-                  onMove={() => setMoving(true)}
+                  onMove={() => setMoving({})}
                   onTransfer={() => setTransferring(true)}
                />
             )}
@@ -379,6 +392,11 @@ const DealCard = () => {
                />
             )}
             {tab === 'dd' && <DueDiligence deal={deal} />}
+            {tab === 'memo' && memoLine && (
+               <p className='text-ink-soft text-meta -mt-1.5 mb-3'>
+                  {memoLine}
+               </p>
+            )}
             {tab === 'memo' && <Memorandum deal={deal} />}
             {tab === 'decisions' && <Decisions deal={deal} />}
             {tab === 'history' && <History deal={deal} />}
@@ -394,7 +412,8 @@ const DealCard = () => {
          />
          <MoveDealDialog
             deal={moving ? deal : null}
-            onClose={() => setMoving(false)}
+            to={moving ?? undefined}
+            onClose={() => setMoving(null)}
          />
          <TransferDialog
             deal={transferring ? deal : null}

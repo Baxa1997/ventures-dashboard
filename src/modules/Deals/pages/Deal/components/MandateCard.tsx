@@ -4,11 +4,8 @@ import {
    triageDue,
    triageState,
 } from '@modules/Deals/helpers';
-import deals from '@modules/Deals/services';
 import { Badge, Card } from '@shared/components';
-import { TEAM } from '@shared/constants';
-import { formatNumericDate, shortName } from '@shared/helpers';
-import { useAction } from '@shared/hooks';
+import { formatNumericDate } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import { Check, TriangleAlert, X } from 'lucide-react';
@@ -25,16 +22,12 @@ const MARKS = {
 };
 
 /* A new application, before it is taken into screening: the automatic check
-   against the published mandate, by when it has to be decided, and who will
-   own it — «Взять в скрининг» gives it to them. */
+   against the published mandate and by when it has to be decided. Who will
+   own it is set in «Параметры сделки»; «Взять в скрининг» gives it to them. */
 const MandateCard = ({ deal }: MandateCardProps) => {
    const { t, i18n } = useTranslation('deals');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const check = checkMandate(t, deal, language);
-   const owning = useAction(
-      (ownerId: string) => deals.setOwner(deal.id, ownerId),
-      { success: t('Владелец назначен') },
-   );
    const state = triageState(deal);
 
    return (
@@ -70,7 +63,7 @@ const MandateCard = ({ deal }: MandateCardProps) => {
                'Правила проверки не оценивают качество проекта — только соответствие опубликованному мандату.',
             )}
          </p>
-         <div className='text-meta grid grid-cols-[7.25rem_minmax(0,1fr)] items-center gap-x-2 gap-y-2.5 px-4.5 py-3.5'>
+         <div className='text-meta grid grid-cols-[7.25rem_minmax(0,1fr)] items-center gap-x-2 px-4.5 py-3.5'>
             <span className='text-ink-soft'>{t('Решить до')}</span>
             <span
                className={clsx(
@@ -82,23 +75,6 @@ const MandateCard = ({ deal }: MandateCardProps) => {
                   ? t('ждём заявителя')
                   : formatNumericDate(triageDue(deal))}
             </span>
-            <label className='text-ink-soft' htmlFor={`owner-${deal.id}`}>
-               {t('Владелец')}
-            </label>
-            <select
-               className='field-input w-auto'
-               disabled={owning.pending}
-               id={`owner-${deal.id}`}
-               value={deal.ownerId || deal.proposedOwnerId}
-               onChange={(event) => owning.run(event.target.value)}
-            >
-               <option value=''>{t('Не назначен')}</option>
-               {TEAM.map(({ id, name }) => (
-                  <option key={id} value={id}>
-                     {shortName(name)}
-                  </option>
-               ))}
-            </select>
          </div>
       </Card>
    );

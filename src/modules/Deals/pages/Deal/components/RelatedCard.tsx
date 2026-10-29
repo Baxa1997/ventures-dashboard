@@ -11,19 +11,13 @@ interface RelatedCardProps {
    deal: Deal;
 }
 
-/* «Связанные объекты»: where else the deal is in the panel — its tasks, the
-   company's requests and documents, DD, the memorandum, the meetings and,
-   once closed, its company in Портфель — each with a link there. */
+/* «Связанные объекты»: where else the deal is in the panel — the company's
+   requests and documents, DD, the memorandum, the meetings and, once
+   closed, its company in Портфель — each with a link there (its tasks have
+   a card of their own). Nothing yet: no card. */
 const RelatedCard = ({ deal }: RelatedCardProps) => {
    const { t } = useTranslation('deals');
-   const { tasks, company } = useDealLinks(deal.id);
-   const open = tasks
-      .filter(
-         ({ relation, relationId, status }) =>
-            relation === 'deal' && relationId === deal.id && status !== 'done',
-      )
-      .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
-   const nearest = open[0];
+   const { company } = useDealLinks(deal.id);
    const waiting = (deal.requests ?? []).filter(
       ({ status }) => status === 'waiting',
    ).length;
@@ -39,22 +33,6 @@ const RelatedCard = ({ deal }: RelatedCardProps) => {
    );
 
    const rows: (FactRow | false)[] = [
-      {
-         label: t('Задачи'),
-         value: nearest
-            ? link(
-                 `${SECTION_PATHS.tasks}?tab=open&task=${nearest.id}`,
-                 t('{{count}} открытая', { count: open.length }),
-              )
-            : t('открытых нет'),
-         note:
-            nearest &&
-            (nearest.dueDate
-               ? t('ближайшая до {{date}}', {
-                    date: formatDate(nearest.dueDate),
-                 })
-               : nearest.dueLabel),
-      },
       (waiting > 0 || documents > 0) && {
          label: t('Запросы'),
          value: link(
@@ -117,14 +95,13 @@ const RelatedCard = ({ deal }: RelatedCardProps) => {
       },
    ];
 
+   const shown = rows.filter((row): row is FactRow => !!row);
+   if (!shown.length) return null;
+
    return (
       <Card title={t('Связанные объекты')}>
-         <div className='text-meta px-5 py-1'>
-            <FactList
-               divided
-               labelWidth='6.5rem'
-               rows={rows.filter((row): row is FactRow => !!row)}
-            />
+         <div className='text-meta px-4.5 py-1'>
+            <FactList divided labelWidth='6.5rem' rows={shown} />
          </div>
       </Card>
    );

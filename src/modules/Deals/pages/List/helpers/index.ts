@@ -1,13 +1,12 @@
 import { STATUS_LABELS } from '@modules/Deals/constants';
 import {
    columnOf,
-   COMMITTEE_STAGES,
+   columnTone,
    industryText,
    stageKeys,
    stageName,
 } from '@modules/Deals/helpers';
 import { listOf, nameOf } from '@modules/Settings/services';
-import type { BadgeTone } from '@shared/components';
 import { TEAM } from '@shared/constants';
 import { shortName } from '@shared/helpers';
 import type { Deal, DealStatus } from '@shared/types/deals.types';
@@ -32,7 +31,7 @@ export const CLOSED_COLUMNS: Exclude<DealStatus, 'review' | 'active'>[] = [
 
 const inWork = ({ status }: Deal) => status === 'review' || status === 'active';
 
-export { columnOf };
+export { columnOf, columnTone };
 
 // ?stage= of the address; ?tab=inbox, of the page before, as the inbox stage.
 export const toStageFilter = (
@@ -70,19 +69,6 @@ export const columnName = (t: TFunction<'deals'>, column: string) =>
    column.startsWith('status:')
       ? t(STATUS_LABELS[column.slice(7) as DealStatus])
       : stageName(column);
-
-/* A stage's colour, by the part of the way it belongs to, as the dashboard's
-   funnel colours them: a new application, the work on the deal, the
-   committees and closing; then the portfolio, a refusal, a pause. */
-export const columnTone = (column: string): BadgeTone => {
-   if (column === 'inbox') return 'accent';
-   if (COMMITTEE_STAGES.includes(column) || column === 'closing')
-      return 'indigo';
-   if (column === 'status:portfolio') return 'success';
-   if (column === 'status:rejected') return 'danger';
-   if (column.startsWith('status:')) return 'neutral';
-   return 'warning';
-};
 
 // The stage filter's options: in work, all, each stage, each closed status.
 export const stageFilterOptions = (t: TFunction<'deals'>) => [

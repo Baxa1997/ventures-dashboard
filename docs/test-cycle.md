@@ -43,8 +43,8 @@ Button names are given as the panel shows them. The panel is in Russian only for
 ## 3. A new application
 
 1. Panel → Сделки (stage filter «В работе») → `ZZ Startup A` is there with the stage «Входящие», the amount and the source «Сайт»; set the stage filter to «Входящие» → only new applications.
-2. Open its card → Обзор shows «Из заявки» with what the form sent; «Запросы и документы» shows the pitch deck «Принят», «загружен заявителем · date» (the website files it as accepted).
-3. On Обзор, «Проверка мандата» shows the verdict and the rules; choose the owner `ZZ Аналитик` there (so that step 4 can use «Администратор» as the second reviewer).
+2. Open its card → the header has the company's mark, its name and status, «number · industry · round · country» and three icon buttons; under it the stepper with every stage, «Входящие» tinted; the tabs have icons. Обзор shows «О компании» with what the form sent; «Запросы и документы» shows the pitch deck «Принят», «загружен заявителем · date» (the website files it as accepted).
+3. On Обзор, «Проверка мандата» shows the verdict and the rules; in «Параметры сделки» choose the owner `ZZ Аналитик` (so that step 4 can use «Администратор» as the second reviewer) → «Владелец назначен». Change «Стадия раунда» there → saved, and the header's line shows it. «Открытые задачи» → «Добавить» (or the header's task icon) → the task form opens with the deal set; create it → it is listed in the card, and its row opens it. Hover a stage on the stepper → its dates and days.
 4. «Взять в скрининг» → the deal's stage is Скрининг (in «Воронка» it is in that column), with «Осталось 5 р.д.» (or the norm set in Настройки). In ucode `applications`, `public_status` = `screening`.
 5. Also enter one deal by hand: Сделки → «Новая сделка», company `ZZ Manual B`; Отрасль, Источник, Стадия раунда and Страна are chosen from Настройки's lists, Ниша is free text and may stay empty → «Добавить» → it appears with the stage «Входящие», offered to you; it will be used in step 10.
 6. «Воронка» → drag a deal in work to another stage: it follows the pointer and a gap opens where it would drop; drop it → «Этап и статус сделки» opens set to that stage. Drop one on «Отказ» (stage filter «Все этапы») → the refusal opens. «Таймлайн» → each deal's stages as bars, the current one to its deadline.
@@ -58,6 +58,8 @@ Button names are given as the panel shows them. The panel is in Russian only for
 5. (The same move is possible from Обзор → «Перевести в «Встреча»»: the window lists the exit conditions, and «Перевести» stays off until both are met. An unmet score links to the scoring tab; the second reviewer is chosen in the window itself, and with nobody else in the team the window links to Настройки to invite someone.)
 
 ## 5. Through the stages
+
+- On the stepper, a stage ahead moves the deal there (the next one through «Перевести в …» with its conditions, a further one through «Этап и статус сделки»); a passed stage asks «Вернуть сделку на этап …?» and, confirmed, makes it current again. «Путь сделки» on Обзор shows the current stage's dates, norm and when its clock stands.
 
 1. On the deal's Обзор: «Перевести в «Анализ»» → the window shows no conditions for this stage → «Перевести» → Анализ. `public_status` = `due_diligence`.
 2. «Перевести в «ИК-1»» → ИК-1. `public_status` stays `due_diligence`.
