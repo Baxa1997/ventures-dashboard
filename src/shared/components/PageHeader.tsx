@@ -18,6 +18,7 @@ interface PageHeaderProps {
    meta?: ReactNode;
    actions?: ReactNode;
    children?: ReactNode; // tabs, on a line of their own
+   bare?: boolean; // only the breadcrumbs: the page draws its own heading
 }
 
 // The page's title on the page ground, its buttons on the right. The top
@@ -30,6 +31,7 @@ const PageHeader = ({
    meta,
    actions,
    children,
+   bare = false,
 }: PageHeaderProps) => {
    const { t } = useTranslation('layout');
    const crumbs = useContext(CrumbsContext);
@@ -67,31 +69,35 @@ const PageHeader = ({
                </>,
                crumbs,
             )}
-         <header className='lg:px-page px-4 pt-5'>
-            <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-3'>
-               <div className='min-w-0 flex-[1_1_20rem]'>
-                  <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
-                     <h1 className='text-display font-bold'>{title}</h1>
-                     {badge}
+         {!bare && (
+            <header className='lg:px-page px-4 pt-5'>
+               <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-3'>
+                  <div className='min-w-0 flex-[1_1_20rem]'>
+                     <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
+                        <h1 className='text-display font-bold'>{title}</h1>
+                        {badge}
+                     </div>
+                     {meta && (
+                        <p className='text-ink-soft mt-0.5 max-w-[72ch]'>
+                           {meta}
+                        </p>
+                     )}
                   </div>
-                  {meta && (
-                     <p className='text-ink-soft mt-0.5 max-w-[72ch]'>{meta}</p>
+                  {actions && (
+                     <div className='print-hidden flex max-w-full flex-wrap gap-2 lg:shrink-0'>
+                        {actions}
+                     </div>
                   )}
                </div>
-               {actions && (
-                  <div className='print-hidden flex max-w-full flex-wrap gap-2 lg:shrink-0'>
-                     {actions}
+               {children ? (
+                  <div className='border-line mt-4 mb-4.5 border-b'>
+                     {children}
                   </div>
+               ) : (
+                  <div className='h-4' />
                )}
-            </div>
-            {children ? (
-               <div className='border-line mt-4 mb-4.5 border-b'>
-                  {children}
-               </div>
-            ) : (
-               <div className='h-4' />
-            )}
-         </header>
+            </header>
+         )}
       </>
    );
 };

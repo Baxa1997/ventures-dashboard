@@ -92,7 +92,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 
 - **Инвесткомитет**, each meeting's tab **«Решения»**: the decisions for `ZZ Test Startup`.
 - **The deal → «Решения ИК и НС»**: the same three.
-- **Настройки**: the menu on the left has Мандат, Этапы и нормативы, Отрасли, Раунды, Источники, Регионы, Причины отказа, Типы задач, Статусы задач and more. «Мандат» → «Из справочников» shows Pre-seed and Seed and the five Central Asian countries as the mandate.
+- **Настройки**: the menu on the left has Типы задач, Статусы задач, Этапы сделки, Отрасли, Раунды, Источники, Регионы, Причины отказа, Мандат and more. «Мандат» → «Из справочников» shows Pre-seed and Seed and the five Central Asian countries as the mandate.
 
 ## 11. Optional: a rejection
 

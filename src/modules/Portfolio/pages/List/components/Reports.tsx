@@ -19,7 +19,7 @@ import {
    TD,
    TH,
 } from '@shared/components';
-import { TEAM } from '@shared/constants';
+import { employeeOf } from '@shared/constants';
 import { useAttachments } from '@shared/hooks';
 import {
    formatDate,
@@ -145,9 +145,7 @@ const Reports = ({ data }: ReportsProps) => {
                >
                   {companies.map((company) => {
                      const report = company.reports[quarter];
-                     const owner = TEAM.find(
-                        ({ id }) => id === company.ownerId,
-                     );
+                     const owner = employeeOf(company.ownerId);
                      return (
                         <tr key={company.id}>
                            <td className={TD}>

@@ -1,7 +1,7 @@
-import InviteDialog from '@modules/Settings/components/InviteDialog';
 import DeleteListItemDialog from '@modules/Settings/components/DeleteListItemDialog';
 import DeleteStageDialog from '@modules/Settings/components/DeleteStageDialog';
 import ListItemDialog from '@modules/Settings/components/ListItemDialog';
+import StaffDialog from '@modules/Settings/components/StaffDialog';
 import StageDialog from '@modules/Settings/components/StageDialog';
 import {
    DEFAULT_SECTION,
@@ -13,17 +13,19 @@ import {
    type SettingsSection,
 } from '@modules/Settings/constants';
 import settings, { parseCheck } from '@modules/Settings/services';
-import { Button, Loading, PageBody, PageHeader } from '@shared/components';
+import { Button, Loading, PageHeader } from '@shared/components';
 import { SETTINGS_PATH } from '@shared/constants';
 import { useAction, useCurrentUser, useServiceData } from '@shared/hooks';
 import type {
    ListItem,
    SettingsState,
+   StaffMember,
    StageItem,
 } from '@shared/types/settings.types';
+import { UserPlus } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useParams } from 'react-router';
+import { Link, Navigate, useParams } from 'react-router';
 import {
    Committee,
    Flags,
@@ -31,6 +33,8 @@ import {
    Journal,
    ListSection,
    Mandate,
+   Roles,
+   SectionHeader,
    SettingsNav,
    Stages,
    Users,
@@ -56,22 +60,23 @@ const DRAFT_PARTS: Partial<Record<SettingsSection, keyof Draft>> = {
 const isSection = (value: string | undefined): value is SettingsSection =>
    SETTINGS_SECTION_IDS.some((id) => id === value);
 
-/* Настройки: the rules the platform works by — the mandate, the stage norms,
-   the portfolio's flags — and the lists its forms offer, the team, the
-   integrations and the journal of changes. The address keeps the section
-   (/settings/rounds). Only the director changes the rules and the lists; every
-   change goes to the journal. The rules keep one draft across their sections,
-   so moving between them does not lose what was typed. */
+/* Настройки, as the prototype draws them: the sections in their groups on
+   the left, the section on the right under its own title. The lists, the
+   stages and the people are changed where they stand and saved at once; the
+   mandate and the flags keep one draft across their sections, saved with
+   «Сохранить», so moving between them does not lose what was typed. The
+   address keeps the section (/settings/rounds). Only the director changes
+   anything; every change goes to the journal. */
 const SettingsPage = () => {
    const { t } = useTranslation('settings');
    const user = useCurrentUser();
    const data = useServiceData(load, subscribe);
    const { section: param } = useParams();
    const [draft, setDraft] = useState<Draft | null>(null);
-   const [inviting, setInviting] = useState(false);
-   // the list row being edited: null closed, 'new' a new row
-   const [editing, setEditing] = useState<ListItem | 'new' | null>(null);
-   const [stage, setStage] = useState<StageItem | 'new' | null>(null);
+   // the person in the dialog: null closed, 'new' a new one
+   const [person, setPerson] = useState<StaffMember | 'new' | null>(null);
+   const [adding, setAdding] = useState(false); // a new row of a list
+   const [addingStage, setAddingStage] = useState(false);
    // the row or the stage asked to be deleted
    const [removing, setRemoving] = useState<ListItem | null>(null);
    const [removingStage, setRemovingStage] = useState<StageItem | null>(null);
@@ -99,16 +104,27 @@ const SettingsPage = () => {
    if (!isSection(param))
       return <Navigate replace to={`${SETTINGS_PATH}/${DEFAULT_SECTION}`} />;
    const section = param;
+   const info = sectionInfo(section);
+   const header = (
+      <PageHeader
+         bare
+         section={
+            <Link className='hover:text-ink' to={SETTINGS_PATH}>
+               {title}
+            </Link>
+         }
+         title={t(info.label)}
+      />
+   );
 
    if (!data || !draft)
       return (
          <>
-            <PageHeader title={title} />
+            {header}
             <Loading />
          </>
       );
 
-   const info = sectionInfo(section);
    const kind = LIST_SECTIONS[section as keyof typeof LIST_SECTIONS];
 
    // a check the panel cannot read would be saved as no check at all
@@ -123,66 +139,42 @@ const SettingsPage = () => {
       (id) => changed(DRAFT_PARTS[id]!),
    );
 
-   const saveButton = (
-      <>
-         {unsaved.length > 0 && (
-            <Button
-               disabled={saving.pending}
-               variant='ghost'
-               onClick={() => setDraft(draftOf(data))}
-            >
-               {t('Отменить изменения')}
-            </Button>
-         )}
-         <Button
-            disabled={!unsaved.length || !director || !!checkError}
-            loading={saving.pending}
-            title={
-               director ? undefined : t('Менять правила может только директор')
-            }
-            onClick={() => saving.run(draft)}
-         >
-            {t('Сохранить')}
-         </Button>
-      </>
-   );
-
    const actions = (): ReactNode => {
-      if (DRAFT_PARTS[section]) return saveButton;
-      if (kind)
+      if (DRAFT_PARTS[section])
          return (
-            <Button
-               disabled={!director}
-               title={
-                  director
-                     ? undefined
-                     : t('Менять справочники может только директор')
-               }
-               onClick={() => setEditing('new')}
-            >
-               {t('Добавить')}
-            </Button>
-         );
-      if (section === 'stages')
-         return (
-            <Button
-               disabled={!director}
-               title={
-                  director ? undefined : t('Менять этапы может только директор')
-               }
-               onClick={() => setStage('new')}
-            >
-               {t('Добавить этап')}
-            </Button>
+            <>
+               {unsaved.length > 0 && (
+                  <Button
+                     disabled={saving.pending}
+                     variant='ghost'
+                     onClick={() => setDraft(draftOf(data))}
+                  >
+                     {t('Отменить изменения')}
+                  </Button>
+               )}
+               <Button
+                  disabled={!unsaved.length || !director || !!checkError}
+                  loading={saving.pending}
+                  title={
+                     director
+                        ? undefined
+                        : t('Менять правила может только директор')
+                  }
+                  onClick={() => saving.run(draft)}
+               >
+                  {t('Сохранить')}
+               </Button>
+            </>
          );
       if (section === 'users')
          return (
             <Button
                disabled={!director}
                title={director ? undefined : t('Приглашает директор')}
-               onClick={() => setInviting(true)}
+               onClick={() => setPerson('new')}
             >
-               {t('Пригласить пользователя')}
+               <UserPlus aria-hidden />
+               {t('Добавить')}
             </Button>
          );
       return null;
@@ -195,8 +187,8 @@ const SettingsPage = () => {
                editable={director}
                items={data.lists[kind]}
                kind={kind}
+               onAdd={() => setAdding(true)}
                onDelete={setRemoving}
-               onEdit={setEditing}
             />
          );
       switch (section) {
@@ -216,8 +208,8 @@ const SettingsPage = () => {
                   editable={director}
                   removed={data.removedStages}
                   stages={data.stages}
+                  onAdd={() => setAddingStage(true)}
                   onDelete={setRemovingStage}
-                  onEdit={setStage}
                />
             );
          case 'flags':
@@ -227,41 +219,56 @@ const SettingsPage = () => {
          case 'committee':
             return <Committee />;
          case 'users':
-            return <Users data={data} />;
+            return (
+               <Users
+                  editable={director}
+                  staff={data.staff}
+                  onEdit={setPerson}
+               />
+            );
+         case 'roles':
+            return <Roles staff={data.staff} />;
          case 'integrations':
             return <Integrations />;
          case 'journal':
-            return <Journal data={data} />;
+            return <Journal journal={data.journal} />;
          default:
             return null;
       }
    };
 
+   /* On a wide screen the page itself stands still, 20px in from every side:
+      the menu and the section scroll each in its own column, the section's
+      title staying above what scrolls. On a narrow one the page scrolls. */
    return (
       <>
-         <PageHeader
-            actions={actions()}
-            meta={t(info.meta)}
-            section={title}
-            title={t(info.label)}
+         {header}
+         <div className='flex flex-1 flex-col gap-4 px-5 pt-5 lg:grid lg:h-[calc(100dvh-3.375rem)] lg:flex-none lg:grid-cols-[200px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 lg:overflow-hidden'>
+            <SettingsNav active={section} unsaved={unsaved} />
+            <section key={section} className='flex min-w-0 flex-col lg:min-h-0'>
+               <SectionHeader
+                  actions={actions()}
+                  meta={t(info.meta)}
+                  title={t(info.label)}
+               />
+               {/* its scrollbar at the page's edge, the 20px inside it; a
+                   dragged row scrolls it near its edges */}
+               <div
+                  data-scroll-area
+                  className='pb-5 lg:-mr-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-5'
+               >
+                  {content()}
+               </div>
+            </section>
+         </div>
+         <StaffDialog
+            member={person === 'new' ? null : person}
+            open={person !== null}
+            onClose={() => setPerson(null)}
          />
-         <PageBody className='gap-section grid content-start lg:grid-cols-[13rem_minmax(0,1fr)]'>
-            <SettingsNav
-               active={section}
-               counts={data.lists}
-               staff={data.staff.length}
-               unsaved={unsaved}
-            />
-            {/* the section's card grows to the menu's height, so the two end level */}
-            <div className='flex min-w-0 flex-col [&>:last-child]:flex-1'>
-               {content()}
-            </div>
-         </PageBody>
-         <InviteDialog open={inviting} onClose={() => setInviting(false)} />
          <StageDialog
-            open={stage !== null}
-            stage={stage === 'new' ? null : stage}
-            onClose={() => setStage(null)}
+            open={addingStage}
+            onClose={() => setAddingStage(false)}
          />
          <DeleteStageDialog
             stage={removingStage}
@@ -270,10 +277,9 @@ const SettingsPage = () => {
          {kind && (
             <>
                <ListItemDialog
-                  item={editing === 'new' ? null : editing}
                   kind={kind}
-                  open={editing !== null}
-                  onClose={() => setEditing(null)}
+                  open={adding}
+                  onClose={() => setAdding(false)}
                />
                <DeleteListItemDialog
                   item={removing}

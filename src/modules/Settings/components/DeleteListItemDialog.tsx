@@ -1,11 +1,11 @@
 import { LISTS } from '@modules/Settings/constants';
+import { describeRow } from '@modules/Settings/helpers';
 import settings, { listOf, nameOf } from '@modules/Settings/services';
 import { ConfirmDialog, Field } from '@shared/components';
 import { useCurrentUser } from '@shared/hooks';
 import type { ListItem, ListKind } from '@shared/types/settings.types';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { describeRow } from './ListItemDialog';
 
 interface DeleteListItemDialogProps {
    kind: ListKind;

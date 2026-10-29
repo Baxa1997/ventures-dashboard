@@ -1,5 +1,5 @@
 import { listName, listOf } from '@modules/Settings/services';
-import { Avatar, type BadgeTone } from '@shared/components';
+import { Avatar, type BadgeTone, inkOf, tintOf } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
 import { useCurrentUser } from '@shared/hooks';
 import type {
@@ -36,6 +36,7 @@ import {
 } from '../constants';
 import {
    shortName,
+   statusColor,
    statusName,
    statusTone,
    taskStatuses,
@@ -134,14 +135,25 @@ interface StatusSelectProps {
 // The status, in its colour, at the top of the card's right column.
 export const StatusSelect = ({ value, onChange }: StatusSelectProps) => {
    const { t } = useTranslation('work');
+   const color = statusColor(value);
 
    return (
       <select
          aria-label={t('Статус')}
          className={clsx(
             'select-chevron h-10 min-w-0 flex-1 cursor-pointer rounded-lg pr-9 pl-3 font-bold ring-1 ring-inset [background-position:right_0.75rem_center] focus:outline-none',
-            STATUS_TONES[statusTone(value)],
+            !color && STATUS_TONES[statusTone(value)],
          )}
+         // a colour of its own, as a tone's: its tint, ink and a faint ring
+         style={
+            color
+               ? {
+                    backgroundColor: tintOf(color),
+                    color: inkOf(color),
+                    boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${color} 40%, transparent)`,
+                 }
+               : undefined
+         }
          value={value}
          onChange={(event) => onChange(event.target.value)}
       >

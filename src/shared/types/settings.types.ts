@@ -70,11 +70,15 @@ export interface StaffMember {
    name: string;
    position: string;
    email: string;
+   phone: string;
    role: Role; // what the system lets them do (employees.role, their ucode role)
    roles: StaffRole[]; // the duties they hold
    access: Access;
-   invitedAt: string | null; // YYYY-MM-DD for someone without a ucode user yet
+   addedAt: string; // YYYY-MM-DD: invited, or the row made
+   active: boolean; // off: access closed, they sign in with the least rights
 }
+
+export type StaffInput = Omit<StaffMember, 'id' | 'addedAt'>;
 
 export type IndustryMandate = 'focus' | 'allowed' | 'licensed' | 'excluded';
 
@@ -118,7 +122,8 @@ export interface ListItem {
    onSite?: boolean; // sources the website's form offers
    isMandate?: boolean; // reasons: outside the mandate, the applicant may apply again at once
    group?: StatusGroup; // task statuses
-   tone?: ItemTone; // task statuses: the badge's colour
+   tone?: ItemTone; // task statuses: the badge's colour among the tones
+   color?: string; // task statuses: a colour of its own, #rrggbb; '' — the tone's
    format?: MetricFormat; // portfolio metrics
    file?: ItemFile | null; // report documents, document templates: the file to fill in
 }
@@ -131,6 +136,6 @@ export interface SettingsState {
    removedStages: string[]; // the platform's stages the fund deleted, to bring back
    flags: PortfolioFlags;
    journal: SettingsChange[];
-   staff: StaffMember[];
+   staff: StaffMember[]; // the ones with access first, then the closed
    lists: Record<ListKind, ListItem[]>; // in their order, the turned-off ones too
 }

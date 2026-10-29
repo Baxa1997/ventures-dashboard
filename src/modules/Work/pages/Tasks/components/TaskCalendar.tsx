@@ -1,6 +1,6 @@
-import { capitalize, statusTone, todayISO } from '@modules/Work/helpers';
+import { capitalize, statusFill, todayISO } from '@modules/Work/helpers';
 import { openNewTask, openTask } from '@modules/Work/hooks';
-import { Button, TONE_COLORS } from '@shared/components';
+import { Button } from '@shared/components';
 import type { Task } from '@shared/types/work.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
@@ -90,7 +90,7 @@ const TaskCalendar = ({ tasks }: TaskCalendarProps) => {
                            <b className='text-ink'>{dayjs(date).date()}</b>
                         )}
                         {due.slice(0, CALENDAR_SHOWN).map((task) => {
-                           const color = TONE_COLORS[statusTone(task.status)];
+                           const color = statusFill(task.status);
                            return (
                               <button
                                  key={task.id}

@@ -11,13 +11,13 @@ import type {
    StaffRole,
    StatusGroup,
 } from '@shared/types/settings.types';
+import type { Role } from '@shared/types/work.types';
 
 // Texts are keys of the "settings" translations.
 
 export const SETTINGS_SECTION_IDS = [
-   'mandate',
-   'flags',
-   'committee',
+   'task-types',
+   'task-statuses',
    'stages',
    'industries',
    'rounds',
@@ -25,38 +25,35 @@ export const SETTINGS_SECTION_IDS = [
    'countries',
    'reasons',
    'doc-templates',
-   'task-types',
-   'task-statuses',
    'metrics',
    'report-docs',
+   'flags',
+   'mandate',
+   'committee',
    'users',
+   'roles',
    'integrations',
    'journal',
 ] as const;
 export type SettingsSection = (typeof SETTINGS_SECTION_IDS)[number];
 
-export const DEFAULT_SECTION: SettingsSection = 'mandate';
+export const DEFAULT_SECTION: SettingsSection = 'task-types';
 
-// The menu of Настройки: groups as the fund thinks of them, each section with
-// what it is for (the page header's line).
+// The menu of Настройки in the prototype's order: groups as the fund thinks
+// of them, each section with what it is for (the line under its title).
 export const SETTINGS_GROUPS = [
    {
-      label: 'Фонд',
+      label: 'Задачи',
       sections: [
          {
-            id: 'mandate',
-            label: 'Мандат',
-            meta: 'Во что инвестирует фонд: чек, фокус и исключения. Стадии, география и отрасли мандата отмечаются в справочниках.',
+            id: 'task-types',
+            label: 'Типы задач',
+            meta: 'Типы в форме задачи и в фильтрах.',
          },
          {
-            id: 'flags',
-            label: 'Флаги портфеля',
-            meta: 'Пороги, после которых компания портфеля получает красный флаг.',
-         },
-         {
-            id: 'committee',
-            label: 'Правила ИК',
-            meta: 'Кворум, материалы и как голоса превращаются в решение.',
+            id: 'task-statuses',
+            label: 'Статусы задач',
+            meta: 'Путь задачи от постановки до завершения.',
          },
       ],
    },
@@ -65,7 +62,7 @@ export const SETTINGS_GROUPS = [
       sections: [
          {
             id: 'stages',
-            label: 'Этапы и нормативы',
+            label: 'Этапы сделки',
             meta: 'Сколько рабочих дней сделка может быть на этапе, когда часы стоят и кому эскалируется просрочка.',
          },
          {
@@ -101,21 +98,6 @@ export const SETTINGS_GROUPS = [
       ],
    },
    {
-      label: 'Задачи',
-      sections: [
-         {
-            id: 'task-types',
-            label: 'Типы задач',
-            meta: 'Типы в форме задачи и в фильтрах.',
-         },
-         {
-            id: 'task-statuses',
-            label: 'Статусы задач',
-            meta: 'Путь задачи от постановки до завершения.',
-         },
-      ],
-   },
-   {
       label: 'Портфель',
       sections: [
          {
@@ -128,6 +110,26 @@ export const SETTINGS_GROUPS = [
             label: 'Отчётность',
             meta: 'Документы квартального отчёта и шаблоны, которые компании заполняют.',
          },
+         {
+            id: 'flags',
+            label: 'Флаги портфеля',
+            meta: 'Пороги, после которых компания портфеля получает красный флаг.',
+         },
+      ],
+   },
+   {
+      label: 'Фонд',
+      sections: [
+         {
+            id: 'mandate',
+            label: 'Мандат',
+            meta: 'Во что инвестирует фонд: чек, фокус и исключения. Стадии, география и отрасли мандата отмечаются в справочниках.',
+         },
+         {
+            id: 'committee',
+            label: 'Правила ИК',
+            meta: 'Кворум, материалы и как голоса превращаются в решение.',
+         },
       ],
    },
    {
@@ -135,7 +137,12 @@ export const SETTINGS_GROUPS = [
       sections: [
          {
             id: 'users',
-            label: 'Пользователи и роли',
+            label: 'Пользователи',
+            meta: 'Сотрудники фонда с доступом к панели: роль в системе, обязанности и уровень доступа.',
+         },
+         {
+            id: 'roles',
+            label: 'Роли',
             meta: 'Роль задаёт права, человек может совмещать несколько ролей. Внешние участники входят только в свой раздел.',
          },
       ],
@@ -151,7 +158,7 @@ export const SETTINGS_GROUPS = [
          {
             id: 'journal',
             label: 'Журнал изменений',
-            meta: 'Каждое изменение правил и справочников: кто, когда, что было и что стало.',
+            meta: 'Каждое изменение правил, справочников и пользователей: кто, когда, что было и что стало.',
          },
       ],
    },
@@ -302,13 +309,14 @@ export const LISTS = {
    }
 >;
 
-// A task status's colour, as the badge shows it.
-export const TONE_LABELS = {
-   neutral: 'Серый',
-   accent: 'Синий',
-   success: 'Зелёный',
-   warning: 'Жёлтый',
-   danger: 'Красный',
+// A tone's colour, for the colour picker of a status that has no colour of
+// its own (the brand's: sky for the accent).
+export const TONE_HEX = {
+   neutral: '#8a93a6',
+   accent: '#407cea',
+   success: '#1f9d6b',
+   warning: '#c98a12',
+   danger: '#d64545',
 } as const satisfies Record<ItemTone, string>;
 
 export const METRIC_FORMAT_LABELS = {
@@ -413,7 +421,7 @@ export const ACCESS = {
    limited: { label: 'Ограниченный', tone: 'warning' },
 } as const satisfies Record<Access, { label: string; tone: BadgeTone }>;
 
-// The sections the rights are given for, in the order of the table.
+// The sections the rights are given for, the rows of the table.
 export const RIGHT_SECTIONS = [
    'Сделки',
    'ИК и НС',
@@ -429,11 +437,11 @@ export const RIGHT_SECTIONS = [
 export type Right = 'full' | 'own' | 'read' | 'none';
 
 export const RIGHTS = {
-   full: { label: 'П', color: 'text-success-ink' },
-   own: { label: 'Р', color: 'text-accent' },
-   read: { label: 'Ч', color: 'text-ink-soft' },
-   none: { label: '—', color: 'text-ink-faint' },
-} as const satisfies Record<Right, { label: string; color: string }>;
+   full: { label: 'Полный', tone: 'success' },
+   own: { label: 'Своё', tone: 'indigo' },
+   read: { label: 'Чтение', tone: 'accent' },
+   none: { label: 'Нет', tone: 'neutral' },
+} as const satisfies Record<Right, { label: string; tone: BadgeTone }>;
 
 const r = (code: string): Right[] =>
    [...code].map((letter) =>
@@ -446,16 +454,16 @@ const r = (code: string): Right[] =>
              : 'none',
    );
 
-// The proposal for discussion (screen 25): f — full, o — own and assigned,
-// r — read, - — none, section by section.
+// The proposal for discussion (screen 25), the columns of the table: f —
+// full, o — own and assigned, r — read, - — none, section by section.
 export const ROLE_RIGHTS = [
-   { role: 'Директор', rights: r('fffffffff') },
-   { role: 'Зам. директора', rights: r('fffrffff-') },
-   { role: 'Аналитик', rights: r('oro-r-or-') },
-   { role: 'Проектный менеджер', rights: r('orf-oror-') },
-   { role: 'Секретарь ИК', rights: r('rfr---fr-') },
-   { role: 'Финансы — гл. бухгалтер', rights: r('r-rfrrrr-') },
-] as const;
+   { role: 'director', rights: r('fffffffff') },
+   { role: 'deputy', rights: r('fffrffff-') },
+   { role: 'analyst', rights: r('oro-r-or-') },
+   { role: 'manager', rights: r('orf-oror-') },
+   { role: 'ic_secretary', rights: r('rfr---fr-') },
+   { role: 'accountant', rights: r('r-rfrrrr-') },
+] as const satisfies readonly { role: Role; rights: Right[] }[];
 
 export const EXTERNAL_RIGHTS = [
    {

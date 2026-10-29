@@ -1,5 +1,11 @@
 export { default as Avatar } from './Avatar';
-export { default as Badge, type BadgeTone, TONE_COLORS } from './Badge';
+export {
+   default as Badge,
+   type BadgeTone,
+   inkOf,
+   tintOf,
+   TONE_COLORS,
+} from './Badge';
 export { default as BadgeSelect, type BadgeOption } from './BadgeSelect';
 export { default as BoardGap } from './BoardGap';
 export { default as Button, buttonClass, Spinner } from './Button';
@@ -7,6 +13,7 @@ export { default as Card, STACK } from './Card';
 export { default as Checkbox } from './Checkbox';
 export { default as CheckList } from './CheckList';
 export { default as ChoiceCards, type Choice } from './ChoiceCards';
+export { default as ColorInput } from './ColorInput';
 export { default as CompanyMark } from './CompanyMark';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as FactList, type FactRow } from './FactList';
@@ -17,6 +24,7 @@ export { default as ItemActions } from './ItemActions';
 export { default as Loading } from './Loading';
 export { default as Modal, MODAL_FORM, ModalBody, ModalFooter } from './Modal';
 export { default as NoData } from './NoData';
+export { default as Notice } from './Notice';
 export { default as PageBody } from './PageBody';
 export { default as PageHeader } from './PageHeader';
 export { default as Person } from './Person';
@@ -28,6 +36,7 @@ export {
    type StatColor,
    type StatTone,
 } from './StatTile';
+export { default as Switch } from './Switch';
 export { default as Table, TD, TH } from './Table';
 export { default as Tabs, type TabItem } from './Tabs';
 export { default as Timeline, type TimelineRow } from './Timeline';

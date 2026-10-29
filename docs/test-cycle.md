@@ -22,7 +22,7 @@ Button names are given as the panel shows them. The panel is in Russian only for
 
 | Needed for | Table (folder in Admin) | What to add |
 | --- | --- | --- |
-| step 4, the second reviewer | — | done in the panel: Настройки → Пользователи и роли → «Пригласить пользователя», name `ZZ Аналитик`, any email, role «Аналитик» |
+| step 4, the second reviewer | — | done in the panel: Настройки → Пользователи → «Добавить», name `ZZ Аналитик`, any email, role «Аналитик» |
 | step 13, a portfolio company | Портфель → `portfolio_companies` (Компании портфеля) and its tables | a company `ZZ Portfolio Co` (`owner_id` = the guid of «Администратор» in `employees`, `instrument` safe, `since` 2025, `current_note` any text); in `investments` two rows for it (`amount` 100000 and 50000); in `quarter_reports` one row (`quarter` 2026-Q3, `fund_template_at` and `form1_at` some October dates, `metrics_state` check, `mrr` 12000, `runway` 9); in `company_requests` one row (`title`, `opened_at`, `status` waiting_fund); in `pilots` one row (`title`, `customer` SQB, `status` in_progress) |
 
 ## 1. Sign-in
@@ -146,17 +146,18 @@ Needs the company of step 0.
 
 ## 14. Настройки
 
-Настройки open on «Мандат» (`/settings/mandate`); the menu on the left groups the sections: Фонд, Сделки, Задачи, Команда, Система. On a narrow window it is a select above the page.
+Настройки open on «Типы задач» (`/settings/task-types`); the menu on the left groups the sections as the prototype does — Задачи, Сделки, Портфель, Фонд, Команда, Система — each with its icon, and the section has its title and what it is for above it. On a wide window the page stands still, 20px in from every side: the menu and the section scroll each by itself. On a narrow window the menu is a select above the section and the page scrolls.
 
-1. «Мандат»: set Чек `$50 000 – $300 000`. Beside it, «Из справочников» lists the stages (Pre-seed, Seed), the geography (the five Central Asian countries) and the industries in focus, licensed and excluded, each with a link to its list. → «Этапы и нормативы»: change the screening norm to `6 · публично` → «Флаги портфеля»: change «Churn за квартал выше». The three sections are marked with a dot in the menu → «Сохранить» → «Журнал изменений» lists each change with old and new value.
-2. A new application asking more than $300 000 now gets «Чек выше $300K» in its card's «Проверка мандата»; a new screening deadline counts 6 working days.
-3. Put the values back and save.
-4. «Раунды» → «Добавить»: `ZZ Series B` in the three name fields; the code fills itself (`zz_series_b`); tick «В мандате» → «Добавить» → the row is last, «Используется». Move it up with the arrow and back. Open it again (pencil) → the code cannot be changed; untick «Используется» → «Сохранить» → it stays in the list, dimmed, «Отключён», and Сделки → «Новая сделка» no longer offers it. The journal has both changes. At the end, the bin next to its pencil → the window says whether anything uses it → «Удалить» → the row is gone and the journal has the deletion.
-5. «Регионы»: a country not «в мандате» (e.g. Россия) → a deal from it gets «География: Россия» in its «Проверка мандата». «Источники»: the website's options are the rows marked «На сайте»; the fund's channels (Нетворк, Конференция…) are not offered on the site. «Отрасли»: an industry set to «Исключена» makes its applications «Исключённая отрасль».
-6. «Типы задач»: the types of the task form. «Статусы задач»: the six statuses with their colour, group and what each means; they cannot be changed.
-7. «Пользователи и роли»: «Администратор» (Директор, Полный); `ZZ Аналитик` «добавлен <date>, ещё не входил».
+1. «Мандат» (Фонд): set Чек `$50 000 – $300 000`. Beside it, «Из справочников» lists the stages (Pre-seed, Seed), the geography (the five Central Asian countries) and the industries in focus, licensed and excluded, each with a link to its list. → «Флаги портфеля» (Портфель): change «Churn за квартал выше». Both sections are marked with a dot in the menu → «Сохранить» → «Журнал изменений» lists each change with «Было» and «Стало».
+2. «Этапы сделки»: in the row of Скрининг type `6 · публично` in «Норма» and leave the field → «Сохранено», and the journal has it. A new application asking more than $300 000 now gets «Чек выше $300K» in its card's «Проверка мандата»; a new screening deadline counts 6 working days.
+3. Put the values back.
+4. «Раунды» → «Добавить» under the list: `ZZ Series B` in the three name fields; the code fills itself (`zz_series_b`); tick «В мандате» → «Добавить» → the row is last, switched on. Drag it up by its handle (⋮⋮ on the left: the row follows the pointer and the others make room; Esc puts it back), then back; with the handle focused, ↑ and ↓ move it too. Change its English name in the row and leave the field (or press Enter) → «Сохранено»; Esc instead puts the old name back. The code is grey and cannot be changed. Switch the row off → Сделки → «Новая сделка» no longer offers it. The journal has the changes. At the end, the bin → the window says whether anything uses it → «Удалить» → the row is gone and the journal has the deletion.
+5. «Регионы»: a country not «в мандате» (e.g. Россия) → a deal from it gets «География: Россия» in its «Проверка мандата». «Источники»: the website's options are the rows switched on in «На сайте»; the fund's channels (Нетворк, Конференция…) are not offered on the site. «Отрасли»: an industry set to «Исключена» makes its applications «Исключённая отрасль».
+6. «Типы задач»: the types of the task form. «Статусы задач»: each status with its colour, names and group; the swatch opens the browser's colour picker, and the colour is saved when the picker closes (it needs batch 12's `task_statuses.color`) — the status's badge, board column, calendar and timeline take it; the system statuses have a lock instead of the bin, and their group cannot be changed. «Шаблоны документов» and «Отчётность»: the file of a row is replaced with the arrow-up button and removed with ×.
+7. «Пользователи»: «Администратор (вы)» with Директор and «Активен» (its own role cannot be changed here); `ZZ Аналитик` with only the date they were added under the name. Scrolled sideways on a narrow window, the pencil column stays in view. Set ZZ Аналитик's «Доступ» to «Ограниченный» → «Сохранено». Switch off «Активен» → the row dims, «не активен: входит с наименьшими правами», and ZZ Аналитик is no longer offered as a task's assignee, while the tasks they had keep their name; switch it back on. The pencil opens the person: add a phone → «Сохранить». The journal has each change. «Роли»: the sections down, the roles across with how many active people hold each.
 8. «Интеграции»: Почта, Telegram-бот, ИИ and Контент «Не подключено», with what each needs; the fund's systems below.
-9. An old link `/settings?tab=users` opens «Пользователи и роли».
+9. An old link `/settings?tab=users` opens «Пользователи».
+10. «Журнал изменений»: pick a person, or type a word in «Что изменено» → the table narrows.
 
 ## 15. Документы
 

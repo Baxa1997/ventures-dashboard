@@ -1168,6 +1168,17 @@ Relations (Many2One, from table → target table; ucode names the field {target}
 - company_data_requests → portfolio_companies
 ```
 
+## Batch 12 — the colour of a task status
+
+Настройки → Статусы задач chose a status's colour among five tones (`tone`). The prototype picks any colour with the browser's colour picker, so a status keeps the colour it was given as `#rrggbb`; a status without one is shown in its tone, as before.
+
+```
+Batch 12. Same rules.
+
+New fields in the existing table task_statuses
+- color: SINGLE_LINE
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.
@@ -1300,7 +1311,7 @@ What exists in the test environment (18 October):
 | staff users under STAFF | none yet | `auth.mjs user <email> <role> "<Full name>"` (open, below) |
 
 - **The panel's sign-in** (`src/shared/api/ucode`): `POST https://api.auth.u-code.io/v2/login?project-id=<project>`, header `Environment-Id`, body `{username, password, client_type, project_id, type: "default"}`. A user belongs to one client type, and ucode answers 400 or 404 both for a user it does not know there and for a wrong password, so the panel asks the client types of `VITE_UCODE_CLIENT_TYPE_IDS` in turn (STAFF, then ADMIN); signing in as `Sqb-admin` therefore shows one refused request (STAFF) before ADMIN accepts it. The reply has `token.access_token`, `token.refresh_token` and `user_id_auth`, and also the user's row with its password hash: the panel keeps only the tokens and the user id. Refresh: `PUT /v2/refresh` with the refresh token and the client type the person signed in with. Calls to the admin API then carry `Authorization: Bearer <token>` and `Environment-Id`; its CORS allows any origin, so the browser calls it directly. ADMIN's token reads and writes every ERP table (checked with `panel-test.mjs`).
-- **Who is signed in**: the employees rows are read after signing in, and the pages wait for them; the person is the row whose `user_id` is their user. A user without a row is shown by their login, with the least access. Настройки → «Пригласить пользователя» adds an employees row (with `invited_at`); `auth.mjs user` then makes the ucode user and links that row by its email.
+- **Who is signed in**: the employees rows are read after signing in, and the pages wait for them; the person is the row whose `user_id` is their user. A user without a row is shown by their login, with the least access. Настройки → Пользователи → «Добавить» adds an employees row (with `invited_at`); `auth.mjs user` then makes the ucode user and links that row by its email.
 - **ucode bug:** a client type made without a table makes ucode create `<name>_users` for it, and that fails with "error getting project info" (the auth service leaves out the project the builder's check wants, `services/object-builder/grpc/service/table.go`). So the login table is made first and the client type points to it, as the admin UI does.
 - STAFF came back from the create call without `project_id` and client platform; filling them in with `PUT /v2/client-type` was not done (below).
 - Users, client types and roles are made through the auth service with the same API key (`Authorization: API-KEY`, `X-API-KEY`, `?project-id=`). **A user may take a paid seat**: the auth service reserves one when the project has a per-user price, and otherwise checks the plan's user limit.

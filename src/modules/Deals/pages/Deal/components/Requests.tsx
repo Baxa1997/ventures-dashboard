@@ -14,7 +14,7 @@ import {
    NoData,
    STACK,
 } from '@shared/components';
-import { ROLE_LABELS, TEAM } from '@shared/constants';
+import { employeeOf, ROLE_LABELS } from '@shared/constants';
 import { formatDate, todayISO } from '@shared/helpers';
 import {
    useAction,
@@ -522,7 +522,7 @@ const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
    const checking = requests.filter(({ status }) => status === 'answered');
    const writable = isOpen(deal);
    const first = open[0];
-   const author = first && TEAM.find(({ id }) => id === first.byId);
+   const author = first && employeeOf(first.byId);
    // what the applicant downloads with the first open request
    const firstFiles = useAttachments({
       dealId: deal.id,

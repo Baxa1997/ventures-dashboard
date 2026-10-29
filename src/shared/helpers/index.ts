@@ -1,4 +1,4 @@
-import { DATE_FORMAT, TEAM } from '@shared/constants';
+import { DATE_FORMAT, employeeOf } from '@shared/constants';
 import dayjs from 'dayjs';
 
 export const todayISO = () => dayjs().format(DATE_FORMAT);
@@ -51,7 +51,7 @@ export const shortName = (name: string) => {
 
 // The short name of an employee, or '' for an unknown id.
 export const personName = (id: string) => {
-   const employee = TEAM.find((item) => item.id === id);
+   const employee = employeeOf(id);
    return employee ? shortName(employee.name) : '';
 };
 

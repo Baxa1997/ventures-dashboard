@@ -1,4 +1,4 @@
-import { TEAM } from '@shared/constants';
+import { employeeOf } from '@shared/constants';
 import { shortName } from '@shared/helpers';
 import Avatar from './Avatar';
 
@@ -9,7 +9,7 @@ interface PersonProps {
 
 // An employee as lists show them: the initials and the short name.
 const Person = ({ id, soft = false }: PersonProps) => {
-   const employee = TEAM.find((item) => item.id === id);
+   const employee = employeeOf(id);
    if (!employee) return <span className='text-ink-faint'>—</span>;
 
    return (

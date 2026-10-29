@@ -1,40 +1,75 @@
 import {
-   LIST_SECTIONS,
    SETTINGS_GROUPS,
    type SettingsSection,
 } from '@modules/Settings/constants';
 import { SETTINGS_PATH } from '@shared/constants';
-import type { ListItem, ListKind } from '@shared/types/settings.types';
 import clsx from 'clsx';
+import {
+   CalendarClock,
+   CircleDot,
+   CircleX,
+   Factory,
+   FileStack,
+   Flag,
+   Gauge,
+   GitCommitHorizontal,
+   History,
+   Layers,
+   type LucideIcon,
+   MapPin,
+   Plug,
+   Radar,
+   Scale,
+   ShieldCheck,
+   Tags,
+   Target,
+   Users,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
+// Each section's icon, as the prototype gives them; ours that it has not
+// (the mandate, the flags, the committee, the integrations) in the same set.
+const SECTION_ICONS: Record<SettingsSection, LucideIcon> = {
+   'task-types': Tags,
+   'task-statuses': CircleDot,
+   stages: GitCommitHorizontal,
+   industries: Factory,
+   rounds: Layers,
+   sources: Radar,
+   countries: MapPin,
+   reasons: CircleX,
+   'doc-templates': FileStack,
+   metrics: Gauge,
+   'report-docs': CalendarClock,
+   flags: Flag,
+   mandate: Target,
+   committee: Scale,
+   users: Users,
+   roles: ShieldCheck,
+   integrations: Plug,
+   journal: History,
+};
+
 interface SettingsNavProps {
    active: SettingsSection;
-   counts: Record<ListKind, ListItem[]>;
-   staff: number;
    unsaved: SettingsSection[]; // sections with changes not saved yet
 }
 
-/* The sections of Настройки in their groups: a column beside the content on
-   wide screens, a select above it on narrow ones. A list shows how many of
-   its rows are in use; a section with unsaved changes, a dot. */
-const SettingsNav = ({ active, counts, staff, unsaved }: SettingsNavProps) => {
+/* The sections of Настройки in their groups: a card beside the section on
+   wide screens, which scrolls by itself when it is taller than the page, and
+   a select above the section on narrow ones. A section with unsaved changes
+   has a dot. */
+const SettingsNav = ({ active, unsaved }: SettingsNavProps) => {
    const { t } = useTranslation('settings');
    const navigate = useNavigate();
-
-   const countOf = (id: SettingsSection) => {
-      const kind = LIST_SECTIONS[id as keyof typeof LIST_SECTIONS];
-      if (kind) return counts[kind].filter((item) => item.active).length;
-      return id === 'users' ? staff : undefined;
-   };
 
    return (
       <>
          <label className='lg:hidden'>
             <span className='sr-only'>{t('Раздел настроек')}</span>
             <select
-               className='field-input'
+               className='field-input bg-white'
                value={active}
                onChange={(event) =>
                   navigate(`${SETTINGS_PATH}/${event.target.value}`)
@@ -54,42 +89,46 @@ const SettingsNav = ({ active, counts, staff, unsaved }: SettingsNavProps) => {
          </label>
          <nav
             aria-label={t('Разделы настроек')}
-            className='border-line animate-rise hidden self-start rounded-lg border bg-white py-2 lg:sticky lg:top-4 lg:block'
+            className='border-line hidden rounded-xl border bg-white p-2 lg:block lg:max-h-[calc(100%-1.25rem)] lg:self-start lg:overflow-y-auto'
          >
             {SETTINGS_GROUPS.map((group) => (
-               <div key={group.label} className='py-1.5'>
-                  <div className='text-ink-faint px-4 pb-1 text-[11px] font-semibold tracking-wide uppercase'>
+               <div key={group.label}>
+                  <div className='text-ink-faint px-2.5 pt-2 pb-1 text-[11px] font-semibold'>
                      {t(group.label)}
                   </div>
                   <ul>
                      {group.sections.map((section) => {
                         const current = section.id === active;
-                        const count = countOf(section.id);
+                        const Icon = SECTION_ICONS[section.id];
                         return (
                            <li key={section.id}>
                               <Link
                                  aria-current={current ? 'page' : undefined}
                                  className={clsx(
-                                    'text-meta flex items-center gap-2 px-4 py-1.5',
+                                    'text-meta flex items-center gap-2 rounded-lg px-2.5 py-1.5 font-medium transition-colors',
                                     current
-                                       ? 'bg-accent-tint text-accent font-semibold shadow-[inset_3px_0_0_var(--color-accent)]'
-                                       : 'text-ink hover:bg-ground',
+                                       ? 'bg-accent-tint text-ink-strong'
+                                       : 'text-ink-soft hover:bg-hover hover:text-ink',
                                  )}
                                  to={`${SETTINGS_PATH}/${section.id}`}
                               >
+                                 <Icon
+                                    aria-hidden
+                                    className={clsx(
+                                       'size-3.75 shrink-0 transition-colors',
+                                       current
+                                          ? 'text-accent'
+                                          : 'text-ink-faint',
+                                    )}
+                                 />
                                  <span className='min-w-0 flex-1 truncate'>
                                     {t(section.label)}
                                  </span>
                                  {unsaved.includes(section.id) && (
                                     <span
-                                       className='bg-warning-ink size-1.5 shrink-0 rounded-full'
+                                       className='bg-warning size-1.5 shrink-0 rounded-full'
                                        title={t('Есть несохранённые изменения')}
                                     />
-                                 )}
-                                 {count !== undefined && (
-                                    <span className='text-ink-soft text-xs tabular-nums'>
-                                       {count}
-                                    </span>
                                  )}
                               </Link>
                            </li>

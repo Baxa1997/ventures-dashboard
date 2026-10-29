@@ -15,14 +15,14 @@ const Flags = ({ draft, editable, onChange }: FlagsProps) => {
 
    return (
       <Card className='flex flex-col'>
-         <div className='flex max-w-xl flex-col gap-2.5 px-5 py-4'>
+         <div className='flex max-w-xl flex-col gap-2.5 px-4.5 py-3.5'>
             {FLAG_FIELDS.map(({ key, label, unit }) => (
                <label
                   key={key}
                   className='flex items-center justify-between gap-4'
                >
                   <span className='text-ink-soft'>{t(label)}</span>
-                  <span className='border-line-strong has-focus-visible:outline-accent flex h-9 w-40 items-center gap-1.5 rounded-lg border bg-white px-3 has-focus-visible:outline-2'>
+                  <span className='border-line-strong has-focus-visible:outline-accent flex h-8 w-40 items-center gap-1.5 rounded-lg border bg-white px-2.5 has-focus-visible:outline-2'>
                      <input
                         className='text-meta disabled:text-ink-soft w-10 min-w-0 flex-1 bg-transparent outline-none'
                         disabled={!editable}
@@ -44,7 +44,7 @@ const Flags = ({ draft, editable, onChange }: FlagsProps) => {
                </label>
             ))}
          </div>
-         <p className='text-ink-soft border-line mt-auto border-t px-5 py-3 text-xs'>
+         <p className='text-ink-soft border-line mt-auto border-t px-4.5 py-2.5 text-xs'>
             {t(
                'Флаги считаются по последнему подтверждённому кварталу каждой компании.',
             )}

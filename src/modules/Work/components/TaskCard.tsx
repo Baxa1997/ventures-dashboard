@@ -13,8 +13,8 @@ import {
    personName,
    textToHtml,
 } from '@shared/helpers';
-import { failureReason, toast } from '@shared/helpers/toast';
-import { useAttachments, useCurrentUser } from '@shared/hooks';
+import { toast } from '@shared/helpers/toast';
+import { useAttachments, useCurrentUser, useSaveQueue } from '@shared/hooks';
 import type {
    Employee,
    Task,
@@ -72,26 +72,6 @@ interface TaskCardProps extends TaskActions {
 type FeedTab = 'comments' | 'history';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-// Saves one change after another, so a quick second change cannot overtake
-// the first; a failure says so and why.
-const useSaveQueue = () => {
-   const { t } = useTranslation('components');
-   const queue = useRef<Promise<unknown>>(Promise.resolve());
-   return (save: () => Promise<unknown>, success?: string) => {
-      queue.current = queue.current.then(save).then(
-         () => success && toast.success(success),
-         (failure) => {
-            console.error(failure);
-            toast.error(
-               t('Не удалось сохранить изменения'),
-               t(failureReason(failure)),
-            );
-         },
-      );
-      return queue.current;
-   };
-};
 
 // The task as the store has it now, for a change that builds on the last one.
 const latest = async (id: string) =>

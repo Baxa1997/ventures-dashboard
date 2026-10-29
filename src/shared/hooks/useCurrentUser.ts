@@ -1,5 +1,5 @@
 import { listRows, str } from '@shared/api/ucode';
-import { TEAM } from '@shared/constants';
+import { FORMER_TEAM, TEAM } from '@shared/constants';
 import { clearStores } from '@shared/helpers/store';
 import type { Employee, Role } from '@shared/types/work.types';
 import { useSyncExternalStore } from 'react';
@@ -62,6 +62,11 @@ export const reloadTeam = async () => {
       TEAM.length,
       ...rows.filter((row) => row.is_active !== false).map(toEmployee),
    );
+   FORMER_TEAM.splice(
+      0,
+      FORMER_TEAM.length,
+      ...rows.filter((row) => row.is_active === false).map(toEmployee),
+   );
    currentId =
       rows.find((row) => str(row.user_id) === signedIn.userId)?.guid ?? '';
    notify();
@@ -73,6 +78,7 @@ export const setSignedInUser = async (userId: string, login = '') => {
    clearStores();
    currentId = '';
    TEAM.splice(0, TEAM.length);
+   FORMER_TEAM.splice(0, FORMER_TEAM.length);
    status = userId ? 'loading' : 'idle';
    notify();
    if (!userId) return;

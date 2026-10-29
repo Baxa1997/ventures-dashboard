@@ -28,6 +28,7 @@ import type {
    ListItemInput,
    ListKind,
    SettingsState,
+   StaffInput,
    StaffMember,
    StaffRole,
    StageInput,
@@ -227,6 +228,7 @@ const USES: Record<
 };
 
 const GROUPS: StatusGroup[] = ['todo', 'progress', 'complete'];
+const HEX = /^#[0-9a-f]{6}$/i;
 const TONES: ItemTone[] = ['neutral', 'accent', 'success', 'warning', 'danger'];
 const FORMATS: MetricFormat[] = ['usd', 'percent', 'months', 'number'];
 const oneOf = <T extends string>(options: T[], value: unknown, fallback: T) =>
@@ -274,6 +276,7 @@ const toItem = (kind: ListKind, row: Row): ListItem => {
       ...(kind === 'taskStatuses' && {
          group: oneOf(GROUPS, row.status_group, 'progress'),
          tone: oneOf(TONES, row.tone, 'neutral'),
+         color: HEX.test(str(row.color)) ? str(row.color).toLowerCase() : '',
       }),
       ...(kind === 'metrics' && {
          format: oneOf(FORMATS, row.format, 'number'),
@@ -308,6 +311,9 @@ const itemFields = (kind: ListKind, item: ListItemInput) => {
          status_group: item.group ?? 'progress',
          tone: item.tone ?? 'neutral',
       }),
+      // only once picked: batch 12 adds the field, and a table without it
+      // still saves the rest
+      ...(kind === 'taskStatuses' && item.color && { color: item.color }),
       ...(kind === 'metrics' && { format: item.format ?? 'number' }),
       ...(withFile(kind) && {
          file_url: item.file?.url ?? '',
@@ -324,12 +330,28 @@ const toStaff = (row: Row): StaffMember => {
       name: str(row.full_name || row.short_name),
       position: str(row.position),
       email: str(row.email),
+      phone: str(row.phone),
       role: ROLES.includes(role) ? role : 'other',
       roles: fromJson<StaffRole[]>(row.duties, []),
       access: (str(row.access) || 'work') as Access,
-      invitedAt: row.user_id ? null : day(row.invited_at) || null,
+      addedAt: day(row.invited_at) || day(row.created_at),
+      active: row.is_active !== false,
    };
 };
+
+const staffFields = (input: Partial<StaffInput>) => ({
+   ...(input.name !== undefined && {
+      full_name: input.name,
+      short_name: shortName(input.name),
+   }),
+   ...(input.email !== undefined && { email: input.email }),
+   ...(input.position !== undefined && { position: input.position }),
+   ...(input.phone !== undefined && { phone: input.phone }),
+   ...(input.role !== undefined && { role: input.role }),
+   ...(input.roles !== undefined && { duties: toJson(input.roles) }),
+   ...(input.access !== undefined && { access: input.access }),
+   ...(input.active !== undefined && { is_active: input.active }),
+});
 
 const byCreated = (a: Row, b: Row) =>
    str(b.date).localeCompare(str(a.date)) ||
@@ -373,7 +395,9 @@ const store = createStore<SettingsState>(async () => {
          from: str(item.from_value),
          to: str(item.to_value),
       })),
-      staff: employees.filter((item) => item.is_active !== false).map(toStaff),
+      staff: employees
+         .map(toStaff)
+         .sort((a, b) => Number(b.active) - Number(a.active)),
       lists: Object.fromEntries(
          LIST_KINDS.map((kind, index) => [
             kind,
@@ -641,14 +665,14 @@ class Settings {
       await store.reload();
    }
 
-   // Moves a stage one place up or down the list.
-   async moveStage(key: string, step: -1 | 1) {
+   // Moves a stage to `to`, its place in the list.
+   async moveStage(key: string, to: number) {
       const stages = (await store.get()).stages;
-      const index = stages.findIndex((stage) => stage.key === key);
-      const target = index + step;
-      if (index === -1 || target < 0 || target > stages.length - 1) return;
+      const from = stages.findIndex((stage) => stage.key === key);
+      if (from === -1 || from === to || to < 0 || to > stages.length - 1)
+         return;
       const order = [...stages];
-      [order[index], order[target]] = [order[target], order[index]];
+      order.splice(to, 0, ...order.splice(from, 1));
       await this.renumber(order);
       await store.reload();
    }
@@ -788,16 +812,15 @@ class Settings {
       await store.reload();
    }
 
-   // Moves a row one place up or down the list: the order the forms show.
-   async moveListItem(kind: ListKind, id: string, step: -1 | 1) {
+   // Moves a row to `to`, its place in the list: the order the forms show.
+   async moveListItem(kind: ListKind, id: string, to: number) {
       const list = (await store.get()).lists[kind];
-      const index = list.findIndex((row) => row.id === id);
-      const other = list[index + step];
-      if (index === -1 || !other) return;
+      const from = list.findIndex((row) => row.id === id);
+      if (from === -1 || from === to || to < 0 || to > list.length - 1) return;
       const { table } = LIST_TABLES[kind];
       // the rows' own numbers may repeat; the new order is numbered afresh
       const order = list.map((row) => row.id);
-      [order[index], order[index + step]] = [order[index + step], order[index]];
+      order.splice(to, 0, ...order.splice(from, 1));
       await Promise.all(
          order.flatMap((guid, position) =>
             list.find((row) => row.id === guid)?.sortOrder === position + 1
@@ -811,26 +834,36 @@ class Settings {
    /* Adds an employee. They sign in once they have a ucode user: made with
       `node scripts/ucode/auth.mjs user <email> <role> "<name>"`, which finds
       this row by its email (docs/ucode-migration.md, «Staff sign-in»). */
-   async invite(input: {
-      name: string;
-      email: string;
-      position: string;
-      role: Role;
-      roles: StaffRole[];
-      access: Access;
-   }) {
+   async invite(input: Omit<StaffInput, 'active'>) {
       await createRow('employees', {
          guid: newId(),
-         full_name: input.name,
-         short_name: shortName(input.name),
-         email: input.email,
-         position: input.position,
-         role: input.role,
-         duties: toJson(input.roles),
-         access: input.access,
-         is_active: true,
+         ...staffFields({ ...input, active: true }),
          invited_at: todayISO(),
       });
+      await Promise.all([store.reload(), reloadTeam()]);
+   }
+
+   /* Changes an employee: their details, role, duties, access level, or
+      whether they have access at all. Closed, they leave the team's lists
+      and sign in with the least rights; their name stays on their records.
+      The change goes to the journal as `field`, from `from` to `to`. */
+   async updateStaff(
+      id: string,
+      patch: Partial<StaffInput>,
+      userId: string,
+      change: { field: string; from: string; to: string },
+   ) {
+      await Promise.all([
+         updateRow('employees', { guid: id, ...staffFields(patch) }),
+         createRow('settings_journal', {
+            guid: newId(),
+            date: todayISO(),
+            employee_id: userId,
+            field: change.field,
+            from_value: change.from,
+            to_value: change.to,
+         }),
+      ]);
       await Promise.all([store.reload(), reloadTeam()]);
    }
 }

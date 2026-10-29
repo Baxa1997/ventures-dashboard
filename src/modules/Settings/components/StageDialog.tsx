@@ -1,4 +1,5 @@
-import { DEFAULT_STAGES, ESCALATION_LABELS } from '@modules/Settings/constants';
+import { ESCALATION_LABELS } from '@modules/Settings/constants';
+import { describeStage } from '@modules/Settings/helpers';
 import settings, { stageName, stagesOf } from '@modules/Settings/services';
 import {
    Button,
@@ -11,17 +12,12 @@ import {
 } from '@shared/components';
 import { toLatin } from '@shared/helpers';
 import { useAction, useCurrentUser } from '@shared/hooks';
-import type {
-   EscalateTo,
-   StageInput,
-   StageItem,
-} from '@shared/types/settings.types';
+import type { EscalateTo, StageInput } from '@shared/types/settings.types';
 import type { SupportedLanguageType } from '@shared/types/system/language.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface StageDialogProps {
-   stage: StageItem | null; // null: a new stage of the fund's own
    open: boolean;
    onClose: () => void;
 }
@@ -41,61 +37,38 @@ const keyFrom = (name: string) =>
 
 const ESCALATIONS = Object.keys(ESCALATION_LABELS) as EscalateTo[];
 
-const StageForm = ({ stage, onClose }: Omit<StageDialogProps, 'open'>) => {
+const StageForm = ({ onClose }: Omit<StageDialogProps, 'open'>) => {
    const { t } = useTranslation('settings');
    const user = useCurrentUser();
    const stages = stagesOf();
-   const defaultName = DEFAULT_STAGES.find(({ key }) => key === stage?.key);
-   const [value, setValue] = useState<StageInput>(() =>
-      stage
-         ? {
-              key: stage.key,
-              names: stage.names,
-              norm: stage.norm,
-              paused: stage.paused,
-              escalation: stage.escalation,
-              isPublic: stage.isPublic,
-           }
-         : {
-              key: '',
-              names: { ru: '', uz: '', en: '' },
-              norm: '',
-              paused: '',
-              escalation: 'deputy',
-              isPublic: false,
-           },
-   );
-   // a new stage goes after the last of the fund's stages before ИК-1
+   const [value, setValue] = useState<StageInput>({
+      key: '',
+      names: { ru: '', uz: '', en: '' },
+      norm: '',
+      paused: '',
+      escalation: 'deputy',
+      isPublic: false,
+   });
    // a new stage goes before ИК-1 if there is one, else last ('' — first)
    const [after, setAfter] = useState(() => {
       const ic1 = stages.findIndex(({ key }) => key === 'ic1');
       return stages[ic1 > 0 ? ic1 - 1 : stages.length - 1]?.key ?? '';
    });
-   const [keyTyped, setKeyTyped] = useState(!!stage);
+   const [keyTyped, setKeyTyped] = useState(false);
    const [tried, setTried] = useState(false);
 
    const errors = {
-      // a system stage keeps its default name when none is written
-      ru: value.names.ru.trim() || defaultName ? '' : t('Укажите название'),
-      key: stage
-         ? ''
-         : !value.key
-           ? t('Укажите код')
-           : !KEY.test(value.key)
-             ? t('Код пишется так: {{hint}}', {
-                  hint: t('латиницей через подчёркивание: legal_check'),
-               })
-             : stages.some(({ key }) => key === value.key)
-               ? t('Такой код уже есть')
-               : '',
+      ru: value.names.ru.trim() ? '' : t('Укажите название'),
+      key: !value.key
+         ? t('Укажите код')
+         : !KEY.test(value.key)
+           ? t('Код пишется так: {{hint}}', {
+                hint: t('латиницей через подчёркивание: legal_check'),
+             })
+           : stages.some(({ key }) => key === value.key)
+             ? t('Такой код уже есть')
+             : '',
    };
-
-   const describe = (row: StageInput | null) =>
-      row
-         ? [row.names.ru || stageName(row.key), row.norm]
-              .filter(Boolean)
-              .join(' · ')
-         : '';
 
    const save = useAction(
       async () => {
@@ -110,18 +83,16 @@ const StageForm = ({ stage, onClose }: Omit<StageDialogProps, 'open'>) => {
             paused: value.paused.trim(),
          };
          await settings.saveStage(
-            stage ? stage.id : null,
-            stage?.key ?? next.key,
+            null,
+            next.key,
             next,
-            stage ? null : after,
+            after,
             user.id,
-            t('Этап «{{name}}»', {
-               name: next.names.ru || stageName(next.key),
-            }),
-            describe,
+            t('Этап «{{name}}»', { name: next.names.ru }),
+            (row) => describeStage(t, row),
          );
       },
-      { kind: stage ? 'save' : 'create' },
+      { kind: 'create' },
    );
 
    const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -139,13 +110,6 @@ const StageForm = ({ stage, onClose }: Omit<StageDialogProps, 'open'>) => {
                      key={language}
                      className={index === 0 ? 'sm:col-span-2' : undefined}
                      error={language === 'ru' && tried ? errors.ru : undefined}
-                     hint={
-                        index === 0 && defaultName
-                           ? t('Пусто — остаётся «{{name}}»', {
-                                name: t(defaultName.label),
-                             })
-                           : undefined
-                     }
                      label={t(label)}
                   >
                      <input
@@ -174,43 +138,39 @@ const StageForm = ({ stage, onClose }: Omit<StageDialogProps, 'open'>) => {
                      />
                   </Field>
                ))}
-               {!stage && (
-                  <>
-                     <Field
-                        error={tried ? errors.key : undefined}
-                        hint={t('латиницей через подчёркивание: legal_check')}
-                        label={t('Код')}
-                     >
-                        <input
-                           aria-invalid={tried && !!errors.key}
-                           className='field-input font-mono'
-                           maxLength={40}
-                           value={value.key}
-                           onChange={(event) => {
-                              setKeyTyped(true);
-                              setValue((prev) => ({
-                                 ...prev,
-                                 key: event.target.value,
-                              }));
-                           }}
-                        />
-                     </Field>
-                     <Field label={t('Поставить после')}>
-                        <select
-                           className='field-input'
-                           value={after}
-                           onChange={(event) => setAfter(event.target.value)}
-                        >
-                           <option value=''>{t('В начало списка')}</option>
-                           {stages.map(({ key }) => (
-                              <option key={key} value={key}>
-                                 {stageName(key)}
-                              </option>
-                           ))}
-                        </select>
-                     </Field>
-                  </>
-               )}
+               <Field
+                  error={tried ? errors.key : undefined}
+                  hint={t('латиницей через подчёркивание: legal_check')}
+                  label={t('Код')}
+               >
+                  <input
+                     aria-invalid={tried && !!errors.key}
+                     className='field-input font-mono'
+                     maxLength={40}
+                     value={value.key}
+                     onChange={(event) => {
+                        setKeyTyped(true);
+                        setValue((prev) => ({
+                           ...prev,
+                           key: event.target.value,
+                        }));
+                     }}
+                  />
+               </Field>
+               <Field label={t('Поставить после')}>
+                  <select
+                     className='field-input'
+                     value={after}
+                     onChange={(event) => setAfter(event.target.value)}
+                  >
+                     <option value=''>{t('В начало списка')}</option>
+                     {stages.map(({ key }) => (
+                        <option key={key} value={key}>
+                           {stageName(key)}
+                        </option>
+                     ))}
+                  </select>
+               </Field>
                <Field
                   hint={t('рабочих дней, можно с пометкой: «5 · публично»')}
                   label={t('Норма')}
@@ -282,35 +242,26 @@ const StageForm = ({ stage, onClose }: Omit<StageDialogProps, 'open'>) => {
                {t('Отмена')}
             </Button>
             <Button loading={save.pending} type='submit'>
-               {stage ? t('Сохранить') : t('Добавить')}
+               {t('Добавить')}
             </Button>
          </ModalFooter>
       </form>
    );
 };
 
-// A stage of a deal added or changed by the director.
-const StageDialog = ({ stage, open, onClose }: StageDialogProps) => {
+/* A stage of the fund's own, added by the director where it goes; the
+   stages are changed in the list itself. */
+const StageDialog = ({ open, onClose }: StageDialogProps) => {
    const { t } = useTranslation('settings');
 
    return (
       <Modal
          open={open}
-         subtitle={t('Этапы и нормативы')}
-         title={
-            stage
-               ? t('Этап «{{name}}»', { name: stageName(stage.key) })
-               : t('Новый этап')
-         }
+         subtitle={t('Этапы сделки')}
+         title={t('Новый этап')}
          onClose={onClose}
       >
-         {open && (
-            <StageForm
-               key={stage?.key ?? 'new'}
-               stage={stage}
-               onClose={onClose}
-            />
-         )}
+         {open && <StageForm onClose={onClose} />}
       </Modal>
    );
 };

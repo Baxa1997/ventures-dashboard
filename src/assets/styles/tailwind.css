@@ -227,6 +227,23 @@
       background-repeat: no-repeat;
       text-overflow: ellipsis;
    }
+   /* The browser's colour picker as the prototype draws it: the colour in a
+      framed swatch, 3px in. */
+   .color-input {
+      @apply border-line-strong h-7 w-8 shrink-0 cursor-pointer rounded-md border bg-white p-0.75 transition-colors hover:border-ink-faint disabled:cursor-not-allowed disabled:opacity-60;
+      appearance: none;
+   }
+   .color-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+   }
+   .color-input::-webkit-color-swatch {
+      border: 0;
+      border-radius: 3px;
+   }
+   .color-input::-moz-color-swatch {
+      border: 0;
+      border-radius: 3px;
+   }
    .field-input[aria-invalid='true'] {
       @apply border-danger;
    }

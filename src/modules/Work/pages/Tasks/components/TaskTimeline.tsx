@@ -1,8 +1,8 @@
 import {
    isDone,
    isOverdue,
+   statusFill,
    statusName,
-   statusTone,
    taskKey,
 } from '@modules/Work/helpers';
 import { openTask } from '@modules/Work/hooks';
@@ -42,7 +42,7 @@ const TaskTimeline = ({ tasks }: TaskTimelineProps) => {
          );
          const color = isOverdue(task)
             ? TONE_COLORS.danger
-            : TONE_COLORS[statusTone(task.status)];
+            : statusFill(task.status);
          return [
             {
                id: task.id,

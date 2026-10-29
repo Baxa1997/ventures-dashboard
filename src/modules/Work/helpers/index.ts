@@ -1,6 +1,6 @@
 import { stageNextLabel } from '@modules/Deals/helpers';
 import { itemOf, listOf, nameOf, stageName } from '@modules/Settings/services';
-import type { BadgeTone } from '@shared/components';
+import { type BadgeTone, TONE_COLORS } from '@shared/components/Badge';
 import { directorId } from '@shared/constants';
 import type { ListItem, StatusGroup } from '@shared/types/settings.types';
 import type {
@@ -106,6 +106,14 @@ export const statusGroup = (status: TaskStatus): StatusGroup =>
 export const statusTone = (status: TaskStatus): BadgeTone =>
    itemOf('taskStatuses', status)?.tone ??
    (isSystemStatus(status) ? TASK_STATUS_TONES[status] : 'neutral');
+
+// A status's own colour (#rrggbb), picked in Настройки; none — its tone's.
+export const statusColor = (status: TaskStatus) =>
+   itemOf('taskStatuses', status)?.color || undefined;
+
+// What a status is drawn in on a board, a calendar, a timeline.
+export const statusFill = (status: TaskStatus) =>
+   statusColor(status) ?? TONE_COLORS[statusTone(status)];
 
 // A status's name: the fund's, else the system status's own, else its slug.
 export const statusName = (t: TFunction<'work'>, status: TaskStatus) => {

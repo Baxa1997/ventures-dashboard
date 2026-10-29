@@ -21,7 +21,7 @@ interface MandateProps {
 }
 
 export const INPUT =
-   'field-input text-meta h-9 disabled:bg-ground disabled:text-ink-soft';
+   'field-input text-meta h-8 disabled:bg-ground disabled:text-ink-soft';
 
 /* The investment mandate: the check range and how the fund words its focus
    and exclusions, typed here; the stages, the geography and the sectors, as
@@ -68,7 +68,7 @@ const Mandate = ({ data, draft, editable, errors, onChange }: MandateProps) => {
                hint={t('основа — Инвестиционная политика')}
                title={t('Инвестиционный мандат')}
             >
-               <div className='divide-line divide-y px-5'>
+               <div className='divide-line divide-y px-4.5'>
                   {MANDATE_FIELDS.map((field) => {
                      const { key, label, hint } = field;
                      const error = errors[key];
@@ -82,7 +82,7 @@ const Mandate = ({ data, draft, editable, errors, onChange }: MandateProps) => {
                               aria-invalid={!!error}
                               className={clsx(
                                  INPUT,
-                                 'field-sizing-content h-auto min-h-9 resize-none py-1.5',
+                                 'field-sizing-content h-auto min-h-8 resize-none py-1.25',
                               )}
                               disabled={!editable}
                               placeholder={
@@ -122,12 +122,12 @@ const Mandate = ({ data, draft, editable, errors, onChange }: MandateProps) => {
          </div>
          <div className={STACK}>
             <Card title={t('Из справочников')}>
-               <p className='text-ink-soft px-5 pt-3 text-xs'>
+               <p className='text-ink-soft px-4.5 pt-3 text-xs'>
                   {t(
                      'Проверка входящих читает эти отметки. Они меняются в справочниках — так сайт и проверка не расходятся.',
                   )}
                </p>
-               <dl className='divide-line divide-y px-5 pb-2'>
+               <dl className='divide-line divide-y px-4.5 pb-2'>
                   {marks.map((mark) => (
                      <div key={mark.label} className='py-3'>
                         <dt className='flex items-center justify-between gap-3'>

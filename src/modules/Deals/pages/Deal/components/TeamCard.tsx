@@ -13,7 +13,7 @@ import {
    ModalFooter,
    NoData,
 } from '@shared/components';
-import { TEAM } from '@shared/constants';
+import { employeeOf, TEAM } from '@shared/constants';
 import { shortName } from '@shared/helpers';
 import type { Deal, TeamMember } from '@shared/types/deals.types';
 import { type FormEvent, useState } from 'react';
@@ -66,9 +66,7 @@ const TeamCard = ({ deal, editable }: TeamCardProps) => {
          {team.length ? (
             <ul className='divide-line divide-y px-5 py-1'>
                {team.map((member, index) => {
-                  const employee = TEAM.find(
-                     ({ id }) => id === member.employeeId,
-                  );
+                  const employee = employeeOf(member.employeeId);
                   const name = employee
                      ? shortName(employee.name)
                      : (member.name ?? '');

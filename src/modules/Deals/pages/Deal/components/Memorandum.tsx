@@ -14,7 +14,7 @@ import {
    Spinner,
    STACK,
 } from '@shared/components';
-import { TEAM } from '@shared/constants';
+import { employeeOf } from '@shared/constants';
 import { useAction } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import clsx from 'clsx';
@@ -53,9 +53,7 @@ const Memorandum = ({ deal }: MemorandumProps) => {
       );
 
    const locked = !isOpen(deal) || !!memo.approvedAt;
-   const commenter = memo.comment
-      ? TEAM.find(({ id }) => id === memo.comment?.byId)
-      : undefined;
+   const commenter = memo.comment ? employeeOf(memo.comment.byId) : undefined;
    const risks = (deal.risks ?? []).filter(({ severity }) => severity);
 
    const goTo = (n: number) => {

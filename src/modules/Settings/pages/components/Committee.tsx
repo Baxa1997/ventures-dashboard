@@ -10,7 +10,7 @@ const Committee = () => {
    return (
       <Card className='flex flex-col'>
          <FactList
-            className='max-w-xl px-5 py-2'
+            className='max-w-xl px-4.5 py-2'
             labelWidth='9rem'
             rows={[
                {
@@ -31,7 +31,7 @@ const Committee = () => {
                { label: t('Особое мнение'), value: t('вето') },
             ]}
          />
-         <p className='text-ink-soft border-line mt-auto border-t px-5 py-3 text-xs'>
+         <p className='text-ink-soft border-line mt-auto border-t px-4.5 py-2.5 text-xs'>
             {t(
                'Источник: «Чек-лист ИК» в Notion. Сверить с Положением об ИК — числа в положении главнее.',
             )}

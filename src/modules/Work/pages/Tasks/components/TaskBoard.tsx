@@ -2,14 +2,14 @@ import { listName } from '@modules/Settings/services';
 import {
    getAssigneeId,
    isOverdue,
+   statusFill,
    statusName,
-   statusTone,
    taskKey,
    taskStatuses,
    typeTone,
 } from '@modules/Work/helpers';
 import { openTask } from '@modules/Work/hooks';
-import { Avatar, Badge, BoardGap, TONE_COLORS } from '@shared/components';
+import { Avatar, Badge, BoardGap } from '@shared/components';
 import { formatNumericDate, personName } from '@shared/helpers';
 import {
    type BoardPlace,
@@ -128,7 +128,7 @@ const TaskBoard = ({ tasks, targetName, onMove }: TaskBoardProps) => {
                         gap >= 0 ? 'bg-ground' : 'bg-white',
                      )}
                      data-column={status}
-                     style={{ borderTopColor: TONE_COLORS[statusTone(status)] }}
+                     style={{ borderTopColor: statusFill(status) }}
                   >
                      <header className='text-meta flex justify-between px-3.5 py-2.75 font-bold'>
                         <span>{statusName(t, status)}</span>
