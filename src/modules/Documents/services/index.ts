@@ -1,6 +1,7 @@
 import {
    createRow,
    day,
+   deleteRow,
    listRows,
    type Row,
    str,
@@ -102,6 +103,12 @@ class Documents {
 
    async updateDocument(id: string, input: DocumentInput) {
       await updateRow('fund_documents', { guid: id, ...documentRow(input) });
+      await store.reload();
+   }
+
+   // The row only: the file stays where the fund keeps it.
+   async removeDocument(id: string) {
+      await deleteRow('fund_documents', id);
       await store.reload();
    }
 

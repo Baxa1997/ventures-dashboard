@@ -95,8 +95,9 @@ const DealCard = () => {
    const [editing, setEditing] = useState(false);
    // «Сменить этап»: closed, or open set to a stage the stepper was clicked on
    const [moving, setMoving] = useState<MoveTarget | null>(null);
-   // the open folder of the data room, kept while the card's tabs change
-   const [folderId, setFolderId] = useState('');
+   // the open folder of the data room, kept while the card's tabs change;
+   // Документы opens one with ?folder=
+   const [folderId, setFolderId] = useState(params.get('folder') ?? '');
    // null: the request dialog is closed; otherwise what the request starts with
    const [requestTitle, setRequestTitle] = useState<string | null>(null);
    const [workstream, setWorkstream] = useState<WorkstreamMode | null>(null);

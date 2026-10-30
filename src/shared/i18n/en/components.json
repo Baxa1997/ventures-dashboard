@@ -56,5 +56,7 @@
    "Неделя": "Week",
    "Месяц": "Month",
    "Предыдущий месяц": "Previous month",
-   "Следующий месяц": "Next month"
+   "Следующий месяц": "Next month",
+   "Действия": "Actions",
+   "Действия: {{name}}": "Actions: {{name}}"
 }

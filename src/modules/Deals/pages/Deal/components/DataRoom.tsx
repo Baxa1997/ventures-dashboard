@@ -97,8 +97,13 @@ interface FolderFormProps {
    onClose: () => void;
 }
 
-// A folder's name and the folder it sits in.
-const FolderForm = ({ deal, folder, parentId, onClose }: FolderFormProps) => {
+// A folder's name and the folder it sits in; Документы uses it too.
+export const FolderForm = ({
+   deal,
+   folder,
+   parentId,
+   onClose,
+}: FolderFormProps) => {
    const { t } = useTranslation('deals');
    const user = useCurrentUser();
    const [name, setName] = useState(folder?.name ?? '');
@@ -168,8 +173,12 @@ interface DocumentFormProps {
    onClose: () => void;
 }
 
-// A document's name in the data room and its folder.
-const DocumentForm = ({ deal, document, onClose }: DocumentFormProps) => {
+// A document's name in the data room and its folder; Документы uses it too.
+export const DocumentForm = ({
+   deal,
+   document,
+   onClose,
+}: DocumentFormProps) => {
    const { t } = useTranslation('deals');
    const [title, setTitle] = useState(document.title);
    const [folderId, setFolderId] = useState(document.folderId);

@@ -1,10 +1,10 @@
 import {
    APPROVERS,
+   CATEGORIES,
+   CATEGORY_LABELS,
    NOTE_MAX,
    STATUS_ORDER,
    STATUSES,
-   TAB_LABELS,
-   TABS,
    TITLE_MAX,
 } from '@modules/Documents/constants';
 import documents from '@modules/Documents/services';
@@ -32,7 +32,7 @@ export type DocumentDialogMode = 'order' | 'document' | FundDocument;
 
 interface DocumentDialogProps {
    mode: DocumentDialogMode | null; // a document: edit it; null — closed
-   tab: DocCategory; // the tab a new document goes to by default
+   category: DocCategory; // the section a new document goes to by default
    onClose: () => void;
    onSaved: (id: string, category: DocCategory) => void;
 }
@@ -54,7 +54,7 @@ const isLink = (value: string) => /^https?:\/\/\S+$/.test(value);
    file stays where the fund keeps it; the document holds a link to it. */
 const DocumentDialog = ({
    mode,
-   tab,
+   category,
    onClose,
    onSaved,
 }: DocumentDialogProps) => {
@@ -78,9 +78,9 @@ const DocumentDialog = ({
       } else if (mode === 'document')
          setValues({
             ...EMPTY,
-            category: tab === 'orders' ? 'corporate' : tab,
+            category: category === 'orders' ? 'corporate' : category,
          });
-   }, [mode, tab, editing]);
+   }, [mode, category, editing]);
 
    const set = <K extends keyof DocumentInput>(
       key: K,
@@ -166,13 +166,13 @@ const DocumentDialog = ({
                               set('category', event.target.value as DocCategory)
                            }
                         >
-                           {TABS.filter((id) => editing || id !== 'orders').map(
-                              (id) => (
-                                 <option key={id} value={id}>
-                                    {t(TAB_LABELS[id])}
-                                 </option>
-                              ),
-                           )}
+                           {CATEGORIES.filter(
+                              (id) => editing || id !== 'orders',
+                           ).map((id) => (
+                              <option key={id} value={id}>
+                                 {t(CATEGORY_LABELS[id])}
+                              </option>
+                           ))}
                         </select>
                      </Field>
                   )}

@@ -1,3 +1,4 @@
+export { default as ActionMenu, type MenuAction } from './ActionMenu';
 export { default as Avatar } from './Avatar';
 export {
    default as Badge,

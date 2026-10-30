@@ -5,6 +5,7 @@ export interface SegmentedItem<T extends string> {
    id: T;
    label: string;
    icon?: LucideIcon;
+   iconOnly?: boolean; // the icon alone; the label is its name and title
 }
 
 interface SegmentedProps<T extends string> {
@@ -27,10 +28,11 @@ const Segmented = <T extends string>({
       aria-label={label}
       className='border-line scrollbar-none flex h-9 max-w-full shrink-0 overflow-x-auto rounded-lg border bg-white p-0.5'
    >
-      {items.map(({ id, label: name, icon: Icon }) => (
+      {items.map(({ id, label: name, icon: Icon, iconOnly }) => (
          <button
             key={id}
             type='button'
+            aria-label={iconOnly ? name : undefined}
             aria-pressed={id === value}
             className={clsx(
                'text-meta flex shrink-0 items-center gap-1.5 rounded-md px-2.5 font-medium transition-colors',
@@ -38,10 +40,11 @@ const Segmented = <T extends string>({
                   ? 'bg-accent-tint text-ink-strong'
                   : 'text-ink-soft hover:text-ink',
             )}
+            title={iconOnly ? name : undefined}
             onClick={() => onChange(id)}
          >
             {Icon && <Icon aria-hidden className='size-4' />}
-            {name}
+            {!iconOnly && name}
          </button>
       ))}
    </div>
