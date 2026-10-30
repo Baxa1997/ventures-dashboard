@@ -16,13 +16,19 @@ import { createStore, newId, todayISO } from '@shared/helpers';
 import attachments from '@shared/services/attachments';
 import type { Deal } from '@shared/types/deals.types';
 import type {
+   CabinetMember,
    CompanyDataRequest,
+   CompanyInput,
    CompanyRequest,
    CompanyStatus,
    DataRequestInput,
+   ExitInput,
+   ExitType,
    Instrument,
    Investment,
+   InvestmentRecord,
    MetricKey,
+   PilotInput,
    PilotStatus,
    PortfolioCompany,
    QuarterReport,
@@ -42,16 +48,41 @@ import {
    the reporting cycles. What a company has invested is the sum of its
    investments. Until the fund requests the first reports there is no cycle
    row: the last closed quarter is shown, with its deadline by the rule in
-   ../constants, and requesting the reports creates the row. */
+   ../constants, and requesting the reports creates the row. An exit's date,
+   sum, kind and buyer are batch 13's fields: a project without them keeps
+   only the company's status. */
 
 export interface PortfolioState {
    companies: PortfolioCompany[];
    requests: CompanyRequest[]; // the companies' requests to the fund
    dataRequests: CompanyDataRequest[]; // the fund's requests for data, newest first
+   members: CabinetMember[]; // the startup cabinet's people, by application
    cycle: ReportingCycle;
+   exitFields: boolean; // ucode has batch 13's fields for an exit
 }
 
 const COMPANY_STATUSES: CompanyStatus[] = ['active', 'exit', 'written_off'];
+const EXIT_TYPES: ExitType[] = ['strategic', 'secondary', 'buyback', 'ipo'];
+const MEMBER_ROLES: CabinetMember['role'][] = ['ceo', 'cfo', 'cto', 'other'];
+
+const toInvestment = (row: Row): InvestmentRecord => ({
+   id: row.guid,
+   date: day(row.date),
+   kind: str(row.kind) === 'follow_on' ? 'follow_on' : 'initial',
+   instrument: (str(row.instrument) || 'safe') as Instrument,
+   amount: num(row.amount),
+   valuation: numOrNull(row.valuation),
+   stakePct: numOrNull(row.stake_pct),
+});
+
+const toMember = (row: Row): CabinetMember => ({
+   id: row.guid,
+   applicationId: str(row.applications_id),
+   email: str(row.email),
+   name: str(row.full_name),
+   role: MEMBER_ROLES.find((role) => role === row.role) ?? 'other',
+   active: row.is_active !== false,
+});
 
 // The days the documents of batch 4 came, in their own columns; the fund's
 // own documents keep theirs in `received`.
@@ -110,6 +141,9 @@ const toCompany = (
       countries: str(row.countries),
       instrument: (str(row.instrument) || 'safe') as Instrument,
       invested: investments.reduce((sum, item) => sum + num(item.amount), 0),
+      investments: investments
+         .map(toInvestment)
+         .sort((a, b) => a.date.localeCompare(b.date)),
       since: num(row.since),
       ownerId: str(row.owner_id),
       status:
@@ -118,6 +152,15 @@ const toCompany = (
       ...(row.deals_id ? { dealId: str(row.deals_id) } : {}),
       facts: fromJson<{ label: string; value: string }[]>(row.facts, []),
       position: { valuation: str(row.valuation), moic: str(row.moic) },
+      exit:
+         row.exit_date || row.exit_proceeds != null || row.exit_buyer
+            ? {
+                 date: day(row.exit_date),
+                 proceeds: numOrNull(row.exit_proceeds),
+                 type: EXIT_TYPES.find((type) => type === row.exit_type) ?? '',
+                 buyer: str(row.exit_buyer),
+              }
+            : null,
       reports: Object.fromEntries(
          [...byQuarter].map(([quarter, report]) => [quarter, toReport(report)]),
       ),
@@ -132,6 +175,8 @@ const toCompany = (
          customer: str(pilot.customer),
          status: (str(pilot.status) || 'in_progress') as PilotStatus,
          note: str(pilot.note),
+         startedAt: day(pilot.started_at),
+         endedAt: day(pilot.ended_at),
       })),
       ...(row.commercial_title
          ? {
@@ -179,6 +224,24 @@ let rowIds = {
    // the figures a report row holds in its own column (batch 4)
    columns: new Set<string>(),
 };
+const investmentFields = (investment: Investment) => ({
+   guid: newId(),
+   date: investment.date,
+   instrument: investment.instrument,
+   amount: investment.amount,
+   valuation: investment.valuation,
+   stake_pct: investment.stakePct,
+});
+
+const pilotFields = (input: PilotInput) => ({
+   title: input.title,
+   customer: input.customer,
+   status: input.status,
+   note: input.note,
+   started_at: input.startedAt || null,
+   ended_at: input.endedAt || null,
+});
+
 const reportKey = (companyId: string, quarter: string) =>
    `${companyId}/${quarter}`;
 const valueKey = (companyId: string, metric: string, quarter: string) =>
@@ -190,6 +253,7 @@ const store = createStore<PortfolioState>(async () => {
    const [
       [companies, investments, reports, pilots, requests, cycles, values],
       dataRequests,
+      members,
    ] = await Promise.all([
       Promise.all(
          [
@@ -205,6 +269,10 @@ const store = createStore<PortfolioState>(async () => {
       // the startup cabinet's table (batch 11): a project without it reads none
       listRows('company_data_requests').catch((error: unknown) => {
          console.warn('company_data_requests could not be read', error);
+         return [];
+      }),
+      listRows('cabinet_members').catch((error: unknown) => {
+         console.warn('cabinet_members could not be read', error);
          return [];
       }),
    ]);
@@ -269,6 +337,9 @@ const store = createStore<PortfolioState>(async () => {
       dataRequests: dataRequests
          .map(toDataRequest)
          .sort((a, b) => b.sentAt.localeCompare(a.sentAt)),
+      members: members.map(toMember),
+      // ucode lists every field of a row, empty ones as null
+      exitFields: companies.some((row) => 'exit_proceeds' in row),
       cycle: {
          quarter,
          due: (latest && day(latest.due)) || rule.due,
@@ -396,7 +467,9 @@ class Portfolio {
 
    /* A closed deal joins the portfolio: the company, with the deal's owner as
       its owner, and the fund's first investment. Once per deal: for a deal that
-      already has its company nothing is added. Returns the company's id. */
+      already has its company nothing is added. A follow-on deal («Компания ·
+      follow-on», opened from the company's card) adds its investment to the
+      company instead. Returns the company's id. */
    async addFromDeal(
       deal: Deal,
       sector: { tagline: string; countries: string },
@@ -406,6 +479,20 @@ class Portfolio {
       const { companies } = await store.get();
       const known = companies.find(({ dealId }) => dealId === deal.id);
       if (known) return known.id;
+      const parent = companies.find(({ name }) =>
+         deal.company.toLowerCase().startsWith(`${name.toLowerCase()} ·`),
+      );
+      if (parent) {
+         await createRow('investments', {
+            ...investmentFields(investment),
+            kind: 'follow_on',
+            portfolio_companies_id: parent.id,
+            deals_id: deal.id,
+            decisions_id: decisionId || null,
+         });
+         await store.reload();
+         return parent.id;
+      }
       const id = newId();
       await createRow('portfolio_companies', {
          guid: id,
@@ -422,19 +509,84 @@ class Portfolio {
          deals_id: deal.id,
       });
       await createRow('investments', {
-         guid: newId(),
-         date: investment.date,
+         ...investmentFields(investment),
          kind: 'initial',
-         instrument: investment.instrument,
-         amount: investment.amount,
-         valuation: investment.valuation,
-         stake_pct: investment.stakePct,
          portfolio_companies_id: id,
          deals_id: deal.id,
          decisions_id: decisionId || null,
       });
       await store.reload();
       return id;
+   }
+
+   // What the card changes about the company.
+   async updateCompany(id: string, input: CompanyInput) {
+      await updateRow('portfolio_companies', {
+         guid: id,
+         name: input.name,
+         tagline: input.tagline,
+         about: input.about,
+         countries: input.countries,
+         owner_id: input.ownerId,
+         current_note: input.now,
+         industries_id: listIdOf('industries', input.industryKey) || null,
+      });
+      await store.reload();
+   }
+
+   // The fund's valuation of the company (post-money, USD) on a reporting
+   // date: the price of the last round or the fund's own.
+   async setValuation(id: string, valuation: number) {
+      await updateRow('portfolio_companies', {
+         guid: id,
+         valuation: String(Math.round(valuation)),
+      });
+      await store.reload();
+   }
+
+   // The fund leaves the company: sold (with what it brought) or written off.
+   async recordExit(id: string, input: ExitInput) {
+      await updateRow('portfolio_companies', {
+         guid: id,
+         status: input.status,
+         exit_date: input.date || null,
+         exit_proceeds: input.proceeds,
+         exit_type: input.type || null,
+         exit_buyer: input.buyer,
+      });
+      await store.reload();
+   }
+
+   // An exit recorded by mistake: the company is active again.
+   async reopenCompany(id: string) {
+      await updateRow('portfolio_companies', {
+         guid: id,
+         status: 'active',
+         exit_date: null,
+         exit_proceeds: null,
+         exit_type: null,
+         exit_buyer: '',
+      });
+      await store.reload();
+   }
+
+   async addPilot(companyId: string, input: PilotInput) {
+      await createRow('pilots', {
+         guid: newId(),
+         ...pilotFields(input),
+         portfolio_companies_id: companyId,
+      });
+      await store.reload();
+   }
+
+   async updatePilot(id: string, input: PilotInput) {
+      await updateRow('pilots', { guid: id, ...pilotFields(input) });
+      await store.reload();
+   }
+
+   async removePilot(id: string) {
+      await deleteRow('pilots', id);
+      await store.reload();
    }
 
    /* A request for data to a company: it shows in the company's startup

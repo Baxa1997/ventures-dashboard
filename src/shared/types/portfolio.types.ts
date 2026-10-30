@@ -43,10 +43,14 @@ export type PilotStatus = 'planned' | 'in_progress' | 'success' | 'failed';
 export interface Pilot {
    id: string;
    title: string;
-   customer: string;
+   customer: string; // the bank's unit or its client the pilot runs with
    status: PilotStatus;
-   note: string;
+   note: string; // its aim, or how it went
+   startedAt: string; // YYYY-MM-DD, '' when not set
+   endedAt: string; // YYYY-MM-DD, '' when not set
 }
+
+export type PilotInput = Omit<Pilot, 'id'>;
 
 export type RequestStatus = 'waiting_fund' | 'in_work' | 'closed';
 
@@ -90,6 +94,57 @@ export interface DataRequestInput {
 // portfolio_companies.status: held by the fund, sold, or written off.
 export type CompanyStatus = 'active' | 'exit' | 'written_off';
 
+// How the fund left a company (ucode batch 13); a write-off is its status.
+export type ExitType = 'strategic' | 'secondary' | 'buyback' | 'ipo';
+
+export interface CompanyExit {
+   date: string; // YYYY-MM-DD, '' when not recorded
+   proceeds: number | null; // USD the fund received
+   type: ExitType | '';
+   buyer: string;
+}
+
+export interface ExitInput {
+   status: Exclude<CompanyStatus, 'active'>;
+   date: string;
+   proceeds: number;
+   type: ExitType | '';
+   buyer: string;
+}
+
+// A payment of the fund into the company: the first one, or a follow-on.
+export interface InvestmentRecord {
+   id: string;
+   date: string; // YYYY-MM-DD
+   kind: 'initial' | 'follow_on';
+   instrument: Instrument;
+   amount: number; // USD
+   valuation: number | null; // USD, post-money
+   stakePct: number | null;
+}
+
+// A person of the company who signs in to the startup cabinet
+// (cabinet_members, batch 11), besides the applicant themself.
+export interface CabinetMember {
+   id: string;
+   applicationId: string;
+   email: string;
+   name: string;
+   role: 'ceo' | 'cfo' | 'cto' | 'other';
+   active: boolean;
+}
+
+// What the fund changes about a company on its card.
+export interface CompanyInput {
+   name: string;
+   tagline: string;
+   about: string;
+   industryKey: string;
+   countries: string;
+   ownerId: string;
+   now: string;
+}
+
 export interface PortfolioCompany {
    id: string; // also the address of the company's card
    name: string;
@@ -99,13 +154,17 @@ export interface PortfolioCompany {
    industryKey: string; // an industries key; '' when not set
    countries: string;
    instrument: Instrument;
-   invested: number; // USD
+   invested: number; // USD, the sum of the investments
+   investments: InvestmentRecord[]; // oldest first
    since: number; // year
    ownerId: string;
    now: string; // what is going on, when nothing more pressing is
    dealId?: string;
    facts: { label: string; value: string }[];
+   // the fund's latest valuation of the company: digits (USD) once set here,
+   // or the text it was carried over with; and an old MOIC note
    position: { valuation: string; moic: string };
+   exit: CompanyExit | null; // what an exit brought, when recorded
    reports: Record<string, QuarterReport>; // quarter → report
    metrics: Metric[];
    pilots: Pilot[];

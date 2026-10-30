@@ -1,5 +1,8 @@
 import type { BadgeTone } from '@shared/components';
 import type {
+   CabinetMember,
+   CompanyStatus,
+   ExitType,
    Instrument,
    MetricFormat,
    PilotStatus,
@@ -12,20 +15,31 @@ import type {
 
 export const PORTFOLIO_PATH = '/portfolio';
 
-export const LIST_TABS = [
-   'companies',
+// The list's views; the address keeps the one shown (?view=board).
+export const LIST_VIEWS = [
+   'table',
+   'board',
    'reports',
    'requests',
    'pilots',
 ] as const;
-export type ListTab = (typeof LIST_TABS)[number];
+export type ListView = (typeof LIST_VIEWS)[number];
 
-export const LIST_TAB_LABELS = {
-   companies: 'Компании',
-   reports: 'Квартальная отчётность',
-   requests: 'Запросы компаний',
-   pilots: 'Пилоты с SQB',
-} as const satisfies Record<ListTab, string>;
+export const LIST_VIEW_LABELS = {
+   table: 'Таблица',
+   board: 'Канбан',
+   reports: 'Отчётность',
+   requests: 'Запросы',
+   pilots: 'Пилоты',
+} as const satisfies Record<ListView, string>;
+
+// The list's tabs before it had views, as old links name them.
+export const OLD_LIST_TABS: Record<string, ListView> = {
+   companies: 'table',
+   reports: 'reports',
+   requests: 'requests',
+   pilots: 'pilots',
+};
 
 export const CARD_TABS = [
    'overview',
@@ -33,9 +47,7 @@ export const CARD_TABS = [
    'reports',
    'data',
    'pilots',
-   'requests',
-   'documents',
-   'position',
+   'tasks',
 ] as const;
 export type CardTab = (typeof CARD_TABS)[number];
 
@@ -44,11 +56,37 @@ export const CARD_TAB_LABELS = {
    metrics: 'Показатели',
    reports: 'Отчётность',
    data: 'Запросы данных',
-   pilots: 'Пилоты с SQB',
-   requests: 'Запросы к фонду',
-   documents: 'Документы',
-   position: 'Позиция и сделки',
+   pilots: 'Пилоты SQB',
+   tasks: 'Задачи',
 } as const satisfies Record<CardTab, string>;
+
+// The card's tabs before the design, as old links name them.
+export const OLD_CARD_TABS: Record<string, CardTab> = {
+   requests: 'overview',
+   position: 'overview',
+   documents: 'reports',
+};
+
+// A company's status: the board's columns are «Активные» and «Выходы».
+export const COMPANY_STATUSES = {
+   active: { label: 'Активная', tone: 'success' },
+   exit: { label: 'Выход', tone: 'info' },
+   written_off: { label: 'Списана', tone: 'neutral' },
+} as const satisfies Record<CompanyStatus, { label: string; tone: BadgeTone }>;
+
+export const EXIT_TYPES = {
+   strategic: 'Продажа стратегу',
+   secondary: 'Продажа доли инвестору',
+   buyback: 'Выкуп основателями',
+   ipo: 'IPO',
+} as const satisfies Record<ExitType, string>;
+
+export const CABINET_ROLES = {
+   ceo: 'CEO',
+   cfo: 'CFO',
+   cto: 'CTO',
+   other: 'Участник',
+} as const satisfies Record<CabinetMember['role'], string>;
 
 export const INSTRUMENT_LABELS = {
    safe: 'SAFE',

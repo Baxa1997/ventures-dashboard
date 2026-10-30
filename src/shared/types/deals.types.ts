@@ -306,6 +306,9 @@ export interface Deal {
    documents?: DealDocument[];
    folders?: DealFolder[];
    applicantEmail?: string;
+   applicantName?: string;
+   // the website's application: the startup cabinet's people belong to it
+   applicationId?: string;
    clock?: { pausedDays: number; pausedSince: string };
    workstreams?: Workstream[];
    dd?: {

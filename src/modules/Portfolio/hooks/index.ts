@@ -1,4 +1,5 @@
 import settings from '@modules/Settings/services';
+import work from '@modules/Work/services';
 import { useRefreshOnReturn, useServiceData } from '@shared/hooks';
 import attachments from '@shared/services/attachments';
 import portfolio from '../services';
@@ -28,3 +29,17 @@ export const usePortfolio = () => {
 };
 
 export type PortfolioData = NonNullable<ReturnType<typeof usePortfolio>>;
+
+const loadTasks = () => work.getTasks();
+const subscribeTasks = (listener: () => void) => work.subscribeTasks(listener);
+
+// The fund's tasks about a company, nearest deadline first; empty until read.
+export const useCompanyTasks = (companyId: string) =>
+   (useServiceData(loadTasks, subscribeTasks) ?? [])
+      .filter(
+         (task) =>
+            task.relation === 'portfolio' && task.relationId === companyId,
+      )
+      .sort((a, b) =>
+         (a.dueDate || '9999').localeCompare(b.dueDate || '9999'),
+      );

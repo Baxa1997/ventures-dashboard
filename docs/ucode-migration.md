@@ -1179,6 +1179,20 @@ New fields in the existing table task_statuses
 - color: SINGLE_LINE
 ```
 
+## Batch 13 — a portfolio company's exit
+
+Портфель records how the fund left a company, as the prototype does: the day, what the fund received, how it sold and to whom. The status (`exit`, `written_off`) was already there; until these fields exist the panel keeps only the status and its exit window says so. (`portfolio_companies.valuation`, SINGLE_LINE since batch 4, now holds the fund's own valuation in USD as digits when set from the panel; a text carried over is shown as it is.)
+
+```
+Batch 13. Same rules.
+
+New fields in the existing table portfolio_companies
+- exit_date: DATE
+- exit_proceeds: NUMBER
+- exit_type: PICK_LIST [strategic, secondary, buyback, ipo]
+- exit_buyer: SINGLE_LINE
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

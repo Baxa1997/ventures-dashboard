@@ -181,3 +181,83 @@ export const formatMetric = (
       return t('{{value}} мес', { value: `${sign}${number}` });
    return `${sign}${number}`;
 };
+
+// ---- the fund's position in a company
+
+// The fund's valuation of the company (USD): the one set on its card, or the
+// post-money of its latest investment that has one; null when neither says.
+export const valuationOf = (company: PortfolioCompany) => {
+   const own = company.position.valuation.trim();
+   if (/^\d+(\.\d+)?$/.test(own)) return Number(own);
+   const priced = [...company.investments]
+      .reverse()
+      .find(({ valuation }) => valuation !== null);
+   return priced?.valuation ?? null;
+};
+
+// The fund's stake, %: its investments' stakes added up; null when none of
+// them has one (a SAFE before it converts).
+export const stakeOf = (company: PortfolioCompany) => {
+   const stakes = company.investments.flatMap(({ stakePct }) =>
+      stakePct === null ? [] : [stakePct],
+   );
+   return stakes.length ? stakes.reduce((sum, stake) => sum + stake, 0) : null;
+};
+
+/* What the fund's position is worth: the stake at the valuation while the
+   company is held, what the exit brought after it (nothing for a write-off);
+   MOIC is that against what was invested. Null where the figures are not
+   known yet. */
+export const positionOf = (company: PortfolioCompany) => {
+   const stake = stakeOf(company);
+   const valuation = valuationOf(company);
+   const value =
+      company.status === 'active'
+         ? stake !== null && valuation !== null
+            ? (valuation * stake) / 100
+            : null
+         : company.status === 'written_off'
+           ? 0
+           : (company.exit?.proceeds ?? null);
+   const moic =
+      value !== null && company.invested ? value / company.invested : null;
+   return { stake, valuation, value, moic };
+};
+
+// The latest figure of a metric, with its quarter; null when there is none.
+export const latestValue = (company: PortfolioCompany, key: string) => {
+   const values = company.metrics.find((metric) => metric.key === key)?.values;
+   const quarter = Object.keys(values ?? {})
+      .filter((one) => values?.[one] != null)
+      .sort()
+      .at(-1);
+   return values && quarter
+      ? { quarter, value: values[quarter] as number }
+      : null;
+};
+
+// The MRR of the active companies added up by quarter, oldest first.
+export const mrrByQuarter = (companies: PortfolioCompany[]) => {
+   const sums = new Map<string, number>();
+   companies
+      .filter(({ status }) => status === 'active')
+      .forEach((company) => {
+         const values =
+            company.metrics.find(({ key }) => key === 'mrr')?.values ?? {};
+         Object.entries(values).forEach(([quarter, value]) => {
+            if (value != null)
+               sums.set(quarter, (sums.get(quarter) ?? 0) + value);
+         });
+      });
+   return [...sums]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([quarter, value]) => ({ quarter, value }));
+};
+
+// 1,85×
+export const formatMoic = (moic: number, language: string) =>
+   `${formatNumber(moic, language, 2)}×`;
+
+// 12,5%
+export const formatStake = (stake: number, language: string) =>
+   `${formatNumber(stake, language, Number.isInteger(stake) ? 0 : 1)}%`;

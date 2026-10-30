@@ -88,6 +88,30 @@ export const workingDaysBetween = (from: string, to: string) => {
    return count;
 };
 
+// A sum as short as the design writes it: $850, $150K, $2.45M.
+export const formatMoneyShort = (amount: number) => {
+   const short = (value: number, unit: string) =>
+      `$${Number(value.toFixed(2))}${unit}`;
+   if (amount >= 1_000_000) return short(amount / 1_000_000, 'M');
+   if (amount >= 1000) return short(amount / 1000, 'K');
+   return `$${Math.round(amount)}`;
+};
+
+// Round steps for an axis that reaches at least `max`: 0, 1, 2, 3 for a few
+// deals; 0, 5, 10, 15 for more.
+export const axisTicks = (max: number) => {
+   const top = Math.max(1, max);
+   const rough = top / 5;
+   const power = 10 ** Math.floor(Math.log10(rough));
+   const step =
+      top <= 5
+         ? 1
+         : ([1, 2, 5, 10].map((m) => m * power).find((s) => s >= rough) ??
+           10 * power);
+   const count = Math.ceil(top / step);
+   return Array.from({ length: count + 1 }, (_, index) => index * step);
+};
+
 // 3 020 000 — the figure the way the language writes thousands
 export const formatNumber = (value: number, language: string, digits = 0) =>
    new Intl.NumberFormat(language, {

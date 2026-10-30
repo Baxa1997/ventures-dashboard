@@ -528,6 +528,8 @@ const toDeal = (
             .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
       }),
       ...(row.applicant_email ? { applicantEmail: str(row.applicant_email) } : {}),
+      ...(row.applicant_name ? { applicantName: str(row.applicant_name) } : {}),
+      ...(row.applications_id ? { applicationId: str(row.applications_id) } : {}),
       ...((num(row.paused_days) > 0 || Boolean(row.paused_since)) && {
          clock: { pausedDays: num(row.paused_days), pausedSince: day(row.paused_since) },
       }),
