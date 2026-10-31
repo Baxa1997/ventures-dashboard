@@ -31,7 +31,8 @@ import {
 import contracts from '@modules/Contracts/services';
 import { awaitsProcurementApproval } from '@modules/Procurement/helpers';
 import procurement from '@modules/Procurement/services';
-import { directorId, TEAM } from '@shared/constants';
+import { dealLinks, seesAllDeals } from '@modules/Deals/helpers';
+import { directorId, employeeOf, TEAM } from '@shared/constants';
 import { addWorkingDays, createStore, daysUntil, newId } from '@shared/helpers';
 import attachments from '@shared/services/attachments';
 import type { Deal } from '@shared/types/deals.types';
@@ -586,10 +587,37 @@ class Work {
       return store.subscribe(listener);
    }
 
+   /* The deals a person sees: all of them, or those attached to them, as
+      Настройки → Роли say (Deals' seesAllDeals). Checked in the panel, as the
+      fund's other rules are: ucode itself answers whatever their role reads. */
+   async getVisibleDeals(userId: string): Promise<Deal[]> {
+      const all = await deals.getDeals();
+      const user = employeeOf(userId);
+      if (user && seesAllDeals(user)) return all;
+      const tasks = await store.get();
+      return all.filter((deal) => dealLinks(deal, tasks, userId).length);
+   }
+
+   // Their tasks, and for those who see only their deals, those deals' tasks.
+   async getVisibleTasks(userId: string): Promise<Task[]> {
+      const tasks = await store.get();
+      const user = employeeOf(userId);
+      if (user && seesAllDeals(user)) return tasks;
+      const dealIds = new Set(
+         (await this.getVisibleDeals(userId)).map(({ id }) => id),
+      );
+      return tasks.filter(
+         (task) =>
+            isMine(task, userId) ||
+            task.createdById === userId ||
+            (task.relation === 'deal' && dealIds.has(task.relationId)),
+      );
+   }
+
    // The deals and the companies a task can be attached to.
-   async getTargets(): Promise<TaskTargets> {
+   async getTargets(userId: string): Promise<TaskTargets> {
       const [all, holdings] = await Promise.all([
-         deals.getDeals(),
+         this.getVisibleDeals(userId),
          portfolio.getState(),
       ]);
       return {
@@ -946,9 +974,9 @@ class Work {
       ].sort((a, b) => a.date.localeCompare(b.date));
    }
 
-   async getDashboard(): Promise<Dashboard> {
+   async getDashboard(userId: string): Promise<Dashboard> {
       const [all, holdings, meetingRows] = await Promise.all([
-         deals.getDeals(),
+         this.getVisibleDeals(userId),
          portfolio.getState(),
          meetings.get(),
       ]);
@@ -1069,7 +1097,7 @@ class Work {
       const [queue, tasks, all, meetingRows] = await Promise.all([
          this.getQueue(userId),
          store.get(),
-         deals.getDeals(),
+         this.getVisibleDeals(userId),
          meetings.get(),
       ]);
       const today = todayISO();
@@ -1145,7 +1173,7 @@ class Work {
       const [tasks, queue, all, holdings] = await Promise.all([
          store.get(),
          this.getQueue(userId),
-         deals.getDeals(),
+         this.getVisibleDeals(userId),
          portfolio.getState(),
       ]);
       return {

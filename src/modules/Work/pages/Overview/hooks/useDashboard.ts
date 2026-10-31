@@ -18,9 +18,9 @@ import { useMemo } from 'react';
 const useDashboard = (userId: string) => {
    const { tasks, targets, loading, updateTask } = useTasks();
    const board = useWorkQuery<Dashboard | null>(
-      () => work.getDashboard(),
+      () => work.getDashboard(userId),
       null,
-      [],
+      [userId],
    );
 
    const mine = useMemo(() => {

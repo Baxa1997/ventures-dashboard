@@ -811,5 +811,7 @@
    "Набсовет убран из этапов сделки в Настройках, поэтому его решение не требуется.": "Kuzatuv kengashi Sozlamalarda bitim bosqichlaridan olib tashlangan, shuning uchun uning qarori talab qilinmaydi.",
    "Договор": "Shartnoma",
    "Инвестиционного договора в реестре ещё нет. Заведите его: он будет виден и в карточке компании.": "Reyestrda investitsiya shartnomasi hali yo‘q. Uni kiriting: u kompaniya kartochkasida ham ko‘rinadi.",
-   "Завести договор": "Shartnoma kiritish"
+   "Завести договор": "Shartnoma kiritish",
+   "Предложен владельцем": "Egasi sifatida taklif qilingan",
+   "Задача по сделке": "Bitim bo‘yicha vazifa"
 }

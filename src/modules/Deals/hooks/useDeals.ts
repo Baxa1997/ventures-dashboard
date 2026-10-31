@@ -1,7 +1,9 @@
+import work from '@modules/Work/services';
 import type { Deal, DealsSummary } from '@shared/types/deals.types';
-import { useRefreshOnReturn } from '@shared/hooks';
+import { useCurrentUser, useRefreshOnReturn } from '@shared/hooks';
 import { useEffect, useState } from 'react';
 import deals from '../services';
+import { summarize } from '../services/ucode';
 
 interface State {
    deals: Deal[];
@@ -9,9 +11,10 @@ interface State {
    loading: boolean;
 }
 
-// The deals and the register's figures, loaded again after every change so
-// each page shows what the others have changed.
+// The deals the signed-in person sees and the register's figures, loaded again
+// after every change so each page shows what the others have changed.
 const useDeals = () => {
+   const { id: userId } = useCurrentUser();
    const [state, setState] = useState<State>({
       deals: [],
       summary: null,
@@ -21,9 +24,14 @@ const useDeals = () => {
    useEffect(() => {
       let active = true;
       const load = () =>
-         Promise.all([deals.getDeals(), deals.getSummary()]).then(
-            ([loaded, summary]) => {
-               if (active) setState({ deals: loaded, summary, loading: false });
+         work.getVisibleDeals(userId).then(
+            (loaded) => {
+               if (active)
+                  setState({
+                     deals: loaded,
+                     summary: summarize(loaded),
+                     loading: false,
+                  });
             },
             (error: unknown) => {
                // ucode could not be read: show what is there and say why in the console
@@ -33,11 +41,13 @@ const useDeals = () => {
          );
       load();
       const unsubscribe = deals.subscribe(load);
+      const unsubscribeTasks = work.subscribeTasks(load);
       return () => {
          active = false;
          unsubscribe();
+         unsubscribeTasks();
       };
-   }, []);
+   }, [userId]);
    // an answer from the startup cabinet comes in when the person returns
    useRefreshOnReturn(() => deals.reload());
 

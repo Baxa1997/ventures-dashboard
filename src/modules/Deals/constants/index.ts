@@ -62,6 +62,17 @@ export const STAGE_HOW = {
       'Выполните условия ИК-2 и Набсовета, подпишите документы и проведите платёж. Затем «Перевести в портфель»: укажите сумму и инструмент — компания появится в «Портфеле».',
 } as const satisfies Record<DefaultStage, string>;
 
+// How a person is attached to a deal, for Настройки → Пользователи.
+export const DEAL_LINK_LABELS = {
+   owner: 'Владелец',
+   proposed: 'Предложен владельцем',
+   second: 'Второй оценщик',
+   memo: 'Меморандум',
+   team: 'Команда сделки',
+   task: 'Задача по сделке',
+} as const;
+export type DealLink = keyof typeof DEAL_LINK_LABELS;
+
 /* The conditions of a committee's approval are tasks for the deal's owner,
    due by an event rather than a date: ИК-1's before ИК-2, ИК-2's and the
    board's before signing. The deal leaves DD, and then Закрытие, only when

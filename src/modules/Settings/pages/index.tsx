@@ -19,10 +19,12 @@ import { useAction, useCurrentUser, useServiceData } from '@shared/hooks';
 import type {
    ListItem,
    SettingsState,
+   StaffCredentials,
    StaffMember,
    StageItem,
 } from '@shared/types/settings.types';
 import { UserPlus } from 'lucide-react';
+import CredentialsDialog from '@modules/Settings/components/CredentialsDialog';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useParams } from 'react-router';
@@ -33,6 +35,7 @@ import {
    Journal,
    ListSection,
    Mandate,
+   PersonWork,
    Questionnaire,
    Roles,
    SectionHeader,
@@ -77,6 +80,10 @@ const SettingsPage = () => {
    const [draft, setDraft] = useState<Draft | null>(null);
    // the person in the dialog: null closed, 'new' a new one
    const [person, setPerson] = useState<StaffMember | 'new' | null>(null);
+   // the person whose deals and tasks are open
+   const [personWork, setPersonWork] = useState<StaffMember | null>(null);
+   // the sign-in just made, to hand over
+   const [credentials, setCredentials] = useState<StaffCredentials | null>(null);
    const [adding, setAdding] = useState(false); // a new row of a list
    const [addingStage, setAddingStage] = useState(false);
    // the row or the stage asked to be deleted
@@ -241,7 +248,9 @@ const SettingsPage = () => {
                <Users
                   editable={director}
                   staff={data.staff}
+                  onCredentials={setCredentials}
                   onEdit={setPerson}
+                  onWork={setPersonWork}
                />
             );
          case 'roles':
@@ -283,6 +292,16 @@ const SettingsPage = () => {
             member={person === 'new' ? null : person}
             open={person !== null}
             onClose={() => setPerson(null)}
+            onCreated={setCredentials}
+         />
+         <CredentialsDialog
+            credentials={credentials}
+            onClose={() => setCredentials(null)}
+         />
+         <PersonWork
+            editable={director}
+            member={personWork}
+            onClose={() => setPersonWork(null)}
          />
          <StageDialog
             open={addingStage}

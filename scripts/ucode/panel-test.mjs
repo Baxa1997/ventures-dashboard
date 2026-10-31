@@ -2,7 +2,8 @@
 /* Runs the panel's services against the ucode project of .env.local, signed
    in as a real user (panel-test.ts says what it checks). The services are
    bundled with the panel's own aliases and the VITE_UCODE_* ids, then run in
-   Node. It writes test rows (named "ZZ …") and deletes them again.
+   Node. It writes test rows (named "ZZ …") and deletes them again, and makes one
+   ucode user through Настройки and takes it back.
 
      UCODE_LOGIN=<login> UCODE_PASSWORD=<password> node scripts/ucode/panel-test.mjs --write-test-rows
 

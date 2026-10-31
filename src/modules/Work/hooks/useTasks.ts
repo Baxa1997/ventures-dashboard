@@ -17,9 +17,13 @@ const NO_TARGETS: TaskTargets = { deal: [], portfolio: [] };
 // person can take on a task.
 const useTasks = () => {
    const user = useCurrentUser();
-   const tasks = useWorkQuery(() => work.getTasks(), NO_TASKS, []);
+   const tasks = useWorkQuery(() => work.getVisibleTasks(user.id), NO_TASKS, [
+      user.id,
+   ]);
    const employees = useWorkQuery(() => work.getEmployees(), NO_EMPLOYEES, []);
-   const targets = useWorkQuery(() => work.getTargets(), NO_TARGETS, []);
+   const targets = useWorkQuery(() => work.getTargets(user.id), NO_TARGETS, [
+      user.id,
+   ]);
 
    const actions = useMemo(
       () => ({

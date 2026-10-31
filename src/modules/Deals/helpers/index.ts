@@ -25,7 +25,9 @@ import type {
    Workstream,
 } from '@shared/types/deals.types';
 import dayjs from 'dayjs';
-import type { DealStage, Task } from '@shared/types/work.types';
+import { getAssigneeId } from '@modules/Work/helpers';
+import { RIGHT_SECTIONS, ROLE_RIGHTS } from '@modules/Settings/constants';
+import type { DealStage, Employee, Task } from '@shared/types/work.types';
 import type { TFunction } from 'i18next';
 import {
    currentSettings,
@@ -51,6 +53,7 @@ import {
    STAGE_NORMS,
    STATUS_LABELS,
    STATUS_TONES,
+   type DealLink,
 } from '../constants';
 
 type T = TFunction<'deals'>;
@@ -1098,6 +1101,47 @@ export const TERMS_STAGES: DealStage[] = [
 
 export const hasTermsStage = (deal: Deal) =>
    deal.status === 'portfolio' || TERMS_STAGES.includes(deal.stage);
+
+// ---- who sees a deal
+
+/* How a person is attached to a deal: as its owner or the one it is offered to,
+   its second reviewer, on its memorandum or its team, or through a task about
+   it. Nothing: they are not attached. */
+export const dealLinks = (
+   deal: Deal,
+   tasks: Task[],
+   personId: string,
+): DealLink[] => {
+   const links: (DealLink | false)[] = [
+      deal.ownerId === personId && 'owner',
+      deal.proposedOwnerId === personId && !deal.ownerId && 'proposed',
+      deal.screening?.secondId === personId && 'second',
+      (deal.memo?.sponsorId === personId ||
+         deal.memo?.authorId === personId) &&
+         'memo',
+      (deal.team ?? []).some(({ employeeId }) => employeeId === personId) &&
+         'team',
+      tasks.some(
+         (task) =>
+            task.relation === 'deal' &&
+            task.relationId === deal.id &&
+            (getAssigneeId(task) === personId ||
+               task.reviewerId === personId),
+      ) && 'task',
+   ];
+   return links.filter((link): link is DealLink => !!link);
+};
+
+/* Whether a person sees every deal, as Настройки → Роли say: their role reads
+   or runs Сделки, or the director gave them «Доступ: Полный». Otherwise, as
+   «Своё» there, they see the deals attached to them. */
+export const seesAllDeals = ({ role, access }: Employee) => {
+   if (access === 'full') return true;
+   const right = ROLE_RIGHTS.find((item) => item.role === role)?.rights[
+      RIGHT_SECTIONS.indexOf('Сделки')
+   ];
+   return right === 'full' || right === 'read';
+};
 
 // SAFE, Доля
 export const instrumentText = (t: T, deal: Deal) =>

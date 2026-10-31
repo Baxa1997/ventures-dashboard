@@ -18,6 +18,7 @@ export interface Employee {
    name: string; // the short name the lists show
    fullName?: string; // as written in employees, '' when not filled in
    role: Role;
+   access?: 'full' | 'work' | 'limited'; // employees.access: «Полный» opens all deals
 }
 
 // Sections of the platform that work items point to. Финансы and

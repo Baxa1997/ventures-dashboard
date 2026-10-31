@@ -1,6 +1,6 @@
 import { ACCESS, ROLE_LABELS } from '@modules/Settings/constants';
 import { staffChange, staffInputOf } from '@modules/Settings/helpers';
-import settings from '@modules/Settings/services';
+import settings, { currentSettings } from '@modules/Settings/services';
 import {
    Button,
    Checkbox,
@@ -14,6 +14,7 @@ import { ROLE_LABELS as SYSTEM_ROLES } from '@shared/constants';
 import { useAction, useCurrentUser } from '@shared/hooks';
 import type {
    Access,
+   StaffCredentials,
    StaffInput,
    StaffMember,
    StaffRole,
@@ -26,6 +27,7 @@ interface StaffDialogProps {
    member: StaffMember | null; // null: a new employee
    open: boolean;
    onClose: () => void;
+   onCreated: (credentials: StaffCredentials) => void; // what to hand over
 }
 
 const BLANK: StaffInput = {
@@ -39,7 +41,11 @@ const BLANK: StaffInput = {
    active: true,
 };
 
-const StaffForm = ({ member, onClose }: Omit<StaffDialogProps, 'open'>) => {
+const StaffForm = ({
+   member,
+   onClose,
+   onCreated,
+}: Omit<StaffDialogProps, 'open'>) => {
    const { t } = useTranslation('settings');
    const { t: tLayout } = useTranslation('layout');
    const user = useCurrentUser();
@@ -53,9 +59,15 @@ const StaffForm = ({ member, onClose }: Omit<StaffDialogProps, 'open'>) => {
 
    const errors = {
       name: value.name.trim() ? '' : t('Укажите имя'),
-      email: /^\S+@\S+\.\S+$/.test(value.email.trim())
-         ? ''
-         : t('Укажите рабочую почту'),
+      email: !/^\S+@\S+\.\S+$/.test(value.email.trim())
+         ? t('Укажите рабочую почту')
+         : currentSettings()?.staff.some(
+                ({ id, email }) =>
+                   id !== member?.id &&
+                   email.toLowerCase() === value.email.trim().toLowerCase(),
+             )
+           ? t('Сотрудник с такой почтой уже есть')
+           : '',
       roles: value.roles.length ? '' : t('Выберите хотя бы одну роль'),
    };
 
@@ -69,7 +81,13 @@ const StaffForm = ({ member, onClose }: Omit<StaffDialogProps, 'open'>) => {
             phone: value.phone.trim(),
          };
          if (!member) {
-            await settings.invite(next);
+            onCreated(
+               await settings.invite(
+                  next,
+                  user.id,
+                  t('Новый пользователь · {{name}}', { name: next.name }),
+               ),
+            );
             return;
          }
          const change = staffChange(t, tLayout, staffInputOf(member), next);
@@ -239,14 +257,19 @@ const StaffForm = ({ member, onClose }: Omit<StaffDialogProps, 'open'>) => {
 /* An employee added or changed by the director: who they are, their role in
    the system (what the panel lets them do), the duties they hold and their
    access level. A person can hold several duties. */
-const StaffDialog = ({ member, open, onClose }: StaffDialogProps) => {
+const StaffDialog = ({
+   member,
+   open,
+   onClose,
+   onCreated,
+}: StaffDialogProps) => {
    const { t } = useTranslation('settings');
 
    return (
       <Modal
          open={open}
          subtitle={member ? t('Пользователи') : undefined}
-         title={member ? member.name : t('Пригласить пользователя')}
+         title={member ? member.name : t('Новый пользователь')}
          onClose={onClose}
       >
          {open && (
@@ -254,6 +277,7 @@ const StaffDialog = ({ member, open, onClose }: StaffDialogProps) => {
                key={member?.id ?? 'new'}
                member={member}
                onClose={onClose}
+               onCreated={onCreated}
             />
          )}
       </Modal>

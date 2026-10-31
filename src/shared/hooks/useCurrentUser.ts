@@ -50,6 +50,7 @@ const toEmployee = (row: Record<string, unknown> & { guid: string }) => {
       name: str(row.short_name || row.full_name || row.email),
       fullName: str(row.full_name),
       role: ROLES.includes(role) ? role : 'other',
+      access: (str(row.access) || 'work') as Employee['access'],
    } satisfies Employee;
 };
 

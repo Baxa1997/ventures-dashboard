@@ -811,5 +811,7 @@
    "Набсовет убран из этапов сделки в Настройках, поэтому его решение не требуется.": "The board was removed from the deal stages in Settings, so its decision is not required.",
    "Договор": "Contract",
    "Инвестиционного договора в реестре ещё нет. Заведите его: он будет виден и в карточке компании.": "There's no investment contract in the register yet. Add it, and it shows on the company's card too.",
-   "Завести договор": "Add the contract"
+   "Завести договор": "Add the contract",
+   "Предложен владельцем": "Proposed as owner",
+   "Задача по сделке": "Task on the deal"
 }

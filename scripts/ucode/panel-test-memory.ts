@@ -4,7 +4,9 @@
    As ucode does, the copy drops a field its table lacks and answers every field
    a row has, empty ones as null. Only GET ever goes out: `memoryFetch` refuses
    anything else that it does not answer itself. It cannot show what only ucode
-   does: a user's permissions, or a pick list refusing a value. */
+   does: a user's permissions, or a pick list refusing a value. A filter matches a
+   text by a part of it, as ucode's does. With `track`, each row remembers its table,
+   and trackMissingReads then lists a field the code reads that the table lacks. */
 
 type Row = Record<string, unknown>;
 
@@ -13,10 +15,37 @@ const SYSTEM = ['guid', 'created_at', 'updated_at', 'deleted_at', 'folder_id'];
 const json = (body: unknown, status = 200) =>
    new Response(JSON.stringify(body), { status });
 
+// Fields the code reads from a row that its table does not have: a row answers
+// every field it has, empty ones as null, so any other is a mistake in the code.
+export const trackMissingReads = () => {
+   const missing = new Set<string>();
+   const parse = JSON.parse;
+   JSON.parse = ((text: string, reviver?: (this: unknown, key: string, value: unknown) => unknown) =>
+      parse(text, function (this: unknown, key: string, value: unknown) {
+         const tagged = value as (Row & { __t?: string }) | null;
+         if (tagged && typeof tagged === 'object' && tagged.__t) {
+            const table = tagged.__t;
+            delete tagged.__t;
+            return new Proxy(tagged, {
+               get(target, field, receiver) {
+                  if (typeof field === 'string' && !(field in target) && !['then', 'toJSON', 'constructor'].includes(field)) missing.add(`${table}.${field}`);
+                  return Reflect.get(target, field, receiver);
+               },
+            });
+         }
+         return reviver ? reviver.call(this, key, value) : value;
+      })) as typeof JSON.parse;
+   Response.prototype.json = async function (this: Response) {
+      return JSON.parse(await this.text());
+   };
+   return missing;
+};
+
 // A batch not made in ucode yet, as if it were: its tables' fields and rows.
 export type Pending = Record<string, { fields: string[]; rows: Row[] }>;
 
-export const memoryFetch = (send: typeof fetch, apiKey: string, environment: string, admin: string, pending: Pending = {}) => {
+export const memoryFetch = (send: typeof fetch, apiKey: string, environment: string, admin: string, pending: Pending = {}, track = false) => {
+   const out = (table: string, row: Row) => (track ? { ...row, __t: table } : row);
    const tables = new Map<string, { fields: string[]; rows: Row[] } | null>();
    const headers = { Authorization: 'API-KEY', 'X-API-KEY': apiKey, 'Environment-Id': environment };
    const dropped = new Map<string, Set<string>>();
@@ -77,13 +106,16 @@ export const memoryFetch = (send: typeof fetch, apiKey: string, environment: str
          return json({ data: { id, link: `dry-run/${id}/${file.name}`, file_name_download: file.name } }, 201);
       }
       if (url.pathname === '/v1/files' && method === 'DELETE') return json({ data: {} });
+      // a staff user is a sign-in, not a row: answered here, so a run makes none
+      if (url.pathname === '/v2/user' && method === 'POST') return json({ data: { id: crypto.randomUUID() } }, 201);
+      if (/^\/v2\/user\/[^/]+$/.test(url.pathname) && method === 'DELETE') return json({ data: {} });
       if (list) {
          const table = await read(list[1]);
          if (!table) return json({ description: `relation "${list[1]}" does not exist (SQLSTATE 42P01)` }, 500);
          if (method === 'GET') {
             const { limit = 500, offset = 0, ...filter } = JSON.parse(url.searchParams.get('data') ?? '{}') as Row & { limit?: number; offset?: number };
-            const found = table.rows.filter((row) => Object.entries(filter).every(([field, value]) => String(row[field] ?? '') === String(value ?? '')));
-            return json({ data: { data: { count: found.length, response: found.slice(offset, offset + limit) } } });
+            const found = table.rows.filter((row) => Object.entries(filter).every(([field, value]) => (value === '' || value === null ? String(row[field] ?? '') === '' : String(row[field] ?? '').includes(String(value)))));
+            return json({ data: { data: { count: found.length, response: found.slice(offset, offset + limit).map((row) => out(list[1], row)) } } });
          }
          const data = (JSON.parse(String(init?.body)) as { data?: Row }).data ?? {};
          const now = new Date().toISOString();
@@ -91,14 +123,19 @@ export const memoryFetch = (send: typeof fetch, apiKey: string, environment: str
             const row: Row = { ...Object.fromEntries(table.fields.map((field) => [field, null])), ...kept(list[1], table.fields, data), created_at: now, updated_at: now };
             row.guid = data.guid || crypto.randomUUID();
             table.rows.unshift(row);
-            return json({ data: { data: row } }, 201);
+            return json({ data: { data: out(list[1], row) } }, 201);
          }
          if (method === 'PUT') {
             const row = table.rows.find(({ guid }) => guid === data.guid);
             if (!row) return json({ description: `no row ${String(data.guid)}` }, 404);
             Object.assign(row, kept(list[1], table.fields, data), { updated_at: now });
-            return json({ data: { data: row } });
+            return json({ data: { data: out(list[1], row) } });
          }
+      }
+      if (one && method === 'GET') {
+         const table = await read(one[1]);
+         const row = table?.rows.find(({ guid }) => guid === one[2]);
+         return row ? json({ data: { data: { response: out(one[1], row) } } }) : json({ description: `no row ${one[2]}` }, 404);
       }
       if (one && method === 'DELETE') {
          const table = await read(one[1]);

@@ -178,8 +178,8 @@ const refresh = async () => {
 // ---- calls
 
 // A form (a file) goes as it is, with the browser's own content type.
-const send = (path: string, method: string, body: unknown) =>
-   fetch(`${ADMIN_URL}${path}`, {
+const send = (path: string, method: string, body: unknown, base: string) =>
+   fetch(`${base}${path}`, {
       method,
       headers: {
          ...(!(body instanceof FormData) && {
@@ -193,9 +193,14 @@ const send = (path: string, method: string, body: unknown) =>
       }),
    });
 
-const call = async <T>(method: string, path: string, body?: unknown) => {
+const call = async <T>(
+   method: string,
+   path: string,
+   body?: unknown,
+   base = ADMIN_URL,
+) => {
    if (!tokens) throw new UcodeError('Not signed in', 401);
-   let response = await send(path, method, body);
+   let response = await send(path, method, body, base);
    if (response.status === 401) {
       // the access token ran out: refresh it once, or end the session
       const next = await refresh();
@@ -205,7 +210,7 @@ const call = async <T>(method: string, path: string, body?: unknown) => {
       }
       tokens = next;
       onRefreshed(next);
-      response = await send(path, method, body);
+      response = await send(path, method, body, base);
    }
    const json = await parse(response);
    if (!response.ok)
@@ -220,7 +225,9 @@ interface ListReply {
    data?: { data?: { count?: number; response?: Row[] } };
 }
 
-// Every row of a table that matches the filter (field slug → value).
+/* Every row of a table that matches the filter (field slug → value). ucode
+   matches a text field by a part of its value («it» finds «audit» too), so the
+   rows it answers are compared exactly here. */
 export const listRows = async (
    table: string,
    filter: Record<string, unknown> = {},
@@ -237,7 +244,11 @@ export const listRows = async (
       const page = reply.data?.data?.response ?? [];
       rows.push(...page);
       if (page.length < PAGE || rows.length >= (reply.data?.data?.count ?? 0))
-         return rows;
+         return rows.filter((row) =>
+            Object.entries(filter).every(
+               ([field, value]) => String(row[field]) === String(value),
+            ),
+         );
    }
 };
 
@@ -256,6 +267,73 @@ export const updateRow = (table: string, data: Row) =>
 
 export const deleteRow = (table: string, guid: string) =>
    call('DELETE', `/v2/items/${table}/${guid}`, { data: {} });
+
+// ---- staff users, in ucode's auth service
+
+// The client type the fund's staff sign in under (docs/ucode-migration.md,
+// «Staff sign-in»); its roles carry the names of employees.role.
+const STAFF_CLIENT_TYPE = 'STAFF';
+
+interface AuthRow {
+   guid: string;
+   name: string;
+   client_type_id?: string;
+}
+
+const authCall = <T>(method: string, path: string, body?: unknown) =>
+   call<{ data?: T }>(method, `${path}?project-id=${PROJECT}`, body, AUTH_URL);
+
+const authRows = async (path: string) => {
+   const reply = await authCall<{
+      data?: { response?: AuthRow[] };
+      response?: AuthRow[];
+   }>('GET', path);
+   return reply.data?.data?.response ?? reply.data?.response ?? [];
+};
+
+/* Makes the ucode user a person signs in with, under the STAFF role of that
+   name, the signed-in director's token doing it. Answers the user's id, which
+   employees.user_id points to. Each one counts against the plan's users. */
+export const createStaffUser = async (user: {
+   login: string;
+   password: string;
+   name: string;
+   phone: string;
+   role: string;
+}) => {
+   const [types, roles] = await Promise.all([
+      authRows('/v2/client-type'),
+      authRows('/v2/role'),
+   ]);
+   const staff = types.find(({ name }) => name === STAFF_CLIENT_TYPE);
+   const role = roles.find(
+      ({ client_type_id, name }) =>
+         client_type_id === staff?.guid && name === user.role,
+   );
+   if (!staff || !role)
+      throw new UcodeError(`ucode has no STAFF role ${user.role}`, 0);
+   const reply = await authCall<{ id?: string; guid?: string }>(
+      'POST',
+      '/v2/user',
+      {
+         login: user.login,
+         email: user.login,
+         password: user.password,
+         name: user.name,
+         phone: user.phone,
+         project_id: PROJECT,
+         client_type_id: staff.guid,
+         role_id: role.guid,
+         active: 1,
+      },
+   );
+   const id = reply.data?.id ?? reply.data?.guid;
+   if (!id) throw new UcodeError('ucode answered no user id', 0);
+   return id;
+};
+
+export const deleteStaffUser = (id: string) =>
+   authCall('DELETE', `/v2/user/${id}`, {});
 
 // JSON fields are text columns in ucode: written as JSON text, read back parsed.
 export const toJson = (value: unknown) =>

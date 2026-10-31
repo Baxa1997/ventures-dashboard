@@ -190,6 +190,13 @@ Needs the company of step 0.
 8. «Открытые вопросы управления» → «Добавить»: `ZZ Конфликт интересов`, what is being done, the person responsible → it is listed «В работе»; set it to «Решён» → it leaves the list. The card shows at the top and in Фонд.
 9. In ucode, Admin → Фонд: `fund_documents` and `governance_issues` hold what you entered; `deal_documents`, `deal_folders` and `attachments` (section `committee`, `committee_record`) what was uploaded.
 
+## 15a. Пользователи и что им видно
+
+1. Настройки → Пользователи → «Добавить»: name, work email, role «Аналитик», a duty → «Данные для входа» shows the address, login and password. Copy them; they do not show again.
+2. In the person's row, «0 сд. · 0 зад.» opens what is attached. Attach a deal, then «Поставить задачу» → the row counts them.
+3. Sign out, sign in with what you copied → the top bar names the person. Сделки shows only the attached deal, another deal's address says «Сделка не найдена», Задачи their tasks, the dashboard's figures only that deal.
+4. As the director, set their «Доступ» to «Полный» → next time they see every deal.
+
 ## 16. Договоры
 
 1. Фонд → Договоры → «Новый договор», «Сохранить» with nothing filled in → it asks for the number, the other side and the subject.
@@ -222,7 +229,7 @@ Needs the company of step 0.
 - The founder has no cabinet yet: no status page, cannot answer requests or upload documents; no emails are sent (rejection letters, reminders).
 - The fund's money (`fund_money`) is not shown in the panel for now. A portfolio company is created when its deal closes; companies from before the panel come from the import.
 - A deal cannot be taken off a meeting's agenda before the meeting; at the meeting the question can be postponed («Отложить вопрос»).
-- Staff are invited in Настройки, but a ucode user for them is made with `scripts/ucode/auth.mjs`; only `Sqb-admin` can sign in today, so roles other than the director cannot be tested.
+- A new person's password is shown once to the director, as no letters go out; a lost one is changed in the ucode admin. Who sees which deals and tasks is checked in the panel, not on the server, and of the table in Настройки → Роли only the row «Сделки» is applied.
 - A modal holds the page behind it still: scrolling inside it does not move the page.
 - Files the fund uploads (data room, attachments, report templates) are in ucode Files and open for anyone who has their link; Документы still keeps links to where the fund stores its own files.
 - Deadlines skip weekends, not holidays; the working-day clock is recounted when a deal changes, not every night.
@@ -242,5 +249,7 @@ For each problem write: the step number, what you did, what you expected, what y
 ## Cleaning up
 
 Delete the `ZZ` records in the ucode admin when you are done: the `fund_documents` and `governance_issues` rows, the deals with their rows (`deal_events`, `deal_stage_history`, `screening_scores`, `deal_documents`, `deal_requests`, `workstreams`), the meetings with `meeting_attendance`, `agenda_items` and `votes`, the `decisions`, the tasks with `task_checklist` and `task_events`, the website applications, the committee members, the portfolio company with its rows, the `fund_money` and `reporting_cycles` rows, and the `ZZ Аналитик` employee. Keep «Администратор» in `employees`.
+
+`node scripts/ucode/cabinet-cycle.mjs` runs the cabinet's server and the panel's services on one set of data, with writes kept in memory: a founder signs in, answers, uploads, reports and withdraws, and the fund sees it, and the other way round. Its sign-in code comes back to the test, since no mailbox is set up.
 
 The automated version of this cycle, `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows`, runs the panel's services through the same flows, one deal from the inbox to Портфель leaving each stage only when the panel's own conditions are met, and deletes what it made; `node scripts/ucode/verify.mjs --rows` then checks the schema and the row counts. `node scripts/ucode/panel-test.mjs --dry-run` runs the same against ucode's real rows and fields and writes nothing: every write stays in memory (`panel-test-memory.ts`). It cannot show a user's permissions, or a pick list refusing a value; `--write-test-rows` does.

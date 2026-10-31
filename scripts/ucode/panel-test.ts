@@ -30,9 +30,11 @@ const created: [table: string, guid: string][] = [];
 const writes = new Map<string, Set<string>>();
 // --dry-run: nothing is written to ucode (panel-test-memory.ts)
 const dry = process.env.PANEL_TEST_DRY
-   ? (await import('./panel-test-memory')).memoryFetch(globalThis.fetch, process.env.PANEL_TEST_API_KEY ?? '', import.meta.env.VITE_UCODE_ENVIRONMENT_ID ?? '', 'https://api.admin.u-code.io', JSON.parse(process.env.PANEL_TEST_PENDING ?? '{}'))
+   ? (await import('./panel-test-memory')).memoryFetch(globalThis.fetch, process.env.PANEL_TEST_API_KEY ?? '', import.meta.env.VITE_UCODE_ENVIRONMENT_ID ?? '', 'https://api.admin.u-code.io', JSON.parse(process.env.PANEL_TEST_PENDING ?? '{}'), true)
    : null;
 const realFetch = dry?.fetchInMemory ?? globalThis.fetch;
+// with --dry-run, the fields the services read that their tables do not have
+const missingReads = dry ? (await import('./panel-test-memory')).trackMissingReads() : new Set<string>();
 // run with the project's API key instead of a user (panel-test.mjs): the
 // sign-in is answered here with the director's user, and calls carry the key
 const API_KEY = process.env.PANEL_TEST_API_KEY;
@@ -99,6 +101,8 @@ check('signed in; the team read from employees, the user a director', me, TEAM);
 if (!me) process.exit(1);
 const today = todayISO();
 
+// the ucode user the run makes through Настройки, taken back at the end
+let invitedUserId = '';
 const settingsRow = (await api.listRows('fund_settings'))[0];
 const normRows = await api.listRows('stage_norms');
 const roundRows = await api.listRows('round_stages');
@@ -134,10 +138,11 @@ try {
    const { stageNorm, mandateLimits, nextStageOf, stageKeys } = await import('@modules/Deals/helpers');
    check('Сделки follow the saved rules', stageNorm('screening') === 6 && mandateLimits().maxCheck === 300000, { screening: stageNorm('screening'), limits: mandateLimits() });
 
-   await settings.invite({ name: 'Тест Сотрудник', email: 'test.employee@example.com', position: 'Аналитик', role: 'analyst', roles: ['analyst'], access: 'work' });
+   const invitedLogin = await settings.invite({ name: 'Тест Сотрудник', email: 'test.employee@example.com', position: 'Аналитик', role: 'analyst', roles: ['analyst'], access: 'work' }, me.id, 'ZZ');
    const invited = (await settings.getSettings()).staff.find((m) => m.email === 'test.employee@example.com');
-   check('invite adds an employees row, not signed in yet', invited && invited.addedAt === today && invited.role === 'analyst', invited);
+   check('a new user gets an employees row and a sign-in', invited && invited.addedAt === today && invited.role === 'analyst' && invited.userId && invitedLogin.login === 'test.employee@example.com' && invitedLogin.password.length === 12, invited);
    check('the team includes the invited employee', TEAM.some(({ id }) => id === invited?.id));
+   invitedUserId = invited?.userId ?? '';
 
    // ---- Настройки: a list (batch 7)
    const { listOf, listIdOf, itemOf } = await import('@modules/Settings/services');
@@ -992,6 +997,41 @@ try {
       check('a vendor nothing names is deleted', !(await settings.getSettings()).vendors.some(({ name }) => name === 'ZZ Поставщик'));
    }
 
+   // ---- who sees what: a role with «Своё» sees what is attached to it, the director all
+   {
+      const { seesAllDeals } = await import('@modules/Deals/helpers');
+      const someone = TEAM.find(({ email }: { email?: string }) => email === 'test.employee@example.com') ?? (await settings.getSettings()).staff.find((m) => m.email === 'test.employee@example.com');
+      const analystId = someone?.id ?? '';
+      const allDeals = await deals.getDeals();
+      check('the director sees every deal', seesAllDeals({ id: me.id, name: '', role: 'director' }) && (await work.getVisibleDeals(me.id)).length === allDeals.length);
+      check('an analyst with no «Полный» sees only what is attached; an accountant reads all', !seesAllDeals({ id: '', name: '', role: 'analyst', access: 'work' }) && seesAllDeals({ id: '', name: '', role: 'analyst', access: 'full' }) && seesAllDeals({ id: '', name: '', role: 'accountant' }) && !seesAllDeals({ id: '', name: '', role: 'other' }));
+      const before = await work.getVisibleDeals(analystId);
+      check('someone not on the team sees no deals', !(await work.getVisibleDeals('no-such-person')).length);
+      check('an analyst sees only the deals attached to them', before.length < allDeals.length, before.map(({ company }) => company));
+      const target = allDeals.find(({ id, status }) => (status === 'active' || status === 'review') && !before.some((deal) => deal.id === id));
+      if (target) {
+         await deals.addTeamMember(target.id, { employeeId: analystId, role: 'ZZ Аналитик' });
+         const seen = await work.getVisibleDeals(analystId);
+         check('attached to one more deal, they see it too and no others', seen.length === before.length + 1 && seen.some(({ id }) => id === target.id), seen.map(({ company }) => company));
+         check('the dashboard counts only theirs', (await work.getDashboard(analystId)).deals.inWork <= seen.length);
+         const attachedTask = await work.createTask({ ...(await import('@modules/Work/helpers')).getInitialValues(undefined, me.id), title: 'ZZ Задача аналитику', relation: 'deal', relationId: target.id, assigneeId: analystId, checklist: [] } as never, me.id);
+         const otherTask = await work.createTask({ ...(await import('@modules/Work/helpers')).getInitialValues(undefined, me.id), title: 'ZZ Чужая задача', relation: 'none', relationId: '', assigneeId: me.id, checklist: [] } as never, me.id);
+         const tasksSeen = await work.getVisibleTasks(analystId);
+         check('they see their task, and not one that is not theirs', tasksSeen.some(({ id }) => id === attachedTask.id) && !tasksSeen.some(({ id }) => id === otherTask.id));
+         check('the director sees every task', (await work.getVisibleTasks(me.id)).some(({ id }) => id === otherTask.id));
+         await work.deleteTask(attachedTask.id);
+         await work.deleteTask(otherTask.id);
+         const member = (await deals.getDeals()).find(({ id }) => id === target.id)?.team?.find(({ employeeId }) => employeeId === analystId);
+         if (member?.id) await deals.removeTeamMember(target.id, member.id);
+      }
+   }
+
+   // ---- a list's rows found by their key exactly, though ucode matches a text by a part of it
+   {
+      const statuses = await api.listRows('task_statuses', { slug: 'do' });
+      check('a filter by a part of a key finds nothing', statuses.length === 0, statuses.map((row) => row.slug));
+   }
+
    // ---- sign-in refusal
    if (!API_KEY) {
       const { login } = api;
@@ -1008,6 +1048,7 @@ try {
    console.log('✗ the run stopped:', error);
 } finally {
    // ---- put everything back
+   if (invitedUserId) await api.deleteStaffUser(invitedUserId).catch((error) => check('the test user taken back', false, String(error)));
    if (settingsRow)
       await api.updateRow('fund_settings', {
          guid: settingsRow.guid,
@@ -1041,6 +1082,12 @@ try {
    }
    if (dry?.dropped.size)
       console.log('Fields written that their tables lack:', Object.fromEntries([...dry.dropped].map(([table, fields]) => [table, [...fields].sort()])));
+   // a mark only some tables have, read on purpose by a mapper they all share
+   const realMisses = [...missingReads].filter((field) => !field.endsWith('.is_system') && !field.startsWith('quarter_reports.zz_'));
+   if (realMisses.length) {
+      failures += realMisses.length;
+      console.log('Fields read that their tables lack:', realMisses.sort().join(', '));
+   }
    console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
    process.exit(failures ? 1 : 0);
 }

@@ -1,9 +1,9 @@
 import contracts from '@modules/Contracts/services';
 import { STATUS_LABELS } from '@modules/Deals/constants';
-import deals from '@modules/Deals/services';
 import { stageName } from '@modules/Settings/services';
 import work from '@modules/Work/services';
 import { MY_DAY_PATH, SECTION_PATHS } from '@shared/constants';
+import { useCurrentUser } from '@shared/hooks';
 import type { Contract } from '@shared/types/contracts.types';
 import type { Deal } from '@shared/types/deals.types';
 import type { Task } from '@shared/types/work.types';
@@ -60,6 +60,7 @@ const Search = ({ open, setOpen }: SearchProps) => {
    const { t } = useTranslation('layout');
    const { t: tDeals } = useTranslation('deals');
    const navigate = useNavigate();
+   const { id: userId } = useCurrentUser();
    const [query, setQuery] = useState('');
    const [data, setData] = useState<{
       deals: Deal[];
@@ -89,8 +90,8 @@ const Search = ({ open, setOpen }: SearchProps) => {
       setQuery('');
       let active = true;
       Promise.all([
-         deals.getDeals(),
-         work.getTasks(),
+         work.getVisibleDeals(userId),
+         work.getVisibleTasks(userId),
          contracts.getContracts(),
       ]).then(([foundDeals, tasks, foundContracts]) => {
          if (active)
@@ -99,7 +100,7 @@ const Search = ({ open, setOpen }: SearchProps) => {
       return () => {
          active = false;
       };
-   }, [open]);
+   }, [open, userId]);
 
    const text = query.trim().toLowerCase();
    const has = (value: string) => value.toLowerCase().includes(text);

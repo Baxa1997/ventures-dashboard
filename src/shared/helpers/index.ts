@@ -88,6 +88,17 @@ export const workingDaysBetween = (from: string, to: string) => {
    return count;
 };
 
+// A first password to hand over: 12 characters without the look-alikes (0 and
+// O, 1 and l), so it can be read out.
+const PASSWORD_LETTERS =
+   'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+export const newPassword = () =>
+   Array.from(
+      crypto.getRandomValues(new Uint8Array(12)),
+      (value) => PASSWORD_LETTERS[value % PASSWORD_LETTERS.length],
+   ).join('');
+
 // A sum as short as the design writes it: $850, $150K, $2.45M.
 export const formatMoneyShort = (amount: number) => {
    const short = (value: number, unit: string) =>

@@ -1,8 +1,10 @@
 import {
    createRow,
+   createStaffUser,
    day,
    deleteFile,
    deleteRow,
+   deleteStaffUser,
    fromJson,
    listRows,
    num,
@@ -11,7 +13,13 @@ import {
    toJson,
    updateRow,
 } from '@shared/api/ucode';
-import { createStore, newId, shortName, todayISO } from '@shared/helpers';
+import {
+   createStore,
+   newId,
+   newPassword,
+   shortName,
+   todayISO,
+} from '@shared/helpers';
 import { reloadTeam } from '@shared/hooks';
 import attachments from '@shared/services/attachments';
 // the instance @shared/i18n sets up; imported directly, so the services run
@@ -29,6 +37,7 @@ import type {
    ListKind,
    QuestionSection,
    SettingsState,
+   StaffCredentials,
    StaffInput,
    StaffMember,
    StaffRole,
@@ -422,6 +431,7 @@ const toStaff = (row: Row): StaffMember => {
       access: (str(row.access) || 'work') as Access,
       addedAt: day(row.invited_at) || day(row.created_at),
       active: row.is_active !== false,
+      userId: str(row.user_id),
    };
 };
 
@@ -1032,16 +1042,78 @@ class Settings {
       await store.reload();
    }
 
-   /* Adds an employee. They sign in once they have a ucode user: made with
-      `node scripts/ucode/auth.mjs user <email> <role> "<name>"`, which finds
-      this row by its email (docs/ucode-migration.md, «Staff sign-in»). */
-   async invite(input: Omit<StaffInput, 'active'>) {
-      await createRow('employees', {
+   /* Adds an employee with their sign-in: a ucode user under STAFF, with a
+      password made here and shown once, and the employees row pointing to it.
+      A user without a row would sign in as nobody, so a row that cannot be
+      written takes the user back. The change goes to the journal. */
+   async invite(
+      input: Omit<StaffInput, 'active'>,
+      userId: string,
+      field: string,
+   ): Promise<StaffCredentials> {
+      const login = input.email.trim().toLowerCase();
+      const password = newPassword();
+      const authId = await createStaffUser({
+         login,
+         password,
+         name: input.name,
+         phone: input.phone,
+         role: input.role,
+      });
+      try {
+         await createRow('employees', {
+            guid: newId(),
+            ...staffFields({ ...input, email: login, active: true }),
+            user_id: authId,
+            invited_at: todayISO(),
+         });
+      } catch (error) {
+         await deleteStaffUser(authId).catch(() => undefined);
+         throw error;
+      }
+      await createRow('settings_journal', {
          guid: newId(),
-         ...staffFields({ ...input, active: true }),
-         invited_at: todayISO(),
+         date: todayISO(),
+         employee_id: userId,
+         field,
+         from_value: '',
+         to_value: login,
       });
       await Promise.all([store.reload(), reloadTeam()]);
+      return { login, password };
+   }
+
+   // A sign-in for somebody added before there was one (their row has none).
+   async createLogin(
+      member: StaffMember,
+      userId: string,
+      field: string,
+   ): Promise<StaffCredentials> {
+      const login = member.email.trim().toLowerCase();
+      const password = newPassword();
+      const authId = await createStaffUser({
+         login,
+         password,
+         name: member.name,
+         phone: member.phone,
+         role: member.role,
+      });
+      try {
+         await updateRow('employees', { guid: member.id, user_id: authId });
+      } catch (error) {
+         await deleteStaffUser(authId).catch(() => undefined);
+         throw error;
+      }
+      await createRow('settings_journal', {
+         guid: newId(),
+         date: todayISO(),
+         employee_id: userId,
+         field,
+         from_value: '',
+         to_value: login,
+      });
+      await Promise.all([store.reload(), reloadTeam()]);
+      return { login, password };
    }
 
    /* Changes an employee: their details, role, duties, access level, or

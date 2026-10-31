@@ -77,9 +77,16 @@ export interface StaffMember {
    access: Access;
    addedAt: string; // YYYY-MM-DD: invited, or the row made
    active: boolean; // off: access closed, they sign in with the least rights
+   userId: string; // the ucode user they sign in with; '' — no sign-in yet
 }
 
-export type StaffInput = Omit<StaffMember, 'id' | 'addedAt'>;
+export type StaffInput = Omit<StaffMember, 'id' | 'addedAt' | 'userId'>;
+
+// What a new person signs in with: the password is shown once and not kept.
+export interface StaffCredentials {
+   login: string;
+   password: string;
+}
 
 export type IndustryMandate = 'focus' | 'allowed' | 'licensed' | 'excluded';
 

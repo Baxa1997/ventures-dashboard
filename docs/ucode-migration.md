@@ -151,6 +151,8 @@ Either way uses the batch messages below.
 
 ## How the platform shaped the model
 
+- **A filter matches text by a part of it.** `{"slug": "do"}` finds `done` (checked 31 October), so `listRows` in the panel and in the cabinet compares the rows it gets back exactly. A relation's guid is matched whole anyway.
+
 Batch 0 (questions only) has been answered. What followed from it:
 
 - **Relations.** ucode names a Many2One field after its target, `<target table>_id`, and the name cannot be chosen — this is the platform's rule, not only the agent's. A table therefore cannot have two relations to the same table. So:
@@ -1557,10 +1559,11 @@ What exists in the test environment (18 October):
 | client type `STAFF`, on `staff_users` | `730fcd15-19e9-4822-8bb5-758965fedf95` | `auth.mjs setup` |
 | roles under STAFF: director, deputy, analyst, manager, accountant, ic_secretary, assistant, lawyer, other (the values of `employees.role`) | — | `auth.mjs setup`, with `grant_access: true` |
 | client type `ADMIN` (ucode's own), its user `Sqb-admin` | `3b35b594-3807-430b-920d-d66725d0275c`, user `7476fcb7-9ff3-4656-922d-4d197927f557` | ucode; the employees row «Администратор», director, by `auth.mjs link Sqb-admin director "Администратор"` |
-| staff users under STAFF | none yet | `auth.mjs user <email> <role> "<Full name>"` (open, below) |
+| staff users under STAFF | `vip@unimore.com` (Bahrom, accountant) | Настройки → Пользователи, or `auth.mjs user <email> <role> "<Full name>"` |
 
 - **The panel's sign-in** (`src/shared/api/ucode`): `POST https://api.auth.u-code.io/v2/login?project-id=<project>`, header `Environment-Id`, body `{username, password, client_type, project_id, type: "default"}`. A user belongs to one client type, and ucode answers 400 or 404 both for a user it does not know there and for a wrong password, so the panel asks the client types of `VITE_UCODE_CLIENT_TYPE_IDS` in turn (STAFF, then ADMIN); signing in as `Sqb-admin` therefore shows one refused request (STAFF) before ADMIN accepts it. The reply has `token.access_token`, `token.refresh_token` and `user_id_auth`, and also the user's row with its password hash: the panel keeps only the tokens and the user id. Refresh: `PUT /v2/refresh` with the refresh token and the client type the person signed in with. Calls to the admin API then carry `Authorization: Bearer <token>` and `Environment-Id`; its CORS allows any origin, so the browser calls it directly. ADMIN's token reads and writes every ERP table (checked with `panel-test.mjs`).
-- **Who is signed in**: the employees rows are read after signing in, and the pages wait for them; the person is the row whose `user_id` is their user. A user without a row is shown by their login, with the least access. Настройки → Пользователи → «Добавить» adds an employees row (with `invited_at`); `auth.mjs user` then makes the ucode user and links that row by its email.
+- **Who is signed in**: the employees rows are read after signing in, and the pages wait for them; the person is the row whose `user_id` is their user. A user without a row is shown by their login, with the least access.
+- **Adding a person** (31 October): Настройки → Пользователи → «Добавить» makes the ucode user under STAFF with the director's token (`POST /v2/user` on the auth service, as the ucode admin does) and the employees row, and shows a password once for the director to hand over, as the panel sends no letters yet. «Создать вход» does the same for a row without a user. `auth.mjs user` stays for the command line.
 - **ucode bug:** a client type made without a table makes ucode create `<name>_users` for it, and that fails with "error getting project info" (the auth service leaves out the project the builder's check wants, `services/object-builder/grpc/service/table.go`). So the login table is made first and the client type points to it, as the admin UI does.
 - STAFF came back from the create call without `project_id` and client platform; filling them in with `PUT /v2/client-type` was not done (below).
 - Users, client types and roles are made through the auth service with the same API key (`Authorization: API-KEY`, `X-API-KEY`, `?project-id=`). **A user may take a paid seat**: the auth service reserves one when the project has a per-user price, and otherwise checks the plan's user limit.
@@ -1568,7 +1571,7 @@ What exists in the test environment (18 October):
 
 Open:
 1. **Permissions.** The nine STAFF roles were made with `grant_access: true`, which gives them broad access; they are to be narrowed to ERP.md §6 (`/v2/role-permission/detailed`, `/v2/menu-permission/detailed`) before real people get them. Changing roles and client types was stopped by Claude Code's safety check («Permission Grant») and waits for the owner's decision. Signing in as a STAFF user has not been tried: there is none yet.
-2. **The first staff users**, each a possible paid seat: the owner's decision. Until then the panel is used with `Sqb-admin`.
+2. Each staff user is a possible paid seat. The project is on a free trial of the plan «Small» (up to 10 employees) until 14 November 2026.
 3. STAFF's `project_id` and client platform (above).
 
 ## What stays empty or open

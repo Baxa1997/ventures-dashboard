@@ -1,9 +1,13 @@
 import { ACCESS, ROLE_LABELS } from '@modules/Settings/constants';
 import { staffChange, staffInputOf } from '@modules/Settings/helpers';
+import { dealLinks } from '@modules/Deals/helpers';
+import { usePeopleWork } from '@modules/Settings/hooks';
 import settings from '@modules/Settings/services';
+import { isDone, isMine } from '@modules/Work/helpers';
 import {
    Avatar,
    Badge,
+   Button,
    Card,
    NoData,
    Notice,
@@ -14,9 +18,10 @@ import {
 } from '@shared/components';
 import { ROLE_LABELS as SYSTEM_ROLES } from '@shared/constants';
 import { formatDayYear } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useCurrentUser, useRequest } from '@shared/hooks';
 import type {
    Access,
+   StaffCredentials,
    StaffInput,
    StaffMember,
 } from '@shared/types/settings.types';
@@ -29,13 +34,23 @@ import { ROW_SELECT, STICKY_END, useRowDraft } from './Dict';
 interface StaffRowProps {
    member: StaffMember;
    editable: boolean;
+   work: { deals: number; tasks: number };
    onEdit: () => void;
+   onWork: () => void;
+   onCredentials: (credentials: StaffCredentials) => void;
 }
 
 /* A person: their role in the system, their access level and whether they
    are active, each changed where it stands and written to the journal. The
    director does not change their own role or close their own access. */
-const StaffRow = ({ member, editable, onEdit }: StaffRowProps) => {
+const StaffRow = ({
+   member,
+   editable,
+   work,
+   onEdit,
+   onWork,
+   onCredentials,
+}: StaffRowProps) => {
    const { t } = useTranslation('settings');
    const { t: tLayout } = useTranslation('layout');
    const { t: tComponents } = useTranslation('components');
@@ -59,6 +74,17 @@ const StaffRow = ({ member, editable, onEdit }: StaffRowProps) => {
    });
    const shown = { ...member, ...row.draft };
    const saved = t('Сохранено');
+   const creating = useRequest({ success: t('Вход создан') });
+   const createLogin = () =>
+      creating.run(async () =>
+         onCredentials(
+            await settings.createLogin(
+               member,
+               user.id,
+               t('Вход · {{name}}', { name: member.name }),
+            ),
+         ),
+      );
 
    return (
       <tr>
@@ -86,6 +112,18 @@ const StaffRow = ({ member, editable, onEdit }: StaffRowProps) => {
                   </span>
                </span>
             </span>
+            {member.roles.length > 0 && (
+               <span className='mt-1.5 flex max-w-64 flex-wrap gap-1'>
+                  {member.roles.map((role) => (
+                     <span
+                        key={role}
+                        className='bg-neutral-tint text-neutral-ink rounded-md px-2 py-0.5 text-xs whitespace-nowrap'
+                     >
+                        {t(ROLE_LABELS[role])}
+                     </span>
+                  ))}
+               </span>
+            )}
          </td>
          <td className={TD}>
             <select
@@ -107,24 +145,29 @@ const StaffRow = ({ member, editable, onEdit }: StaffRowProps) => {
                ))}
             </select>
          </td>
-         <td className={TD}>
-            {member.roles.length ? (
-               <span className='flex max-w-72 flex-wrap gap-1'>
-                  {member.roles.map((role) => (
-                     <span
-                        key={role}
-                        className='bg-neutral-tint text-neutral-ink rounded-md px-2 py-0.5 text-xs whitespace-nowrap'
-                     >
-                        {t(ROLE_LABELS[role])}
-                     </span>
-                  ))}
-               </span>
+         <td className={clsx(TD, 'whitespace-nowrap')}>
+            {member.phone || <span className='text-ink-faint'>—</span>}
+         </td>
+         <td className={clsx(TD, 'whitespace-nowrap')}>
+            {member.userId ? (
+               <Badge tone='success'>{t('Есть')}</Badge>
+            ) : editable && member.email ? (
+               <Button
+                  loading={creating.pending}
+                  size='sm'
+                  variant='ghost'
+                  onClick={createLogin}
+               >
+                  {t('Создать вход')}
+               </Button>
             ) : (
-               <span className='text-ink-faint'>—</span>
+               <Badge tone='neutral'>{t('Нет')}</Badge>
             )}
          </td>
          <td className={clsx(TD, 'whitespace-nowrap')}>
-            {member.phone || <span className='text-ink-faint'>—</span>}
+            <button type='button' className='link' onClick={onWork}>
+               {t('{{deals}} сд. · {{tasks}} зад.', work)}
+            </button>
          </td>
          <td className={TD}>
             <select
@@ -184,24 +227,43 @@ interface UsersProps {
    staff: StaffMember[];
    editable: boolean; // the director
    onEdit: (member: StaffMember) => void;
+   onWork: (member: StaffMember) => void;
+   onCredentials: (credentials: StaffCredentials) => void;
 }
 
-// The fund's staff: who they are, their role and duties, and their access.
-const Users = ({ staff, editable, onEdit }: UsersProps) => {
+// The fund's staff: who they are, their role and duties, whether they can sign
+// in, the deals and tasks attached to them, and their access.
+const Users = ({
+   staff,
+   editable,
+   onEdit,
+   onWork,
+   onCredentials,
+}: UsersProps) => {
    const { t } = useTranslation('settings');
+   const people = usePeopleWork();
+   const workOf = ({ id }: StaffMember) => ({
+      deals: (people?.deals ?? []).filter(
+         (deal) => dealLinks(deal, people?.tasks ?? [], id).length,
+      ).length,
+      tasks: (people?.tasks ?? []).filter(
+         (task) => !isDone(task) && isMine(task, id),
+      ).length,
+   });
 
    return (
       <>
          <Card>
             {staff.length ? (
                <Table
-                  className='min-w-[44rem]'
+                  className='min-w-[54rem]'
                   head={
                      <>
                         <th className={TH}>{t('Сотрудник')}</th>
                         <th className={TH}>{t('Роль в системе')}</th>
-                        <th className={TH}>{t('Обязанности')}</th>
                         <th className={TH}>{t('Телефон')}</th>
+                        <th className={TH}>{t('Вход')}</th>
+                        <th className={TH}>{t('Сделки и задачи')}</th>
                         <th className={TH}>{t('Доступ')}</th>
                         <th className={TH}>{t('Активен')}</th>
                         {editable && (
@@ -217,7 +279,10 @@ const Users = ({ staff, editable, onEdit }: UsersProps) => {
                         key={member.id}
                         editable={editable}
                         member={member}
+                        work={workOf(member)}
+                        onCredentials={onCredentials}
                         onEdit={() => onEdit(member)}
+                        onWork={() => onWork(member)}
                      />
                   ))}
                </Table>
@@ -227,7 +292,12 @@ const Users = ({ staff, editable, onEdit }: UsersProps) => {
          </Card>
          <Notice className='mt-4'>
             {t(
-               'Роль в системе задаёт, что человек может в панели; обязанности — за что он отвечает. Неактивный сотрудник пропадает из списков исполнителей и владельцев и входит с наименьшими правами, его имя остаётся на записях. Войти новый сотрудник сможет, когда для него создадут пользователя ucode.',
+               'Аналитик и проектный менеджер видят только прикреплённые к ним сделки и задачи; «Доступ: Полный» открывает им все. Каждый вход — это пользователь ucode, их число считает тариф.',
+            )}
+         </Notice>
+         <Notice className='mt-4'>
+            {t(
+               'Роль в системе задаёт, что человек может в панели; обязанности — за что он отвечает. Неактивный сотрудник пропадает из списков исполнителей и владельцев и входит с наименьшими правами, его имя остаётся на записях.',
             )}
          </Notice>
       </>
