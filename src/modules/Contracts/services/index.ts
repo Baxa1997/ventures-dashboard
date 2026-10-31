@@ -127,6 +127,26 @@ class Contracts {
       await store.reload();
    }
 
+   // Someone is leaving: what they run or approve goes to another person.
+   async handOver(fromId: string, toId: string) {
+      const { contracts } = await store.get();
+      await Promise.all(
+         contracts
+            .filter(
+               ({ ownerId, approverId }) =>
+                  ownerId === fromId || approverId === fromId,
+            )
+            .map(({ id, ownerId, approverId }) =>
+               updateRow('contracts', {
+                  guid: id,
+                  owner_id: ownerId === fromId ? toId : ownerId,
+                  approver_id: approverId === fromId ? toId : approverId,
+               }),
+            ),
+      );
+      await store.reload();
+   }
+
    async remove(id: string) {
       await deleteRow('contracts', id);
       await store.reload();

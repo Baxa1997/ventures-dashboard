@@ -1,7 +1,7 @@
 import { ACCESS, ROLE_LABELS } from '@modules/Settings/constants';
 import { staffChange, staffInputOf } from '@modules/Settings/helpers';
 import { dealLinks } from '@modules/Deals/helpers';
-import { usePeopleWork } from '@modules/Settings/hooks';
+import { useLogins, usePeopleWork } from '@modules/Settings/hooks';
 import settings from '@modules/Settings/services';
 import { isDone, isMine } from '@modules/Work/helpers';
 import {
@@ -9,6 +9,7 @@ import {
    Badge,
    Button,
    Card,
+   ItemActions,
    NoData,
    Notice,
    Switch,
@@ -27,7 +28,6 @@ import type {
 } from '@shared/types/settings.types';
 import type { Role } from '@shared/types/work.types';
 import clsx from 'clsx';
-import { Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ROW_SELECT, STICKY_END, useRowDraft } from './Dict';
 
@@ -35,9 +35,12 @@ interface StaffRowProps {
    member: StaffMember;
    editable: boolean;
    work: { deals: number; tasks: number };
+   login: string; // their login; '' when they have none the panel can change
    onEdit: () => void;
    onWork: () => void;
    onCredentials: (credentials: StaffCredentials) => void;
+   onResetPassword: () => void; // asks first
+   onDelete: () => void; // asks first
 }
 
 /* A person: their role in the system, their access level and whether they
@@ -47,9 +50,12 @@ const StaffRow = ({
    member,
    editable,
    work,
+   login,
    onEdit,
    onWork,
    onCredentials,
+   onResetPassword,
+   onDelete,
 }: StaffRowProps) => {
    const { t } = useTranslation('settings');
    const { t: tLayout } = useTranslation('layout');
@@ -108,12 +114,14 @@ const StaffRow = ({
                   </span>
                   {/* when they were added, and nothing more */}
                   <span className='text-ink-soft block text-xs tabular-nums'>
-                     {formatDayYear(member.addedAt)}
+                     {[formatDayYear(member.addedAt), member.phone]
+                        .filter(Boolean)
+                        .join(' · ')}
                   </span>
                </span>
             </span>
             {member.roles.length > 0 && (
-               <span className='mt-1.5 flex max-w-64 flex-wrap gap-1'>
+               <span className='mt-1.5 flex max-w-52 flex-wrap gap-1'>
                   {member.roles.map((role) => (
                      <span
                         key={role}
@@ -130,7 +138,7 @@ const StaffRow = ({
                aria-label={t('Роль в системе: {{name}}', {
                   name: member.name,
                })}
-               className={clsx(ROW_SELECT, 'w-auto max-w-48 bg-white')}
+               className={clsx(ROW_SELECT, 'w-auto max-w-36 bg-white')}
                disabled={!editable || me}
                title={me ? t('Свою роль меняет другой директор') : undefined}
                value={shown.role}
@@ -144,12 +152,42 @@ const StaffRow = ({
                   </option>
                ))}
             </select>
+            <select
+               aria-label={t('Доступ: {{name}}', { name: member.name })}
+               className={clsx(ROW_SELECT, 'mt-1.5 block w-auto max-w-36 bg-white')}
+               disabled={!editable}
+               value={shown.access}
+               onChange={(event) =>
+                  row.change({ access: event.target.value as Access }, saved)
+               }
+            >
+               {(Object.keys(ACCESS) as Access[]).map((access) => (
+                  <option key={access} value={access}>
+                     {t(ACCESS[access].label)}
+                  </option>
+               ))}
+            </select>
          </td>
-         <td className={clsx(TD, 'whitespace-nowrap')}>
-            {member.phone || <span className='text-ink-faint'>—</span>}
-         </td>
-         <td className={clsx(TD, 'whitespace-nowrap')}>
-            {member.userId ? (
+         <td className={TD}>
+            {login ? (
+               <>
+                  <span
+                     className='block max-w-36 truncate text-xs'
+                     title={login}
+                  >
+                     {login}
+                  </span>
+                  {editable && !me && (
+                     <button
+                        type='button'
+                        className='link text-xs'
+                        onClick={onResetPassword}
+                     >
+                        {t('Новый пароль')}
+                     </button>
+                  )}
+               </>
+            ) : member.userId ? (
                <Badge tone='success'>{t('Есть')}</Badge>
             ) : editable && member.email ? (
                <Button
@@ -168,23 +206,6 @@ const StaffRow = ({
             <button type='button' className='link' onClick={onWork}>
                {t('{{deals}} сд. · {{tasks}} зад.', work)}
             </button>
-         </td>
-         <td className={TD}>
-            <select
-               aria-label={t('Доступ: {{name}}', { name: member.name })}
-               className={clsx(ROW_SELECT, 'w-auto bg-white')}
-               disabled={!editable}
-               value={shown.access}
-               onChange={(event) =>
-                  row.change({ access: event.target.value as Access }, saved)
-               }
-            >
-               {(Object.keys(ACCESS) as Access[]).map((access) => (
-                  <option key={access} value={access}>
-                     {t(ACCESS[access].label)}
-                  </option>
-               ))}
-            </select>
          </td>
          <td className={TD}>
             {me ? (
@@ -206,17 +227,16 @@ const StaffRow = ({
          </td>
          {editable && (
             <td className={clsx(TD, 'py-1', STICKY_END)}>
-               <button
-                  type='button'
-                  aria-label={tComponents('Изменить: {{name}}', {
-                     name: member.name,
-                  })}
-                  className='text-ink-soft hover:bg-hover hover:text-ink grid size-7 place-items-center rounded-md transition-colors'
-                  title={tComponents('Изменить')}
-                  onClick={onEdit}
-               >
-                  <Pencil aria-hidden className='size-3.5' />
-               </button>
+               {/* a person who signs in under another client type, such as the
+                   project's own admin, and the director themselves, stay */}
+               <ItemActions
+                  icons
+                  name={member.name}
+                  onDelete={
+                     me || (member.userId && !login) ? undefined : onDelete
+                  }
+                  onEdit={onEdit}
+               />
             </td>
          )}
       </tr>
@@ -229,6 +249,8 @@ interface UsersProps {
    onEdit: (member: StaffMember) => void;
    onWork: (member: StaffMember) => void;
    onCredentials: (credentials: StaffCredentials) => void;
+   onResetPassword: (member: StaffMember) => void;
+   onDelete: (member: StaffMember) => void;
 }
 
 // The fund's staff: who they are, their role and duties, whether they can sign
@@ -239,9 +261,12 @@ const Users = ({
    onEdit,
    onWork,
    onCredentials,
+   onResetPassword,
+   onDelete,
 }: UsersProps) => {
    const { t } = useTranslation('settings');
    const people = usePeopleWork();
+   const logins = useLogins(editable);
    const workOf = ({ id }: StaffMember) => ({
       deals: (people?.deals ?? []).filter(
          (deal) => dealLinks(deal, people?.tasks ?? [], id).length,
@@ -256,15 +281,13 @@ const Users = ({
          <Card>
             {staff.length ? (
                <Table
-                  className='min-w-[54rem]'
+                  className='min-w-[46rem]'
                   head={
                      <>
                         <th className={TH}>{t('Сотрудник')}</th>
-                        <th className={TH}>{t('Роль в системе')}</th>
-                        <th className={TH}>{t('Телефон')}</th>
-                        <th className={TH}>{t('Вход')}</th>
+                        <th className={TH}>{t('Роль и доступ')}</th>
+                        <th className={TH}>{t('Логин')}</th>
                         <th className={TH}>{t('Сделки и задачи')}</th>
-                        <th className={TH}>{t('Доступ')}</th>
                         <th className={TH}>{t('Активен')}</th>
                         {editable && (
                            <th className={clsx(TH, 'w-14', STICKY_END)}>
@@ -279,9 +302,15 @@ const Users = ({
                         key={member.id}
                         editable={editable}
                         member={member}
+                        login={
+                           logins.find(({ userId }) => userId === member.userId)
+                              ?.login ?? ''
+                        }
                         work={workOf(member)}
                         onCredentials={onCredentials}
+                        onDelete={() => onDelete(member)}
                         onEdit={() => onEdit(member)}
+                        onResetPassword={() => onResetPassword(member)}
                         onWork={() => onWork(member)}
                      />
                   ))}

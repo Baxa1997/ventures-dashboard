@@ -280,8 +280,18 @@ interface AuthRow {
    client_type_id?: string;
 }
 
-const authCall = <T>(method: string, path: string, body?: unknown) =>
-   call<{ data?: T }>(method, `${path}?project-id=${PROJECT}`, body, AUTH_URL);
+const authCall = <T>(
+   method: string,
+   path: string,
+   body?: unknown,
+   query = '',
+) =>
+   call<{ data?: T }>(
+      method,
+      `${path}?project-id=${PROJECT}${query}`,
+      body,
+      AUTH_URL,
+   );
 
 const authRows = async (path: string) => {
    const reply = await authCall<{
@@ -291,9 +301,32 @@ const authRows = async (path: string) => {
    return reply.data?.data?.response ?? reply.data?.response ?? [];
 };
 
+// STAFF, and its role of that name.
+const staffRole = async (name: string) => {
+   const [types, roles] = await Promise.all([
+      authRows('/v2/client-type'),
+      authRows('/v2/role'),
+   ]);
+   const staff = types.find((type) => type.name === STAFF_CLIENT_TYPE);
+   const role = roles.find(
+      (item) => item.client_type_id === staff?.guid && item.name === name,
+   );
+   if (!staff || !role) throw new UcodeError(`ucode has no STAFF role ${name}`, 0);
+   return { staff, role };
+};
+
+const staffType = async () => {
+   const staff = (await authRows('/v2/client-type')).find(
+      ({ name }) => name === STAFF_CLIENT_TYPE,
+   );
+   if (!staff) throw new UcodeError('ucode has no STAFF', 0);
+   return staff;
+};
+
 /* Makes the ucode user a person signs in with, under the STAFF role of that
    name, the signed-in director's token doing it. Answers the user's id, which
-   employees.user_id points to. Each one counts against the plan's users. */
+   employees.user_id points to. ucode writes the row of its login table,
+   staff_users, as well. Each one counts against the plan's users. */
 export const createStaffUser = async (user: {
    login: string;
    password: string;
@@ -301,17 +334,7 @@ export const createStaffUser = async (user: {
    phone: string;
    role: string;
 }) => {
-   const [types, roles] = await Promise.all([
-      authRows('/v2/client-type'),
-      authRows('/v2/role'),
-   ]);
-   const staff = types.find(({ name }) => name === STAFF_CLIENT_TYPE);
-   const role = roles.find(
-      ({ client_type_id, name }) =>
-         client_type_id === staff?.guid && name === user.role,
-   );
-   if (!staff || !role)
-      throw new UcodeError(`ucode has no STAFF role ${user.role}`, 0);
+   const { staff, role } = await staffRole(user.role);
    const reply = await authCall<{ id?: string; guid?: string }>(
       'POST',
       '/v2/user',
@@ -332,8 +355,42 @@ export const createStaffUser = async (user: {
    return id;
 };
 
-export const deleteStaffUser = (id: string) =>
-   authCall('DELETE', `/v2/user/${id}`, {});
+/* Changes a user's name, phone or role as the ucode admin does: their record is
+   read, changed and written back whole, since what is left out would be emptied. */
+export const updateStaffUser = async (
+   id: string,
+   patch: { name?: string; phone?: string; role?: string },
+) => {
+   const staff = await staffType();
+   const reply = await authCall<Record<string, unknown>>(
+      'GET',
+      `/v2/user/${id}`,
+      undefined,
+      `&client-type-id=${staff.guid}`,
+   );
+   const { password: _password, ...user } = reply.data ?? {};
+   const role = patch.role ? (await staffRole(patch.role)).role : null;
+   await authCall('PUT', '/v2/user', {
+      ...user,
+      id,
+      project_id: PROJECT,
+      client_type_id: staff.guid,
+      ...(patch.name !== undefined && { name: patch.name }),
+      ...(patch.phone !== undefined && { phone: patch.phone }),
+      ...(role && { role_id: role.guid }),
+   });
+};
+
+// Takes the user away, with the row of the login table; ucode wants the client type.
+export const deleteStaffUser = async (id: string) => {
+   const staff = await staffType();
+   await authCall(
+      'DELETE',
+      `/v2/user/${id}`,
+      {},
+      `&client-type-id=${staff.guid}`,
+   );
+};
 
 // JSON fields are text columns in ucode: written as JSON text, read back parsed.
 export const toJson = (value: unknown) =>

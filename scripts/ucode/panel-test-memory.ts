@@ -49,6 +49,8 @@ export const memoryFetch = (send: typeof fetch, apiKey: string, environment: str
    const tables = new Map<string, { fields: string[]; rows: Row[] } | null>();
    const headers = { Authorization: 'API-KEY', 'X-API-KEY': apiKey, 'Environment-Id': environment };
    const dropped = new Map<string, Set<string>>();
+   const users = new Map<string, Row>();
+   const userChanges: Row[] = [];
 
    const read = async (table: string) => {
       if (tables.has(table)) return tables.get(table) ?? null;
@@ -106,9 +108,39 @@ export const memoryFetch = (send: typeof fetch, apiKey: string, environment: str
          return json({ data: { id, link: `dry-run/${id}/${file.name}`, file_name_download: file.name } }, 201);
       }
       if (url.pathname === '/v1/files' && method === 'DELETE') return json({ data: {} });
-      // a staff user is a sign-in, not a row: answered here, so a run makes none
-      if (url.pathname === '/v2/user' && method === 'POST') return json({ data: { id: crypto.randomUUID() } }, 201);
-      if (/^\/v2\/user\/[^/]+$/.test(url.pathname) && method === 'DELETE') return json({ data: {} });
+      // a staff user is a sign-in: answered here, so a run makes none. As ucode
+      // does, a new one gets a row in the login table, a deleted one loses it, and
+      // deleting wants the client type
+      const oneUser = url.pathname.match(/^\/v2\/user\/([^/]+)$/)?.[1];
+      if (url.pathname === '/v2/user' && method === 'POST') {
+         const body = JSON.parse(String(init?.body)) as Row;
+         const id = crypto.randomUUID();
+         users.set(id, { ...body, id, password: undefined });
+         const login = await read('staff_users');
+         login?.rows.unshift({ guid: crypto.randomUUID(), login: body.login, email: body.email, user_id_auth: id, client_type_id: body.client_type_id, role_id: body.role_id, password: '(hash)' });
+         return json({ data: { id } }, 201);
+      }
+      if (oneUser && method === 'GET' && users.has(oneUser)) return json({ data: users.get(oneUser) });
+      if (url.pathname === '/v2/user' && method === 'PUT') {
+         const body = JSON.parse(String(init?.body)) as Row;
+         if (!users.has(String(body.id))) users.set(String(body.id), {});
+         for (const field of ['login', 'email', 'project_id', 'client_type_id', 'role_id']) if (!body[field]) return json({ description: `${field} would be emptied` }, 400);
+         users.set(String(body.id), body);
+         userChanges.push(body);
+         return json({ data: body });
+      }
+      if (oneUser && method === 'DELETE') {
+         if (!url.searchParams.get('client-type-id')) return json({ description: 'client type id is required' }, 400);
+         const login = await read('staff_users');
+         if (login) login.rows = login.rows.filter((row) => row.user_id_auth !== oneUser);
+         users.delete(oneUser);
+         return json({ data: {} });
+      }
+      // a password set through the login table: ucode's rule for a strong one
+      if (list?.[1] === 'staff_users' && method === 'PUT') {
+         const { password } = (JSON.parse(String(init?.body)) as { data: Row }).data;
+         if (password !== undefined && !(String(password).length >= 6 && /[A-Z]/.test(String(password)) && /[a-z]/.test(String(password)) && /\d/.test(String(password)))) return json({ description: 'password must contain a capital, a small letter and a digit' }, 400);
+      }
       if (list) {
          const table = await read(list[1]);
          if (!table) return json({ description: `relation "${list[1]}" does not exist (SQLSTATE 42P01)` }, 500);
@@ -149,5 +181,5 @@ export const memoryFetch = (send: typeof fetch, apiKey: string, environment: str
       return send(input, { ...init, headers });
    }) as typeof fetch;
 
-   return { fetchInMemory, dropped };
+   return { fetchInMemory, dropped, userChanges };
 };

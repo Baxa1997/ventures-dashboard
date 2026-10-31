@@ -196,6 +196,8 @@ Needs the company of step 0.
 2. In the person's row, «0 сд. · 0 зад.» opens what is attached. Attach a deal, then «Поставить задачу» → the row counts them.
 3. Sign out, sign in with what you copied → the top bar names the person. Сделки shows only the attached deal, another deal's address says «Сделка не найдена», Задачи their tasks, the dashboard's figures only that deal.
 4. As the director, set their «Доступ» to «Полный» → next time they see every deal.
+5. «Новый пароль» in their row → it asks first, then shows the login and a new password; the old one no longer signs in. The pencil changes their name, phone or role; signing in again shows the change.
+6. The bin beside the pencil → it counts what they run and asks who takes it over. After it they are off the list and cannot sign in; their tasks are with the person chosen, and their name stays on what they did. Your own row has no bin.
 
 ## 16. Договоры
 
@@ -229,7 +231,7 @@ Needs the company of step 0.
 - The founder has no cabinet yet: no status page, cannot answer requests or upload documents; no emails are sent (rejection letters, reminders).
 - The fund's money (`fund_money`) is not shown in the panel for now. A portfolio company is created when its deal closes; companies from before the panel come from the import.
 - A deal cannot be taken off a meeting's agenda before the meeting; at the meeting the question can be postponed («Отложить вопрос»).
-- A new person's password is shown once to the director, as no letters go out; a lost one is changed in the ucode admin. Who sees which deals and tasks is checked in the panel, not on the server, and of the table in Настройки → Роли only the row «Сделки» is applied.
+- A new person's password is shown once to the director, as no letters go out; a lost one is replaced with «Новый пароль», since ucode keeps only a hash. Who sees which deals and tasks is checked in the panel, not on the server, and of the table in Настройки → Роли only the row «Сделки» is applied.
 - A modal holds the page behind it still: scrolling inside it does not move the page.
 - Files the fund uploads (data room, attachments, report templates) are in ucode Files and open for anyone who has their link; Документы still keeps links to where the fund stores its own files.
 - Deadlines skip weekends, not holidays; the working-day clock is recounted when a deal changes, not every night.

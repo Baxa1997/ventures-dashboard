@@ -82,6 +82,15 @@ export interface StaffMember {
 
 export type StaffInput = Omit<StaffMember, 'id' | 'addedAt' | 'userId'>;
 
+// A row of ucode's login table: who signs in under STAFF, and with what login.
+// Somebody with a user but no row signs in under another client type (ADMIN):
+// the panel does not change their sign-in.
+export interface StaffLogin {
+   rowId: string;
+   userId: string;
+   login: string;
+}
+
 // What a new person signs in with: the password is shown once and not kept.
 export interface StaffCredentials {
    login: string;

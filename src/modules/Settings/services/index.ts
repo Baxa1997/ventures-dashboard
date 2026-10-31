@@ -5,6 +5,7 @@ import {
    deleteFile,
    deleteRow,
    deleteStaffUser,
+   updateStaffUser,
    fromJson,
    listRows,
    num,
@@ -39,6 +40,7 @@ import type {
    SettingsState,
    StaffCredentials,
    StaffInput,
+   StaffLogin,
    StaffMember,
    StaffRole,
    StageInput,
@@ -496,7 +498,9 @@ const store = createStore<SettingsState>(async () => {
          from: str(item.from_value),
          to: str(item.to_value),
       })),
+      // someone deleted stays a closed row, for their name on the records
       staff: employees
+         .filter((row) => row.is_active !== false || str(row.user_id))
          .map(toStaff)
          .sort((a, b) => Number(b.active) - Number(a.active)),
       lists: Object.fromEntries(
@@ -520,6 +524,16 @@ const store = createStore<SettingsState>(async () => {
       questionnaireStored: 'questionnaire' in row,
    };
 });
+
+/* The logins of ucode's login table, read only on Настройки → Пользователи:
+   its rows also hold the password's hash, which is left out here. */
+const logins = createStore<StaffLogin[]>(async () =>
+   (await listRows('staff_users').catch(() => [])).map((row) => ({
+      rowId: row.guid,
+      userId: str(row.user_id_auth),
+      login: str(row.login) || str(row.email),
+   })),
+);
 
 // Other sections read the rules as they are now, without waiting: undefined
 // until Настройки have been read (Сделки and Работа read them first).
@@ -1042,6 +1056,66 @@ class Settings {
       await store.reload();
    }
 
+   async getLogins() {
+      return logins.get();
+   }
+
+   subscribeLogins(listener: () => void) {
+      return logins.subscribe(listener);
+   }
+
+   private async loginOf(member: StaffMember) {
+      return (await logins.get()).find(
+         ({ userId }) => member.userId && userId === member.userId,
+      );
+   }
+
+   private async journal(userId: string, field: string, to: string) {
+      await createRow('settings_journal', {
+         guid: newId(),
+         date: todayISO(),
+         employee_id: userId,
+         field,
+         from_value: '',
+         to_value: to,
+      });
+   }
+
+   /* Gives a person a new password, shown once: ucode keeps only its hash, so
+      the one they have cannot be read. It goes through the row of the login
+      table, the way that does not ask for the old one, and the old stops working. */
+   async resetPassword(
+      member: StaffMember,
+      userId: string,
+      field: string,
+      to: string,
+   ): Promise<StaffCredentials> {
+      const login = await this.loginOf(member);
+      if (!login) throw new Error(`${member.name} has no STAFF sign-in`);
+      const password = newPassword();
+      await updateRow('staff_users', { guid: login.rowId, password });
+      await this.journal(userId, field, to);
+      return { login: login.login, password };
+   }
+
+   /* Deletes a person: their sign-in goes, and their employees row stays closed
+      and out of the list, so their name stays on what they did. What they ran
+      is handed over first (Settings/services/people). */
+   async removeUser(member: StaffMember, userId: string, field: string) {
+      const login = await this.loginOf(member);
+      if (member.userId && !login)
+         throw new Error(`${member.name} signs in under another client type`);
+      if (member.userId) await deleteStaffUser(member.userId);
+      await updateRow('employees', {
+         guid: member.id,
+         is_active: false,
+         user_id: null,
+         email: '',
+      });
+      await this.journal(userId, field, member.email);
+      await Promise.all([store.reload(), logins.reload(), reloadTeam()]);
+   }
+
    /* Adds an employee with their sign-in: a ucode user under STAFF, with a
       password made here and shown once, and the employees row pointing to it.
       A user without a row would sign in as nobody, so a row that cannot be
@@ -1071,15 +1145,8 @@ class Settings {
          await deleteStaffUser(authId).catch(() => undefined);
          throw error;
       }
-      await createRow('settings_journal', {
-         guid: newId(),
-         date: todayISO(),
-         employee_id: userId,
-         field,
-         from_value: '',
-         to_value: login,
-      });
-      await Promise.all([store.reload(), reloadTeam()]);
+      await this.journal(userId, field, login);
+      await Promise.all([store.reload(), logins.reload(), reloadTeam()]);
       return { login, password };
    }
 
@@ -1104,15 +1171,8 @@ class Settings {
          await deleteStaffUser(authId).catch(() => undefined);
          throw error;
       }
-      await createRow('settings_journal', {
-         guid: newId(),
-         date: todayISO(),
-         employee_id: userId,
-         field,
-         from_value: '',
-         to_value: login,
-      });
-      await Promise.all([store.reload(), reloadTeam()]);
+      await this.journal(userId, field, login);
+      await Promise.all([store.reload(), logins.reload(), reloadTeam()]);
       return { login, password };
    }
 
@@ -1126,6 +1186,28 @@ class Settings {
       userId: string,
       change: { field: string; from: string; to: string },
    ) {
+      // their sign-in first: if ucode refuses, nothing has changed on either side
+      const member = (await store.get()).staff.find((item) => item.id === id);
+      const login = member && (await this.loginOf(member));
+      if (member && login) {
+         const email = patch.email?.trim().toLowerCase();
+         if (email && login.login === member.email.toLowerCase())
+            await updateRow('staff_users', {
+               guid: login.rowId,
+               login: email,
+               email,
+            });
+         if (
+            patch.name !== undefined ||
+            patch.phone !== undefined ||
+            patch.role !== undefined
+         )
+            await updateStaffUser(member.userId, {
+               name: patch.name,
+               phone: patch.phone,
+               role: patch.role,
+            });
+      }
       await Promise.all([
          updateRow('employees', { guid: id, ...staffFields(patch) }),
          createRow('settings_journal', {
@@ -1137,7 +1219,7 @@ class Settings {
             to_value: change.to,
          }),
       ]);
-      await Promise.all([store.reload(), reloadTeam()]);
+      await Promise.all([store.reload(), logins.reload(), reloadTeam()]);
    }
 }
 

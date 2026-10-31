@@ -1026,6 +1026,55 @@ try {
       }
    }
 
+   // ---- a person's sign-in: their login, a new password, an edit, and deleting them
+   {
+      const { newPassword } = await import('@shared/helpers');
+      const strong = Array.from({ length: 2000 }, newPassword).every((text) => text.length === 12 && /[A-Z]/.test(text) && /[a-z]/.test(text) && /\d/.test(text));
+      check("a made password always meets ucode's rule: a capital, a small letter, a digit", strong);
+      const { handOver, loadOf } = await import('@modules/Settings/services/people');
+      const personOf = async () => (await settings.getSettings()).staff.find((m) => m.email === 'test.employee@example.com');
+      const person = (await personOf())!;
+      const login = (await settings.getLogins()).find(({ userId }) => userId === person.userId);
+      check('their login is read from ucode', login?.login === 'test.employee@example.com', login);
+      check("the director's own sign-in is another client type: not changed from here", !(await settings.getLogins()).some(({ userId }) => userId === (TEAM.find(({ id }) => id === me.id) as { id: string } | undefined)?.id));
+      const again = await settings.resetPassword(person, me.id, 'ZZ', 'ZZ');
+      check('a new password is written and given back, with the login', again.login === 'test.employee@example.com' && again.password.length === 12);
+      await settings.updateStaff(person.id, { name: 'Тест Сотрудник 2', phone: '+998901112233', role: 'manager' }, me.id, { field: 'ZZ', from: '', to: '' });
+      const edited = (await personOf())!;
+      check('an edit reaches the employees row', edited.name === 'Тест Сотрудник 2' && edited.phone === '+998901112233' && edited.role === 'manager', edited);
+      if (dry) {
+         const sent = dry.userChanges.at(-1);
+         check('and the ucode user, whole, with its role', sent?.name === 'Тест Сотрудник 2' && sent?.phone === '+998901112233' && sent?.login === 'test.employee@example.com' && !!sent?.role_id && !('password' in sent), sent);
+      }
+      await settings.updateStaff(person.id, { email: 'test.employee2@example.com' }, me.id, { field: 'ZZ', from: '', to: '' });
+      await (await import('@shared/helpers')).clearStores();
+      const moved = (await settings.getLogins()).find(({ userId }) => userId === person.userId);
+      check('a new email is their new login', moved?.login === 'test.employee2@example.com', moved);
+      await settings.updateStaff(person.id, { email: 'test.employee@example.com' }, me.id, { field: 'ZZ', from: '', to: '' });
+      clearStores();
+      await settings.getSettings();
+      // what they run goes to somebody first
+      const allNow = await deals.getDeals();
+      const open = allNow.find(({ status }) => status === 'active');
+      const before = open?.ownerId ?? '';
+      const task = await work.createTask({ ...(await import('@modules/Work/helpers')).getInitialValues(undefined, me.id), title: 'ZZ Задача уходящего', relation: 'none', relationId: '', assigneeId: person.id, checklist: [] } as never, me.id);
+      if (open) await deals.setOwner(open.id, person.id);
+      const load = await loadOf(person.id);
+      check('what they run is counted', load.tasks >= 1 && (!open || load.deals >= 1), load);
+      await handOver(person.id, me.id, me.id);
+      const handed = await loadOf(person.id);
+      check('handed over, they run nothing', handed.tasks === 0 && handed.deals === 0, handed);
+      check('the task and the deal are the other person\'s now', (await work.getTasks()).find(({ id }) => id === task.id)?.assigneeId === me.id && (!open || (await deals.getDeals()).find(({ id }) => id === open.id)?.ownerId === me.id));
+      if (open) await deals.setOwner(open.id, before);
+      await work.deleteTask(task.id);
+      const current = (await personOf())!;
+      await settings.removeUser(current, me.id, 'ZZ');
+      invitedUserId = '';
+      check('deleted: out of the list, their login gone', !(await personOf()) && !(await settings.getLogins()).some(({ userId }) => userId === current.userId));
+      const row = (await api.listRows('employees')).find(({ guid }) => guid === current.id);
+      check('their row stays closed, for their name on the records', row?.is_active === false && !row.user_id && !row.email, row);
+   }
+
    // ---- a list's rows found by their key exactly, though ucode matches a text by a part of it
    {
       const statuses = await api.listRows('task_statuses', { slug: 'do' });

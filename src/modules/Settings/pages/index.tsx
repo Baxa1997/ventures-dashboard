@@ -25,6 +25,8 @@ import type {
 } from '@shared/types/settings.types';
 import { UserPlus } from 'lucide-react';
 import CredentialsDialog from '@modules/Settings/components/CredentialsDialog';
+import DeleteUserDialog from '@modules/Settings/components/DeleteUserDialog';
+import ResetPasswordDialog from '@modules/Settings/components/ResetPasswordDialog';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useParams } from 'react-router';
@@ -84,6 +86,9 @@ const SettingsPage = () => {
    const [personWork, setPersonWork] = useState<StaffMember | null>(null);
    // the sign-in just made, to hand over
    const [credentials, setCredentials] = useState<StaffCredentials | null>(null);
+   // the person asked to be deleted, or given a new password
+   const [removingPerson, setRemovingPerson] = useState<StaffMember | null>(null);
+   const [resetting, setResetting] = useState<StaffMember | null>(null);
    const [adding, setAdding] = useState(false); // a new row of a list
    const [addingStage, setAddingStage] = useState(false);
    // the row or the stage asked to be deleted
@@ -249,7 +254,9 @@ const SettingsPage = () => {
                   editable={director}
                   staff={data.staff}
                   onCredentials={setCredentials}
+                  onDelete={setRemovingPerson}
                   onEdit={setPerson}
+                  onResetPassword={setResetting}
                   onWork={setPersonWork}
                />
             );
@@ -297,6 +304,16 @@ const SettingsPage = () => {
          <CredentialsDialog
             credentials={credentials}
             onClose={() => setCredentials(null)}
+         />
+         <ResetPasswordDialog
+            member={resetting}
+            onClose={() => setResetting(null)}
+            onDone={setCredentials}
+         />
+         <DeleteUserDialog
+            member={removingPerson}
+            staff={data.staff}
+            onClose={() => setRemovingPerson(null)}
          />
          <PersonWork
             editable={director}

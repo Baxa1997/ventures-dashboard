@@ -241,6 +241,12 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                actions={actions}
                editable={planned && canRecord}
                meeting={meeting}
+               removable={
+                  canRecord &&
+                  !data.decisions.some(
+                     ({ meetingId }) => meetingId === meeting.id,
+                  )
+               }
                onDelete={() => setRemoving(true)}
                onEdit={() => setChanging(true)}
             />

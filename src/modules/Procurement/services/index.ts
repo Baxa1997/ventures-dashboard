@@ -183,6 +183,26 @@ class ProcurementService {
       });
    }
 
+   // Someone is leaving: what they asked for or decide goes to another person.
+   async handOver(fromId: string, toId: string) {
+      const { requests } = await store.get();
+      await Promise.all(
+         requests
+            .filter(
+               ({ ownerId, approverId }) =>
+                  ownerId === fromId || approverId === fromId,
+            )
+            .map(({ id, ownerId, approverId }) =>
+               updateRow('procurements', {
+                  guid: id,
+                  owner_id: ownerId === fromId ? toId : ownerId,
+                  approver_id: approverId === fromId ? toId : approverId,
+               }),
+            ),
+      );
+      await store.reload();
+   }
+
    async remove(id: string) {
       await deleteRow('procurements', id);
       await store.reload();

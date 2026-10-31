@@ -534,6 +534,19 @@ class Portfolio {
       await store.reload();
    }
 
+   // Someone is leaving: the companies they look after go to another person.
+   async handOver(fromId: string, toId: string) {
+      const { companies } = await store.get();
+      await Promise.all(
+         companies
+            .filter(({ ownerId }) => ownerId === fromId)
+            .map(({ id }) =>
+               updateRow('portfolio_companies', { guid: id, owner_id: toId }),
+            ),
+      );
+      await store.reload();
+   }
+
    // The fund's valuation of the company (post-money, USD) on a reporting
    // date: the price of the last round or the fund's own.
    async setValuation(id: string, valuation: number) {

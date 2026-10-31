@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 interface MeetingHeaderProps {
    meeting: Meeting;
    editable: boolean; // planned, and the secretary or the director looks
+   removable: boolean; // no decision came from it
    actions: ReactNode; // what the meeting's state allows: open it, a break…
    onEdit: () => void;
    onDelete: () => void;
@@ -31,6 +32,7 @@ const MeetingHeader = ({
    editable,
    actions,
    onEdit,
+   removable,
    onDelete,
 }: MeetingHeaderProps) => {
    const { t } = useTranslation('committee');
@@ -73,7 +75,7 @@ const MeetingHeader = ({
          </div>
          <div className='flex max-w-full flex-wrap items-center gap-2'>
             {editable && icon(t('Изменить заседание'), Pencil, onEdit)}
-            {editable && icon(t('Удалить заседание'), Trash2, onDelete)}
+            {removable && icon(t('Удалить заседание'), Trash2, onDelete)}
             {actions}
          </div>
       </header>
