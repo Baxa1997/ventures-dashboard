@@ -808,5 +808,8 @@
    "Открыть протокол": "Bayonnomani ochish",
    "Сделка ещё не дошла до этой стадии: сейчас она на стадии «{{stage}}».": "Bitim hali bu bosqichga yetmagan: hozir u «{{stage}}» bosqichida.",
    "Решения по этой стадии нет.": "Bu bosqich bo‘yicha qaror yo‘q.",
-   "Набсовет убран из этапов сделки в Настройках, поэтому его решение не требуется.": "Kuzatuv kengashi Sozlamalarda bitim bosqichlaridan olib tashlangan, shuning uchun uning qarori talab qilinmaydi."
+   "Набсовет убран из этапов сделки в Настройках, поэтому его решение не требуется.": "Kuzatuv kengashi Sozlamalarda bitim bosqichlaridan olib tashlangan, shuning uchun uning qarori talab qilinmaydi.",
+   "Договор": "Shartnoma",
+   "Инвестиционного договора в реестре ещё нет. Заведите его: он будет виден и в карточке компании.": "Reyestrda investitsiya shartnomasi hali yo‘q. Uni kiriting: u kompaniya kartochkasida ham ko‘rinadi.",
+   "Завести договор": "Shartnoma kiritish"
 }

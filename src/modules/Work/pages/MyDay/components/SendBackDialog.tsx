@@ -1,4 +1,3 @@
-import { getAssigneeId } from '@modules/Work/helpers';
 import {
    Button,
    Field,
@@ -9,19 +8,25 @@ import {
 } from '@shared/components';
 import { personName } from '@shared/helpers';
 import { useRequest } from '@shared/hooks';
-import type { Task } from '@shared/types/work.types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-interface SendBackDialogProps {
-   task: Task | null; // null — closed
-   onClose: () => void;
-   onSendBack: (task: Task, note: string) => Promise<unknown>;
+// What is sent back, to whom, and how.
+export interface SendBackTarget {
+   title: string;
+   personId: string;
+   send: (note: string) => Promise<unknown>;
 }
 
-// «Вернуть на доработку»: what to fix goes to the task's comments, and the
-// task goes back to work.
-const SendBackDialog = ({ task, onClose, onSendBack }: SendBackDialogProps) => {
+interface SendBackDialogProps {
+   target: SendBackTarget | null; // null — closed
+   onClose: () => void;
+}
+
+// «Вернуть на доработку»: what to fix goes with it, and it goes back to whoever
+// prepared it: a task to work, a contract to its draft, a purchase to its first
+// stage.
+const SendBackDialog = ({ target, onClose }: SendBackDialogProps) => {
    const { t } = useTranslation('work');
    const [note, setNote] = useState('');
    const [error, setError] = useState('');
@@ -35,8 +40,8 @@ const SendBackDialog = ({ task, onClose, onSendBack }: SendBackDialogProps) => {
 
    return (
       <Modal
-         open={task !== null}
-         subtitle={task?.title}
+         open={target !== null}
+         subtitle={target?.title}
          title={t('Вернуть на доработку')}
          onClose={close}
       >
@@ -44,15 +49,12 @@ const SendBackDialog = ({ task, onClose, onSendBack }: SendBackDialogProps) => {
             className={MODAL_FORM}
             onSubmit={async (event) => {
                event.preventDefault();
-               if (!task) return;
+               if (!target) return;
                if (!note.trim()) {
                   setError(t('Напишите, что исправить'));
                   return;
                }
-               const text = t('Возвращено на доработку: {{note}}', {
-                  note: note.trim(),
-               });
-               if (await sending.run(() => onSendBack(task, text))) close();
+               if (await sending.run(() => target.send(note.trim()))) close();
             }}
          >
             <ModalBody>
@@ -62,9 +64,9 @@ const SendBackDialog = ({ task, onClose, onSendBack }: SendBackDialogProps) => {
                      aria-invalid={!!error}
                      className='field-input min-h-28'
                      placeholder={
-                        task
+                        target
                            ? t('Комментарий для {{name}}', {
-                                name: personName(getAssigneeId(task)),
+                                name: personName(target.personId),
                              })
                            : undefined
                      }

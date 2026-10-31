@@ -4,7 +4,13 @@ import { SECTION_PATHS } from '@shared/constants';
 import { formatNumericDate } from '@shared/helpers';
 import type { UpcomingItem } from '@shared/types/work.types';
 import type { TFunction } from 'i18next';
-import { FileClock, Gavel, type LucideIcon, Timer } from 'lucide-react';
+import {
+   FileClock,
+   FileSignature,
+   Gavel,
+   type LucideIcon,
+   Timer,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -16,6 +22,7 @@ const ICONS: Record<UpcomingItem['kind'], LucideIcon> = {
    meeting: Gavel,
    stage: Timer,
    reports: FileClock,
+   contract: FileSignature,
 };
 
 // A deadline's line and where it leads.
@@ -48,6 +55,14 @@ const wordingOf = (t: TFunction<'work'>, item: UpcomingItem) => {
                quarter: formatQuarter(item.quarter),
             }),
             to: SECTION_PATHS.portfolio,
+         };
+      case 'contract':
+         return {
+            title: t('Истекает договор {{number}} · {{party}}', {
+               number: item.number,
+               party: item.party,
+            }),
+            to: `${SECTION_PATHS.contracts}?open=${item.contractId}`,
          };
    }
 };

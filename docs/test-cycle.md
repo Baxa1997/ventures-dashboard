@@ -190,7 +190,28 @@ Needs the company of step 0.
 8. «Открытые вопросы управления» → «Добавить»: `ZZ Конфликт интересов`, what is being done, the person responsible → it is listed «В работе»; set it to «Решён» → it leaves the list. The card shows at the top and in Фонд.
 9. In ucode, Admin → Фонд: `fund_documents` and `governance_issues` hold what you entered; `deal_documents`, `deal_folders` and `attachments` (section `committee`, `committee_record`) what was uploaded.
 
-## 16. Signing out
+## 16. Договоры
+
+1. Фонд → Договоры → «Новый договор», «Сохранить» with nothing filled in → it asks for the number, the other side and the subject.
+2. Fill them in, «Статус» «На согласовании», «Согласует» «Не требуется», «Сохранить» → a row with «не подписан»; opened again, «Согласует» names the director.
+3. Мой день → «Ждут моего согласования» → the contract with who sent it, the other side and the sum. «Вернуть» with a comment → in Договоры it is «Черновик», with what to fix under its name.
+4. Move it on approval again, then «Согласовать» in Мой день → «Подписан», «с» today.
+5. Set «Действует до» within 60 days → the date is red, and Мой день's «Ближайшие сроки» says «Истекает договор».
+6. «Канбан»: carry a card to another column → it takes that status, with a note.
+7. On a deal at «Закрытие», «Следующий шаг» → «Завести договор» → the form comes filled in from the deal. Save → the card shows the number and status. Once the deal is in Портфель, the company's «Инвестиция» has «Договор», a link to it.
+8. ⌘K, a contract's number → it opens.
+
+## 17. Закупки
+
+1. Фонд → Закупки → «Новая заявка»: change the category and the sum → the line under the form gives the limit, and says the general director approves once the sum is over it.
+2. A request under the limit → «Подать заявку», then its button: «Согласование», «Выбор поставщика» → no decision asked. «Договор» → «Сначала выберите поставщика», and its form opens. Choose one, save, go on to «Оплачено» → «Закрыта».
+3. A request over the limit (over $5 000 in «Подписки и сервисы»): to «Согласование» → «ждёт решения» in red, its button «Согласовать», and it is in the director's Мой день.
+4. «Согласовать» → the window: «Вернуть инициатору» with a comment → back on «Заявка» with the comment shown. Send it again and approve → on to «Выбор поставщика».
+5. Open it and raise the sum → it goes back to «Согласование».
+6. «Канбан»: carry the card past «Согласование» while it waits → the same window for the director.
+7. Настройки → Фонд → «Категории закупок»: lower a limit → a new request is held by it. «Этапы закупок»: add a stage → a new column. «Поставщики»: one a request names is not deleted, only turned off.
+
+## 18. Signing out
 
 1. The user menu has no language choice: the panel is in Russian only for now.
 2. User menu → «Выйти» → the sign-in page; opening a page again asks to sign in.
@@ -208,6 +229,8 @@ Needs the company of step 0.
 - The memorandum's tab is not among the deal's tabs, as the design has none; it is kept and opens from Мой день («Утвердить меморандум») and from DD's «Матрица рисков» (`?tab=memo`). Memorandums are not written in the panel yet.
 - The fund's rules (stage conditions, who may save the settings) are checked in the panel, not yet on the server.
 - Partner requests are not shown in the panel.
+- Anyone can carry a contract to «Подписан» or pick it in its form, past its approver, as the prototype does; Закупки do hold a request for its approver. A purchase on the stage «Договор» is not tied to a row of Договоры, as in the prototype. The closing of a deal does not wait for its contract.
+- Чат и письма, Контент (Страницы, Адреса и контакты, Новости, FAQ) and Финансы (P&L, Cash Flow, Транзакции) of the prototype are not in the panel.
 - A change to a list reaches the website's form within five minutes (its cache), or at once after `POST /api/revalidate` with the tag `form-options`.
 - Mail, the Telegram bot, AI and the content sources are not connected (Настройки → Интеграции).
 - Every deal goes through Набсовет while its stage is in Настройки; the note on a meeting's page and the prototype say the board approves deals from $1M. That rule is not applied.

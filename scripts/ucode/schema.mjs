@@ -145,6 +145,49 @@ export const readBatches = () => {
    return batches;
 };
 
+// A batch's new tables with their fields and reference rows, as they would be
+// once made: for panel-test --pending, which runs on them without writing.
+export const pendingBatch = (id) => {
+   const batch = readBatches().find((item) => item.id === id);
+   if (!batch) throw new Error(`No batch "${id}" in ${MIGRATION}`);
+   const body = readFileSync(MIGRATION, 'utf8').match(
+      new RegExp(`^## Batch ${id} — [^\\n]+\\n[\\s\\S]*?\`\`\`\\n([\\s\\S]*?)\`\`\``, 'm'),
+   )[1];
+   const pending = Object.fromEntries(
+      batch.tables.map(({ name, fields }) => [
+         name,
+         { fields: ['guid', ...fields.map(({ slug }) => slug)], rows: [] },
+      ]),
+   );
+   let table = null;
+   let columns = [];
+   for (const line of body.split('\n')) {
+      const header = line.match(/^Rows for (\w+) \(([^)]*)\)/);
+      if (header) {
+         table = header[1];
+         columns = header[2].split(' | ').map((column) => column.trim());
+      } else if (table && line.startsWith('- ')) {
+         const { fields } = batch.tables.find(({ name }) => name === table);
+         const typeOf = (column) =>
+            fields.find(({ slug }) => slug === column)?.type;
+         const cells = line.slice(2).split(' | ').map((cell) => cell.trim());
+         pending[table].rows.push(
+            Object.fromEntries(
+               columns.map((column, index) => [
+                  column,
+                  typeOf(column) === 'BOOLEAN'
+                     ? cells[index] === 'true'
+                     : typeOf(column) === 'NUMBER'
+                       ? Number(cells[index])
+                       : cells[index],
+               ]),
+            ),
+         );
+      } else if (!line.trim()) table = null;
+   }
+   return pending;
+};
+
 // Every table of the batches with all its fields and relations, merged across
 // batches (deals gets fields in batches 2 and 5 and a relation in batch 3). A
 // field a later batch lists again replaces the earlier one (batch 7 makes pick

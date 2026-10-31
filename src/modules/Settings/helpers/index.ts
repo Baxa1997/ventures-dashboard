@@ -65,12 +65,16 @@ export const describeRow = (
                ? (row.file?.name ?? '')
                : flag === 'weight'
                  ? `${row.weight ?? 0}%`
-                 : isSwitchFlag(flag) && row[flag]
-                 ? t(SWITCH_LABELS[flag])
-                 : '';
+                 : flag === 'limit'
+                   ? `$${row.limit ?? 0}`
+                   : isSwitchFlag(flag) && row[flag]
+                     ? t(SWITCH_LABELS[flag])
+                     : '';
    return [
       [row.names.ru, row.names.uz, row.names.en].filter(Boolean).join(' / '),
       mark,
+      row.needsApproval && t('Согласование'),
+      row.needsVendor && t('Нужен поставщик'),
       row.color,
       row.active ? t('используется') : t('отключён'),
    ]

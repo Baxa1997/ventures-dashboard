@@ -1,11 +1,14 @@
+import contracts from '@modules/Contracts/services';
 import { STATUS_LABELS } from '@modules/Deals/constants';
 import deals from '@modules/Deals/services';
 import { stageName } from '@modules/Settings/services';
 import work from '@modules/Work/services';
 import { MY_DAY_PATH, SECTION_PATHS } from '@shared/constants';
+import type { Contract } from '@shared/types/contracts.types';
 import type { Deal } from '@shared/types/deals.types';
 import type { Task } from '@shared/types/work.types';
 import {
+   FileSignature,
    Gavel,
    Inbox,
    ListChecks,
@@ -40,6 +43,7 @@ interface Group {
 
 const DEALS_SHOWN = 6;
 const TASKS_SHOWN = 5;
+const CONTRACTS_SHOWN = 4;
 
 export const KBD =
    'border-line-strong text-ink-soft rounded border bg-white px-1.25 text-[11px] leading-4';
@@ -57,9 +61,14 @@ const Search = ({ open, setOpen }: SearchProps) => {
    const { t: tDeals } = useTranslation('deals');
    const navigate = useNavigate();
    const [query, setQuery] = useState('');
-   const [data, setData] = useState<{ deals: Deal[]; tasks: Task[] }>({
+   const [data, setData] = useState<{
+      deals: Deal[];
+      tasks: Task[];
+      contracts: Contract[];
+   }>({
       deals: [],
       tasks: [],
+      contracts: [],
    });
 
    useEffect(() => {
@@ -74,16 +83,19 @@ const Search = ({ open, setOpen }: SearchProps) => {
       return () => document.removeEventListener('keydown', onKeyDown);
    }, [setOpen]);
 
-   // the deals and the tasks are read when the search opens
+   // the deals, the tasks and the contracts are read when the search opens
    useEffect(() => {
       if (!open) return;
       setQuery('');
       let active = true;
-      Promise.all([deals.getDeals(), work.getTasks()]).then(
-         ([foundDeals, tasks]) => {
-            if (active) setData({ deals: foundDeals, tasks });
-         },
-      );
+      Promise.all([
+         deals.getDeals(),
+         work.getTasks(),
+         contracts.getContracts(),
+      ]).then(([foundDeals, tasks, foundContracts]) => {
+         if (active)
+            setData({ deals: foundDeals, tasks, contracts: foundContracts });
+      });
       return () => {
          active = false;
       };
@@ -130,6 +142,22 @@ const Search = ({ open, setOpen }: SearchProps) => {
                     to: `${SECTION_PATHS.tasks}?task=${task.id}`,
                     icon: ListChecks,
                     text: task.title,
+                 })),
+           },
+           {
+              label: t('Договоры'),
+              results: data.contracts
+                 .filter((contract) =>
+                    has(
+                       `${contract.number} ${contract.party} ${contract.subject}`,
+                    ),
+                 )
+                 .slice(0, CONTRACTS_SHOWN)
+                 .map((contract) => ({
+                    key: contract.id,
+                    to: `${SECTION_PATHS.contracts}?open=${contract.id}`,
+                    icon: FileSignature,
+                    text: `${contract.number} · ${contract.party}`,
                  })),
            },
         ].filter(({ results }) => results.length)

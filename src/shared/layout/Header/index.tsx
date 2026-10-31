@@ -40,7 +40,7 @@ const Header = ({ onMenuClick, crumbsRef }: HeaderProps) => {
          </div>
          <button
             type='button'
-            className='bg-ground border-line text-ink-faint hover:border-line-strong hidden h-9 min-w-55 flex-[0_1_23.75rem] items-center gap-2 rounded-lg border px-2.5 text-left lg:flex'
+            className='bg-ground border-line text-ink-faint hover:border-line-strong hidden h-9 min-w-55 flex-[0_1_15rem] items-center gap-2 rounded-lg border px-2.5 text-left lg:flex xl:flex-[0_1_23.75rem]'
             onClick={() => setSearching(true)}
          >
             <SearchIcon aria-hidden className='text-indigo size-4 shrink-0' />
@@ -50,7 +50,7 @@ const Header = ({ onMenuClick, crumbsRef }: HeaderProps) => {
             <kbd className={KBD}>⌘</kbd>
             <kbd className={KBD}>K</kbd>
          </button>
-         <div className='flex flex-1 items-center justify-end gap-1.5 lg:gap-2.5'>
+         <div className='flex shrink-0 items-center justify-end gap-1.5 lg:gap-2.5 xl:flex-1'>
             <button
                type='button'
                aria-label={t('Поиск')}

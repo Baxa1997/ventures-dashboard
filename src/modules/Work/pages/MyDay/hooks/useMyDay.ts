@@ -1,4 +1,6 @@
+import contracts from '@modules/Contracts/services';
 import deals from '@modules/Deals/services';
+import procurement from '@modules/Procurement/services';
 import {
    getInitialValues,
    myDayOf,
@@ -68,6 +70,16 @@ const useMyDay = (userId: string) => {
          await updateTask(task.id, { status: 'in_progress' });
       },
       approveMemo: (dealId: string) => deals.approveMemo(dealId, userId),
+      // a contract counts as signed; a purchase goes on to the next stage
+      approveRecord: ({ kind, recordId }: QueueItem) =>
+         kind === 'contract'
+            ? contracts.approve(recordId ?? '')
+            : procurement.approve(recordId ?? '', userId),
+      // a contract back to its draft; a purchase back to whoever asked for it
+      sendBackRecord: ({ kind, recordId }: QueueItem, note: string) =>
+         kind === 'contract'
+            ? contracts.sendBack(recordId ?? '', note)
+            : procurement.sendBack(recordId ?? '', note),
    };
 };
 

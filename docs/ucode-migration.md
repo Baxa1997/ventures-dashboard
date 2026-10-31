@@ -62,6 +62,7 @@ As of 18 October 2026, in the test environment (project SQB Ventures; confirmed 
 - 24 October, batch 9 (data room folders, document templates): the 2 tables with `POST /v1/table` as in batch 8, the 15 fields with `fields.mjs create 9`, the 2 relations with `POST /v2/relations/{table}`, each checked by its LOOKUP field (`deal_folders.deals_id`, `deal_documents.deal_folders_id`). A document points to its folder by that relation, since ucode adds its own `folder_id` to every table. `panel-test.mjs` passed all 92 checks on 24 October, the folders, the templates and an answer's filled-in files included; `verify.mjs` found all 503 fields and 55 relations, and `verify.mjs --writes` found every field the run wrote (38 tables). The tables are not yet named in Russian and Uzbek.
 - 25 October, batch 10 (the startup cabinet): `founder_codes` and `deal_questionnaires` made with the MCP's `create_table` in the folder Startup cabinet (`menu_id` `21a20661-…`), their 9 fields with `fields.mjs create 10`, the 2 relations of `deal_questionnaires` with the MCP's `update_table`; read back with `GET /v2/fields/{table}`: every field with its type, `deals_id` and `deal_requests_id` as LOOKUP fields. The tables are not yet named in Russian and Uzbek. The cabinet (`venture/startup-cabinet`) reads `deal_questionnaires` as empty where the table is missing, so a project without batch 10 still opens it; signing in needs `founder_codes`.
 - 25 October, batch 11: `cabinet_members` (folder Startup cabinet) and `company_data_requests` (Admin → Portfolio, `79c1bdb2-…`) made with the MCP's `create_table`, their 15 fields and `founder_codes.revoked_at` with `fields.mjs create 11`, the 2 pick lists with `fields.mjs options 11 --write`, the 2 relations with the MCP's `update_table`; read back with `GET /v2/fields/{table}`: every field with its type, `applications_id` and `portfolio_companies_id` as LOOKUP fields. The panel and the cabinet read both tables as empty where they are missing.
+- 31 October, batch 18 (Договоры and Закупки): the 6 tables in Admin → Fund with `fields.mjs tables 18 --folder "Fund"`, the 55 fields with `fields.mjs create 18`, the pick list with `fields.mjs options 18 --write`, the 15 rows with `rows.mjs insert 18 --write`, the names with `admin-ui.mjs menus --write` and `fields --write`. `verify.mjs`: 626 fields and 59 relations, no problems. `panel-test.mjs --dry-run` passed on the real tables, and `verify.mjs --writes` found every written field there.
 - Files uploaded to ucode Files are public: a pitch deck the website stored opens at `https://cdn.u-code.io/<its path>` without a token (checked 19 October). Документы therefore keeps links, not files; the decks need the private folder and §7 of ERP.md.
 - The ucode environment of this project is named "Production" in ucode (its only environment, `9f012d7a-0eb0-4a3a-87c7-16661eafce08`), though it is used for testing; the website's live deployment does not use it (its tables did not exist here until batch T).
 - Folder ids: Admin `60e0336b-5017-49ca-8c96-123aa5e2c9db` (the only folder named Admin), Landing page `39d78d3e-d0dc-49ef-9e99-5491b0968a41`, Startup cabinet `21a20661-d27b-43a4-98ed-37604fe83833`. All three sit under ucode's main menu, `c57eedc3-a954-4262-a0af-376c65b5a284`. Admin's sub-folders are found by their English name (`admin-ui.mjs`).
@@ -1322,6 +1323,109 @@ Rows for screening_criteria (slug | name_ru | name_uz | name_en | hint_ru | hint
 - traction | Трекшн | Trekshn | Traction | Выручка, клиенты, динамика | Tushum, mijozlar, dinamika | Revenue, customers, momentum | 15 | 4 | true
 - model | Бизнес-модель | Biznes-model | Business model | Юнит-экономика и путь к прибыльности | Birlik iqtisodiyoti va foydaga chiqish yo‘li | Unit economics and the path to profit | 10 | 5 | true
 - synergy | Синергия с SQB | SQB bilan sinergiya | Synergy with SQB | Пилот или интеграция с банком и его клиентами | Bank va uning mijozlari bilan pilot yoki integratsiya | A pilot or integration with the bank and its customers | 20 | 6 | true
+```
+
+## Batch 18 — Договоры and Закупки
+
+The fund's own contracts and purchases, as the prototype draws them, with the lists they use in Настройки → Фонд.
+
+- **Договоры.** `contracts` is the register. `contract_type` keeps a `contract_types` slug, `status` is draft, approval, signed or expired, `deal_id` ties a contract to its deal. On approval it goes to the approver's Мой день, the director's unless named. `decision_note` keeps why the approver sent it back. The types `invest` and `rent` are system rows, since the logic names them: an investment contract is the one the deal's card and the company's card show, and rent's amount is a month's.
+- **Закупки.** `procurements` is the requests. `category` and `stage` keep slugs; `vendor_id` a `vendors` row. Over its category's `limit_usd`, a request stops on the stage with `needs_approval` until `approved_by` says who decided; under it, `approved_by` is `auto`. Past the stage with `needs_vendor` it needs a vendor. The last stage closes it.
+
+Until the tables exist the pages say so and offer nothing to add, Настройки shows the lists built in without changing them, and Мой день, the search and the deal's card find no contracts or purchases.
+
+The tables, fields, pick list and rows are made with `node scripts/ucode/fields.mjs tables 18 --folder "Fund"`, `node scripts/ucode/fields.mjs create 18`, `node scripts/ucode/fields.mjs options 18 --write` and `node scripts/ucode/rows.mjs insert 18 --write`, in that order. `node scripts/ucode/panel-test.mjs --dry-run --pending 18` runs the panel's services as if they were there, with nothing written.
+
+```
+Batch 18. Same rules: every new table inside the folder "Admin", in "Fund". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table contracts
+- number: SINGLE_LINE
+- party: SINGLE_LINE
+- subject: SINGLE_LINE
+- contract_type: SINGLE_LINE
+- status: PICK_LIST [draft, approval, signed, expired]
+- amount: NUMBER
+- signed_date: DATE
+- valid_until: DATE
+- owner_id: SINGLE_LINE
+- approver_id: SINGLE_LINE
+- deal_id: SINGLE_LINE
+- decision_note: MULTI_LINE
+
+Table procurements
+- title: SINGLE_LINE
+- category: SINGLE_LINE
+- amount: NUMBER
+- stage: SINGLE_LINE
+- vendor_id: SINGLE_LINE
+- request_date: DATE
+- need_date: DATE
+- owner_id: SINGLE_LINE
+- approver_id: SINGLE_LINE
+- approved_by: SINGLE_LINE
+- note: MULTI_LINE
+- decision_note: MULTI_LINE
+
+Table vendors
+- name: SINGLE_LINE
+- tin: SINGLE_LINE
+- category: SINGLE_LINE
+- contact: SINGLE_LINE
+- phone: SINGLE_LINE
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table contract_types
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- color: SINGLE_LINE
+- sort_order: NUMBER
+- is_active: BOOLEAN
+- is_system: BOOLEAN
+
+Table procurement_categories
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- limit_usd: NUMBER
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table procurement_stages
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- color: SINGLE_LINE
+- needs_approval: BOOLEAN
+- needs_vendor: BOOLEAN
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Rows for contract_types (slug | name_ru | name_uz | name_en | color | sort_order | is_active | is_system)
+- invest | Инвестиционный | Investitsiya | Investment | #262f70 | 1 | true | true
+- nda | NDA | NDA | NDA | #5764ca | 2 | true | false
+- rent | Аренда | Ijara | Rent | #1e9bb8 | 3 | true | true
+- service | Услуги | Xizmatlar | Services | #407cea | 4 | true | false
+- purchase | Закупка | Xarid | Purchase | #c98a12 | 5 | true | false
+
+Rows for procurement_categories (slug | name_ru | name_uz | name_en | limit_usd | sort_order | is_active)
+- it | IT и оборудование | IT va jihozlar | IT and equipment | 10000 | 1 | true
+- subscriptions | Подписки и сервисы | Obunalar va servislar | Subscriptions and services | 5000 | 2 | true
+- professional | Профессиональные услуги | Professional xizmatlar | Professional services | 5000 | 3 | true
+- events | Мероприятия | Tadbirlar | Events | 5000 | 4 | true
+- household | Хозяйственные нужды | Xo‘jalik ehtiyojlari | Office supplies | 5000 | 5 | true
+
+Rows for procurement_stages (slug | name_ru | name_uz | name_en | color | needs_approval | needs_vendor | sort_order | is_active)
+- request | Заявка | Ariza | Request | #8a93a6 | false | false | 1 | true
+- approval | Согласование | Kelishuv | Approval | #c98a12 | true | false | 2 | true
+- vendor | Выбор поставщика | Yetkazib beruvchini tanlash | Choosing a vendor | #407cea | false | true | 3 | true
+- contract | Договор | Shartnoma | Contract | #5764ca | false | false | 4 | true
+- paid | Оплачено | To‘langan | Paid | #1f9d6b | false | false | 5 | true
 ```
 
 ## Checking what was created

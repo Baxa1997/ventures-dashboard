@@ -36,7 +36,8 @@ import type {
    StageItem,
    StatusGroup,
 } from '@shared/types/settings.types';
-import { BUILT_IN_LISTS, DEFAULT_STAGES } from '../constants';
+import type { Vendor, VendorInput } from '@shared/types/procurement.types';
+import { BUILT_IN_LISTS, COLORED_LISTS, DEFAULT_STAGES } from '../constants';
 import { BUILT_IN_QUESTIONNAIRE } from '../constants/questionnaire';
 import type { SupportedLanguageType } from '@shared/types/system/language.types';
 import type { Role } from '@shared/types/work.types';
@@ -196,6 +197,13 @@ const LIST_TABLES: Record<
    docFolders: { table: 'doc_folders', key: 'slug', names: 'name' },
    ddAudits: { table: 'dd_audit_types', key: 'slug', names: 'name' },
    criteria: { table: 'screening_criteria', key: 'slug', names: 'name' },
+   contractTypes: { table: 'contract_types', key: 'slug', names: 'name' },
+   procCategories: {
+      table: 'procurement_categories',
+      key: 'slug',
+      names: 'name',
+   },
+   procStages: { table: 'procurement_stages', key: 'slug', names: 'name' },
 };
 
 /* Where a list's rows are used: the tables whose rows point to an item, by
@@ -238,6 +246,12 @@ const USES: Record<
    ddAudits: [],
    // a deal's scores stay in ucode, not shown, and come back with the criterion
    criteria: [],
+   contractTypes: [{ table: 'contracts', field: 'contract_type', by: 'key' }],
+   procCategories: [
+      { table: 'procurements', field: 'category', by: 'key' },
+      { table: 'vendors', field: 'category', by: 'key' },
+   ],
+   procStages: [{ table: 'procurements', field: 'stage', by: 'key' }],
 };
 
 const GROUPS: StatusGroup[] = ['todo', 'progress', 'complete'];
@@ -302,7 +316,14 @@ const toItem = (kind: ListKind, row: Row): ListItem => {
       ...(kind === 'taskStatuses' && {
          group: oneOf(GROUPS, row.status_group, 'progress'),
          tone: oneOf(TONES, row.tone, 'neutral'),
+      }),
+      ...(COLORED_LISTS.includes(kind) && {
          color: HEX.test(str(row.color)) ? str(row.color).toLowerCase() : '',
+      }),
+      ...(kind === 'procCategories' && { limit: num(row.limit_usd) }),
+      ...(kind === 'procStages' && {
+         needsApproval: row.needs_approval === true,
+         needsVendor: row.needs_vendor === true,
       }),
       ...(kind === 'metrics' && {
          format: oneOf(FORMATS, row.format, 'number'),
@@ -347,7 +368,12 @@ const itemFields = (kind: ListKind, item: ListItemInput) => {
       }),
       // only once picked: batch 12 adds the field, and a table without it
       // still saves the rest
-      ...(kind === 'taskStatuses' && item.color && { color: item.color }),
+      ...(COLORED_LISTS.includes(kind) && item.color && { color: item.color }),
+      ...(kind === 'procCategories' && { limit_usd: item.limit ?? 0 }),
+      ...(kind === 'procStages' && {
+         needs_approval: Boolean(item.needsApproval),
+         needs_vendor: Boolean(item.needsVendor),
+      }),
       ...(kind === 'metrics' && { format: item.format ?? 'number' }),
       ...(kind === 'criteria' && {
          hint_ru: item.hints?.ru ?? '',
@@ -362,6 +388,26 @@ const itemFields = (kind: ListKind, item: ListItemInput) => {
       }),
    };
 };
+
+const toVendor = (row: Row): Vendor => ({
+   id: row.guid,
+   name: str(row.name),
+   tin: str(row.tin),
+   category: str(row.category),
+   contact: str(row.contact),
+   phone: str(row.phone),
+   active: row.is_active !== false,
+   sortOrder: num(row.sort_order),
+});
+
+const vendorFields = (input: VendorInput) => ({
+   name: input.name,
+   tin: input.tin,
+   category: input.category,
+   contact: input.contact,
+   phone: input.phone,
+   is_active: input.active,
+});
 
 const toStaff = (row: Row): StaffMember => {
    const role = str(row.role) as Role;
@@ -401,12 +447,14 @@ const byCreated = (a: Row, b: Row) =>
 let rowIds = { settings: '' };
 
 const store = createStore<SettingsState>(async () => {
-   const [settingsRows, normRows, journal, employees, ...listRowsOf] =
+   const [settingsRows, normRows, journal, employees, vendorRows, ...listRowsOf] =
       await Promise.all([
          listRows('fund_settings'),
          listRows('stage_norms'),
          listRows('settings_journal'),
          listRows('employees'),
+         // null until batch 18 has made the table
+         listRows('vendors').catch(() => null),
          // a list with built-in rows may not have its table yet
          ...LIST_KINDS.map((kind) =>
             BUILT_IN_LISTS[kind]
@@ -451,6 +499,10 @@ const store = createStore<SettingsState>(async () => {
                : builtInList(kind),
          ]),
       ) as Record<ListKind, ListItem[]>,
+      vendors: (vendorRows ?? [])
+         .map(toVendor)
+         .sort((a, b) => a.sortOrder - b.sortOrder),
+      vendorsStored: vendorRows !== null,
       // an empty list the fund left is kept; no field, or never set: the design's
       questionnaire: row.questionnaire
          ? fromJson<QuestionSection[]>(row.questionnaire, BUILT_IN_QUESTIONNAIRE)
@@ -475,6 +527,13 @@ export const itemOf = (kind: ListKind, key: string) =>
 const language = () => (i18n.resolvedLanguage ?? 'ru') as SupportedLanguageType;
 
 // An item's name in the interface language, then in Russian.
+
+// The vendors in their order; only the ones in use unless `all`.
+export const vendorsOf = (all = false) =>
+   (currentSettings()?.vendors ?? []).filter((item) => all || item.active);
+export const vendorName = (id: string) =>
+   vendorsOf(true).find((item) => item.id === id)?.name ?? '';
+
 export const nameOf = (item: ListItem) =>
    item.names[language()] || item.names.ru || item.key;
 
@@ -636,6 +695,59 @@ class Settings {
             to_value: describe(item),
          }),
       ]);
+      await store.reload();
+   }
+
+   /* Adds a vendor, or changes one; each change goes to the journal, under
+      `field` with what the row was and is. */
+   async saveVendor(
+      id: string | null,
+      input: VendorInput,
+      userId: string,
+      field: string,
+      describe: (vendor: VendorInput | null) => string,
+   ) {
+      const { vendors } = await store.get();
+      const before = id ? vendors.find((row) => row.id === id) : undefined;
+      if (id && !before) throw new Error(`No vendor ${id}`);
+      await Promise.all([
+         before
+            ? updateRow('vendors', { guid: before.id, ...vendorFields(input) })
+            : createRow('vendors', {
+                 guid: newId(),
+                 ...vendorFields(input),
+                 sort_order:
+                    Math.max(0, ...vendors.map((row) => row.sortOrder)) + 1,
+              }),
+         createRow('settings_journal', {
+            guid: newId(),
+            date: todayISO(),
+            employee_id: userId,
+            field,
+            from_value: describe(before ?? null),
+            to_value: describe(input),
+         }),
+      ]);
+      await store.reload();
+   }
+
+   // How many requests name a vendor: one in use is turned off, not deleted.
+   async vendorUsage(id: string) {
+      return (await listRows('procurements', { vendor_id: id })).length;
+   }
+
+   async deleteVendor(id: string, userId: string, field: string, from: string) {
+      if (await this.vendorUsage(id))
+         throw new Error(`The vendor ${id} is in use`);
+      await deleteRow('vendors', id);
+      await createRow('settings_journal', {
+         guid: newId(),
+         date: todayISO(),
+         employee_id: userId,
+         field,
+         from_value: from,
+         to_value: '',
+      });
       await store.reload();
    }
 

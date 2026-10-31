@@ -16,6 +16,10 @@
 
      node scripts/ucode/panel-test.mjs --dry-run
 
+   --pending <batch> also treats a batch not made in ucode yet as if it were.
+
+     node scripts/ucode/panel-test.mjs --dry-run --pending 18
+
    The password and the key are never printed. Run it against the test project
    only. */
 
@@ -26,6 +30,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { apiKey } from './api.mjs';
+import { pendingBatch } from './schema.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -34,6 +39,7 @@ if (!dryRun && !process.argv.includes('--write-test-rows')) {
    console.error('This writes test rows and deletes them again. Run with --write-test-rows, or --dry-run to write nothing.');
    process.exit(2);
 }
+const pending = dryRun && process.argv.includes('--pending') ? process.argv[process.argv.indexOf('--pending') + 1] : '';
 const signedIn = !dryRun && process.env.UCODE_LOGIN && process.env.UCODE_PASSWORD;
 
 // the VITE_UCODE_* ids, from the environment or .env.local / .env
@@ -70,6 +76,7 @@ const { status } = spawnSync(process.execPath, [outfile], {
       ...process.env,
       ...(!signedIn && { PANEL_TEST_API_KEY: apiKey() }),
       ...(dryRun && { PANEL_TEST_DRY: '1' }),
+      ...(pending && { PANEL_TEST_PENDING: JSON.stringify(pendingBatch(pending)) }),
    },
 });
 process.exit(status ?? 1);

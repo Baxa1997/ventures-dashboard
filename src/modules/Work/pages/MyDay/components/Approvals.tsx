@@ -7,15 +7,17 @@ import {
 import { openTask } from '@modules/Work/hooks';
 import { Button, buttonClass } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
-import { formatNumericDate, personName } from '@shared/helpers';
+import { formatNumericDate, formatUsd, personName } from '@shared/helpers';
 import { useRequest } from '@shared/hooks';
-import type { Task } from '@shared/types/work.types';
+import type { QueueItem, Task } from '@shared/types/work.types';
 import {
    Check,
+   FileSignature,
    ListChecks,
    type LucideIcon,
    ScanSearch,
    ScrollText,
+   ShoppingCart,
    Undo2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +28,9 @@ interface ApprovalsProps {
    targetName: (task: Task) => string;
    onApprove: (task: Task) => Promise<unknown>;
    onApproveMemo: (dealId: string) => Promise<unknown>;
+   onApproveRecord: (item: QueueItem) => Promise<unknown>;
    onSendBack: (task: Task) => void; // asks what to fix first
+   onSendBackRecord: (item: QueueItem) => void; // asks what to fix first
 }
 
 interface ApprovalLineProps extends Omit<ApprovalsProps, 'approvals'> {
@@ -39,8 +43,9 @@ const useWording = (
    approval: Approval,
    targetName: (task: Task) => string,
 ) => {
-   const { t } = useTranslation('work');
+   const { t, i18n } = useTranslation('work');
    const { t: tDeals } = useTranslation('deals');
+   const language = i18n.resolvedLanguage ?? i18n.language;
    if (approval.kind === 'task') {
       const { task } = approval;
       return {
@@ -53,6 +58,22 @@ const useWording = (
    }
    const { item } = approval;
    const memo = item.kind === 'memo';
+   // a contract or a purchase: its window opens on its own page
+   if (item.recordId) {
+      const contract = item.kind === 'contract';
+      const wording = queueWording(t, tDeals, item);
+      return {
+         icon: contract ? FileSignature : ShoppingCart,
+         title: wording.title,
+         fromId: item.decision?.preparedById ?? '',
+         about: [
+            wording.note,
+            !!item.amount && formatUsd(item.amount, language),
+            !contract && item.subject,
+         ],
+         to: `${SECTION_PATHS[item.section]}?open=${item.recordId}`,
+      };
+   }
    return {
       icon: memo ? ScrollText : ScanSearch,
       title: queueWording(t, tDeals, item).title,
@@ -67,12 +88,20 @@ const ApprovalLine = ({
    targetName,
    onApprove,
    onApproveMemo,
+   onApproveRecord,
    onSendBack,
+   onSendBackRecord,
 }: ApprovalLineProps) => {
    const { t } = useTranslation('work');
+   const record =
+      approval.kind === 'decision' && approval.item.recordId
+         ? approval.item
+         : null;
    const approving = useRequest({
       success:
-         approval.kind === 'task' ? t('Согласовано') : t('Меморандум утверждён'),
+         approval.kind === 'task' || record
+            ? t('Согласовано')
+            : t('Меморандум утверждён'),
    });
    const wording = useWording(approval, targetName);
    const Icon: LucideIcon = wording.icon;
@@ -86,6 +115,7 @@ const ApprovalLine = ({
 
    const approve = () => {
       if (task) return approving.run(() => onApprove(task));
+      if (record) return approving.run(() => onApproveRecord(record));
       if (memoDeal) return approving.run(() => onApproveMemo(memoDeal));
    };
 
@@ -136,7 +166,17 @@ const ApprovalLine = ({
                   {t('Вернуть')}
                </Button>
             )}
-            {(task || memoDeal) && (
+            {record && (
+               <Button
+                  size='sm'
+                  variant='ghost'
+                  onClick={() => onSendBackRecord(record)}
+               >
+                  <Undo2 aria-hidden />
+                  {t('Вернуть')}
+               </Button>
+            )}
+            {(task || memoDeal || record) && (
                <Button size='sm' loading={approving.pending} onClick={approve}>
                   <Check aria-hidden />
                   {t('Согласовать')}
@@ -148,7 +188,8 @@ const ApprovalLine = ({
 };
 
 // «Ждут моего согласования»: tasks the person checks, memorandums they
-// approve as sponsor, screenings they score as the second reviewer.
+// approve as sponsor, screenings they score as the second reviewer, contracts
+// on approval and purchases over their category's limit.
 const Approvals = ({ approvals, ...actions }: ApprovalsProps) => (
    <ul>
       {approvals.map((approval) => (

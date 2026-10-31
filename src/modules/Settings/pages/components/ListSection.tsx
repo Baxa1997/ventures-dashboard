@@ -1,4 +1,5 @@
 import {
+   COLORED_LISTS,
    INDUSTRY_MANDATES,
    LISTS,
    METRIC_FORMAT_LABELS,
@@ -66,6 +67,7 @@ interface ListRowProps {
    item: ListItem;
    editable: boolean;
    drag: RowDragProps;
+   locked?: string; // why the row may not be deleted now
    onDelete: () => void;
 }
 
@@ -74,7 +76,14 @@ interface ListRowProps {
    own mark (a select, a switch or a file). The key stays as it was made,
    since records keep it; a system row is renamed, never deleted. Every change
    goes to the journal. */
-const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
+const ListRow = ({
+   kind,
+   item,
+   editable,
+   drag,
+   locked,
+   onDelete,
+}: ListRowProps) => {
    const { t, i18n } = useTranslation('settings');
    const language = (i18n.resolvedLanguage ?? 'ru') as SupportedLanguageType;
    const user = useCurrentUser();
@@ -288,6 +297,21 @@ const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
                }
             />
          );
+      if (flag === 'limit')
+         return (
+            <RowInput
+               disabled={!editable}
+               inputMode='numeric'
+               label={t('Лимит: {{name}}', { name: nameOf(item) })}
+               value={String(shown.limit ?? 0)}
+               onSave={(limit) =>
+                  row.change(
+                     { limit: Number(limit.replace(/\D/g, '')) || 0 },
+                     saved,
+                  )
+               }
+            />
+         );
       if (isSwitchFlag(flag))
          return (
             <Switch
@@ -318,7 +342,7 @@ const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
                onChange={(active) => row.change({ active }, saved)}
             />
          </td>
-         {kind === 'taskStatuses' && (
+         {COLORED_LISTS.includes(kind) && (
             <td className={CELL}>
                <ColorInput
                   disabled={!editable}
@@ -374,6 +398,34 @@ const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
             </span>
          </td>
          {flag && <td className={CELL}>{mark()}</td>}
+         {kind === 'procStages' && (
+            <>
+               <td className={CELL}>
+                  <Switch
+                     small
+                     checked={!!shown.needsApproval}
+                     disabled={!editable}
+                     label={t('Согласование: {{name}}', { name: nameOf(item) })}
+                     onChange={(needsApproval) =>
+                        row.change({ needsApproval }, saved)
+                     }
+                  />
+               </td>
+               <td className={CELL}>
+                  <Switch
+                     small
+                     checked={!!shown.needsVendor}
+                     disabled={!editable}
+                     label={t('Нужен поставщик: {{name}}', {
+                        name: nameOf(item),
+                     })}
+                     onChange={(needsVendor) =>
+                        row.change({ needsVendor }, saved)
+                     }
+                  />
+               </td>
+            </>
+         )}
          <td className={clsx(CELL, STICKY_END)}>
             {(editable || item.isSystem) && (
                <RowDelete
@@ -382,7 +434,7 @@ const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
                         ? t(
                              'Системная строка: её можно переименовать, но не удалить',
                           )
-                        : undefined
+                        : locked
                   }
                   name={nameOf(item)}
                   onDelete={onDelete}
@@ -433,7 +485,7 @@ const ListSection = ({
          {builtIn && (
             <Notice warning>
                {t(
-                  'Это встроенный список: менять его здесь можно будет, когда в ucode появятся партии 16 и 17.',
+                  'Это встроенный список: менять его здесь можно будет, когда в ucode появится его таблица.',
                )}
             </Notice>
          )}
@@ -443,7 +495,9 @@ const ListSection = ({
             className={
                kind === 'criteria'
                   ? 'min-w-[62rem]'
-                  : kind === 'taskStatuses'
+                  : kind === 'procStages'
+                    ? 'min-w-[58rem]'
+                    : kind === 'taskStatuses'
                     ? 'min-w-[50rem]'
                     : 'min-w-[46rem]'
             }
@@ -461,7 +515,7 @@ const ListSection = ({
                      <span className='sr-only'>{t('Порядок')}</span>
                   </th>
                   <th className={clsx(HEAD, 'w-11')}>{t('Вкл.')}</th>
-                  {kind === 'taskStatuses' && (
+                  {COLORED_LISTS.includes(kind) && (
                      <th className={clsx(HEAD, 'w-11')}>{t('Цвет')}</th>
                   )}
                   {LANGUAGES.map(([language, label]) => (
@@ -483,11 +537,23 @@ const ListSection = ({
                               ? 'w-52'
                               : isSwitchFlag(list.flag) || list.flag === 'weight'
                                 ? 'w-21'
-                                : 'w-40',
+                                : list.flag === 'limit'
+                                  ? 'w-44'
+                                  : 'w-40',
                         )}
                      >
                         {t(list.flagLabel)}
                      </th>
+                  )}
+                  {kind === 'procStages' && (
+                     <>
+                        <th className={clsx(HEAD, 'w-24')}>
+                           {t('Согласование')}
+                        </th>
+                        <th className={clsx(HEAD, 'w-28')}>
+                           {t('Нужен поставщик')}
+                        </th>
+                     </>
                   )}
                   <th className={clsx(HEAD, ACTION_COLUMN, STICKY_END)}>
                      <span className='sr-only'>{t('Действия')}</span>
@@ -516,6 +582,11 @@ const ListSection = ({
                      editable={editable}
                      item={item}
                      kind={kind}
+                     locked={
+                        kind === 'procStages' && order.rows.length <= 2
+                           ? t('Нужно минимум два этапа')
+                           : undefined
+                     }
                      onDelete={() => onDelete(item)}
                   />
                ))
@@ -523,7 +594,7 @@ const ListSection = ({
                <tr>
                   <td
                      className='text-ink-soft px-4.5 py-8 text-center'
-                     colSpan={9}
+                     colSpan={10}
                   >
                      {t('Список пуст')}
                   </td>

@@ -2,7 +2,7 @@
    panel-test.mjs: signs in through the panel's sign-in (the login and password
    of UCODE_LOGIN and UCODE_PASSWORD; the user needs an employees row with the
    director's role, auth.mjs link) and works through Настройки, Сделки, Работа,
-   Портфель, Инвесткомитет and Документы, reading back from ucode what each step wrote.
+   Портфель, Инвесткомитет, Документы, Договоры and Закупки, reading back from ucode what each step wrote.
    Every row the run creates is recorded from its request and deleted at the
    end, so rows others write meanwhile are left alone; the settings it changes
    are put back. */
@@ -30,7 +30,7 @@ const created: [table: string, guid: string][] = [];
 const writes = new Map<string, Set<string>>();
 // --dry-run: nothing is written to ucode (panel-test-memory.ts)
 const dry = process.env.PANEL_TEST_DRY
-   ? (await import('./panel-test-memory')).memoryFetch(globalThis.fetch, process.env.PANEL_TEST_API_KEY ?? '', import.meta.env.VITE_UCODE_ENVIRONMENT_ID ?? '', 'https://api.admin.u-code.io')
+   ? (await import('./panel-test-memory')).memoryFetch(globalThis.fetch, process.env.PANEL_TEST_API_KEY ?? '', import.meta.env.VITE_UCODE_ENVIRONMENT_ID ?? '', 'https://api.admin.u-code.io', JSON.parse(process.env.PANEL_TEST_PENDING ?? '{}'))
    : null;
 const realFetch = dry?.fetchInMemory ?? globalThis.fetch;
 // run with the project's API key instead of a user (panel-test.mjs): the
@@ -867,6 +867,130 @@ try {
    const issue = docsState.issues.find((i) => i.id === issueId);
    check('a document read back from ucode, changed', doc && doc.status === 'active' && doc.note === 'ZZ утверждено' && doc.link === 'https://example.com/zz2' && doc.approvedBy === 'board' && doc.date === today && doc.createdById === me.id, doc);
    check('a governance question added and resolved', issue && issue.status === 'resolved' && issue.resolvedAt === today && issue.ownerId === me.id, issue);
+
+   // ---- Договоры and Закупки (batch 18), and how they reach Мой день, the bell and a deal
+   const contracts = (await import('@modules/Contracts/services')).default;
+   const { investmentContractOf } = await import('@modules/Contracts/helpers');
+   const procurement = (await import('@modules/Procurement/services')).default;
+   const { planMove } = await import('@modules/Procurement/helpers');
+   if (!(await contracts.isStored()) || !(await procurement.isStored())) {
+      check('Договоры and Закупки: without batch 18 they read as empty, and Мой день still loads', (await work.getQueue(me.id)).every(({ kind }) => kind !== 'contract') && !(await contracts.getContracts()).length);
+   } else {
+      const reload = async () => {
+         clearStores();
+         await settings.getSettings();
+      };
+      const someDeal = (await deals.getDeals())[0];
+      const stages = (await settings.getSettings()).lists.procStages.map(({ key }) => key);
+      check('Настройки: contract types, categories and stages have their rows', stages.length >= 2 && (await settings.getSettings()).lists.contractTypes.some(({ key, isSystem }) => key === 'invest' && isSystem) && (await settings.getSettings()).lists.procCategories.some(({ limit }) => limit === 10000), stages);
+
+      // a contract: on approval it waits for the director, back and forth, then signed
+      const contractInput = { number: `ZZ-${Date.now()}`, party: 'ZZ Контрагент LLC', subject: 'ZZ Договор инвестирования', type: 'invest', status: 'draft' as const, amount: 500000, signedDate: '', validUntil: '', ownerId: me.id, approverId: '', dealId: someDeal?.id ?? '' };
+      await contracts.create(contractInput);
+      const findContract = async () => (await contracts.getContracts()).find(({ number }) => number === contractInput.number);
+      const contract = await findContract();
+      check('a contract is written and read back', contract?.party === contractInput.party && contract?.amount === 500000 && contract?.type === 'invest' && contract?.status === 'draft' && contract?.dealId === contractInput.dealId, contract);
+      await contracts.setStatus(contract!.id, 'approval');
+      check('sent for approval without an approver, it goes to the director', (await findContract())?.approverId === me.id);
+      const contractItem = (await work.getQueue(me.id)).find(({ recordId }) => recordId === contract!.id);
+      check('it waits in Мой день', contractItem?.kind === 'contract' && contractItem.decision?.action === 'approve' && contractItem.amount === 500000, contractItem);
+      check('and in the bell', (await work.getNotices(me.id)).some(({ id }) => id === `decision-contract-${contract!.id}`));
+      await contracts.sendBack(contract!.id, 'ZZ исправьте сумму');
+      const back = await findContract();
+      check('sent back: a draft again, with what to fix', back?.status === 'draft' && back.decisionNote === 'ZZ исправьте сумму', back);
+      check('and no longer in Мой день', !(await work.getQueue(me.id)).some(({ recordId }) => recordId === contract!.id));
+      await contracts.setStatus(contract!.id, 'approval');
+      check('sent again, the note is gone', (await findContract())?.decisionNote === '');
+      await contracts.approve(contract!.id);
+      const approved = await findContract();
+      check('approved: signed, from today', approved?.status === 'signed' && approved.signedDate === today, approved);
+      check('the deal finds it as its investment contract', !someDeal || investmentContractOf(await contracts.getContracts(), someDeal.id)?.id === contract!.id);
+      const ending = addWorkingDays(today, 10);
+      await contracts.update(contract!.id, { ...approved!, validUntil: ending });
+      check('ending within 60 days, it is among the deadlines ahead', (await work.getUpcoming(me.id)).some(({ id }) => id === `contract-${contract!.id}`));
+      await reload();
+      const stored = await findContract();
+      check('all of it read back from ucode afresh', stored?.status === 'signed' && stored.validUntil === ending && stored.signedDate === today, stored);
+
+      // a purchase under the limit goes through, past the vendor stage only with a vendor
+      const add = async (title: string, amount: number) => {
+         const outcome = await procurement.save(null, { title, category: 'it', amount, stage: stages[0], vendorId: '', needDate: addWorkingDays(today, 15), ownerId: me.id, note: 'ZZ зачем' }, me.id);
+         const made = (await procurement.getRequests()).find((item) => item.title === title);
+         return { outcome, made: made! };
+      };
+      const findRequest = async (id: string) => (await procurement.getRequests()).find((item) => item.id === id)!;
+      const small = await add('ZZ Мышки', 3000);
+      check('a request is written and starts on the first stage', small.outcome.kind === 'saved' && small.made.stage === 'request' && small.made.amount === 3000 && small.made.date === today, small.made);
+      let plan = await procurement.move(small.made.id, 'approval', me.id);
+      check('under the limit, on to the approval stage', plan.kind === 'moved' && (await findRequest(small.made.id)).stage === 'approval');
+      check('it waits for nobody', !(await work.getQueue(me.id)).some(({ recordId }) => recordId === small.made.id));
+      plan = await procurement.move(small.made.id, 'vendor', me.id);
+      const auto = await findRequest(small.made.id);
+      check('and past it with no decision needed', plan.kind === 'moved' && auto.stage === 'vendor' && auto.approvedBy === 'auto', auto);
+      plan = await procurement.move(small.made.id, 'contract', me.id);
+      check('past the vendor stage it needs a vendor', plan.kind === 'need_vendor' && (await findRequest(small.made.id)).stage === 'vendor');
+      await settings.saveVendor(null, { name: 'ZZ Поставщик', tin: '123456789', category: 'it', contact: 'ZZ', phone: '', active: true }, me.id, 'ZZ', () => '');
+      const vendor = (await settings.getSettings()).vendors.find(({ name }) => name === 'ZZ Поставщик');
+      check('a vendor is written in Настройки', vendor?.tin === '123456789' && vendor.category === 'it', vendor);
+      const withVendor = await procurement.save(small.made.id, { ...auto, vendorId: vendor!.id, stage: 'contract' }, me.id);
+      check('with a vendor, the form takes it on', withVendor.kind === 'saved' && (await findRequest(small.made.id)).stage === 'contract');
+      check('a vendor a request names is not deleted', (await settings.vendorUsage(vendor!.id)) === 1 && (await settings.deleteVendor(vendor!.id, me.id, 'ZZ', '').then(() => false, () => true)));
+      plan = await procurement.move(small.made.id, 'paid', me.id);
+      check('the last stage closes it', plan.kind === 'moved' && (await findRequest(small.made.id)).stage === 'paid');
+
+      // over the limit it stops on the approval stage until the director decides
+      const big = await add('ZZ Серверы', 20000);
+      plan = await procurement.move(big.made.id, 'vendor', me.id);
+      const stoppedAt = await findRequest(big.made.id);
+      check('over the limit, it stops on the approval stage', plan.kind === 'sent' && stoppedAt.stage === 'approval' && stoppedAt.approverId === me.id, stoppedAt);
+      const bigItem = (await work.getQueue(me.id)).find(({ recordId }) => recordId === big.made.id);
+      check('it waits in the director\'s Мой день', bigItem?.kind === 'procurement' && bigItem.amount === 20000, bigItem);
+      check('anyone else is told to wait', planMove(stoppedAt, 'vendor', 'somebody-else').kind === 'waits');
+      plan = await procurement.move(big.made.id, 'vendor', me.id);
+      check('the director is asked to decide, and it does not move', plan.kind === 'decide' && (await findRequest(big.made.id)).stage === 'approval');
+      await procurement.sendBack(big.made.id, 'ZZ дорого');
+      const returned = await findRequest(big.made.id);
+      check('returned: on the first stage, with why', returned.stage === 'request' && returned.decisionNote === 'ZZ дорого' && !returned.approvedBy, returned);
+      await procurement.move(big.made.id, 'vendor', me.id);
+      await procurement.approve(big.made.id, me.id, 'ZZ согласовано');
+      const decided = await findRequest(big.made.id);
+      check('approved: on to the next stage, the decision kept', decided.stage === 'vendor' && decided.approvedBy === me.id && decided.decisionNote === 'ZZ согласовано', decided);
+      check('no longer in Мой день', !(await work.getQueue(me.id)).some(({ recordId }) => recordId === big.made.id));
+      const same = await procurement.save(big.made.id, { ...decided, title: 'ZZ Серверы 2' }, me.id);
+      check('changed without raising the sum, the decision holds', same.kind === 'saved' && (await findRequest(big.made.id)).approvedBy === me.id);
+      const raised = await procurement.save(big.made.id, { ...decided, amount: 30000 }, me.id);
+      const reopened = await findRequest(big.made.id);
+      check('the sum raised after the decision: back to the approver', raised.kind === 'sent' && reopened.stage === 'approval' && !reopened.approvedBy, reopened);
+
+      // under the limit and let through, then raised past it
+      const cheap = await add('ZZ Кабели', 2000);
+      await procurement.move(cheap.made.id, 'approval', me.id);
+      await procurement.move(cheap.made.id, 'vendor', me.id);
+      const dear = await procurement.save(cheap.made.id, { ...(await findRequest(cheap.made.id)), amount: 15000 }, me.id);
+      check('let through under the limit, then raised past it: stopped too', dear.kind === 'sent' && (await findRequest(cheap.made.id)).stage === 'approval');
+
+      // Настройки: a lower limit asks for a decision; a category in use is moved on deleting
+      const it = (await settings.getSettings()).lists.procCategories.find(({ key }) => key === 'it')!;
+      const { inputOf } = await import('@modules/Settings/helpers');
+      await settings.saveListItem('procCategories', it.id, { ...inputOf(it), limit: 1000 }, me.id, 'ZZ', () => '');
+      const lower = await add('ZZ Клавиатуры', 2000);
+      plan = await procurement.move(lower.made.id, 'vendor', me.id);
+      check('a limit lowered in Настройки counts at once', plan.kind === 'sent');
+      await settings.saveListItem('procCategories', it.id, { ...inputOf(it), limit: it.limit }, me.id, 'ZZ', () => '');
+      check('a category in use is counted', (await settings.usageOf('procCategories', it.id)) >= 1);
+      await contracts.remove(contract!.id);
+      forget('contracts', contract!.id);
+      check('a contract is deleted', !(await findContract()));
+      for (const request of await procurement.getRequests())
+         if (request.title.startsWith('ZZ')) {
+            await procurement.remove(request.id);
+            forget('procurements', request.id);
+         }
+      check('the requests are deleted', !(await procurement.getRequests()).some(({ title }) => title.startsWith('ZZ')));
+      await settings.deleteVendor(vendor!.id, me.id, 'ZZ', '');
+      forget('vendors', vendor!.id);
+      check('a vendor nothing names is deleted', !(await settings.getSettings()).vendors.some(({ name }) => name === 'ZZ Поставщик'));
+   }
 
    // ---- sign-in refusal
    if (!API_KEY) {

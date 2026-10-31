@@ -1,5 +1,9 @@
 import { openNewTask } from '@modules/Work/hooks';
-import { todayISO } from '@modules/Work/helpers';
+import {
+   getAssigneeId,
+   queueWording,
+   todayISO,
+} from '@modules/Work/helpers';
 import {
    Button,
    Card,
@@ -11,7 +15,7 @@ import {
 } from '@shared/components';
 import { formatNumericDate } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
-import type { Task } from '@shared/types/work.types';
+import type { QueueItem, Task } from '@shared/types/work.types';
 import { ListChecks, Plus, Stamp } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +26,7 @@ import {
    QuickAdd,
    Schedule,
    SendBackDialog,
+   type SendBackTarget,
    Upcoming,
 } from './components';
 import { UPCOMING_SHOWN } from './constants';
@@ -33,13 +38,31 @@ import { useMyDay } from './hooks';
    deadlines ahead. */
 const MyDay = () => {
    const { t } = useTranslation('work');
+   const { t: tDeals } = useTranslation('deals');
    const user = useCurrentUser();
    const day = useMyDay(user.id);
    const [params, setParams] = useSearchParams();
    const tab = toTab(params.get('tab'));
-   const [sendingBack, setSendingBack] = useState<Task | null>(null);
+   const [sendingBack, setSendingBack] = useState<SendBackTarget | null>(null);
    const today = todayISO();
    const dueNow = day.overdue.length + day.today.length;
+
+   const sendBackTask = (task: Task) =>
+      setSendingBack({
+         title: task.title,
+         personId: getAssigneeId(task),
+         send: (note) =>
+            day.sendBack(
+               task,
+               t('Возвращено на доработку: {{note}}', { note }),
+            ),
+      });
+   const sendBackRecord = (item: QueueItem) =>
+      setSendingBack({
+         title: queueWording(t, tDeals, item).title,
+         personId: item.decision?.preparedById ?? '',
+         send: (note) => day.sendBackRecord(item, note),
+      });
 
    const meta = `${formatDayTitle(today)}. ${[
       t('{{count}} встреча', { count: day.schedule.length }),
@@ -115,7 +138,9 @@ const MyDay = () => {
                         targetName={day.targetName}
                         onApprove={day.approve}
                         onApproveMemo={day.approveMemo}
-                        onSendBack={setSendingBack}
+                        onApproveRecord={day.approveRecord}
+                        onSendBack={sendBackTask}
+                        onSendBackRecord={sendBackRecord}
                      />
                   ) : (
                      <NoData>
@@ -124,7 +149,7 @@ const MyDay = () => {
                   )}
                   <p className='border-line text-ink-soft border-t px-3.5 py-2.5 text-xs'>
                      {t(
-                        'Сюда попадают задачи на проверке, где вы согласующий, меморандумы, которые вы утверждаете как спонсор, и скрининги, где вы второй оценщик',
+                        'Сюда попадают задачи на проверке, где вы согласующий, меморандумы, которые вы утверждаете как спонсор, скрининги, где вы второй оценщик, договоры на согласовании и закупки дороже лимита категории',
                      )}
                   </p>
                </Card>
@@ -156,9 +181,8 @@ const MyDay = () => {
          </PageBody>
 
          <SendBackDialog
-            task={sendingBack}
+            target={sendingBack}
             onClose={() => setSendingBack(null)}
-            onSendBack={day.sendBack}
          />
       </>
    );

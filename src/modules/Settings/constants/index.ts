@@ -36,6 +36,10 @@ export const SETTINGS_SECTION_IDS = [
    'flags',
    'mandate',
    'committee',
+   'contract-types',
+   'proc-categories',
+   'vendors',
+   'proc-stages',
    'users',
    'roles',
    'integrations',
@@ -156,6 +160,26 @@ export const SETTINGS_GROUPS = [
             label: 'Правила ИК',
             meta: 'Кворум, материалы и как голоса превращаются в решение.',
          },
+         {
+            id: 'contract-types',
+            label: 'Типы договора',
+            meta: 'Типы договоров в реестре «Договоры»: фильтры и цветные метки.',
+         },
+         {
+            id: 'proc-categories',
+            label: 'Категории закупок',
+            meta: 'Категории заявок на закупку. Лимит: сумма, выше которой заявку согласует генеральный директор.',
+         },
+         {
+            id: 'vendors',
+            label: 'Поставщики',
+            meta: 'Справочник поставщиков для закупок и договоров. Выключенные не предлагаются в новых заявках.',
+         },
+         {
+            id: 'proc-stages',
+            label: 'Этапы закупок',
+            meta: 'Колонки канбана закупок по порядку. «Согласование»: этап, на котором заявки дороже лимита ждут генерального директора. «Нужен поставщик»: дальше этого этапа заявку не пропустить без поставщика.',
+         },
       ],
    },
    {
@@ -223,7 +247,17 @@ export const LIST_SECTIONS = {
    'doc-folders': 'docFolders',
    'dd-audits': 'ddAudits',
    criteria: 'criteria',
+   'contract-types': 'contractTypes',
+   'proc-categories': 'procCategories',
+   'proc-stages': 'procStages',
 } as const satisfies Partial<Record<SettingsSection, ListKind>>;
+
+// The lists whose rows have a colour of their own.
+export const COLORED_LISTS: ListKind[] = [
+   'taskStatuses',
+   'contractTypes',
+   'procStages',
+];
 
 export const LISTS = {
    industries: {
@@ -343,6 +377,33 @@ export const LISTS = {
       flag: null,
       flagLabel: '',
    },
+   contractTypes: {
+      title: 'Типы договора',
+      one: 'тип договора',
+      note: 'Фильтр и цветная метка в реестре «Договоры». Инвестиционный тип считает подписанные суммы и связывает договор с компанией портфеля, у аренды сумма за месяц: эти два типа не удаляются.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: loan',
+      flag: null,
+      flagLabel: '',
+   },
+   procCategories: {
+      title: 'Категории закупок',
+      one: 'категория закупок',
+      note: 'Заявку дороже лимита её категории согласует генеральный директор: она появляется у него в «Моём дне».',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: office',
+      flag: 'limit',
+      flagLabel: 'Лимит без согласования, USD',
+   },
+   procStages: {
+      title: 'Этапы закупок',
+      one: 'этап закупок',
+      note: 'Заявка идёт по этапам в этом порядке, последний закрывает её. Этапов нужно не меньше двух.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: delivery',
+      flag: null,
+      flagLabel: '',
+   },
 } as const satisfies Record<
    ListKind,
    {
@@ -361,6 +422,7 @@ export const LISTS = {
          | 'format'
          | 'file'
          | 'weight'
+         | 'limit'
          | null;
       flagLabel: string;
    }
@@ -376,9 +438,119 @@ export const BUILT_IN_LISTS: Partial<
          names: Record<SupportedLanguageType, string>;
          hints?: Record<SupportedLanguageType, string>;
          weight?: number;
+         color?: string;
+         limit?: number;
+         needsApproval?: boolean;
+         needsVendor?: boolean;
+         isSystem?: boolean;
       }[]
    >
 > = {
+   contractTypes: [
+      {
+         key: 'invest',
+         names: { ru: 'Инвестиционный', uz: 'Investitsiya', en: 'Investment' },
+         color: '#262f70',
+         isSystem: true,
+      },
+      {
+         key: 'nda',
+         names: { ru: 'NDA', uz: 'NDA', en: 'NDA' },
+         color: '#5764ca',
+      },
+      {
+         key: 'rent',
+         names: { ru: 'Аренда', uz: 'Ijara', en: 'Rent' },
+         color: '#1e9bb8',
+         isSystem: true,
+      },
+      {
+         key: 'service',
+         names: { ru: 'Услуги', uz: 'Xizmatlar', en: 'Services' },
+         color: '#407cea',
+      },
+      {
+         key: 'purchase',
+         names: { ru: 'Закупка', uz: 'Xarid', en: 'Purchase' },
+         color: '#c98a12',
+      },
+   ],
+   procCategories: [
+      {
+         key: 'it',
+         names: {
+            ru: 'IT и оборудование',
+            uz: 'IT va jihozlar',
+            en: 'IT and equipment',
+         },
+         limit: 10000,
+      },
+      {
+         key: 'subscriptions',
+         names: {
+            ru: 'Подписки и сервисы',
+            uz: 'Obunalar va servislar',
+            en: 'Subscriptions and services',
+         },
+         limit: 5000,
+      },
+      {
+         key: 'professional',
+         names: {
+            ru: 'Профессиональные услуги',
+            uz: 'Professional xizmatlar',
+            en: 'Professional services',
+         },
+         limit: 5000,
+      },
+      {
+         key: 'events',
+         names: { ru: 'Мероприятия', uz: 'Tadbirlar', en: 'Events' },
+         limit: 5000,
+      },
+      {
+         key: 'household',
+         names: {
+            ru: 'Хозяйственные нужды',
+            uz: 'Xo‘jalik ehtiyojlari',
+            en: 'Office supplies',
+         },
+         limit: 5000,
+      },
+   ],
+   procStages: [
+      {
+         key: 'request',
+         names: { ru: 'Заявка', uz: 'Ariza', en: 'Request' },
+         color: '#8a93a6',
+      },
+      {
+         key: 'approval',
+         names: { ru: 'Согласование', uz: 'Kelishuv', en: 'Approval' },
+         color: '#c98a12',
+         needsApproval: true,
+      },
+      {
+         key: 'vendor',
+         names: {
+            ru: 'Выбор поставщика',
+            uz: 'Yetkazib beruvchini tanlash',
+            en: 'Choosing a vendor',
+         },
+         color: '#407cea',
+         needsVendor: true,
+      },
+      {
+         key: 'contract',
+         names: { ru: 'Договор', uz: 'Shartnoma', en: 'Contract' },
+         color: '#5764ca',
+      },
+      {
+         key: 'paid',
+         names: { ru: 'Оплачено', uz: 'To‘langan', en: 'Paid' },
+         color: '#1f9d6b',
+      },
+   ],
    criteria: [
       {
          key: 'team',

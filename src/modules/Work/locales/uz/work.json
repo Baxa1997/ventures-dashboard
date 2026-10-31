@@ -192,7 +192,6 @@
    "Новая задача на сегодня": "Bugungi yangi vazifa",
    "Отправлено на согласование": "Kelishuvga yuborildi",
    "Сейчас ничего не ждёт вашего согласования.": "Hozir hech narsa kelishuvingizni kutmayapti.",
-   "Сюда попадают задачи на проверке, где вы согласующий, меморандумы, которые вы утверждаете как спонсор, и скрининги, где вы второй оценщик": "Bu yerga siz kelishuvchi bo‘lgan tekshiruvdagi vazifalar, homiy sifatida tasdiqlaydigan memorandumlar va ikkinchi baholovchi bo‘lgan skriningalar tushadi",
    "От: {{name}}": "Kimdan: {{name}}",
    "срок {{date}}": "muddat {{date}}",
    "Вернуть": "Qaytarish",
@@ -289,5 +288,9 @@
    "«Начата», «Завершена» со временем и дата начала сохраняются, когда в ucode есть партия 14.": "«Boshlangan», vaqti bilan «Yakunlangan» va boshlanish sanasi ucode’da 14-to‘plam bo‘lganda saqlanadi.",
    "Всего": "Jami",
    "Сменить статус": "Statusni o‘zgartirish",
-   "Эту задачу проверяет {{name}}: чтобы передать её на проверку, выберите «{{status}}».": "Bu vazifani {{name}} tekshiradi: uni tekshiruvga topshirish uchun «{{status}}» ni tanlang."
+   "Эту задачу проверяет {{name}}: чтобы передать её на проверку, выберите «{{status}}».": "Bu vazifani {{name}} tekshiradi: uni tekshiruvga topshirish uchun «{{status}}» ni tanlang.",
+   "Договор {{number}}: {{subject}}": "Shartnoma {{number}}: {{subject}}",
+   "Закупка: {{title}}": "Xarid: {{title}}",
+   "Истекает договор {{number}} · {{party}}": "Shartnoma tugamoqda {{number}} · {{party}}",
+   "Сюда попадают задачи на проверке, где вы согласующий, меморандумы, которые вы утверждаете как спонсор, скрининги, где вы второй оценщик, договоры на согласовании и закупки дороже лимита категории": "Bu yerga siz kelishuvchi bo‘lgan tekshiruvdagi vazifalar, siz homiy sifatida tasdiqlaydigan memorandumlar, siz ikkinchi baholovchi bo‘lgan skriningalar, kelishuvdagi shartnomalar va toifa limitidan qimmat xaridlar tushadi"
 }

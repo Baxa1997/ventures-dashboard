@@ -11,10 +11,10 @@ interface ModalProps {
    // the top line in place of the title, which screen readers still get:
    // a task's card shows what it is about and its buttons there
    header?: ReactNode;
-   // sm: a short list to pick from; wide: a form with columns; card: a task's
-   // card, as wide, keeping its height while its columns scroll, so it does
-   // not jump as it changes
-   size?: 'sm' | 'md' | 'wide' | 'card';
+   // sm: a short list to pick from; lg: a form in two columns; wide: a form
+   // with more columns; card: a task's card, as wide, keeping its height while
+   // its columns scroll, so it does not jump as it changes
+   size?: 'sm' | 'md' | 'lg' | 'wide' | 'card';
    onClose: () => void;
    children: ReactNode;
 }
@@ -22,6 +22,7 @@ interface ModalProps {
 const WIDTHS = {
    sm: 'w-[min(26rem,calc(100vw-2rem))]',
    md: 'w-[min(36rem,calc(100vw-2rem))]',
+   lg: 'w-[min(55rem,calc(100vw-2rem))]',
    wide: 'w-[min(73.75rem,calc(100vw-2rem))]',
    card: 'h-[min(42rem,calc(100dvh-4rem))] w-[min(73.75rem,calc(100vw-2rem))]',
 };

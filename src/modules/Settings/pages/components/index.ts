@@ -10,3 +10,4 @@ export { default as SectionHeader } from './SectionHeader';
 export { default as SettingsNav } from './SettingsNav';
 export { default as Stages } from './Stages';
 export { default as Users } from './Users';
+export { default as Vendors } from './Vendors';

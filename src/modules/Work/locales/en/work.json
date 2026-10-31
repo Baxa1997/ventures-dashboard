@@ -192,7 +192,6 @@
    "Новая задача на сегодня": "New task for today",
    "Отправлено на согласование": "Sent for approval",
    "Сейчас ничего не ждёт вашего согласования.": "Nothing is waiting for your approval right now.",
-   "Сюда попадают задачи на проверке, где вы согласующий, меморандумы, которые вы утверждаете как спонсор, и скрининги, где вы второй оценщик": "Here go the tasks in review where you are the approver, the memorandums you approve as sponsor and the screenings where you are the second evaluator",
    "От: {{name}}": "From: {{name}}",
    "срок {{date}}": "due {{date}}",
    "Вернуть": "Send back",
@@ -289,5 +288,9 @@
    "«Начата», «Завершена» со временем и дата начала сохраняются, когда в ucode есть партия 14.": "“Started”, “Completed” with its time and the start date are kept once ucode has batch 14.",
    "Всего": "Total",
    "Сменить статус": "Change the status",
-   "Эту задачу проверяет {{name}}: чтобы передать её на проверку, выберите «{{status}}».": "{{name}} checks this task: to hand it over for checking, pick «{{status}}»."
+   "Эту задачу проверяет {{name}}: чтобы передать её на проверку, выберите «{{status}}».": "{{name}} checks this task: to hand it over for checking, pick «{{status}}».",
+   "Договор {{number}}: {{subject}}": "Contract {{number}}: {{subject}}",
+   "Закупка: {{title}}": "Purchase: {{title}}",
+   "Истекает договор {{number}} · {{party}}": "Contract ending {{number}} · {{party}}",
+   "Сюда попадают задачи на проверке, где вы согласующий, меморандумы, которые вы утверждаете как спонсор, скрининги, где вы второй оценщик, договоры на согласовании и закупки дороже лимита категории": "Here come tasks on review where you approve, memorandums you approve as sponsor, screenings where you're the second reviewer, contracts on approval and purchases over their category's limit"
 }

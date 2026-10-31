@@ -1,5 +1,11 @@
 import { stageNextLabel } from '@modules/Deals/helpers';
-import { itemOf, listOf, nameOf, stageName } from '@modules/Settings/services';
+import {
+   itemOf,
+   listName,
+   listOf,
+   nameOf,
+   stageName,
+} from '@modules/Settings/services';
 import { type BadgeTone, TONE_COLORS } from '@shared/components/Badge';
 import { directorId } from '@shared/constants';
 import type { ListItem, StatusGroup } from '@shared/types/settings.types';
@@ -338,6 +344,19 @@ export const queueWording = (
          note: item.note
             ? t('ответил в кабинете {{email}}', { email: item.note })
             : '',
+      };
+   if (item.kind === 'contract')
+      return {
+         title: t('Договор {{number}}: {{subject}}', {
+            number: item.note,
+            subject: item.title,
+         }),
+         note: item.subject,
+      };
+   if (item.kind === 'procurement')
+      return {
+         title: t('Закупка: {{title}}', { title: item.title }),
+         note: listName('procCategories', item.note),
       };
    if (item.kind === 'document')
       return {

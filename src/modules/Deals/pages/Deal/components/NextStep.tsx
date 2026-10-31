@@ -1,3 +1,4 @@
+import { STATUS_INFO } from '@modules/Contracts/constants';
 import { stageName } from '@modules/Settings/services';
 import { CommitteeLink, PortfolioDialog } from '@modules/Deals/components';
 import {
@@ -11,8 +12,14 @@ import {
 import { useDealLinks } from '@modules/Deals/hooks';
 import deals from '@modules/Deals/services';
 import { PORTFOLIO_PATH } from '@modules/Portfolio/constants';
-import { Button, Card, CheckList, FilterSelect } from '@shared/components';
-import { TEAM } from '@shared/constants';
+import {
+   Badge,
+   Button,
+   Card,
+   CheckList,
+   FilterSelect,
+} from '@shared/components';
+import { SECTION_PATHS, TEAM } from '@shared/constants';
 import { personName, shortName } from '@shared/helpers';
 import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
@@ -46,7 +53,10 @@ const STAGE_TABS: Partial<Record<DealStage, [tab: string, label: TabLabel]>> = {
 const NextStep = ({ deal, onTransfer }: NextStepProps) => {
    const { t } = useTranslation('deals');
    const user = useCurrentUser();
-   const { tasks, company, loaded } = useDealLinks(deal.id);
+   const { tasks, company, contract, contractsStored, loaded } = useDealLinks(
+      deal.id,
+   );
+   const { t: tContracts } = useTranslation('contracts');
    const [adding, setAdding] = useState(false);
    const assigning = useAction(
       (ownerId: string) => deals.setOwner(deal.id, ownerId),
@@ -92,6 +102,39 @@ const NextStep = ({ deal, onTransfer }: NextStepProps) => {
                      {t('Для перевода в «{{stage}}»', { stage: target })}
                   </div>
                   <CheckList className='text-meta mt-2.5' items={exit} />
+               </div>
+            )}
+            {/* the contract the closing is about; it does not hold the move */}
+            {active && deal.stage === 'closing' && contractsStored && (
+               <div className='border-line text-meta mt-4 border-t pt-3'>
+                  {contract ? (
+                     <div className='flex flex-wrap items-center gap-2'>
+                        <span className='text-ink-soft'>{t('Договор')}:</span>
+                        <Link
+                           className='link'
+                           to={`${SECTION_PATHS.contracts}?open=${contract.id}`}
+                        >
+                           {contract.number}
+                        </Link>
+                        <Badge tone={STATUS_INFO[contract.status].tone}>
+                           {tContracts(STATUS_INFO[contract.status].label)}
+                        </Badge>
+                     </div>
+                  ) : (
+                     <>
+                        <p className='text-ink-soft'>
+                           {t(
+                              'Инвестиционного договора в реестре ещё нет. Заведите его: он будет виден и в карточке компании.',
+                           )}
+                        </p>
+                        <Link
+                           className='link mt-1.5 inline-block'
+                           to={`${SECTION_PATHS.contracts}?deal=${deal.id}`}
+                        >
+                           {t('Завести договор')}
+                        </Link>
+                     </>
+                  )}
                </div>
             )}
             {step.ready && (

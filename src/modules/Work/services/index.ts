@@ -8,7 +8,11 @@ import {
 import deals from '@modules/Deals/services';
 import { hasAllDocs, owesReport } from '@modules/Portfolio/helpers';
 import portfolio from '@modules/Portfolio/services';
-import settings, { listIdOf, listKeyOf } from '@modules/Settings/services';
+import settings, {
+   listIdOf,
+   listKeyOf,
+   vendorName,
+} from '@modules/Settings/services';
 import {
    createRow,
    day,
@@ -20,6 +24,13 @@ import {
    str,
    updateRow,
 } from '@shared/api/ucode';
+import {
+   awaitsContractApproval,
+   isExpiring,
+} from '@modules/Contracts/helpers';
+import contracts from '@modules/Contracts/services';
+import { awaitsProcurementApproval } from '@modules/Procurement/helpers';
+import procurement from '@modules/Procurement/services';
 import { directorId, TEAM } from '@shared/constants';
 import { addWorkingDays, createStore, daysUntil, newId } from '@shared/helpers';
 import attachments from '@shared/services/attachments';
@@ -311,10 +322,13 @@ const meetings = createStore(() => listRows('meetings'));
 
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
-// The pages of this module also show deals and companies.
+// The pages of this module also show deals, companies, and the contracts and
+// purchases waiting for a decision.
 [store, meetings].forEach((item) => item.subscribe(notify));
 deals.subscribe(notify);
 portfolio.subscribe(notify);
+contracts.subscribe(notify);
+procurement.subscribe(notify);
 
 // What was ticked in Мой день, kept in this browser: queue item id → the day.
 const readQueueDone = (): Record<string, string> => {
@@ -716,10 +730,44 @@ class Work {
    async getQueue(userId: string): Promise<QueueItem[]> {
       const today = todayISO();
       const done = readQueueDone();
-      const [all, holdings] = await Promise.all([
+      const [all, holdings, allContracts, requests] = await Promise.all([
          deals.getDeals(),
          portfolio.getState(),
+         contracts.getContracts(),
+         procurement.getRequests(),
       ]);
+      const contractApprovals = allContracts
+         .filter((contract) => awaitsContractApproval(contract, userId))
+         .map((contract): QueueItem => ({
+            id: `contract-${contract.id}`,
+            kind: 'contract',
+            ownerId: userId,
+            subject: contract.party,
+            section: 'contracts',
+            title: contract.subject,
+            note: contract.number,
+            dueDate: '',
+            completedAt: null,
+            decision: { preparedById: contract.ownerId, action: 'approve' },
+            recordId: contract.id,
+            amount: contract.amount,
+         }));
+      const purchaseApprovals = requests
+         .filter((request) => awaitsProcurementApproval(request, userId))
+         .map((request): QueueItem => ({
+            id: `procurement-${request.id}`,
+            kind: 'procurement',
+            ownerId: userId,
+            subject: vendorName(request.vendorId),
+            section: 'procurement',
+            title: request.title,
+            note: request.category,
+            dueDate: request.needDate,
+            completedAt: null,
+            decision: { preparedById: request.ownerId, action: 'approve' },
+            recordId: request.id,
+            amount: request.amount,
+         }));
       // a company's answer from the startup cabinet, for its owner to check
       const companyAnswers = holdings.dataRequests.flatMap(
          (request): QueueItem[] => {
@@ -743,7 +791,12 @@ class Work {
                : [];
          },
       );
-      return [...queueOf(all, userId, today), ...companyAnswers].map((item) => ({
+      return [
+         ...queueOf(all, userId, today),
+         ...companyAnswers,
+         ...contractApprovals,
+         ...purchaseApprovals,
+      ].map((item) => ({
          ...item,
          completedAt: done[item.id] ?? null,
       }));
@@ -806,10 +859,11 @@ class Work {
    // director) within the coming week or already past, and the companies'
    // quarterly reports; the nearest first.
    async getUpcoming(userId: string): Promise<UpcomingItem[]> {
-      const [rows, all, holdings] = await Promise.all([
+      const [rows, all, holdings, allContracts] = await Promise.all([
          meetings.get(),
          deals.getDeals(),
          portfolio.getState(),
+         contracts.getContracts(),
       ]);
       const today = todayISO();
       const within = (date: string, days: number) =>
@@ -870,9 +924,26 @@ class Work {
                  },
               ]
             : [];
-      return [...fromMeetings, ...fromStages, ...fromReports].sort((a, b) =>
-         a.date.localeCompare(b.date),
-      );
+      const fromContracts = allContracts
+         .filter(
+            (contract) =>
+               isExpiring(contract, today) &&
+               (userId === directorId() || contract.ownerId === userId),
+         )
+         .map((contract): UpcomingItem => ({
+            id: `contract-${contract.id}`,
+            kind: 'contract',
+            date: contract.validUntil,
+            contractId: contract.id,
+            number: contract.number,
+            party: contract.party,
+         }));
+      return [
+         ...fromMeetings,
+         ...fromStages,
+         ...fromReports,
+         ...fromContracts,
+      ].sort((a, b) => a.date.localeCompare(b.date));
    }
 
    async getDashboard(): Promise<Dashboard> {

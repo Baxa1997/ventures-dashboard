@@ -1,8 +1,10 @@
 import auth from '@modules/Auth/locales/uz';
 import committee from '@modules/Committee/locales/uz';
+import contracts from '@modules/Contracts/locales/uz';
 import deals from '@modules/Deals/locales/uz';
 import documents from '@modules/Documents/locales/uz';
 import portfolio from '@modules/Portfolio/locales/uz';
+import procurement from '@modules/Procurement/locales/uz';
 import settings from '@modules/Settings/locales/uz';
 import work from '@modules/Work/locales/uz';
 import type { RuTranslation } from '../ru';
@@ -14,9 +16,11 @@ import validation from './validation.json';
 const uz: RuTranslation = {
    ...auth,
    ...committee,
+   ...contracts,
    ...deals,
    ...documents,
    ...portfolio,
+   ...procurement,
    ...settings,
    ...work,
    components,

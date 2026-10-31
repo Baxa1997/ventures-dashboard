@@ -14,7 +14,8 @@ Sources: the system map «Операционная платформа фонда
 | 1 | **Admin: Настройки** — mandate, stage norms, staff and roles, the reference lists, integrations | On ucode. Сделки take the mandate, the norms and the lists from it; the website's form offers the same lists |
 | 2 | **Startup cabinet** — the applicant's status, the fund's requests and documents; the portfolio company's quarterly reports and requests | Built as its own app (`venture/startup-cabinet`, docs/cabinet-and-website.md), not deployed |
 | 3 | **Fund: Документы** — the register of the fund's documents and the open governance questions | On ucode (§4.9). A document links to its file where the fund keeps it |
-| 3 | Финансы, Договоры, Закупки, Корреспонденция | Screens built, hidden from the panel until their tables exist (they come back from the repo's history) |
+| 3 | **Fund: Договоры, Закупки** — the contracts' register and the purchase requests, with their approvals in Мой день | On ucode, as the prototype draws them (docs/ucode-migration.md, batch 18) |
+| 3 | Финансы, Корреспонденция (the prototype's «Чат и письма»), Контент | Not in the panel. Nothing in the deal cycle depends on them |
 
 ## 2. How the parts connect
 

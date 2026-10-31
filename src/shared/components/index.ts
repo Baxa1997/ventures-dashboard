@@ -27,6 +27,7 @@ export { default as Field } from './Field';
 export { default as FilterBar } from './FilterBar';
 export { default as FilterSelect } from './FilterSelect';
 export { default as ItemActions } from './ItemActions';
+export { default as KanbanBoard, type KanbanColumn } from './KanbanBoard';
 export { default as Loading } from './Loading';
 export { default as Modal, MODAL_FORM, ModalBody, ModalFooter } from './Modal';
 export { default as MonthCalendar } from './MonthCalendar';

@@ -1,6 +1,7 @@
 // Настройки: the rules the system works by, and who may do what.
 
 import type { MetricFormat } from './portfolio.types';
+import type { Vendor } from './procurement.types';
 import type { SupportedLanguageType } from './system/language.types';
 import type { Role } from './work.types';
 
@@ -83,7 +84,7 @@ export type StaffInput = Omit<StaffMember, 'id' | 'addedAt'>;
 export type IndustryMandate = 'focus' | 'allowed' | 'licensed' | 'excluded';
 
 // The reference lists the fund keeps in Настройки, one ucode table each
-// (docs/ucode-migration.md, batches 1, 7, 8, 9, 16 and 17).
+// (docs/ucode-migration.md, batches 1, 7, 8, 9, 16, 17 and 18).
 export type ListKind =
    | 'industries'
    | 'rounds'
@@ -97,7 +98,10 @@ export type ListKind =
    | 'docTemplates'
    | 'docFolders'
    | 'ddAudits'
-   | 'criteria';
+   | 'criteria'
+   | 'contractTypes'
+   | 'procCategories'
+   | 'procStages';
 
 // ucode's groups of a status: a task status behaves as its group does.
 export type StatusGroup = 'todo' | 'progress' | 'complete';
@@ -126,11 +130,16 @@ export interface ListItem {
    isMandate?: boolean; // reasons: outside the mandate, the applicant may apply again at once
    group?: StatusGroup; // task statuses
    tone?: ItemTone; // task statuses: the badge's colour among the tones
-   color?: string; // task statuses: a colour of its own, #rrggbb; '' — the tone's
+   // task statuses, contract types, procurement stages: a colour of its own,
+   // #rrggbb; '' — the tone's
+   color?: string;
    format?: MetricFormat; // portfolio metrics
    file?: ItemFile | null; // report documents, document templates: the file to fill in
    hints?: Record<SupportedLanguageType, string>; // criteria: what it covers
    weight?: number; // criteria: its share of the score, %
+   limit?: number; // procurement categories: USD a request may cost unapproved
+   needsApproval?: boolean; // procurement stages: over the limit, it waits here
+   needsVendor?: boolean; // procurement stages: past it, a vendor is required
 }
 
 export type ListItemInput = Omit<ListItem, 'id' | 'sortOrder'>;
@@ -161,6 +170,8 @@ export interface SettingsState {
    journal: SettingsChange[];
    staff: StaffMember[]; // the ones with access first, then the closed
    lists: Record<ListKind, ListItem[]>; // in their order, the turned-off ones too
+   vendors: Vendor[]; // in their order, the turned-off ones too
+   vendorsStored: boolean; // ucode has batch 18's table to keep them in
    questionnaire: QuestionSection[];
    questionnaireStored: boolean; // ucode has batch 17's field to keep it in
 }

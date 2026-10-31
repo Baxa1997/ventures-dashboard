@@ -13,7 +13,10 @@ const SYSTEM = ['guid', 'created_at', 'updated_at', 'deleted_at', 'folder_id'];
 const json = (body: unknown, status = 200) =>
    new Response(JSON.stringify(body), { status });
 
-export const memoryFetch = (send: typeof fetch, apiKey: string, environment: string, admin: string) => {
+// A batch not made in ucode yet, as if it were: its tables' fields and rows.
+export type Pending = Record<string, { fields: string[]; rows: Row[] }>;
+
+export const memoryFetch = (send: typeof fetch, apiKey: string, environment: string, admin: string, pending: Pending = {}) => {
    const tables = new Map<string, { fields: string[]; rows: Row[] } | null>();
    const headers = { Authorization: 'API-KEY', 'X-API-KEY': apiKey, 'Environment-Id': environment };
    const dropped = new Map<string, Set<string>>();
@@ -22,6 +25,15 @@ export const memoryFetch = (send: typeof fetch, apiKey: string, environment: str
       if (tables.has(table)) return tables.get(table) ?? null;
       const reply = await send(`${admin}/v2/fields/${table}`, { headers });
       const fields = reply.ok ? (((await reply.json()) as { data?: { fields?: { slug: string }[] } }).data?.fields ?? []).map(({ slug }) => slug) : [];
+      if (!fields.length && pending[table]) {
+         const now = new Date().toISOString();
+         const made = {
+            fields: pending[table].fields,
+            rows: pending[table].rows.map((row) => ({ ...Object.fromEntries(pending[table].fields.map((field) => [field, null])), ...row, guid: crypto.randomUUID(), created_at: now, updated_at: now })),
+         };
+         tables.set(table, made);
+         return made;
+      }
       if (!fields.length) {
          tables.set(table, null); // no such table: reading it fails, as in ucode
          return null;

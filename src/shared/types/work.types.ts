@@ -20,10 +20,16 @@ export interface Employee {
    role: Role;
 }
 
-// Sections of the platform that work items point to. Финансы, Договоры,
-// Закупки, Корреспонденция and Документы join in phase 3.
+// Sections of the platform that work items point to. Финансы and
+// Корреспонденция join in phase 3.
 export type Section =
-   'tasks' | 'deals' | 'committee' | 'portfolio' | 'documents';
+   | 'tasks'
+   | 'deals'
+   | 'committee'
+   | 'portfolio'
+   | 'documents'
+   | 'contracts'
+   | 'procurement';
 
 // The statuses the platform's logic names; the fund adds its own in Настройки
 // (task_statuses), each acting as its group does.
@@ -114,7 +120,7 @@ export interface TaskTarget {
 export type TaskTargets = Record<Exclude<TaskRelation, 'none'>, TaskTarget[]>;
 
 // Contracts, acts and letters to approve join in phase 3.
-export type DecisionAction = 'memo' | 'decide';
+export type DecisionAction = 'memo' | 'decide' | 'approve';
 
 /* Something a person has to do that comes from a deal rather than from the
    task list, counted from the deals (docs/ERP.md §5.7):
@@ -124,7 +130,8 @@ export type DecisionAction = 'memo' | 'decide';
    - screening: a screening decision waiting for them, the second reviewer. */
 // answer, document: what the founder sent from the startup cabinet, for the
 // deal's owner to check; company_answer: a portfolio company's answer to the
-// fund's request for data, for the company's owner
+// fund's request for data, for the company's owner; contract, procurement: a
+// contract on approval, a purchase over its category's limit, for the approver
 export type QueueKind =
    | 'inbox'
    | 'next'
@@ -132,7 +139,9 @@ export type QueueKind =
    | 'screening'
    | 'answer'
    | 'document'
-   | 'company_answer';
+   | 'company_answer'
+   | 'contract'
+   | 'procurement';
 
 export interface QueueItem {
    id: string;
@@ -148,6 +157,8 @@ export interface QueueItem {
    // set when the item is a decision the owner has to take
    decision?: { preparedById: string; action: DecisionAction };
    dealId?: string; // the deal the item is about
+   recordId?: string; // the contract or the purchase it is about
+   amount?: number; // USD, of the contract or the purchase
 }
 
 // The stages a fund starts with (Настройки → Этапы и нормативы): the system
@@ -207,6 +218,7 @@ export type UpcomingItem = {
         overdue: boolean;
      }
    | { kind: 'reports'; quarter: string } // 2026-Q3
+   | { kind: 'contract'; contractId: string; number: string; party: string }
 );
 
 // The dashboard's funnel, grouped as the design groups the deals: new

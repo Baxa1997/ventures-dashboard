@@ -1,4 +1,5 @@
 import {
+   COLORED_LISTS,
    INDUSTRY_MANDATES,
    LISTS,
    METRIC_FORMAT_LABELS,
@@ -70,7 +71,13 @@ const KEY_PATTERNS: Record<ListKind, RegExp> = {
    docFolders: SNAKE,
    ddAudits: SNAKE,
    criteria: SNAKE,
+   contractTypes: SNAKE,
+   procCategories: SNAKE,
+   procStages: SNAKE,
 };
+
+const NEW_COLOR = '#407cea';
+const NEW_LIMIT = 5000;
 
 // "Series B" → "series_b"; "Industrial Tech" → "industrial-tech"
 const keyFrom = (kind: ListKind, name: string) => {
@@ -99,6 +106,11 @@ const blank = (kind: ListKind): ListItemInput => ({
       weight: 0,
    }),
    ...(LISTS[kind].flag === 'file' && { file: null }),
+   ...((kind === 'contractTypes' || kind === 'procStages') && {
+      color: NEW_COLOR,
+   }),
+   ...(kind === 'procCategories' && { limit: NEW_LIMIT }),
+   ...(kind === 'procStages' && { needsApproval: false, needsVendor: false }),
 });
 
 const ListItemForm = ({
@@ -257,6 +269,70 @@ const ListItemForm = ({
                            }
                         />
                      </Field>
+                  </>
+               )}
+               {flag === 'limit' && (
+                  <Field label={t(list.flagLabel)}>
+                     <input
+                        className='field-input'
+                        inputMode='numeric'
+                        value={value.limit ?? 0}
+                        onChange={(event) =>
+                           setValue((prev) => ({
+                              ...prev,
+                              limit:
+                                 Number(
+                                    event.target.value.replace(/\D/g, ''),
+                                 ) || 0,
+                           }))
+                        }
+                     />
+                  </Field>
+               )}
+               {COLORED_LISTS.includes(kind) && kind !== 'taskStatuses' && (
+                  <Field label={t('Цвет')}>
+                     <div className='flex h-9 items-center gap-3'>
+                        <ColorInput
+                           label={t('Цвет')}
+                           value={value.color || NEW_COLOR}
+                           onChange={(color) =>
+                              setValue((prev) => ({ ...prev, color }))
+                           }
+                        />
+                        <Badge color={value.color || NEW_COLOR}>
+                           {value.names.ru || t(list.title)}
+                        </Badge>
+                     </div>
+                  </Field>
+               )}
+               {kind === 'procStages' && (
+                  <>
+                     <label className='flex items-center gap-2.5'>
+                        <Checkbox
+                           checked={!!value.needsApproval}
+                           label={t('Согласование')}
+                           onChange={() =>
+                              setValue((prev) => ({
+                                 ...prev,
+                                 needsApproval: !prev.needsApproval,
+                              }))
+                           }
+                        />
+                        {t('Согласование')}
+                     </label>
+                     <label className='flex items-center gap-2.5'>
+                        <Checkbox
+                           checked={!!value.needsVendor}
+                           label={t('Нужен поставщик')}
+                           onChange={() =>
+                              setValue((prev) => ({
+                                 ...prev,
+                                 needsVendor: !prev.needsVendor,
+                              }))
+                           }
+                        />
+                        {t('Нужен поставщик')}
+                     </label>
                   </>
                )}
                {flag === 'mandate' && (

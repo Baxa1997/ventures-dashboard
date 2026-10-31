@@ -39,6 +39,7 @@ import {
    SettingsNav,
    Stages,
    Users,
+   Vendors,
 } from './components';
 
 const load = () => settings.getSettings();
@@ -227,6 +228,14 @@ const SettingsPage = () => {
             );
          case 'committee':
             return <Committee />;
+         case 'vendors':
+            return (
+               <Vendors
+                  editable={director && data.vendorsStored}
+                  stored={data.vendorsStored}
+                  vendors={data.vendors}
+               />
+            );
          case 'users':
             return (
                <Users

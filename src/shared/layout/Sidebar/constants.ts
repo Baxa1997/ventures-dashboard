@@ -8,6 +8,7 @@ import {
 import type { Section, SectionCounters } from '@shared/types/work.types';
 import {
    Briefcase,
+   FileSignature,
    FolderOpen,
    Gavel,
    Handshake,
@@ -15,6 +16,7 @@ import {
    ListChecks,
    type LucideIcon,
    Settings,
+   ShoppingCart,
    Sun,
 } from 'lucide-react';
 
@@ -24,6 +26,8 @@ const SECTION_ICONS: Record<Section, LucideIcon> = {
    committee: Gavel,
    portfolio: Briefcase,
    documents: FolderOpen,
+   contracts: FileSignature,
+   procurement: ShoppingCart,
 };
 
 const section = (id: Section) => ({
@@ -63,11 +67,15 @@ export const NAV_GROUPS = [
       label: 'Инвестиции',
       items: [section('deals'), section('committee'), section('portfolio')],
    },
-   // Финансы, Договоры, Закупки and Корреспонденция join it as their tables
-   // are made in ucode (docs/ERP.md §1).
+   // Финансы and Корреспонденция join it as their tables are made in ucode
+   // (docs/ERP.md §1).
    {
       label: 'Фонд',
-      items: [section('documents')],
+      items: [
+         section('documents'),
+         section('contracts'),
+         section('procurement'),
+      ],
    },
 ] as const;
 

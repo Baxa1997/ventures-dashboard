@@ -1,3 +1,5 @@
+import { investmentContractOf } from '@modules/Contracts/helpers';
+import contractsService from '@modules/Contracts/services';
 import AnswerDialog from '@modules/Portfolio/components/AnswerDialog';
 import {
    CABINET_ROLES,
@@ -35,6 +37,7 @@ import {
    StatTile,
 } from '@shared/components';
 import { COMMITTEE_PATH } from '@modules/Committee/constants';
+import { SECTION_PATHS } from '@shared/constants';
 import {
    formatDate,
    formatDayYear,
@@ -42,7 +45,7 @@ import {
    formatUsd,
    personName,
 } from '@shared/helpers';
-import { useCurrentUser } from '@shared/hooks';
+import { useCurrentUser, useServiceData } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import type {
    CompanyRequest,
@@ -64,6 +67,10 @@ interface OverviewProps {
 }
 
 const ROW = 'flex items-start gap-3 px-4.5 py-2.75';
+
+const loadContracts = () => contractsService.getContracts();
+const subscribeContracts = (listener: () => void) =>
+   contractsService.subscribe(listener);
 
 const linkButton = (label: string, onClick: () => void) => (
    <button type='button' className='link' onClick={onClick}>
@@ -88,6 +95,10 @@ const Overview = ({
    const user = useCurrentUser();
    const [answering, setAnswering] = useState<CompanyRequest | null>(null);
    const tasks = useCompanyTasks(company.id).filter((task) => !isDone(task));
+   const contract = investmentContractOf(
+      useServiceData(loadContracts, subscribeContracts) ?? [],
+      company.dealId ?? '',
+   );
    const position = positionOf(company);
    const active = company.status === 'active';
    const mrr = latestValue(company, 'mrr');
@@ -125,6 +136,24 @@ const Overview = ({
       {
          label: t('Инструмент'),
          value: t(INSTRUMENT_LABELS[company.instrument]),
+      },
+      {
+         label: t('Договор'),
+         value: contract ? (
+            <Link
+               className='link'
+               to={`${SECTION_PATHS.contracts}?open=${contract.id}`}
+            >
+               {[
+                  contract.number,
+                  contract.signedDate && formatDate(contract.signedDate),
+               ]
+                  .filter(Boolean)
+                  .join(' · ')}
+            </Link>
+         ) : (
+            '—'
+         ),
       },
       {
          label: t('Вложено'),

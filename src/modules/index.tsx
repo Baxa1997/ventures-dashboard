@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, Outlet, useLocation, useRoutes } from 'react-router';
 import Auth from './Auth';
 import Committee from './Committee';
+import Contracts from './Contracts';
 import Deals from './Deals';
 import Documents from './Documents';
 import NotFound from './NotFound/NotFound';
 import Portfolio from './Portfolio';
+import Procurement from './Procurement';
 import Settings from './Settings';
 import Work from './Work';
 
@@ -53,8 +55,8 @@ const SignedIn = () => {
    );
 };
 
-// Финансы, Договоры, Закупки and Корреспонденция (phase 3) come back when
-// their tables exist in ucode (docs/ERP.md §1); Документы is on ucode.
+// Финансы and Корреспонденция (phase 3) come back when their tables exist in
+// ucode (docs/ERP.md §1).
 const Modules = () => {
    const routes = useRoutes([
       { path: '/', element: <Navigate to={OVERVIEW_PATH} replace /> },
@@ -67,6 +69,8 @@ const Modules = () => {
             { path: 'committee', element: <Outlet />, children: Committee },
             { path: 'portfolio', element: <Outlet />, children: Portfolio },
             { path: 'documents', element: <Outlet />, children: Documents },
+            { path: 'contracts', element: <Outlet />, children: Contracts },
+            { path: 'procurement', element: <Outlet />, children: Procurement },
             { path: 'settings', element: <Outlet />, children: Settings },
             { path: '*', element: <NotFound /> },
          ],
