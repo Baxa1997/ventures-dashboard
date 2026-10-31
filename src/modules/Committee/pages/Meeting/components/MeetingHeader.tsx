@@ -43,7 +43,7 @@ const MeetingHeader = ({
          type='button'
          aria-label={label}
          className={ICON_BUTTON}
-         title={label}
+         data-hint={label}
          onClick={onClick}
       >
          <Icon aria-hidden className='size-4' />

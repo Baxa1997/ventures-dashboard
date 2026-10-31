@@ -35,6 +35,7 @@ const RiskList = ({ risks, onOpen, onRemove }: RiskListProps) => {
                      <button
                         type='button'
                         className='hover:text-accent text-left font-medium'
+                        data-hint={t('Открыть риск, чтобы изменить его')}
                         onClick={() => onOpen(risk)}
                      >
                         {risk.title}

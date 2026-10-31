@@ -130,7 +130,11 @@ const DealCard = () => {
                   <Card className='grid flex-1 place-items-center'>
                      <NoData>
                         {t('Такой сделки нет — возможно, изменился её адрес.')}{' '}
-                        <Link className='link' to={DEALS_PATH}>
+                        <Link
+                           className='link'
+                           data-hint={t('Вернуться к списку сделок')}
+                           to={DEALS_PATH}
+                        >
                            {t('К списку сделок')}
                         </Link>
                      </NoData>
@@ -176,7 +180,13 @@ const DealCard = () => {
       );
 
    const requestButton = (
-      <Button variant='ghost' onClick={() => setRequestTitle('')}>
+      <Button
+         hint={t(
+            'Попросить у основателя документ: запрос появится в его кабинете',
+         )}
+         variant='ghost'
+         onClick={() => setRequestTitle('')}
+      >
          {t('Запросить данные')}
       </Button>
    );
@@ -185,6 +195,7 @@ const DealCard = () => {
       if (deal.status === 'review')
          return (
             <Button
+               hint={t('Взять заявку в работу и начать скрининг')}
                loading={taking.pending}
                onClick={() =>
                   taking.run(
@@ -198,7 +209,10 @@ const DealCard = () => {
             </Button>
          );
       return (
-         <Button onClick={() => setTransferring(true)}>
+         <Button
+            hint={t('Проверить условия и перевести сделку дальше')}
+            onClick={() => setTransferring(true)}
+         >
             {next
                ? t('Перевести в «{{stage}}»', { stage: stageName(next) })
                : t('Перевести в портфель')}
@@ -222,7 +236,11 @@ const DealCard = () => {
    const actions: Record<CardTab, ReactNode> = {
       overview: (
          <>
-            <Button variant='text' onClick={() => setRejecting(true)}>
+            <Button
+               hint={t('Указать причину и закрыть сделку отказом')}
+               variant='text'
+               onClick={() => setRejecting(true)}
+            >
                {t('Отказать с причиной')}
             </Button>
             {requestButton}
@@ -235,7 +253,11 @@ const DealCard = () => {
       dd: null,
       memo: memo && (
          <>
-            <Button variant='ghost' onClick={() => window.print()}>
+            <Button
+               hint={t('Открыть печать: меморандум можно сохранить в PDF')}
+               variant='ghost'
+               onClick={() => window.print()}
+            >
                {t('Скачать PDF')}
             </Button>
             {memo.approvedAt ? (
@@ -244,6 +266,7 @@ const DealCard = () => {
                      'ghost',
                      'text-success-ink cursor-default',
                   )}
+                  data-hint={t('Спонсор уже утвердил этот меморандум')}
                >
                   {t('Утверждён спонсором · {{date}}', {
                      date: formatDate(memo.approvedAt),
@@ -252,12 +275,12 @@ const DealCard = () => {
             ) : (
                <Button
                   disabled={user.id !== memo.sponsorId}
-                  loading={approving.pending}
-                  title={
+                  hint={
                      user.id === memo.sponsorId
-                        ? undefined
+                        ? t('Утвердить меморандум как спонсор сделки')
                         : t('Утвердить может только спонсор сделки')
                   }
+                  loading={approving.pending}
                   onClick={() => approving.run(deal.id)}
                >
                   {t('Утвердить как спонсор')}
@@ -302,7 +325,11 @@ const DealCard = () => {
                         .join(' · ')}
                   </span>
                   {deal.status !== 'portfolio' && (
-                     <Button variant='ghost' onClick={() => setMoving({})}>
+                     <Button
+                        hint={t('Выбрать этап и вернуть сделку в работу')}
+                        variant='ghost'
+                        onClick={() => setMoving({})}
+                     >
                         {t('Вернуть в работу')}
                      </Button>
                   )}

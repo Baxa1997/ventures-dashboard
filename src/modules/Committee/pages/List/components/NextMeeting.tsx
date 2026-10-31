@@ -59,6 +59,7 @@ const NextMeeting = ({ data, meeting }: NextMeetingProps) => {
    return (
       <Link
          className={`${CARD} hover:shadow-raised transition-shadow`}
+         data-hint={t('Открыть страницу заседания')}
          to={`${COMMITTEE_PATH}/${meeting.id}`}
       >
          <span className={ICON}>
@@ -131,7 +132,11 @@ export const NoMeeting = ({ data, onSchedule }: NoMeetingProps) => {
                   {waiting.map(({ deal, stage }, index) => (
                      <span key={deal.id}>
                         {index > 0 && ', '}
-                        <Link className='link' to={`/deals/${deal.id}`}>
+                        <Link
+                           className='link'
+                           data-hint={t('Открыть карточку сделки')}
+                           to={`/deals/${deal.id}`}
+                        >
                            {deal.company}
                         </Link>{' '}
                         <span className='text-ink-soft'>· {stage}</span>
@@ -146,7 +151,11 @@ export const NoMeeting = ({ data, onSchedule }: NoMeetingProps) => {
                </p>
             )}
          </div>
-         <Button className='shrink-0' onClick={onSchedule}>
+         <Button
+            className='shrink-0'
+            hint={t('Выбрать дату, состав и повестку нового заседания')}
+            onClick={onSchedule}
+         >
             {t('Назначить заседание')}
          </Button>
       </div>

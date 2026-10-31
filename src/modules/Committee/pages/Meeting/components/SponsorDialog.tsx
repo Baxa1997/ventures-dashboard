@@ -120,11 +120,18 @@ const SponsorDialog = ({
             <ModalFooter
                note={t('Решение уйдёт в протокол, реестр и карточку сделки')}
             >
-               <Button variant='ghost' onClick={close}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={close}
+               >
                   {t('Отмена')}
                </Button>
                <Button
                   disabled={!choice}
+                  hint={t(
+                     'Записать решение в протокол, реестр и карточку сделки',
+                  )}
                   loading={deciding.pending}
                   type='submit'
                >

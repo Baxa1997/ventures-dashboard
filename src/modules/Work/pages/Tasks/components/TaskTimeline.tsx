@@ -71,7 +71,7 @@ const TaskTimeline = ({ tasks }: TaskTimelineProps) => {
                         left: `calc(${timelineShare(first, grid.total)} + 2px)`,
                         width: `max(6px, calc(${timelineShare(last - first + 1, grid.total)} - 4px))`,
                      }}
-                     title={`${task.title} · ${formatNumericDate(start)} – ${formatNumericDate(task.dueDate)} · ${statusName(t, task.status)}`}
+                     data-hint={`${task.title} · ${formatNumericDate(start)} – ${formatNumericDate(task.dueDate)} · ${statusName(t, task.status)}`}
                      onClick={() => openTask(task.id)}
                   />
                ),

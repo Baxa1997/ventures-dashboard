@@ -56,6 +56,7 @@ const Tasks = ({ company }: TasksProps) => {
             />
             <Button
                className='ml-auto'
+               hint={t('Создать задачу по этой компании')}
                onClick={() =>
                   openNewTask({ relation: 'portfolio', relationId: company.id })
                }

@@ -75,10 +75,18 @@ const AnswerDialog = ({ request, onClose }: AnswerDialogProps) => {
                   'Ответ сохранится в карточке компании — передайте его компании сами',
                )}
             >
-               <Button variant='ghost' onClick={close}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={close}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={answering.pending} type='submit'>
+               <Button
+                  hint={t('Записать ответ и закрыть запрос')}
+                  loading={answering.pending}
+                  type='submit'
+               >
                   {t('Ответить и закрыть')}
                </Button>
             </ModalFooter>

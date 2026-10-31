@@ -49,6 +49,9 @@ const Execution = ({ data }: ExecutionProps) => {
                               type='button'
                               aria-busy={finishingId === task.id || undefined}
                               className='text-ink-soft hover:text-accent inline-flex items-center gap-1.5 text-xs disabled:opacity-50'
+                              data-hint={t(
+                                 'Закрыть это поручение как выполненное',
+                              )}
                               disabled={finishing.pending}
                               onClick={async () => {
                                  setFinishingId(task.id);

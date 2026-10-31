@@ -35,6 +35,7 @@ const Issues = ({ issues }: IssuesProps) => {
             <button
                type='button'
                className='link'
+               data-hint={t('Добавить открытый вопрос управления')}
                onClick={() => setAdding(true)}
             >
                {t('Добавить')}

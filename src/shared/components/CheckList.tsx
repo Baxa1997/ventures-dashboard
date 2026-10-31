@@ -65,6 +65,11 @@ const CheckList = ({
                            'relative after:absolute after:-inset-2 disabled:cursor-progress',
                            !done && 'hover:border-accent',
                         )}
+                        data-hint={
+                           done
+                              ? t('Снять отметку с этого пункта')
+                              : t('Отметить этот пункт выполненным')
+                        }
                         disabled={!!busyId}
                         onClick={() => onToggle(item.id)}
                      >

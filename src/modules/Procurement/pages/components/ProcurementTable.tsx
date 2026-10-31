@@ -126,6 +126,7 @@ const ProcurementTable = ({
                            <button
                               type='button'
                               className='text-left font-semibold'
+                              data-hint={t('Открыть заявку')}
                               onClick={(event) => {
                                  event.stopPropagation();
                                  onOpen(request);
@@ -191,10 +192,18 @@ const ProcurementTable = ({
                               {next ? (
                                  <Button
                                     disabled={waits && approver !== user.id}
+                                    hint={
+                                       waits
+                                          ? approver === user.id
+                                            ? t('Открыть окно согласования')
+                                            : t(
+                                                 'Заявку согласует другой сотрудник',
+                                              )
+                                          : t('Перевести на этап «{{stage}}»', {
+                                               stage: nameOf(next),
+                                            })
+                                    }
                                     size='sm'
-                                    title={t('Перевести на этап «{{stage}}»', {
-                                       stage: nameOf(next),
-                                    })}
                                     variant='ghost'
                                     onClick={() => onNext(request)}
                                  >

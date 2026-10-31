@@ -213,12 +213,16 @@ const StaffForm = ({
                         <li key={role} className='flex items-center gap-2.5'>
                            <Checkbox
                               checked={checked}
-                              label={t(ROLE_LABELS[role])}
+                              hint={t('Выдать эту обязанность или снять её')}
+                           label={t(ROLE_LABELS[role])}
                               onChange={toggle}
                            />
                            <button
                               type='button'
                               className='text-left'
+                              data-hint={t(
+                                 'Выдать эту обязанность или снять её',
+                              )}
                               onClick={toggle}
                            >
                               {t(ROLE_LABELS[role])}
@@ -239,14 +243,26 @@ const StaffForm = ({
                member
                   ? t('Изменение попадёт в журнал')
                   : t(
-                       'Войти сотрудник сможет, когда для него создадут пользователя ucode',
+                       'После добавления покажем логин и пароль: передайте их сотруднику',
                     )
             }
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={save.pending} type='submit'>
+            <Button
+               hint={
+                  member
+                     ? t('Сохранить изменения сотрудника')
+                     : t('Добавить сотрудника и создать ему логин и пароль')
+               }
+               loading={save.pending}
+               type='submit'
+            >
                {member ? t('Сохранить') : t('Пригласить')}
             </Button>
          </ModalFooter>

@@ -169,6 +169,9 @@ const TaskBoard = ({ tasks, targetName, onMove }: TaskBoardProps) => {
                                  type='button'
                                  aria-label={`${taskKey(task)} ${task.title}`}
                                  className='block w-full text-left'
+                                 data-hint={t(
+                                    'Нажмите, чтобы открыть; перетащите, чтобы сменить статус',
+                                 )}
                               >
                                  <CardFace
                                     target={targetName(task)}

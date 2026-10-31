@@ -65,7 +65,7 @@ const TaskCardHead = ({ task, target, onRemove }: TaskCardHeadProps) => {
                type='button'
                aria-label={t('Скопировать ссылку')}
                className={ICON_BUTTON}
-               title={t('Скопировать ссылку')}
+               data-hint={t('Скопировать ссылку на эту задачу')}
                onClick={copyLink}
             >
                <LinkIcon aria-hidden className='size-4' />
@@ -74,7 +74,7 @@ const TaskCardHead = ({ task, target, onRemove }: TaskCardHeadProps) => {
                type='button'
                aria-label={t('Удалить задачу')}
                className={ICON_BUTTON}
-               title={t('Удалить задачу')}
+               data-hint={t('Удалить эту задачу')}
                onClick={() => setRemoving(true)}
             >
                <Trash2 aria-hidden className='size-4' />

@@ -296,6 +296,7 @@ const ScheduleDialog = ({
                            )}{' '}
                            <Link
                               className='link'
+                              data-hint={t('Открыть страницу заседания')}
                               to={`${COMMITTEE_PATH}/${planned.id}`}
                               onClick={onClose}
                            >
@@ -319,6 +320,9 @@ const ScheduleDialog = ({
                                  <label className='flex min-w-0 flex-1 items-center gap-2.5'>
                                     <Checkbox
                                        checked={checked}
+                                       hint={t(
+                                          'Включить человека в состав заседания или убрать',
+                                       )}
                                        label={member.name}
                                        onChange={() =>
                                           setParticipantIds((prev) =>
@@ -356,6 +360,7 @@ const ScheduleDialog = ({
                      <button
                         type='button'
                         className='link mt-2.5'
+                        data-hint={t('Добавить нового человека в состав ИК')}
                         onClick={() => setPerson('new')}
                      >
                         {t('Добавить человека')}
@@ -380,10 +385,20 @@ const ScheduleDialog = ({
                      })
                   }
                >
-                  <Button variant='ghost' onClick={onClose}>
+                  <Button
+                     hint={t('Закрыть окно, ничего не меняя')}
+                     variant='ghost'
+                     onClick={onClose}
+                  >
                      {t('Отмена')}
                   </Button>
-                  <Button loading={scheduling.pending} type='submit'>
+                  <Button
+                     hint={t(
+                        'Создать заседание с этими датой, составом и повесткой',
+                     )}
+                     loading={scheduling.pending}
+                     type='submit'
+                  >
                      {t('Назначить')}
                   </Button>
                </ModalFooter>

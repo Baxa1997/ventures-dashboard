@@ -28,6 +28,7 @@ const Header = ({ onMenuClick, crumbsRef }: HeaderProps) => {
                type='button'
                aria-label={t('Меню')}
                className={`${ICON_BUTTON} lg:hidden`}
+               data-hint={t('Открыть меню разделов')}
                onClick={onMenuClick}
             >
                <Menu aria-hidden className='size-4' />
@@ -41,6 +42,7 @@ const Header = ({ onMenuClick, crumbsRef }: HeaderProps) => {
          <button
             type='button'
             className='bg-ground border-line text-ink-faint hover:border-line-strong hidden h-9 min-w-55 flex-[0_1_15rem] items-center gap-2 rounded-lg border px-2.5 text-left lg:flex xl:flex-[0_1_23.75rem]'
+            data-hint={t('Найти сделку, задачу или раздел (⌘K)')}
             onClick={() => setSearching(true)}
          >
             <SearchIcon aria-hidden className='text-indigo size-4 shrink-0' />
@@ -55,6 +57,7 @@ const Header = ({ onMenuClick, crumbsRef }: HeaderProps) => {
                type='button'
                aria-label={t('Поиск')}
                className={`${ICON_BUTTON} lg:hidden`}
+               data-hint={t('Найти сделку, задачу или раздел (⌘K)')}
                onClick={() => setSearching(true)}
             >
                <SearchIcon aria-hidden className='size-4' />
@@ -63,7 +66,7 @@ const Header = ({ onMenuClick, crumbsRef }: HeaderProps) => {
                type='button'
                aria-label={t('Новая задача')}
                className={ICON_BUTTON}
-               title={t('Новая задача')}
+               data-hint={t('Создать новую задачу')}
                onClick={() => openNewTask()}
             >
                <CirclePlus aria-hidden className='size-4' />

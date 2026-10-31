@@ -85,6 +85,11 @@ const RequestRow = ({
                      ? 'bg-success border-success text-white'
                      : 'border-line-strong hover:border-success bg-white',
                )}
+               data-hint={
+                  received
+                     ? t('Снять отметку о получении')
+                     : t('Отметить, что документ получен')
+               }
                disabled={!writable || ticking.pending}
                onClick={tick}
             >
@@ -173,6 +178,9 @@ const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
                writable && (
                   <Button
                      className='h-8 px-3 text-xs'
+                     hint={t(
+                        'Попросить у основателя документ: запрос появится в его кабинете',
+                     )}
                      onClick={() => onRequest('')}
                   >
                      <Plus aria-hidden />

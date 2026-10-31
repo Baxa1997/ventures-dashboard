@@ -52,7 +52,12 @@ const RisksCard = ({ deal, editable, title, link }: RisksCardProps) => {
             (editable || link) && (
                <span className='flex gap-4'>
                   {editable && (
-                     <button type='button' className='link' onClick={add}>
+                     <button
+                        type='button'
+                        className='link'
+                        data-hint={t('Добавить риск по этой сделке')}
+                        onClick={add}
+                     >
                         {t('Добавить риск')}
                      </button>
                   )}
@@ -232,10 +237,18 @@ const RiskForm = ({ deal, risk, onClose }: RiskFormProps) => {
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={t('Сохранить риск')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

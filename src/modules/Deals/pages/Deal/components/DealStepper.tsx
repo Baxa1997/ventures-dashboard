@@ -86,7 +86,19 @@ const DealStepper = ({ deal, onTransfer, onMove }: DealStepperProps) => {
                               '--c': TONE_COLORS[columnTone(step.stage)],
                            } as CSSProperties
                         }
-                        title={[name, step.line1, step.line2]
+                        data-hint={[
+                           name,
+                           step.line1,
+                           step.line2,
+                           action &&
+                              (state === 'done'
+                                 ? t(
+                                      'Нажмите, чтобы вернуть сделку на этот этап',
+                                   )
+                                 : t(
+                                      'Нажмите, чтобы перевести сделку на этот этап',
+                                   )),
+                        ]
                            .filter(Boolean)
                            .join(' · ')}
                         onClick={action}

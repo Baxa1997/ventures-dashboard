@@ -38,6 +38,7 @@ const Pilots = ({ company }: PilotsProps) => {
             <button
                type='button'
                className='link'
+               data-hint={t('Добавить пилот этой компании')}
                onClick={() => setEditing('new')}
             >
                {t('Новый пилот')}

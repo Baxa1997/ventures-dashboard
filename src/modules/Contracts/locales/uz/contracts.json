@@ -56,5 +56,10 @@
    "{{count}} договор_one": "{{count}} ta shartnoma",
    "{{count}} договор_few": "{{count}} ta shartnoma",
    "{{count}} договор_many": "{{count}} ta shartnoma",
-   "{{count}} договор_other": "{{count}} ta shartnoma"
+   "{{count}} договор_other": "{{count}} ta shartnoma",
+   "Сохранить изменения в договоре": "Shartnomadagi o‘zgarishlarni saqlash",
+   "Добавить договор в реестр": "Shartnomani reyestrga qo‘shish",
+   "Закрыть окно, ничего не меняя": "Hech narsani o‘zgartirmasdan oynani yopish",
+   "Открыть договор": "Shartnomani ochish",
+   "Открыть сделку этого договора": "Shu shartnoma bitimini ochish"
 }

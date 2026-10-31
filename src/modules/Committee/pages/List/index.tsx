@@ -74,11 +74,15 @@ const CommitteeList = () => {
                {/* the rules the panel applies: quorum, materials, votes */}
                <Link
                   className={buttonClass('ghost')}
+                  data-hint={t('Открыть правила ИК: кворум, материалы, голоса')}
                   to={`${SETTINGS_PATH}/committee`}
                >
                   {t('Положение об ИК')}
                </Link>
-               <Button onClick={() => setScheduling(true)}>
+               <Button
+                  hint={t('Выбрать дату, состав и повестку нового заседания')}
+                  onClick={() => setScheduling(true)}
+               >
                   <CalendarPlus aria-hidden />
                   {t('Назначить заседание')}
                </Button>
@@ -148,6 +152,7 @@ const CommitteeList = () => {
                {view === 'table' && (
                   <Button
                      className='ml-auto'
+                     hint={t('Скачать реестр заседаний файлом CSV')}
                      variant='ghost'
                      onClick={exportRegister}
                   >

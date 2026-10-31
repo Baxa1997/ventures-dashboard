@@ -89,6 +89,7 @@ const TaskRow = ({ task, targetName, fileCount, onPick }: TaskRowProps) => {
                <button
                   type='button'
                   className='text-left'
+                  data-hint={t('Открыть задачу')}
                   onClick={() => openTask(task.id)}
                >
                   <span className='text-ink-faint tabular-nums'>
@@ -128,6 +129,7 @@ const TaskRow = ({ task, targetName, fileCount, onPick }: TaskRowProps) => {
                type='button'
                aria-label={`${t('Сменить статус')}: ${task.title}`}
                className='flex rounded-full transition hover:brightness-95'
+               data-hint={t('Сменить статус задачи')}
                onClick={onPick}
             >
                <StatusBadge status={task.status} />

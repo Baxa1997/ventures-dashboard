@@ -226,10 +226,18 @@ const RejectForm = ({ deal, onClose, onDone }: FormProps) => {
                'Сайт примет новую заявку с этой почты после даты повторной подачи',
             )}
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={rejecting.pending} type='submit'>
+            <Button
+               hint={t('Закрыть сделку отказом с этой причиной')}
+               loading={rejecting.pending}
+               type='submit'
+            >
                {t('Отказать')}
             </Button>
          </ModalFooter>

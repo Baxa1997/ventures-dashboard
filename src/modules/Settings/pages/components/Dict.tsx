@@ -259,7 +259,7 @@ export const RowHandle = ({
          type='button'
          aria-label={t('Переместить: {{name}}', { name })}
          className='text-ink-faint hover:bg-hover hover:text-ink grid h-7 w-5 cursor-grab touch-none place-items-center rounded-md transition-colors active:cursor-grabbing'
-         title={t('Перетащите, чтобы изменить порядок')}
+         data-hint={t('Перетащите, чтобы изменить порядок')}
          onKeyDown={(event) => {
             const to =
                event.key === 'ArrowUp'
@@ -303,7 +303,7 @@ export const RowDelete = ({ name, locked, onDelete }: RowDeleteProps) => {
          type='button'
          aria-label={t('Удалить: {{name}}', { name })}
          className='text-ink-soft hover:bg-hover hover:text-danger grid size-7 place-items-center rounded-md transition-colors'
-         title={t('Удалить')}
+         data-hint={t('Удалить: {{name}}', { name })}
          onClick={onDelete}
       >
          <Trash2 aria-hidden className='size-3.5' />
@@ -317,6 +317,7 @@ interface DictCardProps {
    className?: string; // the table's min-width, so it scrolls on narrow screens
    editable: boolean;
    addLabel: string;
+   addHint: string; // what it adds: the note on hover
    onAdd: () => void;
    note: string; // beside «Добавить»
    extra?: ReactNode; // a line between the rows and the foot
@@ -329,6 +330,7 @@ export const DictCard = ({
    className,
    editable,
    addLabel,
+   addHint,
    onAdd,
    note,
    extra,
@@ -357,7 +359,7 @@ export const DictCard = ({
       {extra}
       <div className='border-line text-ink-soft flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t px-4.5 py-2 text-xs'>
          {editable && (
-            <Button size='sm' variant='ghost' onClick={onAdd}>
+            <Button hint={addHint} size='sm' variant='ghost' onClick={onAdd}>
                <Plus aria-hidden />
                {addLabel}
             </Button>

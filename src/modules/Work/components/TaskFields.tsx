@@ -290,7 +290,7 @@ export const TaskDetails = ({
             <Link
                aria-label={t('Открыть карточку')}
                className='text-ink-faint hover:bg-hover hover:text-sky grid size-6 shrink-0 place-items-center rounded-md'
-               title={t('Открыть карточку')}
+               data-hint={t('Открыть карточку')}
                to={`${SECTION_PATHS[TASK_RELATION_SECTIONS[relation]]}/${targetOf(relation)}`}
                onClick={closeTaskDialog}
             >

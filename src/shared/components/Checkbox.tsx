@@ -5,6 +5,7 @@ import { Spinner } from './Button';
 interface CheckboxProps {
    checked: boolean;
    label: string; // for screen readers; the visible text sits beside the box
+   hint?: string; // the note on hover (Hints): the label unless given
    onChange: () => void;
    busy?: boolean; // the tick is being saved: a spinner, and it is off
 }
@@ -12,6 +13,7 @@ interface CheckboxProps {
 const Checkbox = ({
    checked,
    label,
+   hint,
    onChange,
    busy = false,
 }: CheckboxProps) => (
@@ -27,6 +29,7 @@ const Checkbox = ({
             ? 'border-success bg-success text-white'
             : 'border-line-strong hover:border-accent bg-white text-transparent',
       )}
+      data-hint={hint ?? label}
       disabled={busy}
       onClick={onChange}
    >

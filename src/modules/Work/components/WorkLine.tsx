@@ -65,11 +65,20 @@ const WorkLine = ({
          </span>
          <div className='min-w-0 flex-1'>
             {onOpen ? (
-               <button type='button' className={titleClass} onClick={onOpen}>
+               <button
+                  type='button'
+                  className={titleClass}
+                  data-hint={t('Открыть задачу')}
+                  onClick={onOpen}
+               >
                   {title}
                </button>
             ) : (
-               <Link className={titleClass} to={to}>
+               <Link
+                  className={titleClass}
+                  data-hint={t('Открыть карточку')}
+                  to={to}
+               >
                   {title}
                </Link>
             )}

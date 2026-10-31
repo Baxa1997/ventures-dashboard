@@ -113,6 +113,9 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                               type='button'
                               aria-current={n === active ? 'true' : undefined}
                               className={clsx(className, 'hover:bg-ground')}
+                              data-hint={t(
+                                 'Перейти к этому разделу меморандума',
+                              )}
                               onClick={() => goTo(n)}
                            >
                               {row}
@@ -157,6 +160,9 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                                  ? 'border-accent bg-accent text-white'
                                  : 'border-line-strong text-ink-soft enabled:hover:border-accent bg-white',
                            )}
+                           data-hint={t('Записать рекомендацию: {{name}}', {
+                              name: RECOMMENDATION_NAMES[value],
+                           })}
                            disabled={locked || recommending.pending}
                            onClick={async () => {
                               setChoosing(value);

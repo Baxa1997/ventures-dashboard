@@ -11,7 +11,7 @@ interface DealPickerProps {
 
 // The deals to put on a meeting's agenda, each with its amount.
 const DealPicker = ({ deals, value, onChange }: DealPickerProps) => {
-   const { i18n } = useTranslation('committee');
+   const { t, i18n } = useTranslation('committee');
    const language = i18n.resolvedLanguage ?? i18n.language;
 
    return (
@@ -28,10 +28,18 @@ const DealPicker = ({ deals, value, onChange }: DealPickerProps) => {
                <li key={deal.id} className='flex items-center gap-3'>
                   <Checkbox
                      checked={checked}
+                     hint={t('Включить сделку в повестку или убрать из неё')}
                      label={deal.company}
                      onChange={toggle}
                   />
-                  <button type='button' className='text-left' onClick={toggle}>
+                  <button
+                     type='button'
+                     className='text-left'
+                     data-hint={t(
+                        'Включить сделку в повестку или убрать из неё',
+                     )}
+                     onClick={toggle}
+                  >
                      <span className='font-medium'>{deal.company}</span>
                      <span className='text-ink-soft ml-2 text-xs'>
                         {formatUsd(deal.amount, language)}

@@ -99,5 +99,18 @@
    "{{count}} элемент_few": "{{count}} ta element",
    "{{count}} элемент_many": "{{count}} ta element",
    "{{count}} элемент_other": "{{count}} ta element",
-   "Сделка в портфеле: файлы добавляются на карточке компании, «Документы Data Room»": "Bitim portfelda: fayllar kompaniya kartochkasida, «Документы Data Room» bo‘limida qo‘shiladi"
+   "Сделка в портфеле: файлы добавляются на карточке компании, «Документы Data Room»": "Bitim portfelda: fayllar kompaniya kartochkasida, «Документы Data Room» bo‘limida qo‘shiladi",
+   "Сохранить изменения в документе": "Hujjatdagi o‘zgarishlarni saqlash",
+   "Создать приказ с этими данными": "Shu ma’lumotlar bilan buyruq yaratish",
+   "Добавить документ в этот раздел": "Hujjatni shu bo‘limga qo‘shish",
+   "Закрыть окно, ничего не меняя": "Hech narsani o‘zgartirmasdan oynani yopish",
+   "Добавить вопрос в список открытых": "Masalani ochiqlar ro‘yxatiga qo‘shish",
+   "Вернуться ко всем модулям": "Barcha modullarga qaytish",
+   "Вернуться в эту папку": "Shu papkaga qaytish",
+   "Сортировать по этому столбцу": "Shu ustun bo‘yicha saralash",
+   "Создать новый приказ": "Yangi buyruq yaratish",
+   "Добавить документ фонда": "Fond hujjatini qo‘shish",
+   "Выбрать файлы и загрузить их в эту папку": "Fayllarni tanlash va shu papkaga yuklash",
+   "Откройте папку, чтобы загрузить в неё файлы": "Fayllarni yuklash uchun papkani oching",
+   "Добавить открытый вопрос управления": "Boshqaruvning ochiq masalasini qo‘shish"
 }

@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Badge, { type BadgeTone } from './Badge';
 import { Spinner } from './Button';
 
@@ -26,11 +27,15 @@ const BadgeSelect = <T extends string>({
    onChange,
    busy = false,
 }: BadgeSelectProps<T>) => {
+   const { t } = useTranslation('components');
    const current =
       options.find((option) => option.value === value) ?? options[0];
 
    return (
-      <span className='has-focus-visible:outline-accent relative inline-flex shrink-0 rounded-full has-focus-visible:outline-2 has-focus-visible:outline-offset-1'>
+      <span
+         className='has-focus-visible:outline-accent relative inline-flex shrink-0 rounded-full has-focus-visible:outline-2 has-focus-visible:outline-offset-1'
+         data-hint={t('Выбрать: {{name}}', { name: label })}
+      >
          <Badge tone={current.tone}>
             {current.label}
             {busy ? (

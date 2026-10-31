@@ -20,6 +20,7 @@ const CommitteeLink = ({ deal, onClick }: CommitteeLinkProps) => {
       return (
          <Link
             className='link'
+            data-hint={t('Выбрать дату и создать заседание для этой сделки')}
             to={`${SECTION_PATHS.committee}?schedule=${deal.id}`}
             onClick={onClick}
          >
@@ -33,6 +34,7 @@ const CommitteeLink = ({ deal, onClick }: CommitteeLinkProps) => {
    return (
       <Link
          className='link'
+         data-hint={t('Открыть заседание, где решается эта сделка')}
          to={`${SECTION_PATHS.committee}/${deal.committee.id}`}
          onClick={onClick}
       >

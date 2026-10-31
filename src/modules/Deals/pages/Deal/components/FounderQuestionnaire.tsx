@@ -49,6 +49,11 @@ const AnswerInput = ({ field, value, disabled, onSave }: AnswerInputProps) => {
                         ? 'bg-accent-tint text-ink-strong'
                         : 'text-ink-soft enabled:hover:bg-hover',
                   )}
+                  data-hint={
+                     value === option
+                        ? t('Нажмите ещё раз, чтобы снять ответ')
+                        : t('Выбрать этот ответ')
+                  }
                   disabled={disabled}
                   onClick={() => onSave(value === option ? '' : option)}
                >
@@ -123,6 +128,7 @@ const AnswerInput = ({ field, value, disabled, onSave }: AnswerInputProps) => {
             <a
                aria-label={t('Открыть ссылку')}
                className='text-ink-soft hover:bg-hover grid size-8 shrink-0 place-items-center rounded-md'
+               data-hint={t('Открыть ссылку в новой вкладке')}
                href={value}
                rel='noreferrer'
                target='_blank'
@@ -174,7 +180,14 @@ const FounderQuestionnaire = ({
          action={
             editable &&
             !asked && (
-               <button type='button' className='link' onClick={onQuestionnaire}>
+               <button
+                  type='button'
+                  className='link'
+                  data-hint={t(
+                     'Попросить основателя заполнить анкету в кабинете',
+                  )}
+                  onClick={onQuestionnaire}
+               >
                   {t('Запросить анкету')}
                </button>
             )
@@ -197,7 +210,12 @@ const FounderQuestionnaire = ({
                         className='group'
                         open={index === 0}
                      >
-                        <summary className='hover:bg-hover flex cursor-pointer list-none items-center justify-between gap-3 px-4.5 py-3 font-semibold [&::-webkit-details-marker]:hidden'>
+                        <summary
+                           className='hover:bg-hover flex cursor-pointer list-none items-center justify-between gap-3 px-4.5 py-3 font-semibold [&::-webkit-details-marker]:hidden'
+                           data-hint={t(
+                              'Развернуть или свернуть раздел анкеты',
+                           )}
+                        >
                            <span className='flex min-w-0 items-center gap-2'>
                               <ChevronRight
                                  aria-hidden
@@ -259,6 +277,15 @@ const FounderQuestionnaire = ({
                                                 deal.owners.length > 0 &&
                                                    'mt-2',
                                              )}
+                                             data-hint={
+                                                deal.owners.length
+                                                   ? t(
+                                                        'Изменить участников и их доли',
+                                                     )
+                                                   : t(
+                                                        'Внести участников и их доли',
+                                                     )
+                                             }
                                              onClick={() => setCapital(true)}
                                           >
                                              {deal.owners.length

@@ -39,6 +39,7 @@ const MetricsCard = ({ deal, editable }: MetricsCardProps) => {
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Изменить метрики, проверенные DD')}
                   onClick={() => setEditing(true)}
                >
                   {t('Изменить')}
@@ -89,6 +90,7 @@ const MetricsCard = ({ deal, editable }: MetricsCardProps) => {
                {editable && (
                   <Button
                      className='mt-3'
+                     hint={t('Внести метрики, которые подтвердил DD')}
                      variant='ghost'
                      onClick={() => setEditing(true)}
                   >
@@ -193,10 +195,18 @@ const MetricsForm = ({
          <ModalFooter
             note={t('Строки без показателя или значения не сохраняются.')}
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={t('Сохранить метрики')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

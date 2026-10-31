@@ -180,10 +180,19 @@ const DealsList = () => {
             )}
             actions={
                <>
-                  <Button variant='ghost' onClick={exportRows}>
+                  <Button
+                     hint={t('Скачать список сделок файлом CSV для Excel')}
+                     variant='ghost'
+                     onClick={exportRows}
+                  >
                      {t('Экспорт в Excel')}
                   </Button>
-                  <Button onClick={() => setCreating(true)}>
+                  <Button
+                     hint={t(
+                        'Добавить заявку вручную, если она пришла не через сайт',
+                     )}
+                     onClick={() => setCreating(true)}
+                  >
                      <Plus aria-hidden />
                      {t('Новая сделка')}
                   </Button>

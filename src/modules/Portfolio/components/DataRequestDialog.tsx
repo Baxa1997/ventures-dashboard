@@ -119,10 +119,22 @@ const DataRequestForm = ({
                   'Компания увидит запрос в кабинете основателя и ответит там; файлы для неё можно приложить к запросу.',
                )}
             >
-               <Button variant='ghost' onClick={onClose}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={onClose}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={saving.pending} type='submit'>
+               <Button
+                  hint={
+                     request
+                        ? t('Сохранить изменения в запросе')
+                        : t('Отправить запрос: компания увидит его в кабинете')
+                  }
+                  loading={saving.pending}
+                  type='submit'
+               >
                   {request ? t('Сохранить') : t('Отправить запрос')}
                </Button>
             </ModalFooter>

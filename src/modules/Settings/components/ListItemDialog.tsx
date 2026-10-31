@@ -310,6 +310,7 @@ const ListItemForm = ({
                      <label className='flex items-center gap-2.5'>
                         <Checkbox
                            checked={!!value.needsApproval}
+                           hint={t('Закупка на этом этапе ждёт согласования')}
                            label={t('Согласование')}
                            onChange={() =>
                               setValue((prev) => ({
@@ -323,6 +324,9 @@ const ListItemForm = ({
                      <label className='flex items-center gap-2.5'>
                         <Checkbox
                            checked={!!value.needsVendor}
+                           hint={t(
+                              'На этом этапе у закупки должен быть поставщик',
+                           )}
                            label={t('Нужен поставщик')}
                            onChange={() =>
                               setValue((prev) => ({
@@ -441,6 +445,11 @@ const ListItemForm = ({
                         <button
                            type='button'
                            className='link'
+                           data-hint={
+                              picked
+                                 ? t('Заменить файл шаблона')
+                                 : t('Выбрать файл шаблона')
+                           }
                            onClick={() => fileInput.current?.click()}
                         >
                            {picked ? t('Заменить файл') : t('Выбрать файл')}
@@ -449,6 +458,7 @@ const ListItemForm = ({
                            <button
                               type='button'
                               className='text-ink-soft hover:text-danger'
+                              data-hint={t('Убрать выбранный файл')}
                               onClick={() => setPicked(null)}
                            >
                               {t('Убрать')}
@@ -485,10 +495,18 @@ const ListItemForm = ({
             </div>
          </ModalBody>
          <ModalFooter note={t('Изменение попадёт в журнал')}>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={save.pending} type='submit'>
+            <Button
+               hint={t('Добавить строку в этот список')}
+               loading={save.pending}
+               type='submit'
+            >
                {t('Добавить')}
             </Button>
          </ModalFooter>

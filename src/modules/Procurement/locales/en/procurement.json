@@ -62,5 +62,14 @@
    "{{count}} заявка_one": "{{count}} request",
    "{{count}} заявка_few": "{{count}} requests",
    "{{count}} заявка_many": "{{count}} requests",
-   "{{count}} заявка_other": "{{count}} requests"
+   "{{count}} заявка_other": "{{count}} requests",
+   "Вернуть заявку инициатору с этим комментарием": "Send the request back to its initiator with this comment",
+   "Согласовать заявку: она пойдёт на следующий этап": "Approve the request: it goes to the next stage",
+   "Закрыть окно, ничего не меняя": "Close this window without changing anything",
+   "Сохранить изменения в заявке": "Save the changes to the request",
+   "Подать заявку на закупку": "Submit the purchase request",
+   "Открыть заявку": "Open the request",
+   "Открыть окно согласования": "Open the approval window",
+   "Заявку согласует другой сотрудник": "Another employee approves this request",
+   "Создать заявку на закупку": "Create a purchase request"
 }

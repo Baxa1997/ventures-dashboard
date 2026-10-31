@@ -49,11 +49,18 @@ const Overview = () => {
             )}
             actions={
                <>
-                  <Link className={buttonClass('ghost')} to={MY_DAY_PATH}>
+                  <Link
+                     className={buttonClass('ghost')}
+                     data-hint={t('Открыть страницу «Мой день»')}
+                     to={MY_DAY_PATH}
+                  >
                      <Sun aria-hidden />
                      {t('Мой день')}
                   </Link>
-                  <Button onClick={() => openNewTask()}>
+                  <Button
+                     hint={t('Создать новую задачу')}
+                     onClick={() => openNewTask()}
+                  >
                      <Plus aria-hidden />
                      {t('Новая задача')}
                   </Button>
@@ -74,7 +81,11 @@ const Overview = () => {
                   <Card
                      title={t('Воронка сделок')}
                      action={
-                        <Link className='head-link' to={SECTION_PATHS.deals}>
+                        <Link
+                           className='head-link'
+                           data-hint={t('Открыть все сделки')}
+                           to={SECTION_PATHS.deals}
+                        >
                            {t('Все сделки')}
                         </Link>
                      }
@@ -85,7 +96,11 @@ const Overview = () => {
                      className='flex flex-col'
                      title={t('Вложено по отраслям')}
                      action={
-                        <Link className='head-link' to={SECTION_PATHS.portfolio}>
+                        <Link
+                           className='head-link'
+                           data-hint={t('Открыть портфель компаний')}
+                           to={SECTION_PATHS.portfolio}
+                        >
                            {t('Портфель')}
                         </Link>
                      }
@@ -105,6 +120,7 @@ const Overview = () => {
                      action={
                         <Link
                            className='head-link'
+                           data-hint={t('Открыть все задачи')}
                            to={SECTION_PATHS.tasks}
                         >
                            {t('Все задачи')}

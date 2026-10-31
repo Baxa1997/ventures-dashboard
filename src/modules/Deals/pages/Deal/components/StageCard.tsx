@@ -37,11 +37,22 @@ const StageCard = ({ deal, onMove }: StageCardProps) => {
          action={
             <span className='flex gap-4'>
                {deal.status !== 'portfolio' && (
-                  <button type='button' className='link' onClick={onMove}>
+                  <button
+                     type='button'
+                     className='link'
+                     data-hint={t(
+                        'Поставить сделку на другой этап или в другой статус',
+                     )}
+                     onClick={onMove}
+                  >
                      {t('Сменить этап')}
                   </button>
                )}
-               <Link className='link' to='?tab=history'>
+               <Link
+                  className='link'
+                  data-hint={t('Показать все переходы сделки по этапам')}
+                  to='?tab=history'
+               >
                   {t('Журнал переходов')}
                </Link>
             </span>

@@ -78,6 +78,7 @@ const Timeline = ({
                type='button'
                aria-label={t('Раньше')}
                className={ARROW}
+               data-hint={t('Показать более ранний период')}
                onClick={() => setFrom(shiftTimeline(scale, from, -1))}
             >
                <ChevronLeft aria-hidden className='size-4' />
@@ -89,11 +90,13 @@ const Timeline = ({
                type='button'
                aria-label={t('Позже')}
                className={ARROW}
+               data-hint={t('Показать более поздний период')}
                onClick={() => setFrom(shiftTimeline(scale, from, 1))}
             >
                <ChevronRight aria-hidden className='size-4' />
             </button>
             <Button
+               hint={t('Вернуться к сегодняшнему дню')}
                size='sm'
                variant='ghost'
                onClick={() => setFrom(timelineStart(scale, today, weeksBack))}

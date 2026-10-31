@@ -35,7 +35,7 @@ const ItemActions = ({
                   type='button'
                   aria-label={t('Изменить: {{name}}', { name })}
                   className={clsx(ICON, 'hover:text-ink')}
-                  title={t('Изменить')}
+                  data-hint={t('Изменить: {{name}}', { name })}
                   onClick={onEdit}
                >
                   <Pencil aria-hidden className='size-3.5' />
@@ -46,7 +46,7 @@ const ItemActions = ({
                   type='button'
                   aria-label={`${remove}: ${name}`}
                   className={clsx(ICON, 'hover:text-danger')}
-                  title={remove}
+                  data-hint={`${remove}: ${name}`}
                   onClick={onDelete}
                >
                   <Trash2 aria-hidden className='size-3.5' />
@@ -66,6 +66,7 @@ const ItemActions = ({
                type='button'
                aria-label={t('Изменить: {{name}}', { name })}
                className='text-ink-soft hover:text-ink'
+               data-hint={t('Изменить: {{name}}', { name })}
                onClick={onEdit}
             >
                {t('Изменить')}
@@ -76,6 +77,7 @@ const ItemActions = ({
                type='button'
                aria-label={`${remove}: ${name}`}
                className='text-ink-soft hover:text-danger'
+               data-hint={`${remove}: ${name}`}
                onClick={onDelete}
             >
                {remove}

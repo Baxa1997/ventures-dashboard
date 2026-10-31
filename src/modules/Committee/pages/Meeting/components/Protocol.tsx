@@ -173,11 +173,19 @@ const Protocol = ({ data, meeting, editable }: ProtocolProps) => {
    return (
       <>
          <div className='print-hidden mb-3.5 flex flex-wrap items-center gap-2'>
-            <Button variant='ghost' onClick={copy}>
+            <Button
+               hint={t('Скопировать весь текст протокола')}
+               variant='ghost'
+               onClick={copy}
+            >
                <Copy aria-hidden />
                {t('Скопировать текст')}
             </Button>
-            <Button variant='ghost' onClick={() => window.print()}>
+            <Button
+               hint={t('Открыть печать: протокол можно сохранить в PDF')}
+               variant='ghost'
+               onClick={() => window.print()}
+            >
                <Printer aria-hidden />
                {t('Скачать протокол')}
             </Button>

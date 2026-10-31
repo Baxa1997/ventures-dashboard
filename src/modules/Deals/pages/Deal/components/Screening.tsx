@@ -105,6 +105,7 @@ const CriterionRow = ({
                               ? 'border-navy bg-navy text-white'
                               : 'border-line-strong text-ink-soft enabled:hover:border-navy bg-white',
                         )}
+                        data-hint={t('Поставить балл {{score}}', { score })}
                         disabled={!editable || saving.pending}
                         onClick={async () => {
                            setScoring(score);
@@ -385,13 +386,28 @@ const Screening = ({
                            deal.stage === 'screening' && (
                               <Button
                                  disabled={!ready}
+                                 hint={
+                                    ready
+                                       ? t(
+                                            'Завершить скрининг: сделка пойдёт по выбранному решению',
+                                         )
+                                       : t(
+                                            'Сначала заполните всё, что указано ниже',
+                                         )
+                                 }
                                  loading={completing}
                                  onClick={onComplete}
                               >
                                  {t('Завершить скрининг')}
                               </Button>
                            )}
-                        <Button variant='ghost' onClick={onRequest}>
+                        <Button
+                           hint={t(
+                              'Попросить у основателя документ: запрос появится в его кабинете',
+                           )}
+                           variant='ghost'
+                           onClick={onRequest}
+                        >
                            {t('Запросить данные')}
                         </Button>
                      </div>

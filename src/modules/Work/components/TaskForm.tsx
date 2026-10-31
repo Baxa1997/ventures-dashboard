@@ -138,6 +138,7 @@ const TaskForm = ({
                               type='button'
                               aria-label={t('Убрать пункт: {{text}}', { text })}
                               className='text-ink-faint hover:text-danger grid size-6 place-items-center rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100'
+                              data-hint={t('Убрать этот пункт')}
                               onClick={() =>
                                  setItems(items.filter((_, i) => i !== index))
                               }
@@ -178,7 +179,12 @@ const TaskForm = ({
                      value={values.status}
                      onChange={(status) => change({ status })}
                   />
-                  <Button className='h-10' loading={saving} type='submit'>
+                  <Button
+                     className='h-10'
+                     hint={t('Создать эту задачу')}
+                     loading={saving}
+                     type='submit'
+                  >
                      <Plus aria-hidden />
                      {t('Создать')}
                   </Button>

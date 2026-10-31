@@ -30,8 +30,20 @@ const SECTION_ICONS: Record<Section, LucideIcon> = {
    procurement: ShoppingCart,
 };
 
+// What opens: the note on hover.
+const SECTION_HINTS = {
+   tasks: 'Все задачи: список, доска, календарь, таймлайн',
+   deals: 'Воронка сделок от заявки до решения ИК',
+   committee: 'Заседания ИК и наблюдательного совета, решения и протоколы',
+   portfolio: 'Портфельные компании фонда и их отчётность',
+   documents: 'Документы фонда и файлы всех модулей',
+   contracts: 'Реестр договоров фонда',
+   procurement: 'Заявки на закупку товаров и услуг',
+} as const satisfies Record<Section, string>;
+
 const section = (id: Section) => ({
    label: SECTION_LABELS[id],
+   hint: SECTION_HINTS[id],
    to: SECTION_PATHS[id],
    icon: SECTION_ICONS[id],
    counter: id as keyof SectionCounters,
@@ -45,6 +57,7 @@ export const NAV_GROUPS = [
       items: [
          {
             label: 'Дашборд',
+            hint: 'Сводка по воронке сделок, портфелю и вашим задачам',
             to: OVERVIEW_PATH,
             icon: LayoutDashboard,
             counter: null,
@@ -56,6 +69,7 @@ export const NAV_GROUPS = [
       items: [
          {
             label: 'Мой день',
+            hint: 'Что ждёт вас сегодня: задачи, согласования, заседания',
             to: MY_DAY_PATH,
             icon: Sun,
             counter: 'myDay',
@@ -81,6 +95,7 @@ export const NAV_GROUPS = [
 
 export const SETTINGS_ITEM = {
    label: 'Настройки',
+   hint: 'Правила фонда, справочники и сотрудники',
    to: SETTINGS_PATH,
    icon: Settings,
 } as const;

@@ -101,6 +101,7 @@ const RowsEditor = ({
                      type='button'
                      aria-label={t('Убрать строку')}
                      className='text-ink-soft hover:bg-ground hover:text-danger grid size-8 place-items-center rounded-lg'
+                     data-hint={t('Убрать эту строку')}
                      onClick={() =>
                         onChange(rows.filter((_, i) => i !== index))
                      }
@@ -114,6 +115,7 @@ const RowsEditor = ({
             <button
                type='button'
                className='link self-start text-sm'
+               data-hint={t('Добавить ещё одну строку')}
                onClick={() => onChange([...rows, emptyRow()])}
             >
                {t('Добавить строку')}

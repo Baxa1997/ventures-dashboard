@@ -78,6 +78,7 @@ const FileList = ({
                            'hover:text-ink inline-flex items-center gap-1',
                            sort === key && 'text-ink',
                         )}
+                        data-hint={t('Сортировать по этому столбцу')}
                         onClick={() => onSort(key)}
                      >
                         {t(SORT_LABELS[key])}

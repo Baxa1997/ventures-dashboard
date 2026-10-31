@@ -143,6 +143,7 @@ const ConclusionFiles = ({
             {editable && (
                <Button
                   className='h-7 px-2.5 text-xs'
+                  hint={t('Выбрать файлы заключения и загрузить их')}
                   loading={uploading.pending}
                   variant='ghost'
                   onClick={() => input.current?.click()}
@@ -169,6 +170,7 @@ const ConclusionFiles = ({
                   />
                   <a
                      className='min-w-0 flex-1'
+                     data-hint={t('Открыть файл в новой вкладке')}
                      href={file.url}
                      rel='noreferrer'
                      target='_blank'
@@ -193,7 +195,9 @@ const ConclusionFiles = ({
                            name: file.title,
                         })}
                         className='text-ink-soft hover:text-danger hover:bg-ground grid size-7 shrink-0 place-items-center rounded-md'
-                        title={t('Удалить файл')}
+                        data-hint={t('Удалить файл: {{name}}', {
+                           name: file.title,
+                        })}
                         onClick={() => setRemoving(file)}
                      >
                         <X aria-hidden className='size-4' />
@@ -485,7 +489,11 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
                editable={editable}
                link={
                   deal.memo && (
-                     <Link className='link' to='?tab=memo'>
+                     <Link
+                        className='link'
+                        data-hint={t('Перейти к матрице рисков')}
+                        to='?tab=memo'
+                     >
                         {t('Матрица рисков')}
                      </Link>
                   )
@@ -501,6 +509,7 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
                         <button
                            type='button'
                            className='link'
+                           data-hint={t('Изменить срок, стоимость и выводы DD')}
                            onClick={() => setFraming(true)}
                         >
                            {t('Изменить')}
@@ -551,6 +560,7 @@ const DueDiligence = ({ deal }: DueDiligenceProps) => {
                         {editable && (
                            <Button
                               className='mt-3'
+                              hint={t('Указать срок, стоимость и выводы DD')}
                               variant='ghost'
                               onClick={() => setFraming(true)}
                            >
@@ -747,10 +757,19 @@ const StreamForm = ({ dealId, stream, onClose }: StreamFormProps) => {
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button disabled={!valid} loading={saving.pending} type='submit'>
+            <Button
+               disabled={!valid}
+               hint={t('Сохранить направление DD')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>
@@ -895,10 +914,18 @@ const FrameForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => {
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={t('Сохранить рамки DD')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

@@ -44,6 +44,7 @@ const TasksCard = ({ deal }: TasksCardProps) => {
             <button
                type='button'
                className='link'
+               data-hint={t('Создать задачу по этой сделке')}
                onClick={() =>
                   openNewTask({ relation: 'deal', relationId: deal.id })
                }

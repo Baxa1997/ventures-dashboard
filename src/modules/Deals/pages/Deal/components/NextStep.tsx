@@ -80,7 +80,11 @@ const NextStep = ({ deal, onTransfer }: NextStepProps) => {
       : COMMITTEE_STAGES.includes(deal.stage)
         ? !decided && <CommitteeLink deal={deal} />
         : tab && (
-             <Link className='link' to={`?tab=${tab[0]}`}>
+             <Link
+                className='link'
+                data-hint={t('Перейти на вкладку, где это делается')}
+                to={`?tab=${tab[0]}`}
+             >
                 {t(tab[1])}
              </Link>
           );
@@ -112,6 +116,7 @@ const NextStep = ({ deal, onTransfer }: NextStepProps) => {
                         <span className='text-ink-soft'>{t('Договор')}:</span>
                         <Link
                            className='link'
+                           data-hint={t('Открыть договор')}
                            to={`${SECTION_PATHS.contracts}?open=${contract.id}`}
                         >
                            {contract.number}
@@ -129,6 +134,7 @@ const NextStep = ({ deal, onTransfer }: NextStepProps) => {
                         </p>
                         <Link
                            className='link mt-1.5 inline-block'
+                           data-hint={t('Создать договор по этой сделке')}
                            to={`${SECTION_PATHS.contracts}?deal=${deal.id}`}
                         >
                            {t('Завести договор')}
@@ -138,7 +144,11 @@ const NextStep = ({ deal, onTransfer }: NextStepProps) => {
                </div>
             )}
             {step.ready && (
-               <Button className='mt-4' onClick={onTransfer}>
+               <Button
+                  className='mt-4'
+                  hint={t('Проверить условия и перевести сделку дальше')}
+                  onClick={onTransfer}
+               >
                   {step.ready}
                </Button>
             )}
@@ -147,6 +157,7 @@ const NextStep = ({ deal, onTransfer }: NextStepProps) => {
                (company ? (
                   <Link
                      className='link text-meta mt-3 inline-block'
+                     data-hint={t('Открыть карточку компании в «Портфеле»')}
                      to={`${PORTFOLIO_PATH}/${company.id}`}
                   >
                      {t('Открыть компанию в «Портфеле»')}
@@ -158,7 +169,13 @@ const NextStep = ({ deal, onTransfer }: NextStepProps) => {
                            'Компании этой сделки в «Портфеле» ещё нет: укажите инвестицию фонда, и она появится там.',
                         )}
                      </p>
-                     <Button className='mt-3' onClick={() => setAdding(true)}>
+                     <Button
+                        className='mt-3'
+                        hint={t(
+                           'Указать инвестицию и создать компанию в «Портфеле»',
+                        )}
+                        onClick={() => setAdding(true)}
+                     >
                         {t('Добавить в портфель')}
                      </Button>
                   </div>

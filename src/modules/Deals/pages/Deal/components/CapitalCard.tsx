@@ -21,6 +21,7 @@ const CapitalCard = ({ deal, editable }: CapitalCardProps) => {
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Изменить участников и их доли')}
                   onClick={() => setOpen(true)}
                >
                   {t('Изменить')}

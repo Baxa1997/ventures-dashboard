@@ -288,10 +288,22 @@ const ContractForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='ghost' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='ghost'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={save.pending} type='submit'>
+            <Button
+               hint={
+                  contract
+                     ? t('Сохранить изменения в договоре')
+                     : t('Добавить договор в реестр')
+               }
+               loading={save.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

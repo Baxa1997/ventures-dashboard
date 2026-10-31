@@ -95,11 +95,18 @@ const EditForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
                disabled={!link && !title.trim()}
+               hint={
+                  link ? t('Сохранить ссылку') : t('Сохранить название файла')
+               }
                loading={save.pending}
                type='submit'
             >
@@ -186,6 +193,7 @@ const Attachments = ({
                         <div className='min-w-0 flex-1'>
                            <a
                               className='link break-all'
+                              data-hint={t('Открыть в новой вкладке')}
                               href={item.url}
                               rel='noreferrer'
                               target='_blank'
@@ -242,11 +250,17 @@ const Attachments = ({
                   }
                />
                <div className='flex gap-2 sm:col-span-2'>
-                  <Button loading={adder.pending} type='submit' variant='ghost'>
+                  <Button
+                     hint={t('Прикрепить эту ссылку')}
+                     loading={adder.pending}
+                     type='submit'
+                     variant='ghost'
+                  >
                      {t('Добавить ссылку')}
                   </Button>
                   <Button
                      disabled={adder.pending}
+                     hint={t('Убрать форму: ссылка не добавится')}
                      variant='text'
                      onClick={() => {
                         setAdding(false);
@@ -268,6 +282,7 @@ const Attachments = ({
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Прикрепить ссылку на внешний файл')}
                   onClick={() => setAdding(true)}
                >
                   {t('Добавить ссылку')}
@@ -276,6 +291,7 @@ const Attachments = ({
                   type='button'
                   aria-busy={uploading > 0 || undefined}
                   className='link disabled:text-ink-soft inline-flex items-center gap-1.5 disabled:no-underline'
+                  data-hint={t('Выбрать файлы и прикрепить их')}
                   disabled={uploading > 0}
                   onClick={() => input.current?.click()}
                >

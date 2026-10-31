@@ -98,6 +98,15 @@ const StatusDialog = ({ task, onPick, onClose }: StatusDialogProps) => {
                                              {...(current && {
                                                 'data-autofocus': true,
                                              })}
+                                             data-hint={
+                                                current
+                                                   ? t(
+                                                        'Это текущий статус задачи',
+                                                     )
+                                                   : t(
+                                                        'Перевести задачу в этот статус',
+                                                     )
+                                             }
                                              onClick={() => pick(status)}
                                           >
                                              <span

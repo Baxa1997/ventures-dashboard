@@ -51,7 +51,15 @@ const VoteButtons = ({ label, value, onChange, busy }: VoteButtonsProps) => {
                      'border-line flex h-7 items-center border-r px-2 text-xs font-semibold last:border-r-0',
                      pressed ? on : 'text-ink-soft hover:bg-hover',
                   )}
-                  title={t(VOTES[choice].label)}
+                  data-hint={
+                     pressed
+                        ? t('Снять отметку: {{choice}}', {
+                             choice: t(VOTES[choice].label),
+                          })
+                        : t('Отметить: {{choice}}', {
+                             choice: t(VOTES[choice].label),
+                          })
+                  }
                   onClick={() => onChange(pressed ? null : choice)}
                >
                   {short ? (

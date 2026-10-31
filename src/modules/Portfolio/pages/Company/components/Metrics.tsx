@@ -59,6 +59,7 @@ const Metrics = ({ company, cycle, onEdit, onDelete }: MetricsProps) => {
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Внести показатели компании за квартал')}
                   onClick={() => onEdit(cycle.quarter)}
                >
                   {t('Внести показатели')}
@@ -258,6 +259,9 @@ const QuarterReports = ({ company, cycle, onCheck }: QuarterReportsProps) => {
                                  <button
                                     type='button'
                                     className='rounded-md'
+                                    data-hint={t(
+                                       'Открыть показатели из шаблона и проверить их',
+                                    )}
                                     onClick={() => onCheck(quarter)}
                                  >
                                     <Badge tone='warning'>

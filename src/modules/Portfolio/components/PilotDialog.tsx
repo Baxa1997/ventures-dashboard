@@ -161,10 +161,22 @@ const PilotForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='ghost' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='ghost'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={
+                  pilot
+                     ? t('Сохранить изменения в пилоте')
+                     : t('Добавить пилот этой компании')
+               }
+               loading={saving.pending}
+               type='submit'
+            >
                {pilot ? t('Сохранить') : t('Добавить пилот')}
             </Button>
          </ModalFooter>

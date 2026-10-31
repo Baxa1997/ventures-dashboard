@@ -131,7 +131,11 @@ const ProcurementPage = () => {
       <>
          <PageHeader
             actions={
-               <Button disabled={!data.stored} onClick={() => setAdding(true)}>
+               <Button
+                  disabled={!data.stored}
+                  hint={t('Создать заявку на закупку')}
+                  onClick={() => setAdding(true)}
+               >
                   <Plus aria-hidden />
                   {t('Новая заявка')}
                </Button>

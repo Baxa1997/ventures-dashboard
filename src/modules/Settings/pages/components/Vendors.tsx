@@ -74,6 +74,11 @@ const VendorRow = ({ vendor, editable, onDelete }: VendorRowProps) => {
                small
                checked={shown.active}
                disabled={!editable}
+               hint={
+                  shown.active
+                     ? t('Используется: формы предлагают этого поставщика')
+                     : t('Отключён: формы его не предлагают')
+               }
                label={t('Используется: {{name}}', { name: shown.name })}
                onChange={(active) => row.change({ active }, saved)}
             />
@@ -187,6 +192,7 @@ const Vendors = ({ vendors, editable, stored }: VendorsProps) => {
             </Notice>
          )}
          <DictCard
+            addHint={t('Добавить поставщика')}
             addLabel={t('Добавить')}
             className='min-w-[56rem]'
             editable={editable}

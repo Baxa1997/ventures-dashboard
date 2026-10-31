@@ -280,7 +280,7 @@ const ItemCard = ({ data, meeting, item, onRemove }: ItemCardProps) => {
                      title: item.title,
                   })}
                   className='text-ink-soft hover:bg-hover hover:text-ink -mr-1.5 grid size-7 shrink-0 place-items-center rounded-md'
-                  title={t('Убрать из повестки')}
+                  data-hint={t('Убрать этот вопрос из повестки')}
                   onClick={onRemove}
                >
                   <X aria-hidden className='size-4' />
@@ -299,15 +299,27 @@ const ItemCard = ({ data, meeting, item, onRemove }: ItemCardProps) => {
          />
          {deal && (
             <footer className='border-line text-meta flex flex-wrap gap-x-4 gap-y-1 border-t px-4.5 py-2.5'>
-               <Link className='link' to={`/deals/${deal.id}`}>
+               <Link
+                  className='link'
+                  data-hint={t('Открыть карточку сделки')}
+                  to={`/deals/${deal.id}`}
+               >
                   {t('Карточка сделки')}
                </Link>
                {memoVersion && (
-                  <Link className='link' to={`/deals/${deal.id}?tab=memo`}>
+                  <Link
+                     className='link'
+                     data-hint={t('Открыть меморандум этой сделки')}
+                     to={`/deals/${deal.id}?tab=memo`}
+                  >
                      {t('Меморандум v{{version}}', { version: memoVersion })}
                   </Link>
                )}
-               <Link className='link' to={`/deals/${deal.id}?tab=requests`}>
+               <Link
+                  className='link'
+                  data-hint={t('Открыть документы этой сделки')}
+                  to={`/deals/${deal.id}?tab=requests`}
+               >
                   {t('Дата рум')}
                </Link>
             </footer>

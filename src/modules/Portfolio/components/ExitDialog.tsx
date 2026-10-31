@@ -174,10 +174,22 @@ const ExitForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='ghost' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='ghost'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={
+                  company.status === 'active'
+                     ? t('Записать выход фонда из этой компании')
+                     : t('Сохранить изменения в выходе')
+               }
+               loading={saving.pending}
+               type='submit'
+            >
                {company.status === 'active'
                   ? t('Зафиксировать выход')
                   : t('Сохранить')}

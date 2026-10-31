@@ -101,10 +101,18 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
                </Field>
             </ModalBody>
             <ModalFooter>
-               <Button variant='ghost' onClick={close}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={close}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={opening.pending} type='submit'>
+               <Button
+                  hint={t('Открыть новую сделку follow-on по этой компании')}
+                  loading={opening.pending}
+                  type='submit'
+               >
                   {t('Открыть follow-on')}
                </Button>
             </ModalFooter>

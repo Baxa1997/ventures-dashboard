@@ -55,6 +55,7 @@ const TeamCard = ({ deal, editable }: TeamCardProps) => {
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Добавить человека в команду сделки')}
                   onClick={() => setEditing('new')}
                >
                   {t('Добавить')}
@@ -250,10 +251,22 @@ const MemberForm = ({ deal, member, onClose }: MemberFormProps) => {
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={
+                  member
+                     ? t('Сохранить изменения')
+                     : t('Добавить человека в команду сделки')
+               }
+               loading={saving.pending}
+               type='submit'
+            >
                {member ? t('Сохранить') : t('Добавить')}
             </Button>
          </ModalFooter>

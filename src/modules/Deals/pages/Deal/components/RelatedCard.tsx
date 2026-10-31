@@ -28,7 +28,11 @@ const RelatedCard = ({ deal }: RelatedCardProps) => {
    const decisions = deal.decisions?.length ?? 0;
 
    const link = (to: string, text: string) => (
-      <Link className='link' to={to}>
+      <Link
+         className='link'
+         data-hint={t('Перейти к этому разделу сделки')}
+         to={to}
+      >
          {text}
       </Link>
    );

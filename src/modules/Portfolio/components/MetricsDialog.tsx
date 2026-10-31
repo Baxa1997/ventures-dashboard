@@ -111,10 +111,15 @@ const MetricsDialog = ({ company, quarter, onClose }: MetricsDialogProps) => {
          <ModalFooter
             note={t('После подтверждения показатели попадут в дашборд')}
          >
-            <Button variant='ghost' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='ghost'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
+               hint={t('Подтвердить показатели: они попадут в дашборд')}
                loading={confirming.pending}
                onClick={async () => {
                   if (

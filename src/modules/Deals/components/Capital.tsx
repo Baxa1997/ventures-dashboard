@@ -170,6 +170,7 @@ const CapitalForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => 
                            name: row.name,
                         })}
                         className='text-ink-soft hover:text-danger hover:bg-ground grid size-9 place-items-center rounded-md'
+                        data-hint={t('Убрать этого участника из списка')}
                         onClick={() =>
                            setRows((prev) =>
                               prev.filter((_, at) => at !== index),
@@ -184,6 +185,7 @@ const CapitalForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => 
                   <button
                      type='button'
                      className='link text-meta flex items-center gap-1.5'
+                     data-hint={t('Добавить строку для ещё одного участника')}
                      onClick={() => setRows((prev) => [...prev, blank()])}
                   >
                      <Plus aria-hidden className='size-4' />
@@ -201,10 +203,19 @@ const CapitalForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => 
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button disabled={saving.pending} variant='text' onClick={onClose}>
+            <Button
+               disabled={saving.pending}
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={t('Сохранить участников и их доли')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

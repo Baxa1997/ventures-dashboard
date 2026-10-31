@@ -180,6 +180,7 @@ const Notifications = () => {
                   : t('Уведомления')
             }
             className='text-ink-soft hover:bg-hover hover:text-ink relative grid size-8 place-items-center rounded-lg'
+            data-hint={t('Показать уведомления')}
             onClick={toggle}
          >
             <Bell aria-hidden className='size-4' />
@@ -235,6 +236,7 @@ const Notifications = () => {
                            key={notice.id}
                            type='button'
                            className={NOTICE}
+                           data-hint={t('Открыть задачу из этого уведомления')}
                            onClick={() => {
                               setOpen(false);
                               openTask(taskId);
@@ -261,6 +263,7 @@ const Notifications = () => {
                <div className='px-3.5 py-2.5 text-center'>
                   <Link
                      className='text-accent-strong text-xs hover:underline'
+                     data-hint={t('Открыть страницу «Мой день»')}
                      to={MY_DAY_PATH}
                      onClick={() => setOpen(false)}
                   >

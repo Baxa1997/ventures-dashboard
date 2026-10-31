@@ -5,7 +5,7 @@ interface SwitchProps {
    label: string; // for screen readers; a visible text sits beside it
    onChange: (checked: boolean) => void;
    disabled?: boolean;
-   title?: string;
+   hint?: string; // the note on hover (Hints): the label unless given
    small?: boolean; // 28×16, for a row of small fields
 }
 
@@ -16,7 +16,7 @@ const Switch = ({
    label,
    onChange,
    disabled = false,
-   title,
+   hint,
    small = false,
 }: SwitchProps) => (
    <button
@@ -29,8 +29,8 @@ const Switch = ({
          small ? 'h-4 w-7' : 'h-5 w-8.5',
          checked ? 'bg-accent' : 'bg-line-strong',
       )}
+      data-hint={hint ?? label}
       disabled={disabled}
-      title={title}
       onClick={() => onChange(!checked)}
    >
       <span

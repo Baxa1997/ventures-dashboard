@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface SegmentedItem<T extends string> {
    id: T;
@@ -22,32 +23,40 @@ const Segmented = <T extends string>({
    items,
    value,
    onChange,
-}: SegmentedProps<T>) => (
-   <div
-      role='group'
-      aria-label={label}
-      className='border-line scrollbar-none flex h-9 max-w-full shrink-0 overflow-x-auto rounded-lg border bg-white p-0.5'
-   >
-      {items.map(({ id, label: name, icon: Icon, iconOnly }) => (
-         <button
-            key={id}
-            type='button'
-            aria-label={iconOnly ? name : undefined}
-            aria-pressed={id === value}
-            className={clsx(
-               'text-meta flex shrink-0 items-center gap-1.5 rounded-md px-2.5 font-medium transition-colors',
-               id === value
-                  ? 'bg-accent-tint text-ink-strong'
-                  : 'text-ink-soft hover:text-ink',
-            )}
-            title={iconOnly ? name : undefined}
-            onClick={() => onChange(id)}
-         >
-            {Icon && <Icon aria-hidden className='size-4' />}
-            {!iconOnly && name}
-         </button>
-      ))}
-   </div>
-);
+}: SegmentedProps<T>) => {
+   const { t } = useTranslation('components');
+
+   return (
+      <div
+         role='group'
+         aria-label={label}
+         className='border-line scrollbar-none flex h-9 max-w-full shrink-0 overflow-x-auto rounded-lg border bg-white p-0.5'
+      >
+         {items.map(({ id, label: name, icon: Icon, iconOnly }) => (
+            <button
+               key={id}
+               type='button'
+               aria-label={iconOnly ? name : undefined}
+               aria-pressed={id === value}
+               className={clsx(
+                  'text-meta flex shrink-0 items-center gap-1.5 rounded-md px-2.5 font-medium transition-colors',
+                  id === value
+                     ? 'bg-accent-tint text-ink-strong'
+                     : 'text-ink-soft hover:text-ink',
+               )}
+               data-hint={
+                  id === value
+                     ? t('Сейчас показано: {{name}}', { name })
+                     : t('Показать: {{name}}', { name })
+               }
+               onClick={() => onChange(id)}
+            >
+               {Icon && <Icon aria-hidden className='size-4' />}
+               {!iconOnly && name}
+            </button>
+         ))}
+      </div>
+   );
+};
 
 export default Segmented;

@@ -82,7 +82,11 @@ const CompanyCard = () => {
                <PageBody className='flex flex-col'>
                   <Card className='grid flex-1 place-items-center'>
                      <NoData>
-                        <Link className='link' to={PORTFOLIO_PATH}>
+                        <Link
+                           className='link'
+                           data-hint={t('Вернуться к списку компаний')}
+                           to={PORTFOLIO_PATH}
+                        >
                            {t('К списку компаний')}
                         </Link>
                      </NoData>
@@ -140,22 +144,43 @@ const CompanyView = ({ data, company }: ViewProps) => {
 
    const actions = active ? (
       <>
-         <Button variant='ghost' onClick={() => setRequesting(true)}>
+         <Button
+            hint={t(
+               'Попросить у компании данные: запрос появится в её кабинете',
+            )}
+            variant='ghost'
+            onClick={() => setRequesting(true)}
+         >
             {t('Запросить данные')}
          </Button>
-         <Button variant='ghost' onClick={() => setExiting(true)}>
+         <Button
+            hint={t('Записать продажу доли или списание компании')}
+            variant='ghost'
+            onClick={() => setExiting(true)}
+         >
             {t('Оформить выход')}
          </Button>
-         <Button onClick={() => setFollowOn(true)}>
+         <Button
+            hint={t('Открыть новую сделку follow-on по этой компании')}
+            onClick={() => setFollowOn(true)}
+         >
             {t('Открыть follow-on')}
          </Button>
       </>
    ) : (
       <>
-         <Button variant='ghost' onClick={() => setExiting(true)}>
+         <Button
+            hint={t('Изменить данные о выходе')}
+            variant='ghost'
+            onClick={() => setExiting(true)}
+         >
             {t('Изменить выход')}
          </Button>
-         <Button variant='ghost' onClick={() => setReopening(true)}>
+         <Button
+            hint={t('Снять выход и вернуть компанию в активные')}
+            variant='ghost'
+            onClick={() => setReopening(true)}
+         >
             {t('Вернуть в активные')}
          </Button>
       </>

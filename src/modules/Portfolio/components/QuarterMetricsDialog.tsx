@@ -155,16 +155,28 @@ const QuarterForm = ({
                {t(
                   'Пустое поле — показателя за квартал нет; стёртое значение удаляется. Список показателей —',
                )}{' '}
-               <Link className='link' to={`${SETTINGS_PATH}/metrics`}>
+               <Link
+                  className='link'
+                  data-hint={t('Перейти в настройки показателей')}
+                  to={`${SETTINGS_PATH}/metrics`}
+               >
                   {t('Настройки → Показатели')}
                </Link>
             </p>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={t('Сохранить показатели за этот квартал')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

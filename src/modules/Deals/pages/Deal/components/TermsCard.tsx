@@ -42,6 +42,7 @@ const TermsCard = ({ deal, editable }: TermsCardProps) => {
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Изменить инструмент, раунд и оценку')}
                   onClick={() => setEditing(true)}
                >
                   {t('Изменить')}
@@ -73,6 +74,7 @@ const TermsCard = ({ deal, editable }: TermsCardProps) => {
                {editable && (
                   <Button
                      className='mt-3'
+                     hint={t('Внести инструмент, раунд и оценку')}
                      variant='ghost'
                      onClick={() => setEditing(true)}
                   >
@@ -265,10 +267,18 @@ const TermsForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => {
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={t('Сохранить условия сделки')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

@@ -95,6 +95,9 @@ const ApproveDialog = ({ request, onClose }: ApproveDialogProps) => {
                <ModalFooter
                   note={
                      <Button
+                        hint={t(
+                           'Вернуть заявку инициатору с этим комментарием',
+                        )}
                         loading={returning.pending}
                         variant='danger'
                         onClick={sendBack}
@@ -103,10 +106,20 @@ const ApproveDialog = ({ request, onClose }: ApproveDialogProps) => {
                      </Button>
                   }
                >
-                  <Button variant='ghost' onClick={close}>
+                  <Button
+                     hint={t('Закрыть окно, ничего не меняя')}
+                     variant='ghost'
+                     onClick={close}
+                  >
                      {t('Отмена')}
                   </Button>
-                  <Button loading={approving.pending} type='submit'>
+                  <Button
+                     hint={t(
+                        'Согласовать заявку: она пойдёт на следующий этап',
+                     )}
+                     loading={approving.pending}
+                     type='submit'
+                  >
                      {t('Согласовать')}
                   </Button>
                </ModalFooter>

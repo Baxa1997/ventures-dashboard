@@ -238,10 +238,18 @@ const StageForm = ({ onClose }: Omit<StageDialogProps, 'open'>) => {
             </div>
          </ModalBody>
          <ModalFooter note={t('Изменение попадёт в журнал')}>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={save.pending} type='submit'>
+            <Button
+               hint={t('Добавить этап в путь сделки')}
+               loading={save.pending}
+               type='submit'
+            >
                {t('Добавить')}
             </Button>
          </ModalFooter>

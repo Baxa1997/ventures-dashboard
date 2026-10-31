@@ -68,7 +68,12 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
             <Card
                action={
                   editable && (
-                     <button type='button' className='link' onClick={onEdit}>
+                     <button
+                        type='button'
+                        className='link'
+                        data-hint={t('Изменить данные о компании')}
+                        onClick={onEdit}
+                     >
                         {t('Изменить')}
                      </button>
                   )
@@ -128,7 +133,11 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
                   deal={deal}
                   editable={editable}
                   link={
-                     <Link className='link' to='?tab=dd'>
+                     <Link
+                        className='link'
+                        data-hint={t('Перейти к матрице рисков')}
+                        to='?tab=dd'
+                     >
                         {t('Матрица рисков')}
                      </Link>
                   }

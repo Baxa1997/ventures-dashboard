@@ -38,6 +38,7 @@ const SynergyCard = ({ deal, editable }: SynergyCardProps) => {
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Изменить, что компания даёт банку')}
                   onClick={() => setEditing(true)}
                >
                   {t('Изменить')}
@@ -75,6 +76,7 @@ const SynergyCard = ({ deal, editable }: SynergyCardProps) => {
                {editable && (
                   <Button
                      className='mt-3'
+                     hint={t('Внести, что компания даст банку')}
                      variant='ghost'
                      onClick={() => setEditing(true)}
                   >
@@ -148,10 +150,18 @@ const SynergyForm = ({
          <ModalFooter
             note={t('Строки без направления или сути не сохраняются.')}
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={t('Сохранить синергию')}
+               loading={saving.pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>

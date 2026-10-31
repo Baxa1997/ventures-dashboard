@@ -368,6 +368,9 @@ const ItemPanel = ({
                      editable &&
                      meeting.status !== 'held' && (
                         <Button
+                           hint={t(
+                              'Записать, что вопрос принят к сведению, без голосования',
+                           )}
                            loading={decide.pending}
                            size='sm'
                            variant='ghost'
@@ -542,6 +545,9 @@ const ResultBox = ({
    const postpone = (
       <Button
          {...busy('postponed')}
+         hint={t(
+            'Перенести вопрос: решения по нему на этом заседании не будет',
+         )}
          size='sm'
          variant='ghost'
          onClick={() => decide('postponed')}
@@ -565,6 +571,7 @@ const ResultBox = ({
          meeting.status !== 'held' ? (
             <Button
                {...busy(null)}
+               hint={t('Снять записанное решение, чтобы принять его заново')}
                size='sm'
                variant='text'
                onClick={() => decide(null)}
@@ -599,6 +606,7 @@ const ResultBox = ({
          <>
             <Button
                {...busy(approval)}
+               hint={t('Записать одобрение в протокол и карточку сделки')}
                size='sm'
                onClick={() => decide(approval)}
             >
@@ -617,6 +625,7 @@ const ResultBox = ({
          <>
             <Button
                disabled={deciding.pending}
+               hint={t('Открыть окно и записать решение спонсора')}
                size='sm'
                onClick={() => onSponsor(item)}
             >
@@ -638,6 +647,7 @@ const ResultBox = ({
          <>
             <Button
                {...busy('rejected')}
+               hint={t('Записать отказ в протокол и карточку сделки')}
                size='sm'
                onClick={() => decide('rejected')}
             >

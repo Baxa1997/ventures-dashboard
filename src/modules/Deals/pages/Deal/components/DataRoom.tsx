@@ -172,11 +172,17 @@ export const FolderForm = ({ deal, folder, onClose }: FolderFormProps) => {
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button disabled={saving.pending} variant='text' onClick={onClose}>
+            <Button
+               disabled={saving.pending}
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
                disabled={!name.trim()}
+               hint={t('Сохранить папку')}
                loading={saving.pending}
                type='submit'
             >
@@ -240,11 +246,17 @@ export const DocumentForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button disabled={saving.pending} variant='text' onClick={onClose}>
+            <Button
+               disabled={saving.pending}
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
                disabled={!title.trim()}
+               hint={t('Сохранить название и папку документа')}
                loading={saving.pending}
                type='submit'
             >
@@ -256,6 +268,7 @@ export const DocumentForm = ({
 };
 
 interface FolderButtonProps {
+   hint: string;
    name: string;
    count: number; // the documents directly in it
    depth: number; // how far inside other folders
@@ -270,6 +283,7 @@ const FolderButton = ({
    count,
    depth,
    active,
+   hint,
    onClick,
 }: FolderButtonProps) => (
    <button
@@ -281,6 +295,7 @@ const FolderButton = ({
             ? 'bg-accent-tint text-ink-strong font-semibold'
             : 'text-ink hover:bg-hover',
       )}
+      data-hint={hint}
       style={{ paddingLeft: `${0.75 + depth * 0.875}rem` }}
       onClick={onClick}
    >
@@ -516,6 +531,7 @@ const DataRoom = ({
                            active={folder.id === current}
                            count={countIn(folder.id)}
                            depth={depth}
+                           hint={t('Показать документы этой папки')}
                            name={folder.name}
                            onClick={() => onFolder(folder.id)}
                         />
@@ -527,6 +543,7 @@ const DataRoom = ({
                            active={current === ''}
                            count={countIn('')}
                            depth={0}
+                           hint={t('Показать документы этой папки')}
                            name={t('Без папки')}
                            onClick={() => onFolder(NO_FOLDER)}
                         />
@@ -586,6 +603,7 @@ const DataRoom = ({
                         )}
                         <Button
                            className='h-8 px-3 text-xs'
+                           hint={t('Выбрать файлы и загрузить их в эту папку')}
                            loading={uploading > 0}
                            onClick={choose}
                         >
@@ -707,6 +725,7 @@ const DataRoom = ({
                         </p>
                         <Button
                            className='h-9'
+                           hint={t('Выбрать файлы и загрузить их в эту папку')}
                            loading={uploading > 0}
                            variant='ghost'
                            onClick={choose}
@@ -755,6 +774,7 @@ const DataRoom = ({
                         {reviewing.url && (
                            <a
                               className='link text-meta'
+                              data-hint={t('Открыть файл в новой вкладке')}
                               href={reviewing.url}
                               rel='noreferrer'
                               target='_blank'
@@ -786,6 +806,7 @@ const DataRoom = ({
                   >
                      <Button
                         disabled={checking.pending}
+                        hint={t('Закрыть окно, ничего не меняя')}
                         variant='text'
                         onClick={() => setReviewing(null)}
                      >
@@ -794,6 +815,13 @@ const DataRoom = ({
                      <Button
                         // a rejection always says why
                         disabled={!reason.trim() || checking.pending}
+                        hint={
+                           reason.trim()
+                              ? t(
+                                   'Отклонить документ: основатель увидит причину',
+                                )
+                              : t('Чтобы отклонить, напишите причину')
+                        }
                         loading={verdict === false}
                         variant='ghost'
                         onClick={() => review(reviewing, false)}
@@ -802,6 +830,7 @@ const DataRoom = ({
                      </Button>
                      <Button
                         disabled={checking.pending}
+                        hint={t('Принять документ: проверка закончена')}
                         loading={verdict === true}
                         onClick={() => review(reviewing, true)}
                      >

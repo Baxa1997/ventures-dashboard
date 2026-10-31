@@ -41,6 +41,7 @@ const UserMenu = () => {
             aria-expanded={open}
             aria-label={name}
             className='hover:bg-hover flex items-center gap-2 rounded-lg px-2 py-1 text-left'
+            data-hint={t('Открыть меню профиля и выхода')}
             onClick={() => setOpen((prev) => !prev)}
          >
             <Avatar name={name} size='md' />
@@ -77,6 +78,7 @@ const UserMenu = () => {
                   <button
                      type='button'
                      className='text-danger hover:bg-hover flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left'
+                     data-hint={t('Выйти из панели')}
                      onClick={signOut}
                   >
                      <LogOut aria-hidden className='size-4' />

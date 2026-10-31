@@ -210,6 +210,7 @@ const TaskCard = ({
          return (
             <Button
                className='h-10'
+               hint={t('Вернуть задачу в работу')}
                variant='ghost'
                onClick={() =>
                   update({ status: 'in_progress' }, t('Возвращено в работу'))
@@ -224,6 +225,11 @@ const TaskCard = ({
             <Button
                className='h-10'
                disabled={task.status === 'review'}
+               hint={
+                  task.status === 'review'
+                     ? t('Задача уже ждёт согласования')
+                     : t('Передать задачу на согласование проверяющему')
+               }
                variant='ghost'
                onClick={() =>
                   update({ status: 'review' }, t('Отправлено на согласование'))
@@ -238,6 +244,11 @@ const TaskCard = ({
       return (
          <Button
             className='h-10'
+            hint={
+               task.status === 'review'
+                  ? t('Согласовать и завершить задачу')
+                  : t('Завершить задачу')
+            }
             variant='ghost'
             onClick={() => update({ status: 'done' }, t('Задача завершена'))}
          >
@@ -318,6 +329,11 @@ const TaskCard = ({
                      <button
                         type='button'
                         className='text-accent text-xs font-semibold hover:underline'
+                        data-hint={
+                           hideDone
+                              ? t('Показать выполненные пункты чек-листа')
+                              : t('Скрыть выполненные пункты чек-листа')
+                        }
                         onClick={() => setHideDone((prev) => !prev)}
                      >
                         {hideDone
@@ -347,6 +363,7 @@ const TaskCard = ({
                      >
                         <Checkbox
                            checked={entry.done}
+                           hint={t('Отметить пункт или снять отметку')}
                            label={entry.text}
                            onChange={() =>
                               save(() =>
@@ -368,6 +385,7 @@ const TaskCard = ({
                               text: entry.text,
                            })}
                            className='text-ink-faint hover:text-danger grid size-6 place-items-center rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100'
+                           data-hint={t('Убрать этот пункт')}
                            onClick={() => removeItem(entry.id)}
                         >
                            <X aria-hidden className='size-3.5' />
@@ -440,6 +458,7 @@ const TaskCard = ({
                         <Button
                            className='mt-1.5'
                            disabled={!comment.trim()}
+                           hint={t('Отправить комментарий к задаче')}
                            size='sm'
                            type='submit'
                         >

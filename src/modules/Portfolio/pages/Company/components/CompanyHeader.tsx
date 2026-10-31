@@ -53,7 +53,7 @@ const CompanyHeader = ({
          type='button'
          aria-label={label}
          className={ICON_BUTTON}
-         title={label}
+         data-hint={label}
          onClick={onClick}
       >
          <Icon aria-hidden className='size-4' />
@@ -79,7 +79,7 @@ const CompanyHeader = ({
                <Link
                   aria-label={t('Открыть сделку')}
                   className={ICON_BUTTON}
-                  title={t('Открыть сделку')}
+                  data-hint={t('Открыть сделку этой компании')}
                   to={`/deals/${company.dealId}`}
                >
                   <Handshake aria-hidden className='size-4' />

@@ -95,6 +95,7 @@ const Participants = ({ data, meeting, editable }: ParticipantsProps) => {
                <button
                   type='button'
                   className='link'
+                  data-hint={t('Добавить нового человека в состав ИК')}
                   onClick={() => setEditing('new')}
                >
                   {t('Новый участник')}
@@ -258,6 +259,7 @@ const Participants = ({ data, meeting, editable }: ParticipantsProps) => {
                </select>
                <Button
                   disabled={!picked}
+                  hint={t('Добавить выбранного человека в это заседание')}
                   loading={adding.pending}
                   variant='ghost'
                   onClick={async () => {

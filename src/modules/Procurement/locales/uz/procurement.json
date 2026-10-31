@@ -62,5 +62,14 @@
    "{{count}} заявка_one": "{{count}} ta ariza",
    "{{count}} заявка_few": "{{count}} ta ariza",
    "{{count}} заявка_many": "{{count}} ta ariza",
-   "{{count}} заявка_other": "{{count}} ta ariza"
+   "{{count}} заявка_other": "{{count}} ta ariza",
+   "Вернуть заявку инициатору с этим комментарием": "Arizani shu izoh bilan tashabbuskorga qaytarish",
+   "Согласовать заявку: она пойдёт на следующий этап": "Arizani kelishish: u keyingi bosqichga o‘tadi",
+   "Закрыть окно, ничего не меняя": "Hech narsani o‘zgartirmasdan oynani yopish",
+   "Сохранить изменения в заявке": "Arizadagi o‘zgarishlarni saqlash",
+   "Подать заявку на закупку": "Xarid arizasini berish",
+   "Открыть заявку": "Arizani ochish",
+   "Открыть окно согласования": "Kelishuv oynasini ochish",
+   "Заявку согласует другой сотрудник": "Arizani boshqa xodim kelishadi",
+   "Создать заявку на закупку": "Xarid arizasini yaratish"
 }

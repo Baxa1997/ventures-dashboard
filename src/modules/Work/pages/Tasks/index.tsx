@@ -129,7 +129,10 @@ const Tasks = () => {
                'Задачи команды по сделкам, портфелю и фонду. Типы и статусы настраиваются в разделе «Настройки».',
             )}
             actions={
-               <Button onClick={() => openNewTask()}>
+               <Button
+                  hint={t('Создать новую задачу')}
+                  onClick={() => openNewTask()}
+               >
                   <Plus aria-hidden />
                   {t('Новая задача')}
                </Button>

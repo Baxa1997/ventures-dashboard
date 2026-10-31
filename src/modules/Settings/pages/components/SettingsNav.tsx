@@ -126,6 +126,7 @@ const SettingsNav = ({ active, unsaved }: SettingsNavProps) => {
                                        ? 'bg-accent-tint text-ink-strong'
                                        : 'text-ink-soft hover:bg-hover hover:text-ink',
                                  )}
+                                 data-hint={t('Открыть этот раздел настроек')}
                                  to={`${SETTINGS_PATH}/${section.id}`}
                               >
                                  <Icon

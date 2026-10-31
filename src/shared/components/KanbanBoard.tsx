@@ -2,6 +2,7 @@ import { useBoardDrag } from '@shared/hooks';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import BoardGap from './BoardGap';
 
 export interface KanbanColumn {
@@ -43,6 +44,7 @@ const KanbanBoard = <T,>({
    onOpen,
    onMove,
 }: KanbanBoardProps<T>) => {
+   const { t } = useTranslation('components');
    const { board, carried, press, clickable } = useBoardDrag(
       (item: T, { column }) => {
          if (column !== columnOf(item)) onMove(item, column);
@@ -94,6 +96,9 @@ const KanbanBoard = <T,>({
                                  type='button'
                                  aria-label={nameOf(item)}
                                  className='block w-full text-left'
+                                 data-hint={t(
+                                    'Нажмите, чтобы открыть; перетащите в другую колонку',
+                                 )}
                               >
                                  <div className={cardClass(false)}>
                                     {renderCard(item)}

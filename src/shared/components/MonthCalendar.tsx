@@ -44,6 +44,7 @@ const MonthCalendar = ({
                type='button'
                aria-label={t('Предыдущий месяц')}
                className={ARROW}
+               data-hint={t('Показать предыдущий месяц')}
                onClick={() => setMonth(shiftMonth(month, -1))}
             >
                <ChevronLeft aria-hidden className='size-4' />
@@ -55,11 +56,13 @@ const MonthCalendar = ({
                type='button'
                aria-label={t('Следующий месяц')}
                className={ARROW}
+               data-hint={t('Показать следующий месяц')}
                onClick={() => setMonth(shiftMonth(month, 1))}
             >
                <ChevronRight aria-hidden className='size-4' />
             </button>
             <Button
+               hint={t('Вернуться к текущему месяцу')}
                size='sm'
                variant='ghost'
                onClick={() => setMonth(monthOf(today))}

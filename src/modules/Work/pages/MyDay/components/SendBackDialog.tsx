@@ -79,10 +79,18 @@ const SendBackDialog = ({ target, onClose }: SendBackDialogProps) => {
                </Field>
             </ModalBody>
             <ModalFooter>
-               <Button variant='ghost' onClick={close}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={close}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={sending.pending} type='submit'>
+               <Button
+                  hint={t('Вернуть с этим комментарием')}
+                  loading={sending.pending}
+                  type='submit'
+               >
                   {t('Вернуть')}
                </Button>
             </ModalFooter>

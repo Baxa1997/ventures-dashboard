@@ -63,8 +63,8 @@ const ActionMenu = ({ name, actions, className }: ActionMenuProps) => {
             type='button'
             aria-label={t('Действия: {{name}}', { name })}
             className='text-ink-soft hover:bg-ground hover:text-ink grid size-7 place-items-center rounded-md'
+            data-hint={t('Действия: {{name}}', { name })}
             popoverTarget={id}
-            title={t('Действия')}
          >
             <Ellipsis aria-hidden className='size-4' />
          </button>
@@ -89,6 +89,7 @@ const ActionMenu = ({ name, actions, className }: ActionMenuProps) => {
                      'text-meta hover:bg-ground flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.75 text-left',
                      danger ? 'text-danger' : 'text-ink',
                   )}
+                  data-hint={`${label}: ${name}`}
                   onClick={() => {
                      list.current?.hidePopover();
                      onSelect();

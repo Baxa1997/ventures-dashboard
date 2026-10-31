@@ -34,6 +34,7 @@ const MeetingCalendar = ({ data }: MeetingCalendarProps) => {
                         <button
                            type='button'
                            className='text-ink mt-1 block w-full truncate rounded-sm border-l-2 px-1.5 py-0.5 text-left text-[11px]'
+                           data-hint={t('Открыть страницу заседания')}
                            style={{
                               borderLeftColor: color,
                               background: `color-mix(in srgb, ${color} 22%, transparent)`,

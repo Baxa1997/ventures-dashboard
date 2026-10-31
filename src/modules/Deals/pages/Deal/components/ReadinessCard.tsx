@@ -67,7 +67,11 @@ const ReadinessCard = ({ deal, editable }: ReadinessCardProps) => {
       const tab = ITEM_TABS.find(([prefix]) => item.id.startsWith(prefix));
       if (tab)
          actions[item.id] = (
-            <Link className='link text-xs' to={`?tab=${tab[1]}`}>
+            <Link
+               className='link text-xs'
+               data-hint={t('Перейти на вкладку, где это делается')}
+               to={`?tab=${tab[1]}`}
+            >
                {t(tab[2])}
             </Link>
          );
@@ -155,6 +159,7 @@ const ReadinessCard = ({ deal, editable }: ReadinessCardProps) => {
                   />
                   <Button
                      disabled={!text.trim()}
+                     hint={t('Добавить этот пункт в список готовности')}
                      loading={adding.pending}
                      type='submit'
                      variant='ghost'
@@ -248,11 +253,16 @@ const ItemForm = ({ dealId, item, onClose }: ItemFormProps) => {
             </Field>
          </ModalBody>
          <ModalFooter>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
                disabled={!text.trim()}
+               hint={t('Сохранить пункт')}
                loading={saving.pending}
                type='submit'
             >

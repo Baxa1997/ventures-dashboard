@@ -358,6 +358,7 @@ const MeetingItems = ({ data, meeting }: MeetingItemsProps) => {
                ].join(' · ')}
             </span>
             <Button
+               hint={t('Открыть страницу заседания')}
                size='sm'
                variant='ghost'
                onClick={() => navigate(`${COMMITTEE_PATH}/${meeting.id}`)}

@@ -21,6 +21,9 @@ const Language = () => {
                         ? 'bg-accent-tint text-ink-strong'
                         : 'text-ink-soft hover:bg-hover hover:text-ink',
                   )}
+                  data-hint={t('Сменить язык панели: {{language}}', {
+                     language: language.toUpperCase(),
+                  })}
                   onClick={() => i18n.changeLanguage(language)}
                >
                   {language}

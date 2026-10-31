@@ -265,10 +265,22 @@ const ProcurementForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button variant='ghost' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='ghost'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={
+                  request
+                     ? t('Сохранить изменения в заявке')
+                     : t('Подать заявку на закупку')
+               }
+               loading={saving.pending}
+               type='submit'
+            >
                {request ? t('Сохранить') : t('Подать заявку')}
             </Button>
          </ModalFooter>

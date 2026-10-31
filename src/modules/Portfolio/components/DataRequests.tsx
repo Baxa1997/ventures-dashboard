@@ -90,6 +90,7 @@ const DataRequestRow = ({ company, request, onEdit, onAskMore }: RowProps) => {
                   <li key={file.id}>
                      <a
                         className='text-accent text-meta inline-flex items-center gap-2 hover:underline'
+                        data-hint={t('Открыть файл в новой вкладке')}
                         href={file.url}
                         rel='noreferrer'
                         target='_blank'
@@ -107,12 +108,18 @@ const DataRequestRow = ({ company, request, onEdit, onAskMore }: RowProps) => {
             <div className='mt-2.5 flex flex-wrap gap-2.5'>
                <Button
                   className='h-8 px-3 text-xs'
+                  hint={t('Принять ответ компании и закрыть запрос')}
                   loading={accepting.pending}
                   onClick={() => accepting.run(() => portfolio.acceptDataAnswer(request.id))}
                >
                   {t('Принять')}
                </Button>
-               <Button className='h-8 px-3 text-xs' variant='ghost' onClick={() => onAskMore(request.title)}>
+               <Button
+                  className='h-8 px-3 text-xs'
+                  hint={t('Попросить у компании ещё данные новым запросом')}
+                  variant='ghost'
+                  onClick={() => onAskMore(request.title)}
+               >
                   {t('Запросить ещё')}
                </Button>
             </div>
@@ -120,7 +127,14 @@ const DataRequestRow = ({ company, request, onEdit, onAskMore }: RowProps) => {
          {!answering && (
             <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs'>
                {waiting && (
-                  <button type='button' className='link' onClick={() => setAnswering(true)}>
+                  <button
+                     type='button'
+                     className='link'
+                     data-hint={t(
+                        'Записать ответ, если он пришёл не через кабинет',
+                     )}
+                     onClick={() => setAnswering(true)}
+                  >
                      {t('Ответ получен')}
                   </button>
                )}
@@ -144,10 +158,22 @@ const DataRequestRow = ({ company, request, onEdit, onAskMore }: RowProps) => {
                   onChange={(event) => setAnswer(event.target.value)}
                />
                <div className='mt-2.5 flex gap-2.5'>
-                  <Button className='h-9' disabled={!answer.trim()} loading={recording.pending} type='submit'>
+                  <Button
+                     className='h-9'
+                     disabled={!answer.trim()}
+                     hint={t('Записать ответ и закрыть запрос')}
+                     loading={recording.pending}
+                     type='submit'
+                  >
                      {t('Закрыть запрос')}
                   </Button>
-                  <Button className='h-9' disabled={recording.pending} variant='text' onClick={() => setAnswering(false)}>
+                  <Button
+                     className='h-9'
+                     disabled={recording.pending}
+                     hint={t('Не записывать ответ')}
+                     variant='text'
+                     onClick={() => setAnswering(false)}
+                  >
                      {t('Отмена')}
                   </Button>
                </div>
@@ -181,7 +207,14 @@ const DataRequests = ({ company, requests, onNew }: DataRequestsProps) => {
    return (
       <Card
          action={
-            <button type='button' className='link' onClick={onNew}>
+            <button
+               type='button'
+               className='link'
+               data-hint={t(
+                  'Попросить у компании данные: запрос появится в её кабинете',
+               )}
+               onClick={onNew}
+            >
                {t('Новый запрос')}
             </button>
          }

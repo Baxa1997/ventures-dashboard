@@ -119,7 +119,11 @@ const ContractsPage = () => {
       <>
          <PageHeader
             actions={
-               <Button disabled={!data.stored} onClick={() => setAdding({})}>
+               <Button
+                  disabled={!data.stored}
+                  hint={t('Добавить договор в реестр')}
+                  onClick={() => setAdding({})}
+               >
                   <Plus aria-hidden />
                   {t('Новый договор')}
                </Button>

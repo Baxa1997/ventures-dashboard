@@ -24,6 +24,7 @@ const FileCrumbs = ({ crumbs, onGo }: FileCrumbsProps) => {
                   <button
                      type='button'
                      className={STEP}
+                     data-hint={t('Вернуться ко всем модулям')}
                      onClick={() => onGo([])}
                   >
                      <HardDrive aria-hidden className='size-3.75' />
@@ -56,6 +57,7 @@ const FileCrumbs = ({ crumbs, onGo }: FileCrumbsProps) => {
                         <button
                            type='button'
                            className={STEP}
+                           data-hint={t('Вернуться в эту папку')}
                            onClick={() => onGo(crumb.path)}
                         >
                            {crumb.label}

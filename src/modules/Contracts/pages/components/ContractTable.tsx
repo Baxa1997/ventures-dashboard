@@ -67,6 +67,7 @@ const ContractTable = ({
                            <button
                               type='button'
                               className='text-left font-semibold'
+                              data-hint={t('Открыть договор')}
                               onClick={(event) => {
                                  event.stopPropagation();
                                  onOpen(contract);
@@ -85,6 +86,9 @@ const ContractTable = ({
                                     {' · '}
                                     <Link
                                        className='link'
+                                       data-hint={t(
+                                          'Открыть сделку этого договора',
+                                       )}
                                        to={`${SECTION_PATHS.deals}/${deal.id}`}
                                        onClick={(event) =>
                                           event.stopPropagation()

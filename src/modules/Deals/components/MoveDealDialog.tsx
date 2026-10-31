@@ -163,10 +163,21 @@ const MoveForm = ({ deal, to: target, onClose }: MoveFormProps) => {
             </div>
          </ModalBody>
          <ModalFooter note={t('Переход и причина попадут в историю сделки')}>
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button disabled={unchanged} loading={moving.pending} type='submit'>
+            <Button
+               disabled={unchanged}
+               hint={t(
+                  'Поставить сделку на этот этап и статус: переход попадёт в историю',
+               )}
+               loading={moving.pending}
+               type='submit'
+            >
                {t('Сменить')}
             </Button>
          </ModalFooter>

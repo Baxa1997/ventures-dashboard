@@ -73,11 +73,22 @@ const CredentialsDialog = ({
                   </div>
                </ModalBody>
                <ModalFooter>
-                  <Button variant='ghost' onClick={copy}>
+                  <Button
+                     hint={t(
+                        'Скопировать логин и пароль, чтобы передать сотруднику',
+                     )}
+                     variant='ghost'
+                     onClick={copy}
+                  >
                      <Copy aria-hidden />
                      {t('Скопировать')}
                   </Button>
-                  <Button onClick={onClose}>{t('Готово')}</Button>
+                  <Button
+                     hint={t('Закрыть окно: пароль больше не будет показан')}
+                     onClick={onClose}
+                  >
+                     {t('Готово')}
+                  </Button>
                </ModalFooter>
             </>
          )}

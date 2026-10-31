@@ -6,6 +6,7 @@ type ButtonVariant = 'primary' | 'ghost' | 'text' | 'danger';
 type ButtonSize = 'md' | 'sm';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+   hint: string; // what pressing it does: the note on hover (Hints)
    variant?: ButtonVariant;
    size?: ButtonSize;
    loading?: boolean; // its request is on its way: a spinner, and it is off
@@ -57,6 +58,7 @@ const Button = ({
    type = 'button',
    loading = false,
    disabled,
+   hint,
    className,
    children,
    ...props
@@ -65,6 +67,7 @@ const Button = ({
       type={type}
       aria-busy={loading || undefined}
       className={buttonClass(variant, className, loading, size)}
+      data-hint={hint}
       disabled={disabled || loading}
       {...props}
    >

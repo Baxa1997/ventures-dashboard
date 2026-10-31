@@ -88,11 +88,16 @@ const MeetingForm = ({
          <ModalFooter
             note={t('Срок рассылки материалов сдвинется вместе с датой')}
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
                disabled={!values.date}
+               hint={t('Сохранить дату, время и формат заседания')}
                loading={saving.pending}
                type='submit'
             >

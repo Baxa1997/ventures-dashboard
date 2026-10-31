@@ -63,6 +63,7 @@ const ToastItem = ({ item }: { item: Toast }) => {
             type='button'
             aria-label={t('Закрыть')}
             className='text-ink-soft hover:bg-ground hover:text-ink -mr-1.5 grid size-6 shrink-0 place-items-center rounded'
+            data-hint={t('Закрыть уведомление')}
             onClick={() => toast.dismiss(item.id)}
          >
             <X aria-hidden className='size-4' />

@@ -106,6 +106,7 @@ const Modal = ({
                type='button'
                aria-label={t('Закрыть')}
                className='text-ink-soft hover:bg-ground -mr-1.5 grid size-8 place-items-center rounded-lg'
+               data-hint={t('Закрыть окно')}
                onClick={onClose}
             >
                <X aria-hidden className='size-4' />

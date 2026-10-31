@@ -196,6 +196,7 @@ const ToAgenda = ({ deal, stage, meetings }: ToAgendaProps) => {
             <p className={NOTE}>{t('Заседаний пока не назначено.')}</p>
             <Link
                className={buttonClass('primary', 'justify-self-start')}
+               data-hint={t('Выбрать дату и создать заседание для этой сделки')}
                to={schedule}
             >
                <CalendarPlus aria-hidden />
@@ -217,6 +218,7 @@ const ToAgenda = ({ deal, stage, meetings }: ToAgendaProps) => {
          <div className='flex flex-wrap items-center gap-x-3.5 gap-y-2'>
             {allowed && (
                <Button
+                  hint={t('Добавить сделку в повестку этого заседания')}
                   loading={adding.pending}
                   onClick={() => adding.run(next.id)}
                >
@@ -224,7 +226,13 @@ const ToAgenda = ({ deal, stage, meetings }: ToAgendaProps) => {
                   {t('Включить в повестку')}
                </Button>
             )}
-            <Link className='link text-meta' to={schedule}>
+            <Link
+               className='link text-meta'
+               data-hint={t(
+                  'Выбрать дату и создать другое заседание для этой сделки',
+               )}
+               to={schedule}
+            >
                {t('Назначить другое заседание')}
             </Link>
          </div>
@@ -271,7 +279,11 @@ const StageStep = ({
       return (
          <>
             <Notice icon={BadgeCheck}>{nextStepOf(t, deal).text}</Notice>
-            <Button className='justify-self-start' onClick={onTransfer}>
+            <Button
+               className='justify-self-start'
+               hint={t('Проверить условия и перевести сделку дальше')}
+               onClick={onTransfer}
+            >
                {next
                   ? t('Перевести в «{{stage}}»', { stage: stageName(next) })
                   : t('Перевести в портфель')}
@@ -286,7 +298,11 @@ const StageStep = ({
                   'Решение комитета не закрывает сделку само: нажмите «Отказать с причиной».',
                )}
             </Notice>
-            <Button className='justify-self-start' onClick={onReject}>
+            <Button
+               className='justify-self-start'
+               hint={t('Указать причину и закрыть сделку отказом')}
+               onClick={onReject}
+            >
                {t('Отказать с причиной')}
             </Button>
          </>
@@ -321,6 +337,11 @@ const StageStep = ({
             </Notice>
             <Link
                className={buttonClass('primary', 'justify-self-start')}
+               data-hint={
+                  held
+                     ? t('Открыть протокол этого заседания')
+                     : t('Открыть голосование этого заседания')
+               }
                to={meetingLink(
                   deal.committee.id,
                   held ? 'protocol' : 'voting',
@@ -406,6 +427,7 @@ const Stage = ({
                      {main.meetingId ? (
                         <Link
                            className='link'
+                           data-hint={t('Открыть протокол этого заседания')}
                            to={meetingLink(main.meetingId, 'protocol')}
                         >
                            {main.meetingLabel}
@@ -450,6 +472,7 @@ const Stage = ({
                         {decision.meetingId ? (
                            <Link
                               className='link'
+                              data-hint={t('Открыть протокол этого заседания')}
                               to={meetingLink(decision.meetingId, 'protocol')}
                            >
                               {decision.detail}
@@ -506,6 +529,7 @@ const Decisions = ({ deal, onTransfer, onReject }: DecisionsProps) => {
                   lastMeeting && (
                      <Link
                         className='link text-xs'
+                        data-hint={t('Открыть голосование этого заседания')}
                         to={meetingLink(lastMeeting.id, 'voting')}
                      >
                         {t('{{meeting}} · {{date}}', {
@@ -571,7 +595,12 @@ const Decisions = ({ deal, onTransfer, onReject }: DecisionsProps) => {
                         'Закройте сделку после подписания договора: компания перейдёт в портфель, а основатель увидит, что заявка принята.',
                      )}
                   </p>
-                  <Button onClick={onTransfer}>
+                  <Button
+                     hint={t(
+                        'Проверить условия и перевести компанию в портфель',
+                     )}
+                     onClick={onTransfer}
+                  >
                      {t('Перевести в портфель')}
                   </Button>
                </div>

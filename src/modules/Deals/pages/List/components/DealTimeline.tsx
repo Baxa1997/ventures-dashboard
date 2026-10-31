@@ -121,6 +121,7 @@ const DealTimeline = ({ deals }: DealTimelineProps) => {
                   <button
                      type='button'
                      className='flex w-full min-w-0 items-center gap-2.5 py-1 text-left'
+                     data-hint={t('Открыть карточку сделки')}
                      onClick={() => navigate(`/deals/${deal.id}`)}
                   >
                      <CompanyMark name={deal.company} />
@@ -175,7 +176,7 @@ const DealTimeline = ({ deals }: DealTimelineProps) => {
                                  'shadow-[inset_0_-3px_0_var(--color-danger)]',
                            )}
                            style={style}
-                           title={[
+                           data-hint={[
                               bar.kind === 'forecast'
                                  ? t('{{stage}} (прогноз по нормативу)', {
                                       stage: name,

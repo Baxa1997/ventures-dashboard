@@ -181,6 +181,9 @@ const StaffRow = ({
                      <button
                         type='button'
                         className='link text-xs'
+                        data-hint={t(
+                           'Заменить пароль: старый перестанет работать',
+                        )}
                         onClick={onResetPassword}
                      >
                         {t('Новый пароль')}
@@ -191,6 +194,7 @@ const StaffRow = ({
                <Badge tone='success'>{t('Есть')}</Badge>
             ) : editable && member.email ? (
                <Button
+                  hint={t('Создать сотруднику логин и пароль')}
                   loading={creating.pending}
                   size='sm'
                   variant='ghost'
@@ -203,7 +207,12 @@ const StaffRow = ({
             )}
          </td>
          <td className={clsx(TD, 'whitespace-nowrap')}>
-            <button type='button' className='link' onClick={onWork}>
+            <button
+               type='button'
+               className='link'
+               data-hint={t('Показать сделки и задачи этого сотрудника')}
+               onClick={onWork}
+            >
                {t('{{deals}} сд. · {{tasks}} зад.', work)}
             </button>
          </td>
@@ -215,6 +224,11 @@ const StaffRow = ({
                   small
                   checked={shown.active}
                   disabled={!editable}
+                  hint={
+                     shown.active
+                        ? t('Закрыть сотруднику доступ к панели')
+                        : t('Открыть сотруднику доступ к панели')
+                  }
                   label={t('Активен: {{name}}', { name: member.name })}
                   onChange={(active) =>
                      row.change(

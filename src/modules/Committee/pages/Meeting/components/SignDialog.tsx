@@ -85,10 +85,20 @@ const SignDialog = ({ meeting, open, onClose }: SignDialogProps) => {
                   'Файл остаётся там, где его хранит фонд: в ucode Files он был бы открыт любому, у кого есть ссылка',
                )}
             >
-               <Button variant='ghost' onClick={onClose}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={onClose}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={saving.pending} type='submit'>
+               <Button
+                  hint={t(
+                     'Отметить протокол подписанным и сохранить ссылку на него',
+                  )}
+                  loading={saving.pending}
+                  type='submit'
+               >
                   {t('Сохранить')}
                </Button>
             </ModalFooter>

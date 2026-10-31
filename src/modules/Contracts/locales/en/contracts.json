@@ -56,5 +56,10 @@
    "{{count}} договор_one": "{{count}} contract",
    "{{count}} договор_few": "{{count}} contracts",
    "{{count}} договор_many": "{{count}} contracts",
-   "{{count}} договор_other": "{{count}} contracts"
+   "{{count}} договор_other": "{{count}} contracts",
+   "Сохранить изменения в договоре": "Save the changes to the contract",
+   "Добавить договор в реестр": "Add the contract to the register",
+   "Закрыть окно, ничего не меняя": "Close this window without changing anything",
+   "Открыть договор": "Open the contract",
+   "Открыть сделку этого договора": "Open this contract’s deal"
 }

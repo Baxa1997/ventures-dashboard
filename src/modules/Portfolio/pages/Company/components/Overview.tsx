@@ -72,8 +72,8 @@ const loadContracts = () => contractsService.getContracts();
 const subscribeContracts = (listener: () => void) =>
    contractsService.subscribe(listener);
 
-const linkButton = (label: string, onClick: () => void) => (
-   <button type='button' className='link' onClick={onClick}>
+const linkButton = (label: string, hint: string, onClick: () => void) => (
+   <button type='button' className='link' data-hint={hint} onClick={onClick}>
       {label}
    </button>
 );
@@ -142,6 +142,7 @@ const Overview = ({
          value: contract ? (
             <Link
                className='link'
+               data-hint={t('Открыть договор')}
                to={`${SECTION_PATHS.contracts}?open=${contract.id}`}
             >
                {[
@@ -190,6 +191,7 @@ const Overview = ({
          value: decision.meetingId ? (
             <Link
                className='link'
+               data-hint={t('Открыть заседание, где принято это решение')}
                to={`${COMMITTEE_PATH}/${decision.meetingId}`}
             >
                {decision.meetingLabel || decision.outcome}
@@ -203,7 +205,11 @@ const Overview = ({
               {
                  label: t('Сделка'),
                  value: (
-                    <Link className='link' to={`/deals/${deal.id}`}>
+                    <Link
+                       className='link'
+                       data-hint={t('Открыть сделку этой компании')}
+                       to={`/deals/${deal.id}`}
+                    >
                        {deal.number}
                     </Link>
                  ),
@@ -213,7 +219,16 @@ const Overview = ({
       {
          label: t('Оценка компании'),
          value: active ? (
-            <button type='button' className='link' onClick={onValuation}>
+            <button
+               type='button'
+               className='link'
+               data-hint={
+                  position.valuation === null
+                     ? t('Указать оценку компании')
+                     : t('Обновить оценку компании')
+               }
+               onClick={onValuation}
+            >
                {position.valuation === null
                   ? t('Внести оценку')
                   : usd(position.valuation)}
@@ -372,8 +387,10 @@ const Overview = ({
                                        {t(status.label)}
                                     </Badge>
                                     {request.status !== 'closed' &&
-                                       linkButton(t('Ответить'), () =>
-                                          setAnswering(request),
+                                       linkButton(
+                                          t('Ответить'),
+                                          t('Записать ответ на этот запрос'),
+                                          () => setAnswering(request),
                                        )}
                                  </div>
                               </li>
@@ -465,7 +482,11 @@ const Overview = ({
                </Card>
                {!active && (
                   <Card
-                     action={linkButton(t('Изменить'), onExit)}
+                     action={linkButton(
+                        t('Изменить'),
+                        t('Изменить данные о выходе'),
+                        onExit,
+                     )}
                      title={t('Выход')}
                   >
                      <FactList
@@ -544,7 +565,11 @@ const Overview = ({
                   </Card>
                )}
                <Card
-                  action={linkButton(t('Все'), () => onSelect('pilots'))}
+                  action={linkButton(
+                     t('Все'),
+                     t('Перейти на вкладку пилотов'),
+                     () => onSelect('pilots'),
+                  )}
                   title={t('Пилоты SQB')}
                >
                   {company.pilots.length ? (
@@ -588,7 +613,11 @@ const Overview = ({
                   )}
                </Card>
                <Card
-                  action={linkButton(t('Все'), () => onSelect('tasks'))}
+                  action={linkButton(
+                     t('Все'),
+                     t('Перейти на вкладку задач'),
+                     () => onSelect('tasks'),
+                  )}
                   hint={tasks.length || undefined}
                   title={t('Открытые задачи')}
                >

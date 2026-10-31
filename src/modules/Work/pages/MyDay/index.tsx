@@ -78,7 +78,10 @@ const MyDay = () => {
             title={t('Мой день')}
             meta={!day.loading && meta}
             actions={
-               <Button onClick={() => openNewTask({ dueDate: today })}>
+               <Button
+                  hint={t('Создать задачу со сроком на сегодня')}
+                  onClick={() => openNewTask({ dueDate: today })}
+               >
                   <Plus aria-hidden />
                   {t('Задача на сегодня')}
                </Button>

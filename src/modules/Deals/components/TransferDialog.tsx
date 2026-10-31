@@ -110,7 +110,12 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
       exit.some((item) => item.id === id && item.state !== 'done');
    const actions = deal && {
       score: open('score') && (
-         <Link className='link' to='?tab=screening' onClick={onClose}>
+         <Link
+            className='link'
+            data-hint={t('Перейти к оценке этой сделки')}
+            to='?tab=screening'
+            onClick={onClose}
+         >
             {t('Открыть оценку')}
          </Link>
       ),
@@ -123,6 +128,7 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
       conditions: openCondition && (
          <Link
             className='link'
+            data-hint={t('Открыть задачу, которую нужно закончить')}
             to={`${SECTION_PATHS.tasks}?tab=open&task=${openCondition.id}`}
             onClick={onClose}
          >
@@ -135,12 +141,12 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
          (user.role === 'director' ? (
             <Button
                disabled={open('committee')}
-               loading={approving.pending}
-               title={
+               hint={
                   open('committee')
                      ? t('Сначала нужно одобрение ИК-2')
-                     : undefined
+                     : t('Подтвердить одобрение директора')
                }
+               loading={approving.pending}
                variant='ghost'
                onClick={() => approving.run(deal.id)}
             >
@@ -250,11 +256,20 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
                   : t('Кнопка «Перевести» включится, когда всё будет готово')
             }
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
                disabled={!ready}
+               hint={
+                  ready
+                     ? t('Перевести сделку: переход попадёт в её историю')
+                     : t('Кнопка «Перевести» включится, когда всё будет готово')
+               }
                loading={moving.pending}
                onClick={transfer}
             >

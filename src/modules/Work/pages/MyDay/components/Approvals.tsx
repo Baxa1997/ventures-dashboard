@@ -142,6 +142,7 @@ const ApprovalLine = ({
          <div className='flex flex-wrap gap-1.5 max-sm:w-full sm:justify-end'>
             {task ? (
                <Button
+                  hint={t('Открыть задачу')}
                   size='sm'
                   variant='ghost'
                   onClick={() => openTask(task.id)}
@@ -151,6 +152,7 @@ const ApprovalLine = ({
             ) : (
                <Link
                   className={buttonClass('ghost', '', false, 'sm')}
+                  data-hint={t('Открыть запись, которая ждёт решения')}
                   to={wording.to}
                >
                   {t('Открыть')}
@@ -158,6 +160,7 @@ const ApprovalLine = ({
             )}
             {task && (
                <Button
+                  hint={t('Вернуть задачу исполнителю с комментарием')}
                   size='sm'
                   variant='ghost'
                   onClick={() => onSendBack(task)}
@@ -168,6 +171,7 @@ const ApprovalLine = ({
             )}
             {record && (
                <Button
+                  hint={t('Вернуть автору с комментарием')}
                   size='sm'
                   variant='ghost'
                   onClick={() => onSendBackRecord(record)}
@@ -177,7 +181,12 @@ const ApprovalLine = ({
                </Button>
             )}
             {(task || memoDeal || record) && (
-               <Button size='sm' loading={approving.pending} onClick={approve}>
+               <Button
+                  hint={t('Согласовать: запись пойдёт дальше')}
+                  size='sm'
+                  loading={approving.pending}
+                  onClick={approve}
+               >
                   <Check aria-hidden />
                   {t('Согласовать')}
                </Button>

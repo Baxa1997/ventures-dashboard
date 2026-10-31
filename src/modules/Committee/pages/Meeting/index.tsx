@@ -87,7 +87,11 @@ const MeetingPage = () => {
                <PageBody className='flex flex-col'>
                   <Card className='grid flex-1 place-items-center'>
                      <NoData>
-                        <Link className='link' to={COMMITTEE_PATH}>
+                        <Link
+                           className='link'
+                           data-hint={t('Вернуться к списку заседаний')}
+                           to={COMMITTEE_PATH}
+                        >
                            {t('К заседаниям')}
                         </Link>
                      </NoData>
@@ -153,6 +157,7 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
          return (
             <>
                <Button
+                  hint={t('Открыть печать: протокол можно сохранить в PDF')}
                   variant='ghost'
                   onClick={() => {
                      setTab('protocol');
@@ -162,13 +167,19 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                   {t('Скачать протокол')}
                </Button>
                {meeting.protocol === 'signing' && canRecord && (
-                  <Button onClick={() => setSigning(true)}>
+                  <Button
+                     hint={t('Указать ссылку на подписанный протокол')}
+                     onClick={() => setSigning(true)}
+                  >
                      {t('Отметить протокол подписанным')}
                   </Button>
                )}
                {meeting.protocol === 'signed' && meeting.protocolFile && (
                   <a
                      className={buttonClass('ghost')}
+                     data-hint={t(
+                        'Открыть файл подписанного протокола в новой вкладке',
+                     )}
                      href={meeting.protocolFile}
                      rel='noreferrer'
                      target='_blank'
@@ -182,10 +193,14 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
          return (
             <Button
                disabled={!canRecord || !prepared}
-               title={
-                  prepared
-                     ? undefined
-                     : t('Откроется, когда подготовка к заседанию закончена')
+               hint={
+                  !prepared
+                     ? t('Откроется, когда подготовка к заседанию закончена')
+                     : canRecord
+                       ? t(
+                            'Начать заседание: откроется голосование по повестке',
+                         )
+                       : t('Открыть заседание может его секретарь или директор')
                }
                loading={starting.pending}
                onClick={() =>
@@ -199,6 +214,11 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
          <>
             <Button
                disabled={!canRecord || forming.pending}
+               hint={
+                  meeting.status === 'break'
+                     ? t('Продолжить заседание после перерыва')
+                     : t('Поставить заседание на перерыв')
+               }
                loading={pausing.pending}
                variant='ghost'
                onClick={() =>
@@ -211,6 +231,13 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
             </Button>
             <Button
                disabled={!canRecord || !allDecided || !live || pausing.pending}
+               hint={
+                  allDecided
+                     ? t(
+                          'Закончить заседание и собрать протокол из повестки и голосов',
+                       )
+                     : t('Сначала примите решение по каждому вопросу повестки')
+               }
                loading={forming.pending}
                onClick={() =>
                   forming.run(() => committee.formProtocol(meeting.id, user.id))

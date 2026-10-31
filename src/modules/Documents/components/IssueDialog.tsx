@@ -100,10 +100,18 @@ const IssueDialog = ({ open, onClose }: IssueDialogProps) => {
                </div>
             </ModalBody>
             <ModalFooter>
-               <Button variant='ghost' onClick={onClose}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={onClose}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={saving.pending} type='submit'>
+               <Button
+                  hint={t('Добавить вопрос в список открытых')}
+                  loading={saving.pending}
+                  type='submit'
+               >
                   {t('Добавить')}
                </Button>
             </ModalFooter>

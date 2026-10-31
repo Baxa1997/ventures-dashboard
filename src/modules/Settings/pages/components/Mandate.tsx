@@ -140,6 +140,7 @@ const Mandate = ({ data, draft, editable, errors, onChange }: MandateProps) => {
                            )}
                            <Link
                               className='link text-xs'
+                              data-hint={t('Перейти в этот раздел настроек')}
                               to={`${SETTINGS_PATH}/${mark.section}`}
                            >
                               {mark.hint}

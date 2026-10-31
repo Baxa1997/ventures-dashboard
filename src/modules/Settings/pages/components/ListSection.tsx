@@ -222,10 +222,10 @@ const ListRow = ({
                {shown.file ? (
                   <a
                      className='link min-w-0 flex-1 truncate'
+                     data-hint={t('Открыть файл шаблона в новой вкладке')}
                      href={shown.file.url}
                      rel='noreferrer'
                      target='_blank'
-                     title={shown.file.name}
                   >
                      {shown.file.name}
                   </a>
@@ -242,10 +242,12 @@ const ListRow = ({
                            shown.file ? t('Заменить файл') : t('Выбрать файл')
                         }
                         className={ICON_BUTTON}
-                        disabled={uploading}
-                        title={
-                           shown.file ? t('Заменить файл') : t('Выбрать файл')
+                        data-hint={
+                           shown.file
+                              ? t('Заменить файл шаблона')
+                              : t('Выбрать файл шаблона')
                         }
+                        disabled={uploading}
                         onClick={() => fileInput.current?.click()}
                      >
                         {uploading ? (
@@ -259,7 +261,7 @@ const ListRow = ({
                            type='button'
                            aria-label={t('Убрать файл')}
                            className={clsx(ICON_BUTTON, 'hover:text-danger')}
-                           title={t('Убрать файл')}
+                           data-hint={t('Убрать файл шаблона')}
                            onClick={() =>
                               row.change({ file: null }, t('Файл убран'))
                            }
@@ -333,12 +335,12 @@ const ListRow = ({
                small
                checked={shown.active}
                disabled={!editable}
-               label={t('Используется: {{name}}', { name: nameOf(item) })}
-               title={
+               hint={
                   shown.active
                      ? t('Используется: формы предлагают строку')
                      : t('Отключена: формы её не предлагают')
                }
+               label={t('Используется: {{name}}', { name: nameOf(item) })}
                onChange={(active) => row.change({ active }, saved)}
             />
          </td>
@@ -405,6 +407,7 @@ const ListRow = ({
                      small
                      checked={!!shown.needsApproval}
                      disabled={!editable}
+                     hint={t('Закупка на этом этапе ждёт согласования')}
                      label={t('Согласование: {{name}}', { name: nameOf(item) })}
                      onChange={(needsApproval) =>
                         row.change({ needsApproval }, saved)
@@ -416,6 +419,7 @@ const ListRow = ({
                      small
                      checked={!!shown.needsVendor}
                      disabled={!editable}
+                     hint={t('На этом этапе у закупки должен быть поставщик')}
                      label={t('Нужен поставщик: {{name}}', {
                         name: nameOf(item),
                      })}
@@ -490,6 +494,7 @@ const ListSection = ({
             </Notice>
          )}
          <DictCard
+            addHint={t('Добавить строку в этот список')}
             addLabel={t('Добавить')}
             body={drag.body}
             className={

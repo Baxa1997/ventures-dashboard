@@ -26,6 +26,7 @@ export { default as FactList, type FactRow } from './FactList';
 export { default as Field } from './Field';
 export { default as FilterBar } from './FilterBar';
 export { default as FilterSelect } from './FilterSelect';
+export { default as Hints } from './Hints';
 export { default as ItemActions } from './ItemActions';
 export { default as KanbanBoard, type KanbanColumn } from './KanbanBoard';
 export { default as Loading } from './Loading';

@@ -171,6 +171,9 @@ const CompanyBoard = ({ companies, onExit, onReopen }: CompanyBoardProps) => {
                                  type='button'
                                  aria-label={company.name}
                                  className='block w-full text-left'
+                                 data-hint={t(
+                                    'Нажмите, чтобы открыть; перетащите в «Выходы» или обратно в «Активные»',
+                                 )}
                               >
                                  <CardFace company={company} />
                               </button>

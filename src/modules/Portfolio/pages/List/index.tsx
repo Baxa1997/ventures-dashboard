@@ -78,10 +78,17 @@ const PortfolioList = () => {
 
    const actions = (
       <>
-         <Button variant='ghost' onClick={() => window.print()}>
+         <Button
+            hint={t('Открыть печать: список можно сохранить в PDF для НС')}
+            variant='ghost'
+            onClick={() => window.print()}
+         >
             {t('Выгрузить для НС')}
          </Button>
-         <Button onClick={() => setReminding(true)}>
+         <Button
+            hint={t('Показать, кто не сдал отчёт, и напомнить им')}
+            onClick={() => setReminding(true)}
+         >
             {t('Запросить отчёты')}
          </Button>
       </>

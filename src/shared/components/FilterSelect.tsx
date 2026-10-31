@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Spinner } from './Button';
 
 interface FilterSelectProps<T extends string> {
@@ -24,6 +25,7 @@ const FilterSelect = <T extends string>({
    onChange,
    busy = false,
 }: FilterSelectProps<T>) => {
+   const { t } = useTranslation('components');
    const current = options.find((option) => option.value === value)?.label;
 
    return (
@@ -34,6 +36,7 @@ const FilterSelect = <T extends string>({
                ? 'border-accent-soft bg-accent-tint text-accent'
                : 'border-line-strong bg-white',
          )}
+         data-hint={t('Выбрать: {{name}}', { name: label })}
       >
          <span aria-hidden>{showLabel ? `${label}: ${current}` : current}</span>
          {busy ? (

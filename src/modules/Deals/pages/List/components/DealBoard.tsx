@@ -148,6 +148,9 @@ const DealBoard = ({ deals, stage, onDrop }: DealBoardProps) => {
                                  type='button'
                                  aria-label={deal.company}
                                  className='block w-full text-left'
+                                 data-hint={t(
+                                    'Нажмите, чтобы открыть; перетащите, чтобы сменить этап',
+                                 )}
                               >
                                  <CardFace deal={deal} />
                               </button>

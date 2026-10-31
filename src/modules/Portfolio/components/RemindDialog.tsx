@@ -75,11 +75,20 @@ const RemindDialog = ({ data, open, onClose }: RemindDialogProps) => {
             )}
          </ModalBody>
          <ModalFooter>
-            <Button variant='ghost' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='ghost'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
             <Button
                disabled={!missing.length}
+               hint={
+                  missing.length
+                     ? t('Напомнить этим компаниям сдать документы')
+                     : t('Все компании уже сдали документы')
+               }
                loading={reminding.pending}
                onClick={async () => {
                   if (await reminding.run(() => portfolio.remind())) onClose();

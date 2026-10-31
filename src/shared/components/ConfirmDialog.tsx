@@ -19,6 +19,7 @@ interface ConfirmDialogProps {
 }
 
 const ConfirmBody = ({
+   title,
    children,
    confirmLabel,
    success,
@@ -27,7 +28,7 @@ const ConfirmBody = ({
    disabled = false,
    onConfirm,
    onClose,
-}: Omit<ConfirmDialogProps, 'open' | 'title' | 'subtitle'>) => {
+}: Omit<ConfirmDialogProps, 'open' | 'subtitle'>) => {
    const { t } = useTranslation('components');
    const confirm = useAction(onConfirm, { kind: 'delete', success, error });
 
@@ -43,6 +44,7 @@ const ConfirmBody = ({
             <Button
                data-autofocus
                disabled={confirm.pending}
+               hint={t('Закрыть окно, ничего не меняя')}
                variant='text'
                onClick={onClose}
             >
@@ -50,6 +52,7 @@ const ConfirmBody = ({
             </Button>
             <Button
                disabled={disabled}
+               hint={t('Подтвердить: {{action}}', { action: title })}
                loading={confirm.pending}
                variant='danger'
                onClick={async () => {
@@ -75,7 +78,7 @@ const ConfirmDialog = ({
    ...props
 }: ConfirmDialogProps) => (
    <Modal open={open} subtitle={subtitle} title={title} onClose={onClose}>
-      {open && <ConfirmBody {...props} onClose={onClose} />}
+      {open && <ConfirmBody {...props} title={title} onClose={onClose} />}
    </Modal>
 );
 

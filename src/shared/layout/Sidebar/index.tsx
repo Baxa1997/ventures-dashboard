@@ -69,6 +69,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                   type='button'
                   aria-label={t('Закрыть меню')}
                   className='text-on-dark-soft -mr-1.5 grid size-8 place-items-center rounded-lg hover:bg-white/9 hover:text-white lg:hidden'
+                  data-hint={t('Закрыть меню')}
                   onClick={onClose}
                >
                   <X aria-hidden className='size-4' />
@@ -96,13 +97,20 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                      </div>
                      <div className='flex flex-col gap-0.5'>
                         {group.items.map((item) => {
-                           const { label, to, icon: Icon, counter } = item;
+                           const {
+                              label,
+                              hint,
+                              to,
+                              icon: Icon,
+                              counter,
+                           } = item;
                            const count = counter ? counters[counter] : 0;
                            return (
                               <NavLink
                                  key={to}
                                  to={to}
                                  className={itemClass}
+                                 data-hint={t(hint)}
                                  onClick={onClose}
                               >
                                  <Icon aria-hidden className='size-4 shrink-0' />
@@ -126,6 +134,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                      className={(state) =>
                         clsx(itemClass(state), 'mt-auto')
                      }
+                     data-hint={t(SETTINGS_ITEM.hint)}
                      onClick={onClose}
                   >
                      <SettingsIcon aria-hidden className='size-4 shrink-0' />

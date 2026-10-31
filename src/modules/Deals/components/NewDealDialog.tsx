@@ -329,10 +329,22 @@ const NewDealForm = ({
                   : t('Заявка попадёт во входящие и пройдёт проверку мандата')
             }
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={saving.pending} type='submit'>
+            <Button
+               hint={
+                  deal
+                     ? t('Сохранить изменения в сделке')
+                     : t('Добавить заявку во входящие')
+               }
+               loading={saving.pending}
+               type='submit'
+            >
                {deal ? t('Сохранить') : t('Добавить')}
             </Button>
          </ModalFooter>

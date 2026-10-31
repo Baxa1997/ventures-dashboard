@@ -83,10 +83,18 @@ const PortfolioDialog = ({ deal, onClose }: PortfolioDialogProps) => {
                )}
             </ModalBody>
             <ModalFooter>
-               <Button variant='text' onClick={onClose}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='text'
+                  onClick={onClose}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={joining.pending} type='submit'>
+               <Button
+                  hint={t('Создать компанию в «Портфеле» по этой сделке')}
+                  loading={joining.pending}
+                  type='submit'
+               >
                   {t('Добавить в портфель')}
                </Button>
             </ModalFooter>

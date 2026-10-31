@@ -131,6 +131,9 @@ const Overview = ({ data, meeting, editable, onTab }: OverviewProps) => {
             ) : meeting.protocol === 'signed' && meeting.protocolFile ? (
                <a
                   className='link'
+                  data-hint={t(
+                     'Открыть файл подписанного протокола в новой вкладке',
+                  )}
                   href={meeting.protocolFile}
                   rel='noreferrer'
                   target='_blank'
@@ -161,6 +164,9 @@ const Overview = ({ data, meeting, editable, onTab }: OverviewProps) => {
                      <button
                         type='button'
                         className='link'
+                        data-hint={t(
+                           'Перейти на вкладку повестки и изменить её',
+                        )}
                         onClick={() => onTab('agenda')}
                      >
                         {t('Изменить повестку')}
@@ -242,6 +248,7 @@ const Overview = ({ data, meeting, editable, onTab }: OverviewProps) => {
                   <button
                      type='button'
                      className='link'
+                     data-hint={t('Перейти на вкладку с составом заседания')}
                      onClick={() => onTab('members')}
                   >
                      {t('Все участники')}
@@ -329,7 +336,13 @@ const Overview = ({ data, meeting, editable, onTab }: OverviewProps) => {
                   {t(
                      'Решение принимается при кворуме: один голос «против» — дополнительное обсуждение, решение принимает спонсор; два и более — отказ; особое мнение любого члена — вето. Сделки от $1M дополнительно одобряет Наблюдательный совет.',
                   )}{' '}
-                  <Link className='link' to={`${SETTINGS_PATH}/committee`}>
+                  <Link
+                     className='link'
+                     data-hint={t(
+                        'Открыть правила ИК: кворум, материалы, голоса',
+                     )}
+                     to={`${SETTINGS_PATH}/committee`}
+                  >
                      {t('Положение об ИК')}
                   </Link>
                </p>
@@ -415,7 +428,12 @@ const Preparation = ({ data, meeting, editable, onTab }: PreparationProps) => {
 
    const actions = {
       agenda: editable && (
-         <button type='button' className='link' onClick={() => onTab('agenda')}>
+         <button
+            type='button'
+            className='link'
+            data-hint={t('Перейти на вкладку повестки и добавить сделку')}
+            onClick={() => onTab('agenda')}
+         >
             {t('Добавить сделку')}
          </button>
       ),
@@ -423,6 +441,9 @@ const Preparation = ({ data, meeting, editable, onTab }: PreparationProps) => {
          <button
             type='button'
             className='link'
+            data-hint={t(
+               'Перейти на вкладку состава и добрать участников до кворума',
+            )}
             onClick={() => onTab('members')}
          >
             {t('Открыть «Участники ИК»')}
@@ -434,6 +455,13 @@ const Preparation = ({ data, meeting, editable, onTab }: PreparationProps) => {
                type='button'
                aria-busy={sending.pending || undefined}
                className='link disabled:text-ink-faint inline-flex items-center gap-1.5 disabled:no-underline'
+               data-hint={
+                  canSend
+                     ? t('Разослать участникам материалы заседания')
+                     : t(
+                          'Разослать можно, когда в повестке есть вопросы и их материалы готовы',
+                       )
+               }
                disabled={!canSend || sending.pending}
                onClick={() =>
                   sending.run(() => committee.sendMaterials(meeting.id))
@@ -448,7 +476,13 @@ const Preparation = ({ data, meeting, editable, onTab }: PreparationProps) => {
                   {unready.map(({ item, value }, index) => (
                      <Fragment key={item.id}>
                         {index > 0 && ', '}
-                        <Link className='link' to={`${DEALS_PATH}/${item.dealId}`}>
+                        <Link
+                           className='link'
+                           data-hint={t(
+                              'Открыть сделку и подготовить её материалы',
+                           )}
+                           to={`${DEALS_PATH}/${item.dealId}`}
+                        >
                            {item.title} · {value.ready} / {value.total}
                         </Link>
                      </Fragment>

@@ -151,7 +151,11 @@ const CompanyTable = ({ data, companies, onValuation }: CompanyTableProps) => {
                               <button
                                  type='button'
                                  className='link'
-                                 title={t('Обновить оценку')}
+                                 data-hint={
+                                    position.valuation === null
+                                       ? t('Указать оценку компании')
+                                       : t('Обновить оценку компании')
+                                 }
                                  onClick={(event) => {
                                     event.stopPropagation();
                                     onValuation(company);

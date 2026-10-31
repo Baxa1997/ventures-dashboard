@@ -17,6 +17,7 @@ const ReportDocTitle = ({ doc }: ReportDocTitleProps) => {
          {template && (
             <a
                className='text-accent ml-1.5 text-xs font-medium hover:underline'
+               data-hint={t('Открыть шаблон этого документа')}
                href={template.url}
                rel='noreferrer'
                target='_blank'

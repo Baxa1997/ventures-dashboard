@@ -428,6 +428,11 @@ const FileManager = ({
             />
             {area === 'fund' ? (
                <Button
+                  hint={
+                     category === 'orders'
+                        ? t('Создать новый приказ')
+                        : t('Добавить документ фонда')
+                  }
                   onClick={() =>
                      setDocumentMode(
                         category === 'orders' ? 'order' : 'document',
@@ -442,6 +447,11 @@ const FileManager = ({
             ) : (
                <Button
                   disabled={!canUpload}
+                  hint={
+                     canUpload
+                        ? t('Выбрать файлы и загрузить их в эту папку')
+                        : t('Откройте папку, чтобы загрузить в неё файлы')
+                  }
                   loading={uploader.pending}
                   onClick={() => input.current?.click()}
                >

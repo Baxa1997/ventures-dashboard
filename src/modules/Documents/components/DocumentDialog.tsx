@@ -277,10 +277,24 @@ const DocumentDialog = ({
                   'Файл остаётся там, где его хранит фонд: в ucode Files он был бы открыт любому, у кого есть ссылка',
                )}
             >
-               <Button variant='ghost' onClick={onClose}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={onClose}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={saving.pending} type='submit'>
+               <Button
+                  hint={
+                     editing
+                        ? t('Сохранить изменения в документе')
+                        : order
+                          ? t('Создать приказ с этими данными')
+                          : t('Добавить документ в этот раздел')
+                  }
+                  loading={saving.pending}
+                  type='submit'
+               >
                   {editing
                      ? t('Сохранить')
                      : order

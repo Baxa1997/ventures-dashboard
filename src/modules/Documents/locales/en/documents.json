@@ -99,5 +99,18 @@
    "{{count}} элемент_few": "{{count}} items",
    "{{count}} элемент_many": "{{count}} items",
    "{{count}} элемент_other": "{{count}} items",
-   "Сделка в портфеле: файлы добавляются на карточке компании, «Документы Data Room»": "The deal is in the portfolio: files are added on the company’s card, «Документы Data Room»"
+   "Сделка в портфеле: файлы добавляются на карточке компании, «Документы Data Room»": "The deal is in the portfolio: files are added on the company’s card, «Документы Data Room»",
+   "Сохранить изменения в документе": "Save the changes to the document",
+   "Создать приказ с этими данными": "Create the order with these details",
+   "Добавить документ в этот раздел": "Add the document to this section",
+   "Закрыть окно, ничего не меняя": "Close this window without changing anything",
+   "Добавить вопрос в список открытых": "Add the question to the open list",
+   "Вернуться ко всем модулям": "Back to all modules",
+   "Вернуться в эту папку": "Back to this folder",
+   "Сортировать по этому столбцу": "Sort by this column",
+   "Создать новый приказ": "Create a new order",
+   "Добавить документ фонда": "Add a fund document",
+   "Выбрать файлы и загрузить их в эту папку": "Choose files and upload them to this folder",
+   "Откройте папку, чтобы загрузить в неё файлы": "Open a folder to upload files into it",
+   "Добавить открытый вопрос управления": "Add an open governance question"
 }

@@ -160,6 +160,7 @@ const SettingsPage = () => {
                {unsaved.length > 0 && (
                   <Button
                      disabled={saving.pending}
+                     hint={t('Вернуть всё как было до правок')}
                      variant='ghost'
                      onClick={() => setDraft(draftOf(data))}
                   >
@@ -168,12 +169,14 @@ const SettingsPage = () => {
                )}
                <Button
                   disabled={!unsaved.length || !director || !!checkError}
-                  loading={saving.pending}
-                  title={
-                     director
-                        ? undefined
-                        : t('Менять правила может только директор')
+                  hint={
+                     !director
+                        ? t('Менять правила может только директор')
+                        : unsaved.length
+                          ? t('Сохранить изменения этого раздела')
+                          : t('Изменений пока нет')
                   }
+                  loading={saving.pending}
                   onClick={() => saving.run(draft)}
                >
                   {t('Сохранить')}
@@ -184,7 +187,11 @@ const SettingsPage = () => {
          return (
             <Button
                disabled={!director}
-               title={director ? undefined : t('Приглашает директор')}
+               hint={
+                  director
+                     ? t('Добавить сотрудника')
+                     : t('Приглашает директор')
+               }
                onClick={() => setPerson('new')}
             >
                <UserPlus aria-hidden />

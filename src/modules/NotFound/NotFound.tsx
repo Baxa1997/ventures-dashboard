@@ -11,7 +11,11 @@ const NotFound = () => {
          <p className='text-ink-soft'>
             {t('Такой страницы нет или она была перемещена')}
          </p>
-         <Link className={buttonClass('primary', 'mt-2')} to={MY_DAY_PATH}>
+         <Link
+            className={buttonClass('primary', 'mt-2')}
+            data-hint={t('Открыть страницу «Мой день»')}
+            to={MY_DAY_PATH}
+         >
             {t('К моему дню')}
          </Link>
       </div>

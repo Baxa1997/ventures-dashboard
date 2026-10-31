@@ -186,10 +186,22 @@ const MemberDialog = ({ member, onClose, onCreated }: MemberDialogProps) => {
                </div>
             </ModalBody>
             <ModalFooter>
-               <Button variant='ghost' onClick={onClose}>
+               <Button
+                  hint={t('Закрыть окно, ничего не меняя')}
+                  variant='ghost'
+                  onClick={onClose}
+               >
                   {t('Отмена')}
                </Button>
-               <Button loading={saving.pending} type='submit'>
+               <Button
+                  hint={
+                     editing
+                        ? t('Сохранить изменения участника')
+                        : t('Добавить человека в состав ИК')
+                  }
+                  loading={saving.pending}
+                  type='submit'
+               >
                   {editing ? t('Сохранить') : t('Добавить')}
                </Button>
             </ModalFooter>

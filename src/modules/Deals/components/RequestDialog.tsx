@@ -173,6 +173,7 @@ const RequestForm = ({
                            >
                               <Checkbox
                                  checked={chosen.includes(item.key)}
+                                 hint={t('Приложить этот шаблон к запросу')}
                                  label={nameOf(item)}
                                  onChange={() => toggleTemplate(item.key)}
                               />
@@ -207,10 +208,22 @@ const RequestForm = ({
                         )
             }
          >
-            <Button variant='text' onClick={onClose}>
+            <Button
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button loading={sending.pending} type='submit'>
+            <Button
+               hint={
+                  request
+                     ? t('Сохранить изменения в запросе')
+                     : t('Отправить запрос: он появится в кабинете основателя')
+               }
+               loading={sending.pending}
+               type='submit'
+            >
                {request ? t('Сохранить') : t('Отправить запрос')}
             </Button>
          </ModalFooter>

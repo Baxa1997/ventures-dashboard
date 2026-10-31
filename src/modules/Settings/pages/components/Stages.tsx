@@ -148,7 +148,6 @@ const StageRow = ({ stage, editable, drag, onDelete }: StageRowProps) => {
                checked={shown.isPublic}
                disabled={!editable}
                label={t('Норма видна основателю')}
-               title={t('Норма видна основателю')}
                onChange={(isPublic) => row.change({ isPublic }, saved)}
             />
          </td>
@@ -209,6 +208,7 @@ const Stages = ({
    return (
       <>
          <DictCard
+            addHint={t('Добавить этап в путь сделки')}
             addLabel={t('Добавить этап')}
             body={drag.body}
             className='min-w-[54rem]'
@@ -237,6 +237,7 @@ const Stages = ({
                                  undefined
                               }
                               className='link inline-flex items-center gap-1.5 disabled:opacity-50'
+                              data-hint={t('Вернуть этот этап в путь сделки')}
                               disabled={restoring.pending}
                               onClick={() => restore(key)}
                            >

@@ -42,10 +42,19 @@ const SignedIn = () => {
                   {t('Не удалось загрузить сотрудников фонда из ucode')}
                </p>
                <div className='flex justify-center gap-2'>
-                  <Button variant='ghost' onClick={signOut}>
+                  <Button
+                     hint={t('Выйти из панели')}
+                     variant='ghost'
+                     onClick={signOut}
+                  >
                      {t('Выйти')}
                   </Button>
-                  <Button onClick={retryTeam}>{t('Повторить')}</Button>
+                  <Button
+                     hint={t('Загрузить сотрудников ещё раз')}
+                     onClick={retryTeam}
+                  >
+                     {t('Повторить')}
+                  </Button>
                </div>
             </div>
          ) : (

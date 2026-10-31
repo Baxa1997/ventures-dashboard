@@ -119,10 +119,20 @@ const SectionForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button disabled={pending} variant='text' onClick={onClose}>
+            <Button
+               disabled={pending}
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button disabled={!title.ru.trim()} loading={pending} type='submit'>
+            <Button
+               disabled={!title.ru.trim()}
+               hint={t('Сохранить раздел анкеты')}
+               loading={pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>
@@ -208,10 +218,20 @@ const QuestionForm = ({
             </div>
          </ModalBody>
          <ModalFooter>
-            <Button disabled={pending} variant='text' onClick={onClose}>
+            <Button
+               disabled={pending}
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
                {t('Отмена')}
             </Button>
-            <Button disabled={!valid} loading={pending} type='submit'>
+            <Button
+               disabled={!valid}
+               hint={t('Сохранить вопрос анкеты')}
+               loading={pending}
+               type='submit'
+            >
                {t('Сохранить')}
             </Button>
          </ModalFooter>
@@ -385,6 +405,7 @@ const Questionnaire = ({ sections, editable, stored }: QuestionnaireProps) => {
                                  name: section.title.ru,
                               })}
                               className={ARROW}
+                              data-hint={t('Поднять раздел выше')}
                               disabled={!sectionIndex || saving.pending}
                               onClick={() =>
                                  moveSection(sectionIndex, sectionIndex - 1)
@@ -398,6 +419,7 @@ const Questionnaire = ({ sections, editable, stored }: QuestionnaireProps) => {
                                  name: section.title.ru,
                               })}
                               className={ARROW}
+                              data-hint={t('Опустить раздел ниже')}
                               disabled={
                                  sectionIndex === sections.length - 1 ||
                                  saving.pending
@@ -447,6 +469,7 @@ const Questionnaire = ({ sections, editable, stored }: QuestionnaireProps) => {
                                        name: field.label.ru,
                                     })}
                                     className={ARROW}
+                                    data-hint={t('Поднять вопрос выше')}
                                     disabled={!index || saving.pending}
                                     onClick={() =>
                                        moveQuestion(section, index, index - 1)
@@ -463,6 +486,7 @@ const Questionnaire = ({ sections, editable, stored }: QuestionnaireProps) => {
                                        name: field.label.ru,
                                     })}
                                     className={ARROW}
+                                    data-hint={t('Опустить вопрос ниже')}
                                     disabled={
                                        index === section.fields.length - 1 ||
                                        saving.pending
@@ -500,6 +524,7 @@ const Questionnaire = ({ sections, editable, stored }: QuestionnaireProps) => {
                         <button
                            type='button'
                            className='link text-meta flex items-center gap-1.5'
+                           data-hint={t('Добавить вопрос в этот раздел')}
                            onClick={() =>
                               setEditingQuestion({ section, field: null })
                            }
@@ -514,6 +539,7 @@ const Questionnaire = ({ sections, editable, stored }: QuestionnaireProps) => {
             {editable && (
                <div>
                   <Button
+                     hint={t('Добавить новый раздел анкеты')}
                      variant='ghost'
                      onClick={() => setEditingSection('new')}
                   >

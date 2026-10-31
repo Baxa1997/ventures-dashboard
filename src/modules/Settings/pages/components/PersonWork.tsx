@@ -92,6 +92,7 @@ const PersonWork = ({ member, editable, onClose }: PersonWorkProps) => {
                            <li key={deal.id} className={LINE}>
                               <Link
                                  className='link min-w-0 flex-1 font-medium'
+                                 data-hint={t('Открыть карточку сделки')}
                                  to={`${SECTION_PATHS.deals}/${deal.id}`}
                                  onClick={onClose}
                               >
@@ -132,6 +133,7 @@ const PersonWork = ({ member, editable, onClose }: PersonWorkProps) => {
                         </select>
                         <Button
                            disabled={!dealId}
+                           hint={t('Прикрепить сотрудника к выбранной сделке')}
                            loading={attaching.pending}
                            variant='ghost'
                            onClick={attach}
@@ -151,6 +153,7 @@ const PersonWork = ({ member, editable, onClose }: PersonWorkProps) => {
                            <li key={task.id} className={LINE}>
                               <Link
                                  className='link min-w-0 flex-1'
+                                 data-hint={t('Открыть задачу')}
                                  to={`${SECTION_PATHS.tasks}?task=${task.id}`}
                                  onClick={onClose}
                               >
@@ -177,6 +180,7 @@ const PersonWork = ({ member, editable, onClose }: PersonWorkProps) => {
          <ModalFooter>
             {editable && member && (
                <Button
+                  hint={t('Создать задачу этому сотруднику')}
                   variant='ghost'
                   onClick={() => {
                      onClose();
@@ -186,7 +190,9 @@ const PersonWork = ({ member, editable, onClose }: PersonWorkProps) => {
                   {t('Поставить задачу')}
                </Button>
             )}
-            <Button onClick={onClose}>{t('Готово')}</Button>
+            <Button hint={t('Закрыть это окно')} onClick={onClose}>
+               {t('Готово')}
+            </Button>
          </ModalFooter>
       </Modal>
    );
