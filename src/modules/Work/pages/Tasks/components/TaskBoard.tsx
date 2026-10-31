@@ -123,7 +123,7 @@ const TaskBoard = ({ tasks, targetName, onMove }: TaskBoardProps) => {
       <>
          <div
             ref={board}
-            className='grid auto-cols-[minmax(15.625rem,1fr)] grid-flow-col items-start gap-3 overflow-x-auto pb-2'
+            className='relative grid auto-cols-[minmax(15.625rem,1fr)] grid-flow-col items-start gap-3 overflow-x-auto pb-2'
          >
             {columns.map((status) => {
                const cards = columnOf(status);

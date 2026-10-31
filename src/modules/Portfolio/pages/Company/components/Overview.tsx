@@ -8,10 +8,12 @@ import {
    type CardTab,
 } from '@modules/Portfolio/constants';
 import {
+   firstReportNote,
    formatMoic,
    formatStake,
    isOverdue,
    latestValue,
+   owesReport,
    positionOf,
    quarterLabel,
    quarterName,
@@ -470,40 +472,48 @@ const Overview = ({
                      />
                   </Card>
                )}
-               <Card
-                  hint={t('до {{date}}', { date: formatDate(cycle.due) })}
-                  title={t('Отчёт за {{quarter}}', {
-                     quarter: quarterName(t, cycle.quarter),
-                  })}
-               >
-                  <div className='px-4.5 py-3.5'>
-                     <CheckList
-                        items={reportDocs().map((doc) => ({
-                           id: doc,
-                           text: reportDocName(t, doc),
-                           note: report?.received[doc]
-                              ? t('получен {{date}}', {
-                                   date: formatDate(
-                                      report.received[doc] as string,
-                                   ),
-                                })
-                              : '',
-                           state: report?.received[doc] ? 'done' : 'open',
-                        }))}
-                     />
-                     {cycle.requestedAt && (
-                        <p className='text-ink-soft mt-3 text-xs'>
-                           {t(
-                              'Отчёт запрошен {{date}}. Напомните компании {{auto}} сами — автоматических писем пока нет.',
-                              {
-                                 date: formatDate(cycle.requestedAt),
-                                 auto: formatDate(cycle.autoReminderAt),
-                              },
-                           )}
-                        </p>
-                     )}
-                  </div>
-               </Card>
+               {!owesReport(company, cycle.quarter) ? (
+                  <Card title={t('Отчётность')}>
+                     <p className='text-ink-soft text-meta px-4.5 py-3.5'>
+                        {firstReportNote(t, company)}
+                     </p>
+                  </Card>
+               ) : (
+                  <Card
+                     hint={t('до {{date}}', { date: formatDate(cycle.due) })}
+                     title={t('Отчёт за {{quarter}}', {
+                        quarter: quarterName(t, cycle.quarter),
+                     })}
+                  >
+                     <div className='px-4.5 py-3.5'>
+                        <CheckList
+                           items={reportDocs().map((doc) => ({
+                              id: doc,
+                              text: reportDocName(t, doc),
+                              note: report?.received[doc]
+                                 ? t('получен {{date}}', {
+                                      date: formatDate(
+                                         report.received[doc] as string,
+                                      ),
+                                   })
+                                 : '',
+                              state: report?.received[doc] ? 'done' : 'open',
+                           }))}
+                        />
+                        {cycle.requestedAt && (
+                           <p className='text-ink-soft mt-3 text-xs'>
+                              {t(
+                                 'Отчёт запрошен {{date}}. Напомните компании {{auto}} сами — автоматических писем пока нет.',
+                                 {
+                                    date: formatDate(cycle.requestedAt),
+                                    auto: formatDate(cycle.autoReminderAt),
+                                 },
+                              )}
+                           </p>
+                        )}
+                     </div>
+                  </Card>
+               )}
                <Card
                   action={linkButton(t('Все'), () => onSelect('pilots'))}
                   title={t('Пилоты SQB')}

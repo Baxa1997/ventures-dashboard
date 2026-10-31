@@ -114,7 +114,7 @@ const PortfolioList = () => {
                      })
                   }
                />
-               <div className='w-full sm:ml-auto sm:w-60'>
+               <div className='w-full sm:ml-auto sm:w-72'>
                   <SearchField
                      label={t('Найти компанию')}
                      value={query}

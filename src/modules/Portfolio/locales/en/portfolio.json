@@ -284,5 +284,7 @@
    "Квартальная отчётность": "Quarterly reporting",
    "Документы Data Room": "Data Room documents",
    "Ждёт ответа фонда: {{count}}": "Waiting for the fund’s answer: {{count}}",
-   "Портфельные компании фонда. Карточка компании открывается по клику: показатели, пилоты с SQB, задачи и дата рум.": "The fund’s portfolio companies. A company’s card opens on a click: figures, pilots with SQB, tasks and the data room."
+   "Портфельные компании фонда. Карточка компании открывается по клику: показатели, пилоты с SQB, задачи и дата рум.": "The fund’s portfolio companies. A company’s card opens on a click: figures, pilots with SQB, tasks and the data room.",
+   "Первый отчёт — за {{quarter}}, срок сдачи {{date}}": "First report: for {{quarter}}, due {{date}}",
+   "Отчётность": "Reporting"
 }

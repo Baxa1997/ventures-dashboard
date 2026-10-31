@@ -369,19 +369,33 @@ const FileManager = ({
       return null;
    })();
 
+   // why nothing can be uploaded here, said under the list
+   const held = () => {
+      if (deal?.status === 'portfolio')
+         return t(
+            'Сделка в портфеле: файлы добавляются на карточке компании, «Документы Data Room»',
+         );
+      if (deal && !isOpen(deal))
+         return t('Сделка закрыта: её дата рум только для чтения');
+      return t(
+         'Откройте папку дата рума или вопрос заседания, чтобы загрузить файлы',
+      );
+   };
    const note = !area
       ? t('Поиск ищет по всем модулям сразу.')
       : area === 'fund'
         ? t(
              'Документы фонда хранятся ссылками: в ucode Files файл был бы открыт любому, у кого есть ссылка.',
           )
-        : area === 'deals'
-          ? t(
-               'Файлы заявителя видны и в его кабинете; файлы фонда — только команде.',
-            )
-          : t(
-               'Те же материалы и записи, что во вкладке «Голосование» заседания.',
-            );
+        : !canUpload
+          ? held()
+          : area === 'deals'
+            ? t(
+                 'Файлы заявителя видны и в его кабинете; файлы фонда — только команде.',
+              )
+            : t(
+                 'Те же материалы и записи, что во вкладке «Голосование» заседания.',
+              );
 
    return (
       <>
@@ -429,15 +443,6 @@ const FileManager = ({
                <Button
                   disabled={!canUpload}
                   loading={uploader.pending}
-                  title={
-                     canUpload
-                        ? undefined
-                        : deal && !isOpen(deal)
-                          ? t('Сделка закрыта: её дата рум только для чтения')
-                          : t(
-                               'Откройте папку дата рума или вопрос заседания, чтобы загрузить файлы',
-                            )
-                  }
                   onClick={() => input.current?.click()}
                >
                   <Upload aria-hidden />

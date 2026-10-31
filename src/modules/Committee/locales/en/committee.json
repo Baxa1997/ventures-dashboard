@@ -392,5 +392,6 @@
    "{{count}} член ИК_one": "{{count}} IC member",
    "{{count}} член ИК_few": "{{count}} IC members",
    "{{count}} член ИК_many": "{{count}} IC members",
-   "{{count}} член ИК_other": "{{count}} IC members"
+   "{{count}} член ИК_other": "{{count}} IC members",
+   "Ещё не готово:": "Not ready yet:"
 }

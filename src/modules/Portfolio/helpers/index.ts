@@ -1,5 +1,5 @@
 import { itemOf, listOf, nameOf } from '@modules/Settings/services';
-import { formatNumber, todayISO } from '@shared/helpers';
+import { formatDate, formatNumber, todayISO } from '@shared/helpers';
 import dayjs from 'dayjs';
 import type {
    CompanyRequest,
@@ -122,6 +122,31 @@ export const receivedCount = (company: PortfolioCompany, quarter: string) =>
 
 export const hasAllDocs = (company: PortfolioCompany, quarter: string) =>
    receivedCount(company, quarter) === reportDocs().length;
+
+// The quarter a day falls in: 2026-10-31 → 2026-Q4.
+const quarterOf = (date: string) => {
+   const day = dayjs(date);
+   return `${day.year()}-Q${Math.floor(day.month() / 3) + 1}`;
+};
+
+// A company reports from the quarter the fund first paid in; null: not known.
+const firstReportQuarter = ({ investments }: PortfolioCompany) =>
+   investments[0]?.date ? quarterOf(investments[0].date) : null;
+
+// A quarter that ended before the fund came in is owed by nobody.
+export const owesReport = (company: PortfolioCompany, quarter: string) => {
+   const first = firstReportQuarter(company);
+   return !first || quarter >= first;
+};
+
+// Said while a new company owes nothing yet.
+export const firstReportNote = (t: T, company: PortfolioCompany) => {
+   const quarter = firstReportQuarter(company) ?? '';
+   return t('Первый отчёт — за {{quarter}}, срок сдачи {{date}}', {
+      quarter: quarterName(t, quarter),
+      date: formatDate(reportDates(quarter).due),
+   });
+};
 
 export const waitingDays = (request: CompanyRequest, today = todayISO()) =>
    dayjs(today).diff(dayjs(request.openedAt), 'day');

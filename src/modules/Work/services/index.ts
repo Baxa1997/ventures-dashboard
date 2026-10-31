@@ -6,7 +6,7 @@ import {
    triageDue,
 } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
-import { hasAllDocs } from '@modules/Portfolio/helpers';
+import { hasAllDocs, owesReport } from '@modules/Portfolio/helpers';
 import portfolio from '@modules/Portfolio/services';
 import settings, { listIdOf, listKeyOf } from '@modules/Settings/services';
 import {
@@ -857,7 +857,9 @@ class Work {
       const { cycle } = holdings;
       const fromReports: UpcomingItem[] =
          cycle?.due &&
-         holdings.companies.length &&
+         holdings.companies.some((company) =>
+            owesReport(company, cycle.quarter),
+         ) &&
          within(cycle.due, UPCOMING_MEETING_DAYS)
             ? [
                  {
@@ -920,7 +922,11 @@ class Work {
       const missingReports: AttentionItem[] =
          cycle?.due && cycle.due < today
             ? held
-                 .filter((company) => !hasAllDocs(company, cycle.quarter))
+                 .filter(
+                    (company) =>
+                       owesReport(company, cycle.quarter) &&
+                       !hasAllDocs(company, cycle.quarter),
+                 )
                  .map((company) => ({
                     id: `report-${company.id}-${cycle.quarter}`,
                     kind: 'report',

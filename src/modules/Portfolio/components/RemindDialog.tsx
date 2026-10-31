@@ -1,4 +1,8 @@
-import { quarterLabel, hasAllDocs } from '@modules/Portfolio/helpers';
+import {
+   hasAllDocs,
+   owesReport,
+   quarterLabel,
+} from '@modules/Portfolio/helpers';
 import type { PortfolioData } from '@modules/Portfolio/hooks';
 import portfolio from '@modules/Portfolio/services';
 import { Button, Modal, ModalBody, ModalFooter } from '@shared/components';
@@ -21,7 +25,10 @@ const RemindDialog = ({ data, open, onClose }: RemindDialogProps) => {
    });
    const { companies, cycle } = data;
    const missing = companies.filter(
-      (company) => !hasAllDocs(company, cycle.quarter),
+      (company) =>
+         company.status === 'active' &&
+         owesReport(company, cycle.quarter) &&
+         !hasAllDocs(company, cycle.quarter),
    );
 
    return (

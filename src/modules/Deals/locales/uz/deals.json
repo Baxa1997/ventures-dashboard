@@ -283,7 +283,7 @@
    "Открыть ИК № {{number}} · {{date}}": "IQ № {{number}} · {{date}} ni ochish",
    "Открыть НС № {{number}} · {{date}}": "KK № {{number}} · {{date}} ni ochish",
    "Изучите заявку. Подходит — «Взять в скрининг», и вы станете владельцем сделки. Не подходит — «Отказать с причиной».": "Arizani o‘rganing. Mos kelsa — «Skriningga olish», shunda siz bitim egasi bo‘lasiz. Mos kelmasa — «Sabab bilan rad etish».",
-   "Оцените стартап по 7 критериям, у каждого балла — обоснование. Выберите второго оценщика и нажмите «Завершить скрининг».": "Startapni 7 mezon bo‘yicha baholang, har bir ballga asos yozing. Ikkinchi baholovchini tanlang va «Skriningni yakunlash»ni bosing.",
+   "Оцените стартап по критериям, у каждого балла — обоснование. Выберите второго оценщика и нажмите «Завершить скрининг».": "Startapni mezonlar bo‘yicha baholang, har bir ballga asos yozing. Ikkinchi baholovchini tanlang va «Skriningni yakunlash»ni bosing.",
    "Встретьтесь с командой стартапа. После встречи — «Перевести в «{{next}}»».": "Startap jamoasi bilan uchrashing. Uchrashuvdan keyin — «{{next}}»ga o‘tkazish.",
    "Запросите недостающие данные («Запросить данные») и проверьте документы. Когда всё собрано — «Перевести в «{{next}}»».": "Yetishmayotgan ma’lumotlarni so‘rang («Ma’lumot so‘rash») va hujjatlarni tekshiring. Hammasi yig‘ilgach — «{{next}}»ga o‘tkazish.",
    "Инвесткомитет решает, стоит ли делать детальный DD. Вынесите сделку на заседание ИК-1; после одобрения откроется «Перевести в «{{next}}»».": "Investitsiya qo‘mitasi batafsil DD qilishga arziydimi, shuni hal qiladi. Bitimni IQ-1 majlisiga chiqaring; ma’qullangandan keyin «{{next}}»ga o‘tkazish ochiladi.",

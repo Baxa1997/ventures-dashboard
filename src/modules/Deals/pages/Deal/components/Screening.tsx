@@ -386,13 +386,6 @@ const Screening = ({
                               <Button
                                  disabled={!ready}
                                  loading={completing}
-                                 title={
-                                    ready
-                                       ? undefined
-                                       : t(
-                                            'Нужны комментарии по всем критериям, решение и второй оценщик',
-                                         )
-                                 }
                                  onClick={onComplete}
                               >
                                  {t('Завершить скрининг')}
@@ -403,6 +396,16 @@ const Screening = ({
                         </Button>
                      </div>
                   )}
+                  {editable &&
+                     deal.status === 'active' &&
+                     deal.stage === 'screening' &&
+                     !ready && (
+                        <p className='text-ink-soft text-xs'>
+                           {t(
+                              'Нужны комментарии по всем критериям, решение и второй оценщик',
+                           )}
+                        </p>
+                     )}
                </div>
             </Card>
 

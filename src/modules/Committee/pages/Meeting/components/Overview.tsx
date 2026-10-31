@@ -1,3 +1,4 @@
+import { DEALS_PATH } from '@modules/Deals/constants';
 import { stageName } from '@modules/Settings/services';
 import {
    ATTENDANCE,
@@ -12,6 +13,7 @@ import {
    formatName,
    hasQuorum,
    itemBadge,
+   materialsOf,
    materialsReady,
    meetingType,
    participantsOf,
@@ -38,7 +40,7 @@ import { useAction, useRequest } from '@shared/hooks';
 import type { Attendance, Meeting } from '@shared/types/committee.types';
 import type { CheckItem } from '@shared/types/deals.types';
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -401,6 +403,15 @@ const Preparation = ({ data, meeting, editable, onTab }: PreparationProps) => {
    ];
    const done = items.filter(({ state }) => state === 'done').length;
    const canSend = prep.questions > 0 && materialsReady(meeting, data.deals);
+   // the questions still short of materials, each leading to its deal's list
+   const unready = meeting.agenda.flatMap((item) => {
+      if (item.kind !== 'decision') return [];
+      const value = materialsOf(
+         item,
+         data.deals.find(({ id }) => id === item.dealId),
+      );
+      return value && value.ready < value.total ? [{ item, value }] : [];
+   });
 
    const actions = {
       agenda: editable && (
@@ -418,25 +429,33 @@ const Preparation = ({ data, meeting, editable, onTab }: PreparationProps) => {
          </button>
       ),
       materials: editable && !meeting.materialsSentAt && (
-         <button
-            type='button'
-            aria-busy={sending.pending || undefined}
-            className='link disabled:text-ink-faint inline-flex items-center gap-1.5 disabled:no-underline'
-            disabled={!canSend || sending.pending}
-            title={
-               canSend
-                  ? undefined
-                  : t(
-                       'Разослать можно, когда у всех вопросов готовы все материалы',
-                    )
-            }
-            onClick={() =>
-               sending.run(() => committee.sendMaterials(meeting.id))
-            }
-         >
-            {sending.pending && <Spinner className='size-3.5' />}
-            {t('Разослать материалы')}
-         </button>
+         <span>
+            <button
+               type='button'
+               aria-busy={sending.pending || undefined}
+               className='link disabled:text-ink-faint inline-flex items-center gap-1.5 disabled:no-underline'
+               disabled={!canSend || sending.pending}
+               onClick={() =>
+                  sending.run(() => committee.sendMaterials(meeting.id))
+               }
+            >
+               {sending.pending && <Spinner className='size-3.5' />}
+               {t('Разослать материалы')}
+            </button>
+            {unready.length > 0 && (
+               <span className='text-ink-soft mt-1 block text-xs'>
+                  {t('Ещё не готово:')}{' '}
+                  {unready.map(({ item, value }, index) => (
+                     <Fragment key={item.id}>
+                        {index > 0 && ', '}
+                        <Link className='link' to={`${DEALS_PATH}/${item.dealId}`}>
+                           {item.title} · {value.ready} / {value.total}
+                        </Link>
+                     </Fragment>
+                  ))}
+               </span>
+            )}
+         </span>
       ),
    };
 

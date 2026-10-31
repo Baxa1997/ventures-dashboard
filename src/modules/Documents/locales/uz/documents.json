@@ -98,5 +98,6 @@
    "{{count}} элемент_one": "{{count}} ta element",
    "{{count}} элемент_few": "{{count}} ta element",
    "{{count}} элемент_many": "{{count}} ta element",
-   "{{count}} элемент_other": "{{count}} ta element"
+   "{{count}} элемент_other": "{{count}} ta element",
+   "Сделка в портфеле: файлы добавляются на карточке компании, «Документы Data Room»": "Bitim portfelda: fayllar kompaniya kartochkasida, «Документы Data Room» bo‘limida qo‘shiladi"
 }

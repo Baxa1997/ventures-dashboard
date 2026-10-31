@@ -16,7 +16,7 @@ interface TableProps {
 // A table inside a card: small column names on white and hairlines between
 // the rows.
 const Table = ({ head, className, children }: TableProps) => (
-   <div className='overflow-x-auto'>
+   <div className='relative overflow-x-auto'>
       <table
          className={clsx('w-full border-collapse text-left text-sm', className)}
       >

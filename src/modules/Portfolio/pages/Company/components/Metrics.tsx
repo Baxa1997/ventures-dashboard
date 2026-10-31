@@ -1,7 +1,9 @@
 import MetricsDialog from '@modules/Portfolio/components/MetricsDialog';
 import {
+   firstReportNote,
    formatMetric,
    metricName,
+   owesReport,
    quarterLabel,
    receivedCount,
    recentQuarters,
@@ -13,6 +15,7 @@ import {
    Card,
    ChartTooltip,
    ItemActions,
+   NoData,
    Table,
    TD,
    TH,
@@ -96,53 +99,53 @@ const Metrics = ({ company, cycle, onEdit, onDelete }: MetricsProps) => {
                               {metricName(t, row.key)}
                            </td>
                            {quarters.map((quarter) => {
-                              const value = row.values[quarter] ?? null;
-                              return (
-                                 <td
-                                    key={quarter}
-                                    className={clsx(
-                                       TD,
-                                       'text-right whitespace-nowrap tabular-nums',
-                                       quarter === latest && 'font-bold',
-                                       value === null &&
-                                          'text-ink-soft text-xs',
-                                    )}
-                                 >
-                                    {value !== null
-                                       ? formatMetric(t, row, value, language)
-                                       : quarter === cycle.quarter
-                                         ? t('ждём до {{date}}', {
-                                              date: formatDay(cycle.due),
-                                           })
-                                         : '—'}
-                                 </td>
-                              );
-                           })}
-                        </tr>
-                     );
-                  })}
-                  <tr>
-                     <td className={clsx(TD, 'py-1')}>
-                        <span className='sr-only'>{t('Действия')}</span>
+                           const value = row.values[quarter] ?? null;
+                           return (
+                              <td
+                                 key={quarter}
+                                 className={clsx(
+                                    TD,
+                                    'text-right whitespace-nowrap tabular-nums',
+                                    quarter === latest && 'font-bold',
+                                    value === null &&
+                                       'text-ink-soft text-xs',
+                                 )}
+                              >
+                                 {value !== null
+                                    ? formatMetric(t, row, value, language)
+                                    : quarter === cycle.quarter
+                                      ? t('ждём до {{date}}', {
+                                           date: formatDay(cycle.due),
+                                        })
+                                      : '—'}
+                              </td>
+                           );
+                        })}
+                     </tr>
+                  );
+               })}
+               <tr>
+                  <td className={clsx(TD, 'py-1')}>
+                     <span className='sr-only'>{t('Действия')}</span>
+                  </td>
+                  {quarters.map((quarter) => (
+                     <td key={quarter} className={clsx(TD, 'py-1')}>
+                        <ItemActions
+                           icons
+                           name={quarterLabel(t, quarter)}
+                           onDelete={
+                              company.metrics.some(
+                                 ({ values }) => values[quarter] != null,
+                              )
+                                 ? () => onDelete(quarter)
+                                 : undefined
+                           }
+                           onEdit={() => onEdit(quarter)}
+                        />
                      </td>
-                     {quarters.map((quarter) => (
-                        <td key={quarter} className={clsx(TD, 'py-1')}>
-                           <ItemActions
-                              icons
-                              name={quarterLabel(t, quarter)}
-                              onDelete={
-                                 company.metrics.some(
-                                    ({ values }) => values[quarter] != null,
-                                 )
-                                    ? () => onDelete(quarter)
-                                    : undefined
-                              }
-                              onEdit={() => onEdit(quarter)}
-                           />
-                        </td>
-                     ))}
-                  </tr>
-               </Table>
+                  ))}
+               </tr>
+            </Table>
             ) : (
                <p className='text-ink-soft px-4.5 py-3.5'>
                   {t('Показатели этой компании ещё не перенесены.')}
@@ -193,6 +196,16 @@ const QuarterReports = ({ company, cycle, onCheck }: QuarterReportsProps) => {
    const { t } = useTranslation('portfolio');
    const total = reportDocs().length;
    const late = todayISO() > cycle.due;
+   const quarters = recentQuarters(cycle.quarter)
+      .reverse()
+      .filter((quarter) => owesReport(company, quarter));
+
+   if (!quarters.length)
+      return (
+         <Card title={t('Квартальные отчёты')}>
+            <NoData>{firstReportNote(t, company)}</NoData>
+         </Card>
+      );
 
    return (
       <Card title={t('Квартальные отчёты')}>
@@ -206,9 +219,7 @@ const QuarterReports = ({ company, cycle, onCheck }: QuarterReportsProps) => {
                </>
             }
          >
-            {recentQuarters(cycle.quarter)
-               .reverse()
-               .map((quarter) => {
+            {quarters.map((quarter) => {
                   const report = company.reports[quarter];
                   const count = receivedCount(company, quarter);
                   const open = quarter === cycle.quarter;
@@ -231,7 +242,7 @@ const QuarterReports = ({ company, cycle, onCheck }: QuarterReportsProps) => {
                               tone={
                                  count === total
                                     ? 'success'
-                                    : open && late
+                                    : !open || late
                                       ? 'danger'
                                       : count
                                         ? 'warning'

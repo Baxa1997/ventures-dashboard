@@ -98,5 +98,6 @@
    "{{count}} элемент_one": "{{count}} item",
    "{{count}} элемент_few": "{{count}} items",
    "{{count}} элемент_many": "{{count}} items",
-   "{{count}} элемент_other": "{{count}} items"
+   "{{count}} элемент_other": "{{count}} items",
+   "Сделка в портфеле: файлы добавляются на карточке компании, «Документы Data Room»": "The deal is in the portfolio: files are added on the company’s card, «Документы Data Room»"
 }

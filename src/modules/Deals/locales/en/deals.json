@@ -283,7 +283,7 @@
    "Открыть ИК № {{number}} · {{date}}": "Open committee meeting No. {{number}} · {{date}}",
    "Открыть НС № {{number}} · {{date}}": "Open board meeting No. {{number}} · {{date}}",
    "Изучите заявку. Подходит — «Взять в скрининг», и вы станете владельцем сделки. Не подходит — «Отказать с причиной».": "Read the application. If it fits — «Take into screening», and you become the deal’s owner. If not — «Reject with a reason».",
-   "Оцените стартап по 7 критериям, у каждого балла — обоснование. Выберите второго оценщика и нажмите «Завершить скрининг».": "Score the startup on 7 criteria, each score with its reason. Choose a second reviewer and press «Complete screening».",
+   "Оцените стартап по критериям, у каждого балла — обоснование. Выберите второго оценщика и нажмите «Завершить скрининг».": "Score the startup on the criteria, each score with its reason. Choose a second reviewer and press «Complete screening».",
    "Встретьтесь с командой стартапа. После встречи — «Перевести в «{{next}}»».": "Meet the startup’s team. After the meeting — «Move to “{{next}}”».",
    "Запросите недостающие данные («Запросить данные») и проверьте документы. Когда всё собрано — «Перевести в «{{next}}»».": "Request the missing data («Request data») and check the documents. When everything is in — «Move to “{{next}}”».",
    "Инвесткомитет решает, стоит ли делать детальный DD. Вынесите сделку на заседание ИК-1; после одобрения откроется «Перевести в «{{next}}»».": "The investment committee decides whether a detailed DD is worth doing. Put the deal on an IC-1 meeting; once approved, «Move to “{{next}}”» turns on.",

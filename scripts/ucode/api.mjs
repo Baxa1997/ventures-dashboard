@@ -30,6 +30,9 @@ const readKey = () => {
 
 let key;
 
+// The key itself, for a script that has to hand it on. Never print it.
+export const apiKey = () => (key ??= readKey());
+
 // Returns { status, ok, data } where data is the parsed reply (ucode wraps the
 // payload in { status, description, data }).
 export const ucode = (method, path, body) => call(BASE, method, path, body);

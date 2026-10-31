@@ -22,6 +22,7 @@ import {
    ConfirmDialog,
    Loading,
    NoData,
+   Notice,
    PageBody,
    PageHeader,
    Tabs,
@@ -211,13 +212,6 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
             <Button
                disabled={!canRecord || !allDecided || !live || pausing.pending}
                loading={forming.pending}
-               title={
-                  allDecided
-                     ? undefined
-                     : t(
-                          'Протокол формируется, когда по всем вопросам есть решение',
-                       )
-               }
                onClick={() =>
                   forming.run(() => committee.formProtocol(meeting.id, user.id))
                }
@@ -250,6 +244,13 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
                onDelete={() => setRemoving(true)}
                onEdit={() => setChanging(true)}
             />
+            {(live || meeting.status === 'break') && !allDecided && (
+               <Notice className='print-hidden mb-4'>
+                  {t(
+                     'Протокол формируется, когда по всем вопросам есть решение',
+                  )}
+               </Notice>
+            )}
             <div className='border-line print-hidden mb-4.5 border-b'>
                <Tabs
                   active={tab}

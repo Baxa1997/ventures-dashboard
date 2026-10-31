@@ -807,13 +807,16 @@ class Committee {
       );
    }
 
-   // Opens the meeting: the members who did not confirm are marked absent.
+   // Opens the meeting, today, whatever day it was planned for: its decisions
+   // and protocol carry the day it met. The members who did not confirm are
+   // marked absent.
    async startMeeting(id: string) {
       await apply(
          (state) =>
             withMeeting(id, (meeting) => ({
                ...meeting,
                status: 'live',
+               date: todayISO(),
                startedAt: meeting.startedAt ?? nowTime(),
                result: 'live',
                agenda: meeting.agenda.map((item) =>
@@ -846,7 +849,11 @@ class Committee {
             const meeting = meetingOf(after, id);
             const previous = meetingOf(before, id);
             await Promise.all([
-               updateRow('meetings', { guid: id, ...meetingFields(meeting) }),
+               updateRow('meetings', {
+                  guid: id,
+                  date: meeting.date,
+                  ...meetingFields(meeting),
+               }),
                ...meeting.agenda.flatMap((item) => {
                   const old = previous.agenda.find(
                      ({ id: itemId }) => itemId === item.id,

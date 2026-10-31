@@ -28,8 +28,30 @@ const created: [table: string, guid: string][] = [];
 // every field the run writes, by table: with PANEL_TEST_WRITES set, written to
 // that file at the end, for `verify.mjs --writes` to check against ucode
 const writes = new Map<string, Set<string>>();
-const realFetch = globalThis.fetch;
+// --dry-run: nothing is written to ucode (panel-test-memory.ts)
+const dry = process.env.PANEL_TEST_DRY
+   ? (await import('./panel-test-memory')).memoryFetch(globalThis.fetch, process.env.PANEL_TEST_API_KEY ?? '', import.meta.env.VITE_UCODE_ENVIRONMENT_ID ?? '', 'https://api.admin.u-code.io')
+   : null;
+const realFetch = dry?.fetchInMemory ?? globalThis.fetch;
+// run with the project's API key instead of a user (panel-test.mjs): the
+// sign-in is answered here with the director's user, and calls carry the key
+const API_KEY = process.env.PANEL_TEST_API_KEY;
+const withKey = (init?: RequestInit): RequestInit => {
+   const headers = new Headers(init?.headers);
+   headers.set('Authorization', 'API-KEY');
+   headers.set('X-API-KEY', API_KEY ?? '');
+   return { ...init, headers };
+};
+const keyLogin = async (url: string) => {
+   const environment = new URL(url).origin.replace('api.auth.', 'api.admin.');
+   const reply = await realFetch(`${environment}/v2/items/employees?data=${encodeURIComponent(JSON.stringify({ limit: 200, offset: 0 }))}`, withKey({ headers: { 'Environment-Id': import.meta.env.VITE_UCODE_ENVIRONMENT_ID ?? '' } }));
+   const rows = ((await reply.json()) as { data?: { data?: { response?: { user_id?: string; role?: string; is_active?: boolean }[] } } }).data?.data?.response ?? [];
+   const director = rows.find(({ user_id, role }) => user_id && role === 'director');
+   return new Response(JSON.stringify({ data: { token: { access_token: 'api-key', refresh_token: 'api-key' }, user_id_auth: director?.user_id ?? '' } }), { status: 200 });
+};
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+   if (API_KEY && String(input).includes('/v2/login')) return keyLogin(String(input));
+   if (API_KEY) init = withKey(init);
    const table = String(input).match(/\/v2\/items\/(\w+)$/)?.[1];
    if (table && (init?.method === 'POST' || init?.method === 'PUT') && typeof init.body === 'string') {
       const data = (JSON.parse(init.body) as { data?: Record<string, unknown> }).data ?? {};
@@ -70,7 +92,7 @@ const forget = (table: string, guid: string) => {
 };
 
 // ---- sign in
-await signIn(process.env.UCODE_LOGIN ?? '', process.env.UCODE_PASSWORD ?? '', true);
+await signIn(process.env.UCODE_LOGIN ?? 'api-key', process.env.UCODE_PASSWORD ?? 'api-key', true);
 for (let i = 0; i < 50 && !TEAM.length; i++) await sleep(200);
 const me = TEAM.find(({ role }) => role === 'director');
 check('signed in; the team read from employees, the user a director', me, TEAM);
@@ -114,7 +136,7 @@ try {
 
    await settings.invite({ name: 'Тест Сотрудник', email: 'test.employee@example.com', position: 'Аналитик', role: 'analyst', roles: ['analyst'], access: 'work' });
    const invited = (await settings.getSettings()).staff.find((m) => m.email === 'test.employee@example.com');
-   check('invite adds an employees row, not signed in yet', invited && invited.invitedAt === today && invited.role === 'analyst', invited);
+   check('invite adds an employees row, not signed in yet', invited && invited.addedAt === today && invited.role === 'analyst', invited);
    check('the team includes the invited employee', TEAM.some(({ id }) => id === invited?.id));
 
    // ---- Настройки: a list (batch 7)
@@ -139,9 +161,10 @@ try {
    check('a key that is taken is refused', refusedKey);
    const orderOf = () => listOf('rounds', true).map((item) => item.key).join(',');
    const orderBefore = orderOf();
-   await settings.moveListItem('rounds', added!.id, -1);
+   const lastPlace = listOf('rounds', true).findIndex((item) => item.id === added!.id);
+   await settings.moveListItem('rounds', added!.id, lastPlace - 1);
    const moved = orderOf();
-   await settings.moveListItem('rounds', added!.id, 1);
+   await settings.moveListItem('rounds', added!.id, lastPlace);
    check('a row moves up the list and back', moved !== orderBefore && moved.indexOf('zz_series_b') < orderBefore.indexOf('zz_series_b') && orderOf() === orderBefore, { orderBefore, moved, after: orderOf() });
 
    // ---- Настройки: a document template with its file (batch 9)
@@ -152,9 +175,12 @@ try {
    check('a document template saved with its file and read back from ucode', template?.file?.url === 'https://example.com/zz-questionnaire.xlsx' && template.file.name === 'zz-questionnaire.xlsx' && template.names.uz === 'ZZ Anketa', template);
 
    // ---- Настройки: a task status and a metric of the fund's own, deleted with what used them moved on
-   await settings.saveListItem('taskStatuses', null, { key: 'zz_hold', names: { ru: 'ZZ На удержании', uz: '', en: 'ZZ On hold' }, active: true, group: 'progress', tone: 'warning' }, me.id, 'Справочник «Статусы задач» · ZZ', describe);
+   await settings.saveListItem('taskStatuses', null, { key: 'zz_hold', names: { ru: 'ZZ На удержании', uz: '', en: 'ZZ On hold' }, active: true, group: 'progress', tone: 'warning', color: '#5764ca' }, me.id, 'Справочник «Статусы задач» · ZZ', describe);
    await settings.saveListItem('taskStatuses', null, { key: 'zz_signed', names: { ru: 'ZZ Подписана', uz: '', en: 'ZZ Signed' }, active: true, group: 'complete', tone: 'success' }, me.id, 'Справочник «Статусы задач» · ZZ', describe);
-   const { isDone, statusGroup } = await import('@modules/Work/helpers');
+   const { isDone, statusColor, statusGroup } = await import('@modules/Work/helpers');
+   clearStores();
+   await settings.getSettings();
+   check("a status's own colour read back from ucode", statusColor('zz_hold') === '#5764ca', itemOf('taskStatuses', 'zz_hold'));
    const holdTask = await work.createTask({ title: 'ZZ задача на удержании', type: 'other', context: '', details: '<p>ZZ <strong>уточнение</strong></p>', relation: 'none', relationId: '', assigneeId: me.id, reviewerId: '', dueDate: '', priority: 'low', status: 'zz_hold', recurrence: 'none', checklist: [] }, me.id);
    const signedTask = await work.createTask({ title: 'ZZ подписанная задача', type: 'other', context: '', details: '', relation: 'none', relationId: '', assigneeId: me.id, reviewerId: '', dueDate: '', priority: 'low', status: 'zz_signed', recurrence: 'none', checklist: [] }, me.id);
    check("a status of the fund's own acts as its group: «complete» closes the task", statusGroup('zz_hold') === 'progress' && !isDone(holdTask) && isDone(signedTask) && signedTask.completedAt === today, { hold: statusGroup('zz_hold'), signed: signedTask.completedAt });
@@ -198,8 +224,6 @@ try {
    const nextDue = (await deals.getDeals()).find((d) => d.id === deal.id)?.next?.dueDate ?? '';
    const soon = nextDue <= addWorkingDays(today, 5);
    check('Мой день: the screening decision, and the next step only when due within 5 working days', queue.some((i) => i.kind === 'screening' && i.decision?.action === 'decide') && queue.some((i) => i.kind === 'next' && i.dealId === deal.id) === soon, { nextDue, soon, queue: queue.map((i) => `${i.kind}:${i.dueDate}`) });
-   const myDeals = await work.getMyDeals(me.id);
-   check('Мой день: my deals', myDeals.some((d) => d.id === deal.id && d.stage === 'screening'));
 
    // ---- Работа
    const task = await work.createTask(
@@ -221,8 +245,10 @@ try {
    await work.reloadTasks();
    const edited = (await work.getTasks()).find((t) => t.id === next!.id);
    check('editing a task: a checklist item removed, status event written', edited && edited.checklist.length === 1 && edited.history[0]?.kind === 'status', edited && { checklist: edited.checklist.map((i) => i.text), history: edited.history.map((e) => e.kind) });
-   const deadlines = await work.getDeadlines();
-   check('week deadlines: the deal and the open task', deadlines.some((d) => d.kind === 'deal' && d.title === 'ZZ Test Co') && deadlines.some((d) => d.kind === 'task' && d.title === task.title), deadlines.map((d) => `${d.kind}:${d.date}:${d.title}`));
+   const upcoming = await work.getUpcoming(me.id);
+   // a stage's deadline shows within a week of it
+   const dueThisWeek = (await deals.getDeals()).find((d) => d.id === deal.id)!.next!.dueDate <= addWorkingDays(today, 5);
+   check("Мой день's coming dates: the deal's stage deadline, when due within the week", upcoming.some((item) => item.kind === 'stage' && item.dealId === deal.id) === dueThisWeek, upcoming.map((item) => `${item.kind}:${item.date}`));
    const counters = await work.getCounters(me.id);
    check('sidebar counters counted', counters.myDay! >= 2 && counters.tasks! >= 1, counters);
 
@@ -243,13 +269,12 @@ try {
    check('company read: invested = sum of investments, report, metrics, pilot', company && company.invested === 150000 && company.reports['2026-Q3']?.metrics === 'check' && company.reports['2026-Q3']?.received.form1 === '2026-10-11' && company.metrics.find((m) => m.key === 'mrr')?.values['2026-Q3'] === 12000 && company.pilots[0]?.status === 'planned' && company.facts[0]?.value === 'Ташкент', company && { invested: company.invested, report: company.reports['2026-Q3'] });
    check('requesting the reports made the cycle row', holdings.cycle.requestedAt === today && holdings.cycle.remindedAt === today && holdings.cycle.due === '2026-10-25', holdings.cycle);
    check('sidebar counts the request waiting for the fund', (await work.getCounters(me.id)).portfolio === 1);
-   check('Мой день: waiting for the company report after the deadline is not shown before it', !(await work.getWaiting(me.id)).some((w) => w.source === 'company'));
    await portfolio.confirmMetrics(companyId, '2026-Q3', me.id);
    await portfolio.answerRequest(requestId, 'Познакомили');
    const after = await portfolio.getState();
    check('metrics confirmed and the request answered', after.companies.find((c) => c.id === companyId)?.reports['2026-Q3']?.metrics === 'confirmed' && after.requests.find((r) => r.id === requestId)?.status === 'closed');
-   const overview = await work.getFundOverview();
-   check('overview: no money row yet, the portfolio and the funnel', overview.money === null && overview.portfolio.companies.some((c) => c.id === companyId && c.invested === 150000) && overview.funnel.find((f) => f.stage === 'screening')!.count >= 1, { quarter: overview.portfolio.quarter, funnel: overview.funnel.map((f) => `${f.stage}:${f.count}`) });
+   const overview = await work.getDashboard();
+   check('the dashboard: the deals, the portfolio with what is invested, the funnel', overview.deals.inWork >= 1 && overview.portfolio.companies >= 1 && overview.portfolio.invested >= 150000 && overview.funnel.length > 0, { deals: overview.deals, portfolio: overview.portfolio, funnel: overview.funnel });
 
    // ---- Инвесткомитет
    const { preparationOf, waitingDeals } = await import('@modules/Committee/helpers');
@@ -283,8 +308,8 @@ try {
    const onAgenda = (await deals.getDeals()).find((d) => d.id === deal.id);
    check("the deal's card points at its meeting", onAgenda?.committee?.id === meeting.id && onAgenda.committee.date === meeting.date, onAgenda?.committee);
    meeting.agenda = scheduled!.agenda;
-   const weekAhead = await work.getDeadlines();
-   check('the meeting is a key event of the week', weekAhead.some((d) => d.kind === 'meeting' && d.keyEvent && d.date === meeting.date), weekAhead.filter((d) => d.kind === 'meeting'));
+   const weekAhead = await work.getUpcoming(me.id);
+   check("the meeting is among Мой день's coming dates", weekAhead.some((item) => item.kind === 'meeting' && item.meetingId === meeting.id), weekAhead.filter((item) => item.kind === 'meeting'));
    await committee.setAttendance(meeting.id, memberId, 'confirmed');
    await committee.sendMaterials(meeting.id);
    await committee.startMeeting(meeting.id);
@@ -300,6 +325,7 @@ try {
    const held = state.meetings.find((m) => m.id === meeting.id);
    const heldItem = held?.agenda[0];
    check('the member who did not confirm is absent from the vote', heldItem?.votes[lateId]?.choice === 'absent', heldItem?.votes[lateId]);
+   check("a meeting planned for later carries the day it met, for its decisions", meeting.date > today && held?.date === today && state.decisions.find((d) => d.meetingId === meeting.id)?.date === today, { planned: meeting.date, held: held?.date });
    check('meeting held, attendance, vote and protocol stored', held && held.status === 'held' && held.protocol === 'signing' && held.result === 'approved_conditions' && held.attendance[memberId] === 'confirmed' && !!held.materialsSentAt && heldItem?.votes[memberId]?.choice === 'for' && heldItem?.votes[memberId]?.note === 'Поддерживаю' && heldItem?.protocol.conditions.startsWith('Предоставить'), held && { status: held.status, result: held.result, votes: heldItem?.votes, chair: held.chairId });
    await committee.signProtocol(meeting.id, 'https://example.com/zz-protocol');
    clearStores();
@@ -400,7 +426,7 @@ try {
    check('the terms read back: the numbers in their own fields, the wording in terms', card.terms?.instrument === 'safe' && card.terms.roundSize === 1000000 && card.terms.preMoney === 4000000 && card.terms.conditions === 'ZZ Cap $15M' && card.terms.founder === 'ZZ Основатель' && card.terms.warning === 'ZZ вне мандата' && cardRow?.instrument === 'safe' && cardRow?.round_size === 1000000 && cardRow?.terms_warning === 'ZZ вне мандата', card.terms);
    check('the metrics and the synergy read back', card.metrics?.hint === 'факт 2025' && card.metrics.items[0]?.warn === true && card.metrics.note === 'ZZ DD' && card.synergy?.[0]?.[1] === 'ZZ расчётный банк', { metrics: card.metrics, synergy: card.synergy });
    check('risks: one added and changed, one taken off — its row deleted', card.risks?.length === 1 && card.risks[0].title === 'ZZ Оценка cap' && card.risks[0].severity === 5 && !(await api.listRows('deal_risks')).some((row) => row.guid === riskB), card.risks);
-   check("team: the owner's outside party kept with its role changed, a removed member gone; DD's executor from its workstream", card.team?.length === 1 && card.team[0].name === 'ZZ Lex Partners' && card.team[0].role === 'ZZ Юр. оформление' && teamOf(keys, card).some((m) => m.name === 'ООО «ZZ»' && m.role === 'ZZ Legal DD · договор № 1'), teamOf(keys, card));
+   check("team: the owner's outside party kept with its role changed, a removed member gone; DD's executor from its workstream", card.team?.length === 1 && card.team[0].name === 'ZZ Lex Partners' && card.team[0].role === 'ZZ Юр. оформление' && teamOf(keys, card).some((m) => m.name === 'ООО «ZZ»' && m.role === `${card.workstreams?.find((w) => w.id === streamId)?.name} · договор № 1`), teamOf(keys, card));
    check("readiness: the owner's item ticked and reworded, the removed one gone", card.readiness?.items.length === 1 && card.readiness.items[0].text === 'ZZ Обоснование исключения v2' && card.readiness.items[0].state === 'done', card.readiness);
    const ic2Ready = readinessOf(keys, { ...card, stage: 'ic2' });
    check("readiness for ИК-2: ИК-1's decision, the terms, DD's conclusion once given, the owner's item", handedReady === 'waiting' && ['decision', 'terms', `stream-${streamId}`].every((id) => ic2Ready.find((i) => i.id === id)?.state === 'done') && ic2Ready.some((i) => i.text === 'ZZ Обоснование исключения v2' && i.state === 'done') && readinessOf(keys, card).length === 0, ic2Ready.map((i) => `${i.id}:${i.state}`));
@@ -452,6 +478,7 @@ try {
    check('a request carries its template as a copy (no file id of its own)', copies.length === 1 && copies[0].url === template!.file!.url && copies[0].fileId === '' && copies[0].kind === 'file', { copies });
    await deals.removeRequest(deal.id, templateRequest.id);
    clearStores();
+   await settings.getSettings();
    check('a deleted request takes its copies and leaves the template', !(await attachments.getAll()).some((a) => a.itemId === templateRequest.id) && !!itemOf('docTemplates', 'zz_questionnaire')?.file);
    await settings.deleteListItem('docTemplates', template!.id, null, me.id, 'Справочник «Шаблоны документов» · удалено: ZZ', 'ZZ Анкета');
    check('the template deleted from the list', !itemOf('docTemplates', 'zz_questionnaire'));
@@ -490,11 +517,11 @@ try {
    await settings.saveStage(null, 'zz_check', ownStage, 'analysis', me.id, 'Этап «ZZ Проверка»', describeStage);
    const afterAnalysis = stageKeys();
    check("the fund's own stage stands after Анализ, before ИК-1, with its norm", afterAnalysis.indexOf('zz_check') === afterAnalysis.indexOf('analysis') + 1 && nextStageOf('analysis') === 'zz_check' && nextStageOf('zz_check') === 'ic1' && stageNorm('zz_check') === 3, afterAnalysis);
-   await settings.moveStage('zz_check', -1);
+   await settings.moveStage('zz_check', stageKeys().indexOf('zz_check') - 1);
    const movedUp = stageKeys();
-   await settings.moveStage('ic1', 1);
+   await settings.moveStage('ic1', movedUp.indexOf('ic1') + 1);
    const systemMoved = stageKeys();
-   await settings.moveStage('ic1', -1);
+   await settings.moveStage('ic1', movedUp.indexOf('ic1'));
    check('any stage moves, an own one and a system one', movedUp.indexOf('zz_check') === movedUp.indexOf('analysis') - 1 && systemMoved.indexOf('ic1') === movedUp.indexOf('ic1') + 1 && stageKeys().join() === movedUp.join(), { movedUp, systemMoved });
    // a system stage deleted is turned off and listed to bring back; brought back, it stands again
    const boardUsage = await settings.stageUsage('board');
@@ -562,6 +589,268 @@ try {
    await settings.deleteListItem('metrics', metricId, null, me.id, 'Справочник «Показатели» · удалено: ZZ', 'ZZ ARPU');
    check("a quarter's figures entered, corrected and cleared; the unused metric deleted", valueOf('zz_arpu') === 14 && valueOf('mrr') === 1000 && withMetrics?.metrics.find((m) => m.key === 'zz_arpu')?.format === 'usd' && cleared?.metrics.find((m) => m.key === 'zz_arpu')?.values[quarter] == null && metricUsage === 0 && !itemOf('metrics', 'zz_arpu'), { arpu: valueOf('zz_arpu'), mrr: valueOf('mrr'), metricUsage });
 
+   // ---- the whole road: one deal from the inbox to Портфель, leaving each stage only
+   // when the panel's own conditions (what opens «Перевести») are met
+   const { answeredSections, isUntouchedAudit, placeOf, roomFolders, scoreOf, scoreRows, weightedScore } = await import('@modules/Deals/helpers');
+   const { isBuiltIn, questionnaireOf } = await import('@modules/Settings/services');
+   const { tallyVotes } = await import('@modules/Committee/helpers');
+   const { positionOf } = await import('@modules/Portfolio/helpers');
+   const lists = ['docFolders', 'ddAudits', 'criteria'] as const;
+   check("Настройки's lists of batches 16 and 17 are ucode's rows, not the built-in ones", lists.every((kind) => listOf(kind).length > 0 && !listOf(kind).some(isBuiltIn)) && listOf('docFolders').length === 7 && listOf('ddAudits').length === 3 && listOf('criteria').reduce((sum, { weight }) => sum + (weight ?? 0), 0) === 100, Object.fromEntries(lists.map((kind) => [kind, listOf(kind).map(({ key }) => key)])));
+   // a row added to each: on every deal at once, read back from ucode
+   await settings.saveListItem('docFolders', null, { key: 'zz_patents', names: { ru: 'ZZ Патенты', uz: '', en: '' }, active: true }, me.id, 'Справочник · ZZ', describe);
+   await settings.saveListItem('ddAudits', null, { key: 'zz_esg', names: { ru: 'ZZ ESG-аудит', uz: '', en: '' }, active: true }, me.id, 'Справочник · ZZ', describe);
+   await settings.saveListItem('criteria', null, { key: 'zz_esg', names: { ru: 'ZZ ESG', uz: '', en: '' }, hints: { ru: 'ZZ подсказка', uz: '', en: '' }, weight: 10, active: true }, me.id, 'Справочник · ZZ', describe);
+   // the founder's questions: one added, kept in fund_settings for the panel and the cabinet
+   const questions = questionnaireOf();
+   await settings.saveQuestionnaire([{ ...questions[0], fields: [...questions[0].fields, { id: 'zz_question', kind: 'text', label: { ru: 'ZZ Вопрос', uz: '', en: '' } }] }, ...questions.slice(1)], me.id, { field: 'Анкета основателя · ZZ', from: '', to: 'ZZ Вопрос' });
+   clearStores();
+   const withRows = await settings.getSettings();
+   check('a folder, an audit and a criterion added, and a question: read back', itemOf('docFolders', 'zz_patents')?.names.ru === 'ZZ Патенты' && itemOf('ddAudits', 'zz_esg')?.active && itemOf('criteria', 'zz_esg')?.weight === 10 && itemOf('criteria', 'zz_esg')?.hints?.ru === 'ZZ подсказка' && withRows.questionnaireStored && questionnaireOf()[0].fields.at(-1)?.id === 'zz_question', { questionnaireStored: withRows.questionnaireStored });
+
+   const road = await deals.createDeal({ company: 'ZZ Road Co', about: 'ZZ весь путь', legalName: 'ZZ Road LLC', tin: '123456789', foundedYear: 2021, employees: 12, website: 'zz-road.example.com', applicantEmail: 'zz.road@example.com', applicantPhone: '+998900000000', industryKey: 'fintech', industry: '', source: 'network', amount: 150000, country: 'UZ', roundStage: 'seed' }, me.id);
+   const roadNow = async () => {
+      clearStores();
+      await settings.getSettings();
+      return (await deals.getDeals()).find((d) => d.id === road.id)!;
+   };
+   const conditions = async () => exitConditions(keys, await roadNow(), await work.getTasks());
+   // the conditions of the stage: each met, or the move stays off
+   const leaves = async (stage: string) => {
+      const current = await roadNow();
+      const exit = exitConditions(keys, current, await work.getTasks());
+      check(`road: «${stage}» can be left, every condition met`, current.stage === stage && exit.every((item) => item.state === 'done'), { stage: current.stage, exit: exit.map((item) => `${item.id}:${item.state}`) });
+   };
+   await deals.setOwners(road.id, [{ name: 'ZZ Основатель', role: 'CEO', share: 70 }, { name: 'ZZ Партнёр', role: 'CTO', share: 30 }]);
+   const detailed = await roadNow();
+   check("the company's details and its capital read back", detailed.legalName === 'ZZ Road LLC' && detailed.tin === '123456789' && detailed.foundedYear === 2021 && detailed.employees === 12 && detailed.website === 'zz-road.example.com' && detailed.owners?.length === 2 && detailed.owners[0].share === 70, { legalName: detailed.legalName, tin: detailed.tin, owners: detailed.owners });
+
+   // Скрининг
+   await deals.takeToScreening(road.id, me.id);
+   const unscored = await conditions();
+   check('road: Скрининг holds until scored and a second reviewer chosen', unscored.some((item) => item.id === 'score' && item.state !== 'done') && unscored.some((item) => item.id === 'second' && item.state !== 'done'), unscored.map((item) => `${item.id}:${item.state}`));
+   for (const { item } of scoreRows(await roadNow())) await deals.setCriterion(road.id, item.key, { score: item.key === 'team' ? 5 : 4, rationale: 'ZZ обоснование' });
+   await deals.setScreening(road.id, { decision: 'meeting', secondId: invited!.id });
+   await deals.setScreeningNote(road.id, { essence: 'ZZ общий комментарий', whyNow: '', redFlags: '', questions: '' });
+   const scored = await roadNow();
+   const scoreExpected = (5 * 25 + 4 * 85) / 110; // the six of ucode and ZZ ESG: weights 25, then 85 in all
+   check('the score is the sum weighted by the criteria, and the comment read back', Math.abs((scoreOf(scored) ?? 0) - scoreExpected) < 0.001 && Math.abs((weightedScore(scoreRows(scored)) ?? 0) - scoreExpected) < 0.001 && scored.screening?.note?.essence === 'ZZ общий комментарий', { score: scoreOf(scored), scoreExpected });
+   await deals.setAnswer(road.id, 'zz_question', 'ZZ ответ фонда', me.id);
+   await deals.setAnswer(road.id, 'zz_question', 'ZZ ответ фонда v2', me.id);
+   const answered2 = await roadNow();
+   const answerRows = (await api.listRows('deal_questionnaires')).filter((row) => row.deals_id === road.id);
+   check('an answer to the new question: one row, changed, who wrote it read back', answerRows.length === 1 && answered2.questionnaire?.values.zz_question === 'ZZ ответ фонда v2' && answered2.questionnaire.updatedById === me.id && answeredSections(answered2) === 0, answered2.questionnaire);
+   await leaves('screening');
+   await deals.completeScreening(road.id, me.id);
+   await leaves('meeting');
+   await deals.transferDeal(road.id);
+   await leaves('analysis');
+   await deals.transferDeal(road.id);
+
+   // three members, as the quorum asks
+   const roadMembers = [];
+   for (const name of ['ZZ Р. Председатель', 'ZZ Р. Член', 'ZZ Р. Независимый']) roadMembers.push(await committee.addMember({ name, role: name.includes('Председатель') ? 'chair' : 'independent', remote: false, contract: '' }));
+   // a meeting from start to the signed protocol, as its screens run it
+   const holdMeeting = async (body: 'ic' | 'board', stage: 'ic1' | 'ic2' | null, terms = '') => {
+      const label = stage ?? body;
+      const planned = await committee.scheduleMeeting({ body, stage, date: today, time: '10:00', format: 'Очно', dealIds: [road.id], participantIds: roadMembers });
+      check(`road: ${label}: the deal is on the agenda, and its card points at the meeting`, planned.agenda.length === 1 && (await roadNow()).committee?.id === planned.id, planned.agenda.map((i) => i.title));
+      check(`road: ${label}: the next step is the wait for the meeting, not yet the move`, nextStepOf(keys, await roadNow(), await work.getTasks()).ready === undefined);
+      for (const id of roadMembers) await committee.setAttendance(planned.id, id, 'confirmed');
+      await committee.sendMaterials(planned.id);
+      const ready = (await committee.getState());
+      check(`road: ${label}: ready to open`, preparationOf(ready.meetings.find((m) => m.id === planned.id)!, ready.members).ready, preparationOf(ready.meetings.find((m) => m.id === planned.id)!, ready.members));
+      await committee.startMeeting(planned.id);
+      const question = planned.agenda[0];
+      for (const id of roadMembers) await committee.setVote(planned.id, question.id, id, 'for');
+      if (terms) await committee.setProtocol(planned.id, question.id, 'conditions', terms);
+      const voted = await committee.getState();
+      const liveMeeting = voted.meetings.find((m) => m.id === planned.id)!;
+      const tally = tallyVotes(liveMeeting, voted.members, liveMeeting.agenda[0]);
+      check(`road: ${label}: three «за» approve under the fund's rules`, tally.state === 'approved' && tally.for === 3, tally);
+      await committee.decide(planned.id, question.id, terms ? 'approved_conditions' : 'approved');
+      await committee.formProtocol(planned.id, me.id);
+      await committee.signProtocol(planned.id, 'https://example.com/zz-road');
+      return planned;
+   };
+
+   // ИК-1, with a condition
+   const beforeIc1 = await conditions();
+   check('road: ИК-1 holds until the committee approves', beforeIc1.some((item) => item.id === 'committee' && item.state !== 'done'), beforeIc1.map((item) => `${item.id}:${item.state}`));
+   const ic1Meeting = await holdMeeting('ic', 'ic1', 'ZZ условие ИК-1');
+   const afterIc1 = await roadNow();
+   const ic1Decision = afterIc1.decisions?.find((d) => d.stage === 'ic1');
+   check("the decision's parts for its tab: the outcome, the date, the conditions, the meeting", ic1Decision?.verdict === 'approved' && ic1Decision.result === 'approved_conditions' && ic1Decision.date === today && ic1Decision.conditions === 'ZZ условие ИК-1' && ic1Decision.meetingId === ic1Meeting.id && !!ic1Decision.meetingLabel, ic1Decision);
+   check('road: after ИК-1 the next step is the move, with its button', !!nextStepOf(keys, afterIc1, await work.getTasks()).ready);
+   await leaves('ic1');
+   await deals.transferDeal(road.id);
+
+   // DD: every audit of Настройки done, with its conclusion; the condition of ИК-1 met
+   const heldOnDd = await conditions();
+   check("road: DD holds until ИК-1's condition is met", heldOnDd.some((item) => item.id === 'conditions' && item.state !== 'done'), heldOnDd.map((item) => `${item.id}:${item.state}`));
+   const audits = ddStreams(await roadNow());
+   check("road: DD has a card per audit of Настройки, the new one too, before any is touched", audits.length === 4 && audits.every(isUntouchedAudit) && audits.some((a) => a.auditKey === 'zz_esg'), audits.map((a) => a.name));
+   for (const audit of audits) {
+      const opened2 = await deals.openAudit(road.id, audit);
+      await deals.handOverWorkstream(road.id, opened2, me.id);
+      await deals.updateWorkstream(road.id, opened2, { status: 'done', verdict: 'positive', conclusion: 'ZZ заключение' });
+   }
+   const auditsDone = await roadNow();
+   const auditRows = (await api.listRows('workstreams')).filter((row) => row.deals_id === road.id);
+   check('road: the audits read back: their key, status, conclusion and its date; still one card each', ddStreams(auditsDone).length === 4 && auditsDone.workstreams?.every((w) => w.status === 'done' && w.verdict === 'positive' && w.concludedAt === today && w.conclusion === 'ZZ заключение') && audits.every((a) => auditRows.some((row) => row.audit_type === a.auditKey)), auditsDone.workstreams);
+   const conditionTask2 = (await work.getTasks()).find((item) => item.relationId === road.id && item.origin === 'ic_condition');
+   await committee.setTaskDone(conditionTask2?.id ?? '', true, me.id);
+   // the data room, on the folders of Настройки
+   await deals.addRequest(road.id, { title: 'ZZ Финмодель', text: 'ZZ', dueDate: addWorkingDays(today, 5), folder: 'financial', ddQuestionnaire: false }, me.id);
+   const asked = (await roadNow()).requests?.find((r) => r.title === 'ZZ Финмодель');
+   await deals.uploadDocument(road.id, new File(['ZZ модель'], 'zz-model.txt', { type: 'text/plain' }), me.id, 'financial');
+   await deals.uploadDocument(road.id, new File(['ZZ патент'], 'zz-patent.txt', { type: 'text/plain' }), me.id, 'zz_patents');
+   const withFiles = await roadNow();
+   const model = withFiles.documents?.find((d) => d.title === 'zz-model');
+   const patent = withFiles.documents?.find((d) => d.title === 'zz-patent');
+   check("the data room: a request's folder, a file's folder and size read back; the folders of Настройки on the deal", asked?.folder === 'financial' && model?.folderId === 'financial' && (model?.size ?? 0) > 0 && placeOf(withFiles, model!) === 'financial' && roomFolders(withFiles).some(({ id }) => id === 'zz_patents') && withFiles.waiting === true, { folder: asked?.folder, size: model?.size, place: model && placeOf(withFiles, model) });
+   await deals.receiveRequest(road.id, asked?.id ?? '', me.id);
+   // a folder in use is deleted with where its files go; an audit and a criterion in use, too
+   const folderId = itemOf('docFolders', 'zz_patents')!.id;
+   const folderUsage = await settings.usageOf('docFolders', folderId);
+   await settings.deleteListItem('docFolders', folderId, 'legal', me.id, 'Справочник · удалено: ZZ', 'ZZ Патенты');
+   const movedOver = await roadNow();
+   check('a folder in use deleted: its files move to the folder chosen', folderUsage === 1 && movedOver.documents?.find((d) => d.id === patent?.id)?.folderId === 'legal' && !roomFolders(movedOver).some(({ id }) => id === 'zz_patents'), { folderUsage, folder: movedOver.documents?.find((d) => d.id === patent?.id)?.folderId });
+   await leaves('dd');
+   await deals.transferDeal(road.id);
+
+   // ИК-2 and the director
+   await holdMeeting('ic', 'ic2');
+   const beforeDirector = await conditions();
+   check('road: after ИК-2 the director still confirms', beforeDirector.some((item) => item.id === 'director' && item.state !== 'done') && beforeDirector.some((item) => item.id === 'committee' && item.state === 'done'), beforeDirector.map((item) => `${item.id}:${item.state}`));
+   await deals.approveTransfer(road.id, me.id);
+   await leaves('ic2');
+   await deals.transferDeal(road.id);
+
+   // Набсовет, Закрытие, Портфель
+   await holdMeeting('board', null);
+   await leaves('board');
+   await deals.transferDeal(road.id);
+   await leaves('closing');
+   const roadCompany = await deals.joinPortfolio(road.id, { instrument: 'safe', amount: 150000, date: today, stakePct: 5, valuation: 3000000 });
+   const inPortfolio = await roadNow();
+   const companyNow = async () => {
+      clearStores();
+      await settings.getSettings();
+      return (await portfolio.getState()).companies.find((c) => c.id === roadCompany)!;
+   };
+   const roadInvestments = (await api.listRows('investments')).filter((row) => row.portfolio_companies_id === roadCompany);
+   const boardDecision = inPortfolio.decisions?.find((d) => d.stage === 'board');
+   check("road: the deal is in the portfolio, with its company and its investment tied to the board's approval", inPortfolio.status === 'portfolio' && roadInvestments.length === 1 && roadInvestments[0].kind === 'initial' && roadInvestments[0].decisions_id === boardDecision?.id && inPortfolio.decisions?.map((d) => d.stage).sort().join() === 'board,ic1,ic2', { status: inPortfolio.status, investments: roadInvestments.length, decisions: inPortfolio.decisions?.map((d) => d.stage) });
+
+   // Портфель: the position, the valuation, a pilot, a data request, the exit, a follow-on
+   const position = positionOf(await companyNow());
+   await portfolio.setValuation(roadCompany, 6000000);
+   const revalued = positionOf(await companyNow());
+   check('the position: the stake at the valuation, MOIC from what was invested', position.value === 150000 && position.moic === 1 && revalued.value === 300000 && revalued.moic === 2, { position, revalued });
+   await portfolio.addPilot(roadCompany, { title: 'ZZ Пилот', customer: 'SQB', status: 'in_progress', startedAt: today, endedAt: '', note: 'ZZ цель' });
+   const pilot = (await companyNow()).pilots.find((p) => p.title === 'ZZ Пилот');
+   await portfolio.updatePilot(pilot?.id ?? '', { title: 'ZZ Пилот 2', customer: 'SQB', status: 'in_progress', startedAt: today, endedAt: '', note: 'ZZ цель' });
+   const pilotChanged = (await companyNow()).pilots.find((p) => p.id === pilot?.id)?.title;
+   await portfolio.removePilot(pilot?.id ?? '');
+   forget('pilots', pilot?.id ?? '');
+   check('a pilot added, changed, deleted', pilotChanged === 'ZZ Пилот 2' && !(await companyNow()).pilots.some((p) => p.id === pilot?.id));
+   await portfolio.addDataRequest(roadCompany, { title: 'ZZ Данные', text: 'ZZ', dueDate: addWorkingDays(today, 5) }, me.id);
+   const dataRequest = (await portfolio.getState()).dataRequests.find((r) => r.companyId === roadCompany);
+   await portfolio.recordDataAnswer(dataRequest?.id ?? '', 'ZZ ответ');
+   await portfolio.acceptDataAnswer(dataRequest?.id ?? '');
+   clearStores();
+   const dataAfter = (await portfolio.getState()).dataRequests.find((r) => r.id === dataRequest?.id);
+   check('a data request asked, answered and accepted', dataRequest?.title === 'ZZ Данные' && dataAfter?.status === 'accepted' && dataAfter.answer === 'ZZ ответ', dataAfter);
+   await portfolio.recordExit(roadCompany, { status: 'exit', date: today, proceeds: 450000, type: 'strategic', buyer: 'ZZ Покупатель' });
+   const exited = await companyNow();
+   check("an exit's details read back from their fields, MOIC from what it brought", exited.status === 'exit' && exited.exit?.date === today && exited.exit.proceeds === 450000 && exited.exit.type === 'strategic' && exited.exit.buyer === 'ZZ Покупатель' && positionOf(exited).moic === 3 && (await portfolio.getState()).exitFields, exited.exit);
+   await portfolio.reopenCompany(roadCompany);
+   const reopened = await companyNow();
+   check('an exit taken back: active again, its details gone', reopened.status === 'active' && !reopened.exit?.proceeds, reopened.exit);
+   const followOn = await deals.createDeal({ company: 'ZZ Road Co · follow-on', about: 'ZZ', legalName: '', tin: '', foundedYear: null, employees: null, website: '', applicantEmail: '', applicantPhone: '', industryKey: 'fintech', industry: '', source: 'network', amount: 100000, country: 'UZ', roundStage: 'seed' }, me.id);
+   await deals.takeToScreening(followOn.id, me.id);
+   await deals.moveDeal(followOn.id, { stage: 'closing', status: 'active' }, 'ZZ', me.id);
+   const followOnCompany = await deals.joinPortfolio(followOn.id, { instrument: 'safe', amount: 100000, date: today, stakePct: 2, valuation: 7000000 });
+   const afterFollowOn = await companyNow();
+   const roadCompanies = (await portfolio.getState()).companies.filter((c) => c.name.startsWith('ZZ Road Co'));
+   check('a follow-on adds to the company instead of making a second one', followOnCompany === roadCompany && roadCompanies.length === 1 && afterFollowOn.invested === 250000 && afterFollowOn.investments?.some((i) => i.kind === 'follow_on'), { invested: afterFollowOn.invested, companies: roadCompanies.map((c) => c.name) });
+
+   // a company reports from the quarter the fund first paid in
+   const { owesReport } = await import('@modules/Portfolio/helpers');
+   const reporting = await portfolio.getState();
+   const fresh = reporting.companies.find((c) => c.id === roadCompany)!;
+   check('a company that joined today owes no report on a closed quarter, and the dashboard does not ask for one', !owesReport(fresh, reporting.cycle.quarter) && owesReport(fresh, today.slice(0, 4) + '-Q' + (Math.floor((Number(today.slice(5, 7)) - 1) / 3) + 1)) && !(await work.getDashboard()).attention.some((item) => item.kind === 'report' && item.companyId === roadCompany), { cycle: reporting.cycle.quarter });
+
+   // Документы: what the file manager lists comes from the deal, the meeting and the fund
+   await attachments.uploadFiles({ section: 'committee', itemId: ic1Meeting.agenda[0].id }, [new File(['ZZ'], 'zz-minutes.txt', { type: 'text/plain' })], me.id);
+   clearStores();
+   await settings.getSettings();
+   const allFiles = await attachments.getAll();
+   const committeeFile = allFiles.find((a) => a.section === 'committee' && a.itemId === ic1Meeting.agenda[0].id);
+   check("Документы: a question's file kept against it", committeeFile?.title === 'zz-minutes.txt' || committeeFile?.title === 'zz-minutes', committeeFile);
+   if (committeeFile) await attachments.remove(committeeFile.id);
+
+   // the rows added to Настройки, taken off
+   await settings.deleteListItem('ddAudits', itemOf('ddAudits', 'zz_esg')!.id, null, me.id, 'Справочник · удалено: ZZ', 'ZZ ESG-аудит');
+   await settings.deleteListItem('criteria', itemOf('criteria', 'zz_esg')!.id, null, me.id, 'Справочник · удалено: ZZ', 'ZZ ESG');
+   created.splice(0, created.length, ...created.filter(([table]) => !['doc_folders', 'dd_audit_types', 'screening_criteria'].includes(table)));
+
+   // Задачи: the start date and the moments (batch 14)
+   const dated = await work.createTask({ title: 'ZZ задача с началом', type: 'other', context: '', details: '', relation: 'none', relationId: '', assigneeId: me.id, reviewerId: '', startDate: today, dueDate: addWorkingDays(today, 3), priority: 'low', status: 'assigned', recurrence: 'none', checklist: [] }, me.id);
+   await work.updateTask(dated.id, { status: 'in_progress' }, me.id);
+   await work.updateTask(dated.id, { status: 'done' }, me.id);
+   await work.reloadTasks();
+   const datedNow = (await work.getTasks()).find((item) => item.id === dated.id);
+   check("a task's start date and when it began and ended read back from ucode", work.hasStampFields() && datedNow?.startDate === today && !!datedNow.stamps.started && !!datedNow.stamps.finished, datedNow?.stamps);
+
+   // ---- the deal that comes back, the founder's file and answer, and what the founder sees
+   const { RESUBMIT_LABELS } = await import('@modules/Deals/constants');
+   const applied = await deals.createDeal({ company: 'ZZ From Site', about: 'ZZ', legalName: '', tin: '', foundedYear: null, employees: null, website: '', applicantEmail: 'zz.site@example.com', applicantPhone: '', industryKey: 'fintech', industry: '', source: 'network', amount: 100000, country: 'UZ', roundStage: 'seed' }, me.id);
+   const applicationId = newId();
+   await api.createRow('applications', { guid: applicationId, email: 'zz.site@example.com', public_status: 'submitted' });
+   await api.updateRow('deals', { guid: applied.id, applications_id: applicationId });
+   clearStores();
+   await settings.getSettings();
+   const publicStatus = async () => (await api.listRows('applications')).find((row) => row.guid === applicationId)?.public_status;
+   const appliedNow = async () => {
+      clearStores();
+      await settings.getSettings();
+      return (await deals.getDeals()).find((d) => d.id === applied.id)!;
+   };
+   await deals.takeToScreening(applied.id, me.id);
+   const onScreening = await publicStatus();
+   await deals.completeScreening(applied.id, me.id);
+   await deals.transferDeal(applied.id);
+   const statusInWork = await publicStatus();
+   check('what the founder sees follows the deal: screening, then further on', onScreening === 'screening' && statusInWork !== 'screening' && statusInWork !== 'submitted', { onScreening, statusInWork });
+   const stageBefore = (await appliedNow()).stage;
+   await deals.stepBack(applied.id, 'meeting', me.id);
+   const steppedBack = await appliedNow();
+   check('a deal stepped back to a passed stage is on it again, and its journal has it', stageBefore !== 'meeting' && steppedBack.stage === 'meeting' && steppedBack.status === 'active', { stageBefore, stage: steppedBack.stage });
+   // a founder's file awaits review: rejected with a reason, then accepted
+   await deals.uploadDocument(applied.id, new File(['ZZ'], 'zz-founder.txt', { type: 'text/plain' }), me.id, 'legal');
+   const founderFile = (await appliedNow()).documents?.find((d) => d.title === 'zz-founder')!;
+   await api.updateRow('deal_documents', { guid: founderFile.id, status: 'review', uploaded_by: 'applicant' });
+   await deals.reviewDocument(applied.id, founderFile.id, false, 'ZZ нечитаемо', me.id);
+   const refused = (await appliedNow()).documents?.find((d) => d.id === founderFile.id);
+   await deals.reviewDocument(applied.id, founderFile.id, true, '', me.id);
+   const acceptedFile = (await appliedNow()).documents?.find((d) => d.id === founderFile.id);
+   check("a founder's file rejected with its reason, then accepted", refused?.status === 'rejected' && refused.detail === 'ZZ нечитаемо' && refused.handled?.reason === 'ZZ нечитаемо' && acceptedFile?.status === 'accepted', { refused: refused?.status, reason: refused?.detail, accepted: acceptedFile?.status });
+   // a founder's answer from the cabinet, accepted by the fund
+   await deals.addRequest(applied.id, { title: 'ZZ Ответ основателя', text: 'ZZ', dueDate: addWorkingDays(today, 5), folder: 'legal', ddQuestionnaire: false }, me.id);
+   const founderRequest = (await appliedNow()).requests?.find((r) => r.title === 'ZZ Ответ основателя')!;
+   await api.updateRow('deal_requests', { guid: founderRequest.id, status: 'answered', answer: 'ZZ ответ из кабинета' });
+   const withAnswer = (await appliedNow()).requests?.find((r) => r.id === founderRequest.id);
+   await deals.acceptAnswer(applied.id, founderRequest.id);
+   const answerAccepted = (await appliedNow()).requests?.find((r) => r.id === founderRequest.id);
+   check("a founder's answer shows with its text, and the fund accepts it", withAnswer?.status === 'answered' && withAnswer.detail === 'ZZ ответ из кабинета' && answerAccepted?.status === 'accepted', { answered: withAnswer?.status, accepted: answerAccepted?.status });
+   // rejected: read-only, what the founder sees, when they may apply again
+   await deals.rejectDeal(applied.id, { reason: listOf('reasons')[0].key, letter: 'ZZ письмо', comment: 'ZZ комментарий', resubmit: Object.keys(RESUBMIT_LABELS)[0] as never }, me.id);
+   const rejectedDeal = await appliedNow();
+   const applicationRow = (await api.listRows('applications')).find((row) => row.guid === applicationId);
+   check('a rejected deal: closed with its reason, the founder told, the date to apply again set', rejectedDeal.status === 'rejected' && rejectedDeal.closed?.reason === listOf('reasons')[0].key && applicationRow?.public_status === 'rejected' && !!applicationRow?.resubmit_after, { status: rejectedDeal.status, reason: rejectedDeal.closed?.reason, publicStatus: applicationRow?.public_status, resubmit: applicationRow?.resubmit_after });
+
    // ---- Документы
    const docId = await documents.addDocument({ category: 'corporate', title: 'ZZ Положение', note: 'ZZ проект', approvedBy: 'board', status: 'draft', date: today, link: 'https://example.com/zz' }, me.id);
    const firstOrder = await documents.nextOrderNumber();
@@ -580,14 +869,16 @@ try {
    check('a governance question added and resolved', issue && issue.status === 'resolved' && issue.resolvedAt === today && issue.ownerId === me.id, issue);
 
    // ---- sign-in refusal
-   const { login } = api;
-   let refused = false;
-   try {
-      await login(process.env.UCODE_LOGIN ?? '', 'wrong-password');
-   } catch (error) {
-      refused = error instanceof api.UcodeError && error.status >= 400 && error.status < 500;
+   if (!API_KEY) {
+      const { login } = api;
+      let refused = false;
+      try {
+         await login(process.env.UCODE_LOGIN ?? '', 'wrong-password');
+      } catch (error) {
+         refused = error instanceof api.UcodeError && error.status >= 400 && error.status < 500;
+      }
+      check('a wrong password is refused with a 4xx', refused);
    }
-   check('a wrong password is refused with a 4xx', refused);
 } catch (error) {
    failures++;
    console.log('✗ the run stopped:', error);
@@ -601,6 +892,7 @@ try {
          focus_text: settingsRow.focus_text ?? null,
          excluded_text: settingsRow.excluded_text ?? null,
          flag_churn_pct: settingsRow.flag_churn_pct ?? null,
+         questionnaire: settingsRow.questionnaire ?? null,
       });
    // the stages as they were: their norms, names and places
    for (const row of normRows)
@@ -618,11 +910,13 @@ try {
       }
    const restored = (await api.listRows('fund_settings'))[0];
    check(`cleanup: the ${created.length} rows this run made deleted`, !left, left ? `${left} could not be deleted` : '');
-   check('cleanup: fund settings and norms put back', restored?.flag_churn_pct === settingsRow?.flag_churn_pct && (restored?.check_max ?? null) === (settingsRow?.check_max ?? null));
+   check('cleanup: fund settings and norms put back', restored?.flag_churn_pct === settingsRow?.flag_churn_pct && (restored?.check_max ?? null) === (settingsRow?.check_max ?? null) && (restored?.questionnaire ?? null) === (settingsRow?.questionnaire ?? null));
    if (process.env.PANEL_TEST_WRITES) {
       const { writeFileSync } = await import('node:fs');
       writeFileSync(process.env.PANEL_TEST_WRITES, JSON.stringify(Object.fromEntries([...writes].map(([table, fields]) => [table, [...fields].sort()])), null, 1));
    }
+   if (dry?.dropped.size)
+      console.log('Fields written that their tables lack:', Object.fromEntries([...dry.dropped].map(([table, fields]) => [table, [...fields].sort()])));
    console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
    process.exit(failures ? 1 : 0);
 }
