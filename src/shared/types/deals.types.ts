@@ -1,3 +1,4 @@
+import type { ItemOutcome } from './committee.types';
 import type { CabinetMember, Instrument } from './portfolio.types';
 import type { DealStage } from './work.types';
 
@@ -229,6 +230,11 @@ export interface Decision {
    verdict: 'approved' | 'rejected' | 'other'; // postponed, or only noted
    meetingId?: string; // the meeting that took it
    meetingLabel?: string; // ИК № 3
+   // its parts, as the register keeps them
+   result?: ItemOutcome;
+   date?: string; // YYYY-MM-DD
+   note?: string;
+   conditions?: string;
 }
 
 interface JournalBase {

@@ -377,6 +377,7 @@ const DealCard = () => {
             {tab === 'decisions' && (
                <Decisions
                   deal={deal}
+                  onReject={() => setRejecting(true)}
                   onTransfer={() => setTransferring(true)}
                />
             )}

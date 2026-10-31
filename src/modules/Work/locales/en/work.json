@@ -287,5 +287,7 @@
    "Изменена": "Updated",
    "Начата": "Started",
    "«Начата», «Завершена» со временем и дата начала сохраняются, когда в ucode есть партия 14.": "“Started”, “Completed” with its time and the start date are kept once ucode has batch 14.",
-   "Всего": "Total"
+   "Всего": "Total",
+   "Сменить статус": "Change the status",
+   "Эту задачу проверяет {{name}}: чтобы передать её на проверку, выберите «{{status}}».": "{{name}} checks this task: to hand it over for checking, pick «{{status}}»."
 }

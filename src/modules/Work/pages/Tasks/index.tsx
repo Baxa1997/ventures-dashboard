@@ -1,8 +1,4 @@
-import {
-   statusAfterTick,
-   statusName,
-   targetNameOf,
-} from '@modules/Work/helpers';
+import { statusName, targetNameOf } from '@modules/Work/helpers';
 import { openNewTask, openTask, useTasks } from '@modules/Work/hooks';
 import { Button, Loading, PageBody, PageHeader } from '@shared/components';
 import { toast } from '@shared/helpers/toast';
@@ -96,8 +92,6 @@ const Tasks = () => {
       return counts;
    }, [files]);
 
-   const tick = (task: Task) =>
-      updateTask(task.id, { status: statusAfterTick(task, user.id) });
    const move = async (task: Task, status: TaskStatus) => {
       try {
          await updateTask(task.id, { status });
@@ -122,7 +116,7 @@ const Tasks = () => {
             files={fileCounts}
             targetName={targetName}
             tasks={shown}
-            onTick={tick}
+            onMove={move}
          />
       );
    };

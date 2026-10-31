@@ -27,12 +27,13 @@ import {
 } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
 import { formatNumericDate, personName } from '@shared/helpers';
-import { useCurrentUser, useRequest } from '@shared/hooks';
-import type { Task, TaskPriority } from '@shared/types/work.types';
+import { useCurrentUser } from '@shared/hooks';
+import type { Task, TaskPriority, TaskStatus } from '@shared/types/work.types';
 import clsx from 'clsx';
-import { Fragment, type MouseEvent } from 'react';
+import { Fragment, type MouseEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import StatusDialog from './StatusDialog';
 
 const PRIORITY_TONES: Record<TaskPriority, BadgeTone> = {
    high: 'danger',
@@ -44,22 +45,24 @@ interface TaskTableProps {
    tasks: Task[];
    targetName: (task: Task) => string;
    files: Map<string, number>; // attachments by task
-   onTick: (task: Task) => Promise<unknown>;
+   onMove: (task: Task, status: TaskStatus) => Promise<unknown>;
 }
 
-interface TaskRowProps extends Omit<TaskTableProps, 'tasks' | 'files'> {
+interface TaskRowProps {
    task: Task;
+   targetName: TaskTableProps['targetName'];
    fileCount: number;
+   onPick: () => void; // opens the window of statuses
 }
 
 // A row: the tick, the task with its checklist, files and comments, its
-// type, status, deal, who does it, priority and deadline. The row opens the
-// task's card; the title is the keyboard's way to it.
-const TaskRow = ({ task, targetName, fileCount, onTick }: TaskRowProps) => {
+// type, status, deal, who does it, priority and deadline. The tick and the
+// status open the window of statuses; the row opens the task's card, and the
+// title is the keyboard's way to it.
+const TaskRow = ({ task, targetName, fileCount, onPick }: TaskRowProps) => {
    const { t } = useTranslation('work');
    const user = useCurrentUser();
-   const { done, sent, note } = tickOf(task, user.id);
-   const ticking = useRequest({ success: t(note) });
+   const { done, sent } = tickOf(task, user.id);
    const overdue = !sent && isOverdue(task);
    const ticked = task.checklist.filter((item) => item.done).length;
    const comments = task.history.filter(({ kind }) => kind === 'comment');
@@ -75,10 +78,10 @@ const TaskRow = ({ task, targetName, fileCount, onTick }: TaskRowProps) => {
       <tr className='hover:bg-hover cursor-pointer' onClick={open}>
          <td className={clsx(TD, 'w-9')}>
             <TaskCheck
-               busy={ticking.pending}
+               action={t('Сменить статус')}
                done={done}
                title={task.title}
-               onToggle={() => ticking.run(() => onTick(task))}
+               onToggle={onPick}
             />
          </td>
          <td className={TD}>
@@ -121,7 +124,14 @@ const TaskRow = ({ task, targetName, fileCount, onTick }: TaskRowProps) => {
             </Badge>
          </td>
          <td className={clsx(TD, 'whitespace-nowrap')}>
-            <StatusBadge status={task.status} />
+            <button
+               type='button'
+               aria-label={`${t('Сменить статус')}: ${task.title}`}
+               className='flex rounded-full transition hover:brightness-95'
+               onClick={onPick}
+            >
+               <StatusBadge status={task.status} />
+            </button>
          </td>
          <td className={clsx(TD, 'whitespace-nowrap')}>
             {task.relation !== 'none' && target ? (
@@ -162,8 +172,9 @@ const COLUMNS = 8;
 /* «Список»: the tasks in a table by the groups of their statuses — «К
    выполнению», «В работе», «Завершено» — each under its name and count,
    the nearest deadline first within it. */
-const TaskTable = ({ tasks, targetName, files, onTick }: TaskTableProps) => {
+const TaskTable = ({ tasks, targetName, files, onMove }: TaskTableProps) => {
    const { t } = useTranslation('work');
+   const [picking, setPicking] = useState<Task | null>(null);
    const groups = TASK_GROUP_ORDER.map((group) => ({
       group,
       tasks: tasks.filter((task) => statusGroup(task.status) === group),
@@ -209,7 +220,7 @@ const TaskTable = ({ tasks, targetName, files, onTick }: TaskTableProps) => {
                            fileCount={files.get(task.id) ?? 0}
                            targetName={targetName}
                            task={task}
-                           onTick={onTick}
+                           onPick={() => setPicking(task)}
                         />
                      ))}
                   </Fragment>
@@ -222,6 +233,11 @@ const TaskTable = ({ tasks, targetName, files, onTick }: TaskTableProps) => {
             <span>{t('{{count}} задача', { count: tasks.length })}</span>
             <span>{t('Нажмите на задачу, чтобы открыть карточку')}</span>
          </div>
+         <StatusDialog
+            task={picking}
+            onClose={() => setPicking(null)}
+            onPick={onMove}
+         />
       </Card>
    );
 };

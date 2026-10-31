@@ -287,5 +287,7 @@
    "Изменена": "O‘zgartirilgan",
    "Начата": "Boshlangan",
    "«Начата», «Завершена» со временем и дата начала сохраняются, когда в ucode есть партия 14.": "«Boshlangan», vaqti bilan «Yakunlangan» va boshlanish sanasi ucode’da 14-to‘plam bo‘lganda saqlanadi.",
-   "Всего": "Jami"
+   "Всего": "Jami",
+   "Сменить статус": "Statusni o‘zgartirish",
+   "Эту задачу проверяет {{name}}: чтобы передать её на проверку, выберите «{{status}}».": "Bu vazifani {{name}} tekshiradi: uni tekshiruvga topshirish uchun «{{status}}» ni tanlang."
 }

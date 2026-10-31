@@ -17,6 +17,7 @@ import {
    type Row,
 } from '@shared/api/ucode';
 import { todayISO } from '@shared/helpers';
+import type { ItemOutcome } from '@shared/types/committee.types';
 import type {
    CheckItem,
    Deal,
@@ -309,6 +310,10 @@ const toDecision = (row: Row): Decision => ({
    verdict: verdictOf(str(row.outcome)),
    meetingId: str(row.meetings_id),
    meetingLabel: str(row.meeting_label),
+   ...(str(row.outcome) in OUTCOMES && { result: str(row.outcome) as ItemOutcome }),
+   date: row.date ? day(row.date) : '',
+   note: str(row.note),
+   conditions: str(row.conditions),
 });
 
 const INSTRUMENTS: Instrument[] = ['safe', 'convertible', 'equity'];
