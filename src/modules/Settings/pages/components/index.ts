@@ -4,6 +4,7 @@ export { default as Integrations } from './Integrations';
 export { default as Journal } from './Journal';
 export { default as ListSection } from './ListSection';
 export { default as Mandate } from './Mandate';
+export { default as Questionnaire } from './Questionnaire';
 export { default as Roles } from './Roles';
 export { default as SectionHeader } from './SectionHeader';
 export { default as SettingsNav } from './SettingsNav';

@@ -248,14 +248,20 @@ const TaskCard = ({
    };
 
    const changeDetails = (patch: Partial<DetailValues>) => {
-      // a date typed half-way is not saved
+      // a date typed half-way is not saved, nor a start after the deadline
       if (patch.dueDate && !DATE.test(patch.dueDate)) return;
+      if (patch.startDate && !DATE.test(patch.startDate)) return;
+      const next = { ...task, ...patch };
+      if (next.startDate && next.dueDate && next.startDate > next.dueDate) {
+         toast.error(t('Начало позже дедлайна'));
+         return;
+      }
       update(patch);
    };
 
    return (
-      <div className='grid min-h-0 flex-auto overflow-y-auto md:grid-cols-[minmax(0,1fr)_23.75rem]'>
-         <div className='grid min-w-0 content-start gap-6.5 px-5 pt-5 pb-7 md:px-7'>
+      <div className='grid min-h-0 flex-auto overflow-y-auto md:grid-cols-[minmax(0,1fr)_23.75rem] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden'>
+         <div className='grid min-w-0 content-start gap-6.5 px-5 pt-5 pb-7 md:overflow-y-auto md:px-7'>
             <textarea
                ref={titleRef}
                aria-label={t('Название задачи')}
@@ -501,7 +507,7 @@ const TaskCard = ({
             </section>
          </div>
 
-         <div className='bg-ground border-line grid content-start gap-3.5 border-t p-4 md:border-t-0 md:border-l'>
+         <div className='bg-ground border-line grid content-start gap-3.5 border-t p-4 md:overflow-y-auto md:border-t-0 md:border-l'>
             <div className='flex gap-2'>
                <StatusSelect
                   value={task.status}
@@ -523,6 +529,7 @@ const TaskCard = ({
                employees={employees}
                overdue={isOverdue(task)}
                targets={targets}
+               task={task}
                values={task}
                onChange={changeDetails}
             />

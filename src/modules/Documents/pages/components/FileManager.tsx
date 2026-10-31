@@ -1,6 +1,6 @@
 import { COMMITTEE_PATH } from '@modules/Committee/constants';
 import { DEALS_PATH } from '@modules/Deals/constants';
-import { isOpen } from '@modules/Deals/helpers';
+import { isOpen, isSharedFolder } from '@modules/Deals/helpers';
 import {
    DocumentForm,
    FolderForm,
@@ -40,7 +40,6 @@ import type { DocCategory } from '@shared/types/documents.types';
 import {
    Eye,
    FolderOpen,
-   FolderPlus,
    Gavel,
    Handshake,
    LayoutGrid,
@@ -72,12 +71,7 @@ interface FileManagerProps {
 
 // a data room's folder (null: a new one in parentId) or document being edited
 type Editing =
-   | {
-        kind: 'folder';
-        deal: Deal;
-        folder: DealFolder | null;
-        parentId: string;
-     }
+   | { kind: 'folder'; deal: Deal; folder: DealFolder }
    | { kind: 'document'; deal: Deal; document: DealDocument };
 
 // the deal's «Запросы и документы», its data room open at the folder
@@ -92,10 +86,11 @@ const openUrl = (url: string) => window.open(url, '_blank', 'noopener');
 /* «Файлы и документы», as the design draws them: one manager over the
    fund's documents, the deals' data rooms and the committee's materials.
    The path, the search (in the open folder and below it, or everywhere),
-   the list or tiles, the new folder and the upload are on one line. Files
-   go where the panel keeps them: into the open folder of a data room of a
-   deal in work, or onto a question of a meeting; the fund's own documents
-   are links, added with «Добавить документ» or «Новый приказ». */
+   the list or tiles and the upload are on one line. Files go where the
+   panel keeps them: into an open folder of a data room of a deal in work,
+   or onto a question of a meeting; the fund's own documents are links,
+   added with «Добавить документ» or «Новый приказ». A data room's folders
+   are those of Настройки. */
 const FileManager = ({
    data,
    path: asked,
@@ -140,7 +135,7 @@ const FileManager = ({
          ? data.committee.meetings.find(({ id }) => id === first)
          : undefined;
    const item = meeting?.agenda.find(({ id }) => id === second);
-   const writable = deal !== undefined && isOpen(deal);
+   const writable = deal !== undefined && isOpen(deal) && !!second;
    const canUpload = writable || item !== undefined;
    const category =
       area === 'fund' ? CATEGORIES.find((id) => id === first) : undefined;
@@ -277,14 +272,14 @@ const FileManager = ({
             return [
                open,
                toDeal(subject.deal, subject.folder.id),
-               ...(isOpen(subject.deal)
+               // a folder of Настройки is changed there
+               ...(isOpen(subject.deal) && !isSharedFolder(subject.folder.id)
                   ? [
                        edit(() =>
                           setEditing({
                              kind: 'folder',
                              deal: subject.deal,
                              folder: subject.folder,
-                             parentId: subject.folder.parentId,
                           }),
                        ),
                        remove,
@@ -417,29 +412,6 @@ const FileManager = ({
                value={view}
                onChange={onView}
             />
-            <Button
-               disabled={!writable}
-               title={
-                  writable
-                     ? undefined
-                     : deal
-                       ? t('Сделка закрыта: её дата рум только для чтения')
-                       : t('Папки создаются в дата руме сделки')
-               }
-               variant='ghost'
-               onClick={() =>
-                  deal &&
-                  setEditing({
-                     kind: 'folder',
-                     deal,
-                     folder: null,
-                     parentId: second,
-                  })
-               }
-            >
-               <FolderPlus aria-hidden />
-               {t('Папка')}
-            </Button>
             {area === 'fund' ? (
                <Button
                   onClick={() =>
@@ -460,10 +432,10 @@ const FileManager = ({
                   title={
                      canUpload
                         ? undefined
-                        : deal
+                        : deal && !isOpen(deal)
                           ? t('Сделка закрыта: её дата рум только для чтения')
                           : t(
-                               'Откройте дата рум сделки или вопрос заседания, чтобы загрузить файлы',
+                               'Откройте папку дата рума или вопрос заседания, чтобы загрузить файлы',
                             )
                   }
                   onClick={() => input.current?.click()}
@@ -575,19 +547,14 @@ const FileManager = ({
          <Modal
             open={editing?.kind === 'folder'}
             subtitle={editing?.deal.company}
-            title={
-               editing?.kind === 'folder' && !editing.folder
-                  ? td('Новая папка')
-                  : td('Папка')
-            }
+            title={td('Папка')}
             onClose={() => setEditing(null)}
          >
             {editing?.kind === 'folder' && (
                <FolderForm
-                  key={editing.folder?.id ?? 'new'}
+                  key={editing.folder.id}
                   deal={editing.deal}
                   folder={editing.folder}
-                  parentId={editing.parentId}
                   onClose={() => setEditing(null)}
                />
             )}

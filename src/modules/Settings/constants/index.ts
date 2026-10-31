@@ -8,9 +8,11 @@ import type {
    ItemTone,
    ListKind,
    MandateField,
+   QuestionKind,
    StaffRole,
    StatusGroup,
 } from '@shared/types/settings.types';
+import type { SupportedLanguageType } from '@shared/types/system/language.types';
 import type { Role } from '@shared/types/work.types';
 
 // Texts are keys of the "settings" translations.
@@ -24,6 +26,10 @@ export const SETTINGS_SECTION_IDS = [
    'sources',
    'countries',
    'reasons',
+   'criteria',
+   'questionnaire',
+   'dd-audits',
+   'doc-folders',
    'doc-templates',
    'metrics',
    'report-docs',
@@ -89,6 +95,26 @@ export const SETTINGS_GROUPS = [
             id: 'reasons',
             label: 'Причины отказа',
             meta: 'Отказ возможен только с причиной из списка.',
+         },
+         {
+            id: 'criteria',
+            label: 'Критерии скрининга',
+            meta: 'По чему фонд оценивает каждую сделку и какой вес у каждого критерия.',
+         },
+         {
+            id: 'questionnaire',
+            label: 'Анкета основателя',
+            meta: 'Вопросы анкеты: основатель заполняет её в кабинете, фонд видит и дополняет ответы на вкладке «Скрининг и оценка».',
+         },
+         {
+            id: 'dd-audits',
+            label: 'Направления DD',
+            meta: 'Какие проверки проходит каждая сделка: по карточке на вкладке «Due Diligence».',
+         },
+         {
+            id: 'doc-folders',
+            label: 'Папки документов',
+            meta: 'Папки дата рума сделок и портфеля и запросов основателю.',
          },
          {
             id: 'doc-templates',
@@ -194,6 +220,9 @@ export const LIST_SECTIONS = {
    metrics: 'metrics',
    'report-docs': 'reportDocs',
    'doc-templates': 'docTemplates',
+   'doc-folders': 'docFolders',
+   'dd-audits': 'ddAudits',
+   criteria: 'criteria',
 } as const satisfies Partial<Record<SettingsSection, ListKind>>;
 
 export const LISTS = {
@@ -287,6 +316,33 @@ export const LISTS = {
       flag: 'file',
       flagLabel: 'Файл',
    },
+   docFolders: {
+      title: 'Папки документов',
+      one: 'папка',
+      note: 'Папки дата рума: в них лежат файлы сделки, а запрос документа указывает, в какую папку придёт файл. Новая папка сразу появляется у всех сделок.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: market_research',
+      flag: null,
+      flagLabel: '',
+   },
+   criteria: {
+      title: 'Критерии скрининга',
+      one: 'критерий',
+      note: 'Одни для всех сделок. Итоговый балл — взвешенная сумма, поэтому веса в сумме должны давать 100%. Новый критерий сразу появляется у всех сделок; оценки по удалённому не показываются.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: esg',
+      flag: 'weight',
+      flagLabel: 'Вес, %',
+   },
+   ddAudits: {
+      title: 'Направления DD',
+      one: 'направление',
+      note: 'Карточки вкладки «Due Diligence»: у каждой сделки по одной на строку, а их заключения идут в готовность к ИК. Новая строка сразу появляется у всех сделок.',
+      keyLabel: 'Код',
+      keyHint: 'латиницей через подчёркивание: esg_audit',
+      flag: null,
+      flagLabel: '',
+   },
 } as const satisfies Record<
    ListKind,
    {
@@ -304,10 +360,149 @@ export const LISTS = {
          | 'group'
          | 'format'
          | 'file'
+         | 'weight'
          | null;
       flagLabel: string;
    }
 >;
+
+// The lists the design starts with, used until their tables have rows
+// (batch 16): the data room's folders and the DD's audits.
+export const BUILT_IN_LISTS: Partial<
+   Record<
+      ListKind,
+      {
+         key: string;
+         names: Record<SupportedLanguageType, string>;
+         hints?: Record<SupportedLanguageType, string>;
+         weight?: number;
+      }[]
+   >
+> = {
+   criteria: [
+      {
+         key: 'team',
+         names: { ru: 'Команда', uz: 'Jamoa', en: 'Team' },
+         hints: {
+            ru: 'Опыт основателей в отрасли, полнота команды',
+            uz: 'Asoschilarning sohadagi tajribasi, jamoaning to‘liqligi',
+            en: 'The founders’ experience in the industry, how complete the team is',
+         },
+         weight: 25,
+      },
+      {
+         key: 'market',
+         names: { ru: 'Рынок', uz: 'Bozor', en: 'Market' },
+         hints: {
+            ru: 'Размер и рост рынка в Центральной Азии',
+            uz: 'Markaziy Osiyoda bozor hajmi va o‘sishi',
+            en: 'The size and growth of the market in Central Asia',
+         },
+         weight: 15,
+      },
+      {
+         key: 'product',
+         names: { ru: 'Продукт', uz: 'Mahsulot', en: 'Product' },
+         hints: {
+            ru: 'Готовность, технологичность, защищённость',
+            uz: 'Tayyorlik, texnologik daraja, himoyalanganlik',
+            en: 'Readiness, technology, defensibility',
+         },
+         weight: 15,
+      },
+      {
+         key: 'traction',
+         names: { ru: 'Трекшн', uz: 'Trekshn', en: 'Traction' },
+         hints: {
+            ru: 'Выручка, клиенты, динамика',
+            uz: 'Tushum, mijozlar, dinamika',
+            en: 'Revenue, customers, momentum',
+         },
+         weight: 15,
+      },
+      {
+         key: 'model',
+         names: { ru: 'Бизнес-модель', uz: 'Biznes-model', en: 'Business model' },
+         hints: {
+            ru: 'Юнит-экономика и путь к прибыльности',
+            uz: 'Birlik iqtisodiyoti va foydaga chiqish yo‘li',
+            en: 'Unit economics and the path to profit',
+         },
+         weight: 10,
+      },
+      {
+         key: 'synergy',
+         names: { ru: 'Синергия с SQB', uz: 'SQB bilan sinergiya', en: 'Synergy with SQB' },
+         hints: {
+            ru: 'Пилот или интеграция с банком и его клиентами',
+            uz: 'Bank va uning mijozlari bilan pilot yoki integratsiya',
+            en: 'A pilot or integration with the bank and its customers',
+         },
+         weight: 20,
+      },
+   ],
+   docFolders: [
+      {
+         key: 'corporate',
+         names: { ru: 'Корпоративные', uz: 'Korporativ', en: 'Corporate' },
+      },
+      {
+         key: 'financial',
+         names: { ru: 'Финансовые', uz: 'Moliyaviy', en: 'Financial' },
+      },
+      {
+         key: 'legal',
+         names: { ru: 'Юридические', uz: 'Yuridik', en: 'Legal' },
+      },
+      {
+         key: 'product',
+         names: {
+            ru: 'Продукт и технологии',
+            uz: 'Mahsulot va texnologiyalar',
+            en: 'Product and technology',
+         },
+      },
+      { key: 'team', names: { ru: 'Команда', uz: 'Jamoa', en: 'Team' } },
+      {
+         key: 'market',
+         names: {
+            ru: 'Рынок и трекшн',
+            uz: 'Bozor va trekshn',
+            en: 'Market and traction',
+         },
+      },
+      {
+         key: 'investment',
+         names: {
+            ru: 'Инвестиционные документы',
+            uz: 'Investitsiya hujjatlari',
+            en: 'Investment documents',
+         },
+      },
+   ],
+   ddAudits: [
+      {
+         key: 'legal',
+         names: {
+            ru: 'Юридический аудит',
+            uz: 'Yuridik audit',
+            en: 'Legal audit',
+         },
+      },
+      {
+         key: 'finance',
+         names: {
+            ru: 'Финансовый аудит',
+            uz: 'Moliyaviy audit',
+            en: 'Financial audit',
+         },
+      },
+      {
+         key: 'it',
+         names: { ru: 'IT-аудит', uz: 'IT-audit', en: 'IT audit' },
+      },
+   ],
+};
 
 // A tone's colour, for the colour picker of a status that has no colour of
 // its own (the brand's: sky for the accent).
@@ -318,6 +513,14 @@ export const TONE_HEX = {
    warning: '#c98a12',
    danger: '#d64545',
 } as const satisfies Record<ItemTone, string>;
+
+export const QUESTION_KIND_LABELS = {
+   text: 'Строка',
+   area: 'Текст',
+   number: 'Число',
+   select: 'Выбор из списка',
+   yesno: 'Да или нет',
+} as const satisfies Record<QuestionKind, string>;
 
 export const METRIC_FORMAT_LABELS = {
    usd: 'Доллары',

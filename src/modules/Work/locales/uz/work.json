@@ -278,5 +278,14 @@
    "ещё {{count}}_few": "yana {{count}}",
    "ещё {{count}}_many": "yana {{count}}",
    "ещё {{count}}_other": "yana {{count}}",
-   "Исполнители": "Ijrochilar"
+   "Исполнители": "Ijrochilar",
+   "Начало позже дедлайна": "Boshlanish muddatdan keyin",
+   "К выполнению": "Bajarilishi kerak",
+   "Завершено": "Yakunlangan",
+   "Дата начала": "Boshlanish sanasi",
+   "Дата начала сохранится, когда в ucode будет партия 14": "Boshlanish sanasi ucode’da 14-to‘plam paydo bo‘lganda saqlanadi",
+   "Изменена": "O‘zgartirilgan",
+   "Начата": "Boshlangan",
+   "«Начата», «Завершена» со временем и дата начала сохраняются, когда в ucode есть партия 14.": "«Boshlangan», vaqti bilan «Yakunlangan» va boshlanish sanasi ucode’da 14-to‘plam bo‘lganda saqlanadi.",
+   "Всего": "Jami"
 }

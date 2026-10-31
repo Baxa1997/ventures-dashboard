@@ -83,7 +83,7 @@ export type StaffInput = Omit<StaffMember, 'id' | 'addedAt'>;
 export type IndustryMandate = 'focus' | 'allowed' | 'licensed' | 'excluded';
 
 // The reference lists the fund keeps in Настройки, one ucode table each
-// (docs/ucode-migration.md, batches 1, 7, 8 and 9).
+// (docs/ucode-migration.md, batches 1, 7, 8, 9, 16 and 17).
 export type ListKind =
    | 'industries'
    | 'rounds'
@@ -94,7 +94,10 @@ export type ListKind =
    | 'taskStatuses'
    | 'metrics'
    | 'reportDocs'
-   | 'docTemplates';
+   | 'docTemplates'
+   | 'docFolders'
+   | 'ddAudits'
+   | 'criteria';
 
 // ucode's groups of a status: a task status behaves as its group does.
 export type StatusGroup = 'todo' | 'progress' | 'complete';
@@ -126,9 +129,29 @@ export interface ListItem {
    color?: string; // task statuses: a colour of its own, #rrggbb; '' — the tone's
    format?: MetricFormat; // portfolio metrics
    file?: ItemFile | null; // report documents, document templates: the file to fill in
+   hints?: Record<SupportedLanguageType, string>; // criteria: what it covers
+   weight?: number; // criteria: its share of the score, %
 }
 
 export type ListItemInput = Omit<ListItem, 'id' | 'sortOrder'>;
+
+/* The founder's questionnaire (fund_settings.questionnaire, batch 17): one for
+   all deals, read by the panel and the startup cabinet, which keeps a choice
+   by its Russian wording. A field's id keys its answers, so it never changes. */
+export type QuestionKind = 'text' | 'area' | 'number' | 'select' | 'yesno';
+
+export interface QuestionField {
+   id: string;
+   label: Record<SupportedLanguageType, string>;
+   kind: QuestionKind;
+   options?: Record<SupportedLanguageType, string>[]; // kind 'select'
+}
+
+export interface QuestionSection {
+   id: string;
+   title: Record<SupportedLanguageType, string>;
+   fields: QuestionField[];
+}
 
 export interface SettingsState {
    mandate: Record<MandateField, string>;
@@ -138,4 +161,6 @@ export interface SettingsState {
    journal: SettingsChange[];
    staff: StaffMember[]; // the ones with access first, then the closed
    lists: Record<ListKind, ListItem[]>; // in their order, the turned-off ones too
+   questionnaire: QuestionSection[];
+   questionnaireStored: boolean; // ucode has batch 17's field to keep it in
 }

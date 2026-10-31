@@ -14,11 +14,15 @@ import type {
    CheckItem,
    Criterion,
    Deal,
+   DealDocument,
+   DealFolder,
    Fact,
    JournalEntry,
    PathStep,
    TeamMember,
+   Screening,
    Tone,
+   Workstream,
 } from '@shared/types/deals.types';
 import dayjs from 'dayjs';
 import type { DealStage, Task } from '@shared/types/work.types';
@@ -30,16 +34,17 @@ import {
    stageName,
    stagesOf,
    listName,
+   listOf,
    nameOf,
    parseCheck,
    parseNorm,
+   questionnaireOf,
 } from '@modules/Settings/services';
 import {
    APPLICATION_PHRASES,
    CLOSED_STATUSES,
    CONDITION_ORIGIN,
    CONDITION_STAGES,
-   CRITERIA,
    MANDATE,
    STAGE_HOW,
    STAGE_NEXT_LABELS,
@@ -85,15 +90,80 @@ export const columnTone = (column: string): BadgeTone => {
 };
 
 // The screening's score, 1 to 5: the mean of the criteria scored so far.
-export const scoreOf = ({ screening }: Deal) => {
-   const scored = (screening?.criteria ?? []).filter(
-      ({ score }) => score !== null,
+export const emptyScreening = (): Screening => ({
+   criteria: [],
+   decision: '',
+   secondId: '',
+   savedAt: '',
+   note: { essence: '', whyNow: '', redFlags: '', questions: '' },
+   completedAt: null,
+});
+
+/* The criteria of Настройки, the same for every deal, each with what this deal
+   has on it. */
+export const scoreRows = ({ screening }: Deal) =>
+   listOf('criteria').map((item) => ({
+      item,
+      criterion: screening?.criteria.find(({ key }) => key === item.key) ?? {
+         key: item.key,
+         score: null,
+         rationale: '',
+         source: '',
+      },
+   }));
+
+/* The score, as the design counts it: the sum weighted by the criteria's
+   shares, over those that have a score (all of them equal if none has a
+   weight); null for none. */
+export const weightedScore = (rows: ReturnType<typeof scoreRows>) => {
+   if (!rows.length) return null;
+   const weights = rows.reduce((sum, { item }) => sum + (item.weight ?? 0), 0);
+   return (
+      rows.reduce(
+         (sum, { item, criterion }) =>
+            sum + (criterion.score ?? 0) * (weights ? (item.weight ?? 0) : 1),
+         0,
+      ) / (weights || rows.length)
    );
-   return scored.length
-      ? scored.reduce((sum, { score }) => sum + (score ?? 0), 0) /
-           scored.length
-      : null;
 };
+
+export const scoreOf = (deal: Deal) =>
+   weightedScore(
+      scoreRows(deal).filter(({ criterion }) => criterion.score !== null),
+   );
+
+// A section counts as answered with every question answered.
+export const answeredSections = (deal: Deal) =>
+   sectionsAnswered(deal.questionnaire?.values ?? {});
+
+const sectionsAnswered = (values: Record<string, string>) =>
+   questionnaireOf().filter(({ fields }) =>
+      fields.every(({ id }) => (values[id] ?? '').trim()),
+   ).length;
+
+/* The questionnaire's row as the startup cabinet stores it, each answer with
+   its question's Russian wording; the choice «yes» or «no» also as a word. */
+export const answersRow = (values: Record<string, string>) => ({
+   answers: JSON.stringify({
+      sections: questionnaireOf().map(({ id, title, fields }) => ({
+         id,
+         title: title.ru,
+         items: fields.map((field) => {
+            const value = values[field.id] ?? '';
+            return {
+               id: field.id,
+               question: field.label.ru,
+               answer:
+                  field.kind === 'yesno'
+                     ? ({ yes: 'Да', no: 'Нет' }[value] ?? '')
+                     : value,
+               value,
+            };
+         }),
+      })),
+   }),
+   sections_done: sectionsAnswered(values),
+});
 
 // Green from 4, amber from 3.2, red below, as the design colours the score.
 export const scoreClass = (score: number) => {
@@ -668,17 +738,18 @@ export const exitConditions = (
    if (CONDITION_STAGES[deal.stage])
       return [...conditionsCondition(t, deal, tasks), ...own];
    if (deal.stage !== 'screening' || deal.exit) return own;
-   const scored = (deal.screening?.criteria ?? []).filter(isScored).length;
+   const rows = scoreRows(deal);
+   const scored = rows.filter(({ criterion }) => isScored(criterion)).length;
    const secondId = deal.screening?.secondId ?? '';
    return [
       {
          id: 'score',
-         text: t('Оценить стартап по 7 критериям'),
+         text: t('Оценить стартап по критериям'),
          note: t('заполнено {{done}} из {{total}}', {
             done: scored,
-            total: CRITERIA.length,
+            total: rows.length,
          }),
-         state: scored === CRITERIA.length ? 'done' : 'blocking',
+         state: scored === rows.length ? 'done' : 'blocking',
       },
       {
          id: 'second',
@@ -797,16 +868,92 @@ export const nextStepOf = (
    }
 };
 
-// What the counters next to the card's tabs show.
+const UNTOUCHED_AUDIT = 'audit:';
+
+export const isUntouchedAudit = ({ id }: Workstream) =>
+   id.startsWith(UNTOUCHED_AUDIT);
+
+/* A deal's DD, as the design has it: a card per audit of Настройки, on every
+   deal from its start. An audit has a row once something is written on it
+   (deals.openAudit), and a row from before the audits are kept by name counts
+   as its audit. Any other workstream the deal has follows as a card of its
+   own. */
+export const ddStreams = (deal: Deal): Workstream[] => {
+   const rows = deal.workstreams ?? [];
+   const taken = new Set<string>();
+   const audits = listOf('ddAudits').map((audit): Workstream => {
+      const names = Object.values(audit.names).map((name) =>
+         name.trim().toLowerCase(),
+      );
+      const row = rows.find(
+         (item) =>
+            !taken.has(item.id) &&
+            (item.auditKey === audit.key ||
+               (!item.auditKey &&
+                  names.includes(item.name.trim().toLowerCase()))),
+      );
+      if (row) taken.add(row.id);
+      return {
+         id: `${UNTOUCHED_AUDIT}${audit.key}`,
+         executor: '',
+         handedAt: '',
+         dueDate: '',
+         status: 'not_started',
+         conclusion: '',
+         verdict: '',
+         concludedAt: '',
+         ...row,
+         name: nameOf(audit),
+         auditKey: audit.key,
+      };
+   });
+   return [...audits, ...rows.filter(({ id }) => !taken.has(id))];
+};
+
+/* A data room's folders, as the design lists them: those of Настройки, then a
+   deal's own folders from before them. A folder turned off in Настройки stays
+   on the deal that has files in it. */
+export const roomFolders = (deal: Deal): DealFolder[] => [
+   ...listOf('docFolders', true)
+      .filter(
+         ({ active, key }) =>
+            active || deal.documents?.some((item) => item.folderId === key),
+      )
+      .map((item, index) => ({
+         id: item.key,
+         name: nameOf(item),
+         parentId: '',
+         sortOrder: index,
+         createdById: '',
+      })),
+   ...(deal.folders ?? []),
+];
+
+// Whether it is a folder of Настройки, not a deal's own.
+export const isSharedFolder = (folderId: string) =>
+   !!itemOf('docFolders', folderId);
+
+/* The folder a document lies in: its own, or the one its request named (the
+   cabinet's files come tied to a request); '' for none. */
+export const placeOf = (deal: Deal, document: DealDocument) => {
+   const known = new Set(roomFolders(deal).map(({ id }) => id));
+   if (known.has(document.folderId)) return document.folderId;
+   const asked = deal.requests?.find(
+      ({ id }) => id === document.requestId,
+   )?.folder;
+   return asked && known.has(asked) ? asked : '';
+};
+
+// The tabs' counts, as the design shows them: the requests not yet
+// closed, and the DD workstreams done out of all of them (1/3).
 export const tabCounts = (deal: Deal) => {
-   const openStreams = (deal.workstreams ?? []).filter(
-      ({ status }) => status !== 'done',
-   ).length;
+   const streams = ddStreams(deal);
+   const done = streams.filter(({ status }) => status === 'done').length;
    return {
-      requests: deal.totals?.requests ?? deal.requests?.length ?? 0,
-      // what is still open in DD: its workstreams, then the risks they left
-      dd: openStreams || (deal.risks?.length ?? 0),
-      decisions: deal.decisions?.length ?? 0,
+      requests:
+         (deal.requests ?? []).filter(({ status }) => status !== 'accepted')
+            .length || undefined,
+      dd: streams.length ? `${done}/${streams.length}` : undefined,
    };
 };
 
@@ -1076,7 +1223,7 @@ export const readinessOf = (t: T, deal: Deal): CheckItem[] => {
             : t('внесите инструмент и размер раунда'),
          state: ready ? 'done' : 'open',
       });
-      for (const stream of deal.workstreams ?? [])
+      for (const stream of ddStreams(deal))
          items.push({
             id: `stream-${stream.id}`,
             text: t('{{name}} — вывод', { name: stream.name }),
@@ -1087,9 +1234,11 @@ export const readinessOf = (t: T, deal: Deal): CheckItem[] => {
                     ? t('не передано исполнителю')
                     : stream.status === 'rework'
                       ? t('на доработке')
-                      : t('у исполнителя до {{date}}', {
-                           date: formatDate(stream.dueDate),
-                        }),
+                      : stream.dueDate
+                        ? t('у исполнителя до {{date}}', {
+                             date: formatDate(stream.dueDate),
+                          })
+                        : t('у исполнителя'),
             state: WORKSTREAM_STATES[stream.status],
          });
    }

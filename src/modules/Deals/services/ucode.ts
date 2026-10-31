@@ -22,6 +22,7 @@ import type {
    Deal,
    DealDocument,
    DealFolder,
+   DealQuestionnaire,
    DealRequest,
    DealsSummary,
    DealStatus,
@@ -30,7 +31,6 @@ import type {
    Fact,
    JournalEntry,
    Memo,
-   QuestionnaireAnswers,
    RejectReason,
    Risk,
    Screening,
@@ -38,11 +38,10 @@ import type {
    TeamMember,
    Workstream,
 } from '@shared/types/deals.types';
-import type { Instrument } from '@shared/types/portfolio.types';
+import type { CabinetMember, Instrument } from '@shared/types/portfolio.types';
 import type { DealStage } from '@shared/types/work.types';
 import dayjs from 'dayjs';
-import { CRITERIA } from '../constants';
-import { stageKeys } from '../helpers';
+import { answersRow, stageKeys } from '../helpers';
 
 /* Сделки in ucode (docs/ucode-migration.md, batch 2): each deal row with its
    children read into the panel's Deal, and what a change touched written back.
@@ -176,7 +175,12 @@ const checklist = (rows: Row[], list: string) =>
       .sort((a, b) => num(a.sort_order) - num(b.sort_order))
       .map(toCheck);
 
+// Whether ucode has batch 16's fields: a row lists every field of its table.
+let roomFields = true;
+export const hasRoomFields = () => roomFields;
+
 const toDocument = (row: Row): DealDocument => {
+   roomFields = 'doc_folder' in row;
    const status = (str(row.status) || 'review') as DealDocument['status'];
    // a file the fund uploaded itself is accepted as it is stored
    const byFund = row.uploaded_by === 'fund';
@@ -187,7 +191,8 @@ const toDocument = (row: Row): DealDocument => {
       version: num(row.version),
       url: fileUrl(str(row.file)),
       fileId: str(row.file_id),
-      folderId: str(row.deal_folders_id),
+      folderId: str(row.deal_folders_id) || str(row.doc_folder),
+      size: num(row.file_size),
       requestId: str(row.deal_requests_id),
       uploadedBy: row.uploaded_by === 'applicant' || byFund ? (row.uploaded_by as 'applicant' | 'fund') : '',
       uploadedById: str(row.uploaded_by_id),
@@ -212,20 +217,31 @@ const toFolder = (row: Row): DealFolder => ({
    createdById: str(row.created_by_id),
 });
 
-// The cabinet's questionnaire of a request: the latest row, its sections as stored.
-const toQuestionnaire = (rows: Row[]): QuestionnaireAnswers | undefined => {
+/* The deal's questionnaire: its newest row, whichever of the fund and the
+   cabinet wrote it. A value comes from the stored answers by question. */
+const toQuestionnaire = (rows: Row[]): DealQuestionnaire | undefined => {
    const row = [...rows].sort((a, b) => str(b.created_at).localeCompare(str(a.created_at)))[0];
    if (!row) return undefined;
-   const stored = fromJson<{ sections?: QuestionnaireAnswers['sections'] }>(row.answers, {});
-   return { sections: stored.sections ?? [], submittedAt: moment(row.submitted_at) };
+   const stored = fromJson<{
+      sections?: { items?: { id: string; value?: string; answer?: string }[] }[];
+   }>(row.answers, {});
+   return {
+      id: row.guid,
+      values: Object.fromEntries(
+         (stored.sections ?? [])
+            .flatMap(({ items }) => items ?? [])
+            .map(({ id, value, answer }) => [id, value ?? answer ?? '']),
+      ),
+      requestId: str(row.deal_requests_id),
+      updatedAt: moment(row.updated_at || row.created_at),
+      updatedById: str(row.updated_by_id),
+      submittedAt: moment(row.submitted_at),
+   };
 };
 
 const REQUEST_STATUSES: DealRequest['status'][] = ['waiting', 'answered', 'accepted'];
 
-const toRequest = (row: Row, questionnaires: Row[]): DealRequest => {
-   const questionnaire = toQuestionnaire(
-      questionnaires.filter((item) => item.deal_requests_id === row.guid),
-   );
+const toRequest = (row: Row): DealRequest => {
    return {
       id: row.guid,
       title: str(row.title),
@@ -233,12 +249,12 @@ const toRequest = (row: Row, questionnaires: Row[]): DealRequest => {
       byId: str(row.sent_by_id),
       sentAt: day(row.sent_at),
       dueDate: day(row.due_date),
+      folder: str(row.doc_folder),
       status: REQUEST_STATUSES.find((status) => status === row.status) ?? 'waiting',
       closedAt: day(row.closed_at),
       detail: str(row.answer),
       warning: str(row.warning),
       ddQuestionnaire: Boolean(row.is_dd_questionnaire),
-      ...(questionnaire && { questionnaire }),
    };
 };
 
@@ -253,15 +269,25 @@ const toRisk = (row: Row): Risk => ({
    ...(optional(row.measure) !== undefined && { measure: str(row.measure) }),
 });
 
-const toWorkstream = (row: Row): Workstream => ({
-   id: row.guid,
-   name: str(row.name),
-   executor: str(row.executor),
-   handedAt: day(row.handed_at),
-   dueDate: day(row.due_date),
-   status: (str(row.status) || 'not_started') as Workstream['status'],
-   conclusion: str(row.conclusion),
-});
+// Whether ucode has batch 15's fields: a row lists every field of its table.
+let verdictFields = true;
+export const hasVerdictFields = () => verdictFields;
+
+const toWorkstream = (row: Row): Workstream => {
+   verdictFields = 'verdict' in row;
+   return {
+      id: row.guid,
+      name: str(row.name),
+      auditKey: str(row.audit_type),
+      executor: str(row.executor),
+      handedAt: day(row.handed_at),
+      dueDate: day(row.due_date),
+      status: (str(row.status) || 'not_started') as Workstream['status'],
+      conclusion: str(row.conclusion),
+      verdict: (str(row.verdict) || '') as Workstream['verdict'],
+      concludedAt: day(row.concluded_at),
+   };
+};
 
 // A decision of the register (written by Инвесткомитет) as the deal's card shows it.
 const DECISION_BODY: Record<string, string> = { ic1: 'ИК-1', ic2: 'ИК-2', board: 'Набсовет' };
@@ -360,6 +386,17 @@ const toMemo = (rows: Row[], checks: Row[]): Memo | undefined => {
    };
 };
 
+// The criteria before Настройки had a list: their scores count on the design's.
+const OLD_CRITERIA: Record<string, string> = {
+   demand: 'traction',
+   economics: 'model',
+   mandate: 'synergy',
+};
+const criterionKey = (row: Row) => {
+   const key = str(row.criterion);
+   return OLD_CRITERIA[key] ?? key;
+};
+
 const toScreening = (row: Row, scores: Row[]): Screening | undefined => {
    const touched =
       scores.length ||
@@ -369,16 +406,13 @@ const toScreening = (row: Row, scores: Row[]): Screening | undefined => {
       row.second_reviewer_id;
    if (!touched) return undefined;
    return {
-      criteria: CRITERIA.map(({ key }) => {
-         const score = scores.find((item) => item.criterion === key);
-         return {
-            key,
-            score: score && optional(score.score) !== undefined ? num(score.score) : null,
-            rationale: str(score?.rationale),
-            source: str(score?.source),
-         };
-      }),
-      decision: (str(row.screening_decision) || 'meeting') as Screening['decision'],
+      criteria: scores.map((score) => ({
+         key: criterionKey(score),
+         score: optional(score.score) !== undefined ? num(score.score) : null,
+         rationale: str(score.rationale),
+         source: str(score.source),
+      })),
+      decision: str(row.screening_decision) as Screening['decision'],
       secondId: str(row.second_reviewer_id),
       savedAt: '',
       note: {
@@ -436,11 +470,27 @@ const oldCountry = (text: string) =>
       Object.values(item.names).some((name) => name.toLowerCase() === text.trim().toLowerCase()),
    )?.key ?? text;
 
+// Whether ucode has batch 17's fields: a row lists every field of its table.
+let companyFields = true;
+export const hasCompanyFields = () => companyFields;
+
+const toMember = (row: Row): CabinetMember => ({
+   id: row.guid,
+   applicationId: str(row.applications_id),
+   email: str(row.email),
+   name: str(row.full_name),
+   role: (['ceo', 'cfo', 'cto'] as const).find((role) => role === row.role) ?? 'other',
+   active: row.is_active !== false,
+});
+
 const toDeal = (
    row: Row,
    children: Children,
    meetings: Map<string, Row>,
+   members: Row[],
 ): Deal => {
+   companyFields = 'legal_name' in row;
+   const questionnaire = toQuestionnaire(children.questionnaires);
    const today = todayISO();
    const status = (str(row.status) || 'review') as DealStatus;
    const norm = optional(row.stage_norm_days) === undefined ? null : num(row.stage_norm_days);
@@ -470,6 +520,12 @@ const toDeal = (
       number: str(row.number),
       company: str(row.company),
       about: str(row.about),
+      legalName: str(row.legal_name),
+      tin: str(row.tin),
+      foundedYear: optional(row.founded_year) === undefined ? null : num(row.founded_year),
+      employees: optional(row.employees_count) === undefined ? null : num(row.employees_count),
+      website: str(row.website),
+      owners: fromJson<Deal['owners']>(row.owners, []),
       industryKey: listKeyOf('industries', row.industries_id) ?? '',
       industry: str(row.niche),
       tags: str(row.tags),
@@ -519,7 +575,7 @@ const toDeal = (
       ...(children.requests.length > 0 && {
          requests: children.requests
             .sort((a, b) => day(a.sent_at).localeCompare(day(b.sent_at)))
-            .map((request) => toRequest(request, children.questionnaires)),
+            .map(toRequest),
       }),
       ...(children.documents.length > 0 && { documents: children.documents.map(toDocument) }),
       ...(children.folders.length > 0 && {
@@ -529,6 +585,9 @@ const toDeal = (
       }),
       ...(row.applicant_email ? { applicantEmail: str(row.applicant_email) } : {}),
       ...(row.applicant_name ? { applicantName: str(row.applicant_name) } : {}),
+      ...(row.applicant_phone ? { applicantPhone: str(row.applicant_phone) } : {}),
+      ...(members.length > 0 && { cabinet: members.map(toMember) }),
+      ...(questionnaire && { questionnaire }),
       ...(row.applications_id ? { applicationId: str(row.applications_id) } : {}),
       ...((num(row.paused_days) > 0 || Boolean(row.paused_since)) && {
          clock: { pausedDays: num(row.paused_days), pausedSince: day(row.paused_since) },
@@ -568,6 +627,7 @@ export const loadDeals = async (): Promise<Deal[]> => {
       applications,
       meetings,
       questionnaires,
+      members,
    ] = await Promise.all([
       ...[
          'deals',
@@ -589,6 +649,11 @@ export const loadDeals = async (): Promise<Deal[]> => {
       // the startup cabinet's table (batch 10): a project without it reads none
       listRows('deal_questionnaires').catch((error: unknown) => {
          console.warn('deal_questionnaires could not be read', error);
+         return [];
+      }),
+      // the cabinet's people (batch 11), the same
+      listRows('cabinet_members').catch((error: unknown) => {
+         console.warn('cabinet_members could not be read', error);
          return [];
       }),
    ]);
@@ -625,13 +690,21 @@ export const loadDeals = async (): Promise<Deal[]> => {
                : null,
             enteredAt: day(row.stage_entered_at),
             norm: optional(row.stage_norm_days) === undefined ? null : num(row.stage_norm_days),
-            scores: new Map(children.scores.map((item) => [str(item.criterion), item.guid])),
+            scores: new Map(children.scores.map((item) => [criterionKey(item), item.guid])),
             memos: new Map(children.memos.map((item) => [num(item.version), item.guid])),
             openStage: open
                ? { guid: open.guid, norm: optional(open.norm_days) === undefined ? null : num(open.norm_days) }
                : null,
          });
-         return toDeal(row, children, meetingRows);
+         return toDeal(
+            row,
+            children,
+            meetingRows,
+            members.filter(
+               (member) =>
+                  !!row.applications_id && member.applications_id === row.applications_id,
+            ),
+         );
       })
       .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 };
@@ -646,6 +719,13 @@ const dealFields = (deal: Deal): Record<string, unknown> => ({
    number: deal.number,
    company: deal.company,
    about: deal.about,
+   legal_name: deal.legalName,
+   tin: deal.tin,
+   founded_year: deal.foundedYear,
+   employees_count: deal.employees,
+   website: deal.website,
+   owners: deal.owners.length ? toJson(deal.owners) : null,
+   applicant_phone: deal.applicantPhone ?? '',
    industries_id: listIdOf('industries', deal.industryKey),
    niche: deal.industry,
    tags: deal.tags,
@@ -860,7 +940,25 @@ export const saveDeal = async (before: Deal, after: Deal) => {
       );
    }
 
+   // the questionnaire: one row, which the cabinet reads and writes too
+   const asked = after.questionnaire;
+   if (asked && !same(before.questionnaire, asked)) {
+      const row = { ...answersRow(asked.values), updated_by_id: asked.updatedById };
+      writes.push(
+         before.questionnaire?.id === asked.id
+            ? updateRow('deal_questionnaires', { guid: asked.id, ...row })
+            : createRow('deal_questionnaires', {
+                 guid: asked.id,
+                 ...row,
+                 submitted_at: null,
+                 deals_id: after.id,
+                 deal_requests_id: asked.requestId || null,
+              }),
+      );
+   }
+
    // the deal's lists
+   const ownFolders = new Set((after.folders ?? []).map(({ id }) => id));
    writes.push(
       ...syncItems('deal_requests', before.requests, after.requests, (item: DealRequest) => ({
          title: item.title,
@@ -868,6 +966,7 @@ export const saveDeal = async (before: Deal, after: Deal) => {
          sent_by_id: item.byId,
          sent_at: item.sentAt || null,
          due_date: item.dueDate || null,
+         doc_folder: item.folder,
          status: item.status,
          closed_at: item.closedAt || null,
          answer: item.detail,
@@ -884,7 +983,10 @@ export const saveDeal = async (before: Deal, after: Deal) => {
          reason: item.handled?.reason ?? '',
          file: item.url,
          file_id: item.fileId,
-         deal_folders_id: item.folderId || null,
+         file_size: item.size || null,
+         // a deal's own folder is a relation; a folder of Настройки, its key
+         deal_folders_id: ownFolders.has(item.folderId) ? item.folderId : null,
+         doc_folder: ownFolders.has(item.folderId) ? '' : item.folderId,
          deal_requests_id: item.requestId || null,
          ...(item.uploadedBy && { uploaded_by: item.uploadedBy }),
          ...(item.uploadedAt && { uploaded_at: dayjs(item.uploadedAt).toISOString() }),
@@ -914,11 +1016,14 @@ export const saveDeal = async (before: Deal, after: Deal) => {
       })),
       ...syncItems('workstreams', before.workstreams, after.workstreams, (item: Workstream) => ({
          name: item.name,
+         audit_type: item.auditKey,
          executor: item.executor,
          handed_at: item.handedAt || null,
          due_date: item.dueDate || null,
          status: item.status,
          conclusion: item.conclusion,
+         verdict: item.verdict || null,
+         concluded_at: item.concludedAt || null,
          deals_id: after.id,
       })),
       ...syncItems('deal_checklists', before.exit, after.exit, checkRow(after, 'exit')),

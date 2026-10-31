@@ -35,7 +35,7 @@ For the full, detailed test see [test-cycle.md](test-cycle.md).
 ## 4. Screening
 
 1. Open the tab **«Скрининг и оценка»**.
-2. For each of the 7 criteria, click a score (1–5) and write any reason under it.
+2. For each criterion, click a score (1–5) and write any comment under it.
 3. **«Второй оценщик»** → choose `Bahrom`.
 4. Click **«Завершить скрининг»** (top right).
 

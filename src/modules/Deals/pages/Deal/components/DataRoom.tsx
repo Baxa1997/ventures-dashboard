@@ -3,34 +3,63 @@ import {
    DOCUMENT_STATUS_TONES,
    TEXT_MAX,
 } from '@modules/Deals/constants';
-import { formatStamp, isOpen, personName } from '@modules/Deals/helpers';
-import deals from '@modules/Deals/services';
 import {
+   formatStamp,
+   isOpen,
+   isSharedFolder,
+   personName,
+   placeOf,
+   roomFolders,
+} from '@modules/Deals/helpers';
+import deals from '@modules/Deals/services';
+import { hasRoomFields } from '@modules/Deals/services/ucode';
+import {
+   ActionMenu,
    Badge,
    Button,
    Card,
    ConfirmDialog,
    Field,
    ItemActions,
+   type MenuAction,
    Modal,
    MODAL_FORM,
    ModalBody,
    ModalFooter,
    NoData,
-   Spinner,
+   Table,
+   TD,
+   TH,
 } from '@shared/components';
+import { formatNumber } from '@shared/helpers';
 import { useAction, useCurrentUser, useRequest } from '@shared/hooks';
 import type { Deal, DealDocument, DealFolder } from '@shared/types/deals.types';
-import { ChevronRight, FileText, Folder, Upload } from 'lucide-react';
+import clsx from 'clsx';
+import {
+   ClipboardCheck,
+   Eye,
+   FileText,
+   Pencil,
+   Send,
+   Trash2,
+   Upload,
+} from 'lucide-react';
 import { type DragEvent, type FormEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface DataRoomProps {
    deal: Deal;
-   folderId: string; // the open folder, '' for the top of the data room
+   folderId: string; // the open folder; '' opens the first
    onFolder: (folderId: string) => void;
-   onRequest: (title: string) => void; // asks the applicant for a document
+   // asks the applicant for a document; not given — not asked from here
+   onRequest?: (title: string) => void;
+   // whether it is changed here: by default while the deal is open; a
+   // portfolio company's card keeps its data room after the deal is closed
+   writable?: boolean;
 }
+
+// «Без папки» opened: the files of no folder, listed only while there are any.
+export const NO_FOLDER = 'none';
 
 // The folders from the top down to this one.
 const pathOf = (folders: DealFolder[], folderId: string) => {
@@ -61,6 +90,7 @@ const treeOf = (
 
 interface FolderSelectProps {
    folders: DealFolder[];
+   top: string; // what '' stands for
    value: string;
    without?: string;
    onChange: (folderId: string) => void;
@@ -68,22 +98,21 @@ interface FolderSelectProps {
 
 const FolderSelect = ({
    folders,
+   top,
    value,
    without,
    onChange,
 }: FolderSelectProps) => {
-   const { t } = useTranslation('deals');
-
    return (
       <select
          className='field-input'
          value={value}
          onChange={(event) => onChange(event.target.value)}
       >
-         <option value=''>{t('Data room — верхний уровень')}</option>
+         <option value=''>{top}</option>
          {treeOf(folders, without).map(({ folder, depth }) => (
             <option key={folder.id} value={folder.id}>
-               {`${'— '.repeat(depth + 1)}${folder.name}`}
+               {`${'— '.repeat(depth)}${folder.name}`}
             </option>
          ))}
       </select>
@@ -92,37 +121,27 @@ const FolderSelect = ({
 
 interface FolderFormProps {
    deal: Deal;
-   folder: DealFolder | null; // null: a new folder
-   parentId: string; // where a new folder goes
+   folder: DealFolder;
    onClose: () => void;
 }
 
-// A folder's name and the folder it sits in; Документы uses it too.
-export const FolderForm = ({
-   deal,
-   folder,
-   parentId,
-   onClose,
-}: FolderFormProps) => {
+// The name of a deal's own older folder and the folder it sits in; new
+// folders are made in Настройки. Документы uses it too.
+export const FolderForm = ({ deal, folder, onClose }: FolderFormProps) => {
    const { t } = useTranslation('deals');
-   const user = useCurrentUser();
-   const [name, setName] = useState(folder?.name ?? '');
-   const [parent, setParent] = useState(folder?.parentId ?? parentId);
-   const saving = useRequest(
-      folder ? {} : { kind: 'create', success: t('Папка создана') },
-   );
+   const [name, setName] = useState(folder.name);
+   const [parent, setParent] = useState(folder.parentId);
+   const saving = useRequest();
 
    const submit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const value = name.trim();
       if (!value) return;
       const done = await saving.run(() =>
-         folder
-            ? deals.updateFolder(deal.id, folder.id, {
-                 name: value,
-                 parentId: parent,
-              })
-            : deals.addFolder(deal.id, value, parent, user.id),
+         deals.updateFolder(deal.id, folder.id, {
+            name: value,
+            parentId: parent,
+         }),
       );
       if (done) onClose();
    };
@@ -144,8 +163,9 @@ export const FolderForm = ({
                <Field label={t('Где лежит')}>
                   <FolderSelect
                      folders={deal.folders ?? []}
+                     top={t('Data room — верхний уровень')}
                      value={parent}
-                     without={folder?.id}
+                     without={folder.id}
                      onChange={setParent}
                   />
                </Field>
@@ -160,7 +180,7 @@ export const FolderForm = ({
                loading={saving.pending}
                type='submit'
             >
-               {folder ? t('Сохранить') : t('Создать')}
+               {t('Сохранить')}
             </Button>
          </ModalFooter>
       </form>
@@ -181,7 +201,7 @@ export const DocumentForm = ({
 }: DocumentFormProps) => {
    const { t } = useTranslation('deals');
    const [title, setTitle] = useState(document.title);
-   const [folderId, setFolderId] = useState(document.folderId);
+   const [folderId, setFolderId] = useState(placeOf(deal, document));
    const saving = useRequest();
 
    const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -211,7 +231,8 @@ export const DocumentForm = ({
                </Field>
                <Field label={t('Папка')}>
                   <FolderSelect
-                     folders={deal.folders ?? []}
+                     folders={roomFolders(deal)}
+                     top={t('Без папки')}
                      value={folderId}
                      onChange={setFolderId}
                   />
@@ -234,32 +255,85 @@ export const DocumentForm = ({
    );
 };
 
-/* The deal's data room: folders inside folders, and the documents in them —
-   the applicant's (from the website, or their filled-in templates) and the
-   fund's own. The open folder is in the breadcrumbs; the fund's uploads go
-   into it. The applicant's files are checked here: accepted, or rejected
-   with a reason. Deleting a folder moves what it holds one level up. */
-const DataRoom = ({ deal, folderId, onFolder, onRequest }: DataRoomProps) => {
-   const { t } = useTranslation('deals');
+interface FolderButtonProps {
+   name: string;
+   count: number; // the documents directly in it
+   depth: number; // how far inside other folders
+   active: boolean;
+   onClick: () => void;
+}
+
+// A folder on the left, as the design's list of the data room's folders:
+// its name and how many files it has.
+const FolderButton = ({
+   name,
+   count,
+   depth,
+   active,
+   onClick,
+}: FolderButtonProps) => (
+   <button
+      type='button'
+      aria-current={active || undefined}
+      className={clsx(
+         'text-meta flex w-full items-center gap-2 rounded-md py-2 pr-3 text-left',
+         active
+            ? 'bg-accent-tint text-ink-strong font-semibold'
+            : 'text-ink hover:bg-hover',
+      )}
+      style={{ paddingLeft: `${0.75 + depth * 0.875}rem` }}
+      onClick={onClick}
+   >
+      <span className='min-w-0 flex-1'>{name}</span>
+      <span className='text-ink-faint text-xs tabular-nums'>{count}</span>
+   </button>
+);
+
+/* The deal's data room, as the design draws it: the folders of Настройки on
+   the left (a deal's own older folders under them, and «Без папки» while
+   files lie outside any) and the open folder's documents on the right, the
+   applicant's (from the website, or their filled-in templates) and the
+   fund's own, each with its size, status, when and by whom it came. The
+   fund's uploads go into the open folder, by «Загрузить» or dropped on the
+   list. The applicant's files are checked here: accepted, or rejected with
+   a reason. Deleting an older folder moves what it holds one level up. */
+const DataRoom = ({
+   deal,
+   folderId,
+   onFolder,
+   onRequest,
+   writable = isOpen(deal),
+}: DataRoomProps) => {
+   const { t, i18n } = useTranslation('deals');
+   const language = i18n.resolvedLanguage ?? i18n.language;
    const user = useCurrentUser();
-   const writable = isOpen(deal);
-   const folders = deal.folders ?? [];
+   const folders = roomFolders(deal);
    const documents = deal.documents ?? [];
    const requests = deal.requests ?? [];
-   // a document in a folder that is gone is shown at the top
    const known = new Set(folders.map(({ id }) => id));
-   const placeOf = (document: DealDocument) =>
-      known.has(document.folderId) ? document.folderId : '';
-   const current = known.has(folderId) ? folderId : '';
+   const current =
+      folderId !== NO_FOLDER && known.has(folderId)
+         ? folderId
+         : folderId === NO_FOLDER
+           ? ''
+           : (folders[0]?.id ?? '');
    const path = pathOf(folders, current);
-   const subfolders = folders.filter(({ parentId }) => parentId === current);
-   const files = documents.filter((item) => placeOf(item) === current);
+   // only a deal's own folder is changed here; the others, in Настройки
+   const open = isSharedFolder(current)
+      ? undefined
+      : folders.find(({ id }) => id === current);
+   // a folder inside another shows the way to it
+   const way =
+      path.length > 1 ? path.map(({ name }) => name).join(' › ') : undefined;
+   const files = documents.filter((item) => placeOf(deal, item) === current);
+   const countIn = (id: string) =>
+      documents.filter((item) => placeOf(deal, item) === id).length;
    const reviewCount = documents.filter(
       ({ status }) => status === 'review',
    ).length;
 
    // the document being checked, and the reason typed for rejecting it
-   const [reviewId, setReviewId] = useState<string | null>(null);
+   const [reviewing, setReviewing] = useState<DealDocument | null>(null);
    const [reason, setReason] = useState('');
    // what is being edited or asked to be deleted
    const [editingDocument, setEditingDocument] = useState<DealDocument | null>(
@@ -267,15 +341,12 @@ const DataRoom = ({ deal, folderId, onFolder, onRequest }: DataRoomProps) => {
    );
    const [removingDocument, setRemovingDocument] =
       useState<DealDocument | null>(null);
-   // null: closed; 'new': a new folder in the open one
-   const [editingFolder, setEditingFolder] = useState<
-      DealFolder | 'new' | null
-   >(null);
+   const [editingFolder, setEditingFolder] = useState<DealFolder | null>(null);
    const [removingFolder, setRemovingFolder] = useState<DealFolder | null>(
       null,
    );
 
-   const reviewing = useAction(
+   const checking = useAction(
       (document: DealDocument, accepted: boolean) =>
          deals.reviewDocument(
             deal.id,
@@ -294,17 +365,17 @@ const DataRoom = ({ deal, folderId, onFolder, onRequest }: DataRoomProps) => {
 
    const review = async (document: DealDocument, accepted: boolean) => {
       setVerdict(accepted);
-      const done = await reviewing.run(document, accepted);
+      const done = await checking.run(document, accepted);
       setVerdict(null);
       if (!done) return;
-      setReviewId(null);
+      setReviewing(null);
       setReason('');
    };
 
    const folderName = (id: string) =>
-      folders.find((folder) => folder.id === id)?.name ?? 'Data room';
+      folders.find((folder) => folder.id === id)?.name ?? t('Без папки');
 
-   // the fund's files, into the open folder: by the button or dropped on the card
+   // the fund's files, into the open folder: by the button or dropped on it
    const input = useRef<HTMLInputElement>(null);
    const [uploading, setUploading] = useState(0);
    const [dragging, setDragging] = useState(false);
@@ -336,19 +407,25 @@ const DataRoom = ({ deal, folderId, onFolder, onRequest }: DataRoomProps) => {
       writable && event.dataTransfer.types.includes('Files');
    const choose = () => input.current?.click();
 
-   // what a folder holds, directly
-   const contentsOf = (id: string) => {
-      const inner = folders.filter(({ parentId }) => parentId === id).length;
-      const held = documents.filter((item) => placeOf(item) === id).length;
-      return [
-         held > 0 && t('{{count}} документ', { count: held }),
-         inner > 0 && t('{{count}} папка', { count: inner }),
-      ]
-         .filter(Boolean)
-         .join(' · ');
-   };
+   const sizeOf = ({ size }: DealDocument) =>
+      !size
+         ? '—'
+         : size < 1024 ** 2
+           ? t('{{value}} КБ', {
+                value: formatNumber(Math.max(1, size / 1024), language),
+             })
+           : t('{{value}} МБ', {
+                value: formatNumber(size / 1024 ** 2, language, 1),
+             });
 
-   // its version, the request it answers, and who handled it and when
+   // whose file it is: the applicant's, or the employee who brought it in
+   const ownerOf = (document: DealDocument) =>
+      document.uploadedBy === 'applicant' && !document.uploadedById
+         ? deal.applicantName || t('Заявитель')
+         : personName(document.uploadedById || document.handled?.byId || '') ||
+           '—';
+
+   // its version, the request it answers, and how it was handled
    const documentLine = (document: DealDocument) => {
       const { version, handled, requestId } = document;
       const request = requests.find(({ id }) => id === requestId);
@@ -356,445 +433,460 @@ const DataRoom = ({ deal, folderId, onFolder, onRequest }: DataRoomProps) => {
          version > 0 && `v${version}`,
          request && t('ответ на запрос «{{title}}»', { title: request.title }),
       ];
-      if (handled) {
-         const name = personName(handled.byId);
-         const at = formatStamp(handled.at);
+      if (handled)
          parts.push(
             handled.kind === 'rejected'
                ? t('отклонил {{name}}: {{reason}}', {
-                    name,
+                    name: personName(handled.byId),
                     reason: handled.reason,
                  })
-               : `${
-                    handled.kind === 'uploaded'
-                       ? t('загружен от имени фонда · {{name}}', { name })
-                       : t('принял {{name}}', { name })
-                 } · ${at}`,
+               : handled.kind === 'uploaded'
+                 ? t('загружен от имени фонда')
+                 : t('принял {{name}} · {{date}}', {
+                      name: personName(handled.byId),
+                      date: formatStamp(handled.at),
+                   }),
          );
-      } else if (document.uploadedBy === 'applicant')
-         parts.push(
-            document.uploadedById
-               ? t('файл заявителя, загрузил {{name}} · {{date}}', {
-                    name: personName(document.uploadedById),
-                    date: formatStamp(document.uploadedAt),
-                 })
-               : t('загружен заявителем · {{date}}', {
-                    date: formatStamp(document.uploadedAt),
-                 }),
-         );
-      else if (document.detail) parts.push(document.detail);
+      else if (document.uploadedBy === 'applicant' && document.uploadedById)
+         parts.push(t('файл заявителя'));
+      else if (document.uploadedBy !== 'applicant' && document.detail)
+         parts.push(document.detail);
       return parts.filter(Boolean).join(' · ');
    };
 
-   const documentAction = (document: DealDocument) => {
-      const open = document.url && (
-         <a
-            className='link'
-            href={document.url}
-            rel='noreferrer'
-            target='_blank'
-         >
-            {t('Открыть')}
-         </a>
-      );
-      const main =
-         document.status === 'review'
-            ? writable && (
-                 <button
-                    type='button'
-                    className='link'
-                    onClick={() => setReviewId(document.id)}
-                 >
-                    {t('Проверить')}
-                 </button>
-              )
-            : document.status !== 'accepted' &&
-              writable && (
-                 <button
-                    type='button'
-                    className='link'
-                    onClick={() => onRequest(document.title)}
-                 >
-                    {document.status === 'rejected'
+   const actionsOf = (document: DealDocument): MenuAction[] => [
+      ...(document.url
+         ? [
+              {
+                 label: t('Открыть'),
+                 icon: Eye,
+                 onSelect: () =>
+                    window.open(document.url, '_blank', 'noopener'),
+              },
+           ]
+         : []),
+      ...(writable && document.status === 'review'
+         ? [
+              {
+                 label: t('Проверить'),
+                 icon: ClipboardCheck,
+                 onSelect: () => setReviewing(document),
+              },
+           ]
+         : []),
+      ...(writable &&
+      onRequest &&
+      (document.status === 'rejected' || document.status === 'required')
+         ? [
+              {
+                 label:
+                    document.status === 'rejected'
                        ? t('Запросить заново')
-                       : t('Запросить')}
-                 </button>
-              );
-      return (
-         <span className='flex flex-wrap items-center justify-end gap-x-4 gap-y-1'>
-            {open}
-            {main}
-            {writable && (
-               <ItemActions
-                  name={document.title}
-                  onDelete={() => setRemovingDocument(document)}
-                  onEdit={() => setEditingDocument(document)}
-               />
-            )}
-         </span>
-      );
-   };
+                       : t('Запросить'),
+                 icon: Send,
+                 onSelect: () => onRequest(document.title),
+              },
+           ]
+         : []),
+      ...(writable
+         ? [
+              {
+                 label: t('Изменить'),
+                 icon: Pencil,
+                 onSelect: () => setEditingDocument(document),
+              },
+              {
+                 label: t('Удалить'),
+                 icon: Trash2,
+                 danger: true,
+                 onSelect: () => setRemovingDocument(document),
+              },
+           ]
+         : []),
+   ];
 
    return (
-      // files dropped anywhere on the card go into the open folder
-      <div
-         className='relative flex flex-col'
-         onDragLeave={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node))
-               setDragging(false);
-         }}
-         onDragOver={(event) => {
-            if (!withFiles(event)) return;
-            event.preventDefault();
-            setDragging(true);
-         }}
-         onDrop={(event) => {
-            if (!withFiles(event)) return;
-            event.preventDefault();
-            setDragging(false);
-            upload([...event.dataTransfer.files]);
-         }}
-      >
-         {dragging && (
-            <div className='border-accent bg-accent-tint/90 text-accent pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-lg border-2 border-dashed p-6 text-center font-semibold'>
-               {t('Отпустите — файлы загрузятся в «{{folder}}»', {
-                  folder: folderName(current),
-               })}
-            </div>
-         )}
-         <input
-            ref={input}
-            hidden
-            multiple
-            type='file'
-            onChange={(event) => {
-               upload([...(event.target.files ?? [])]);
-               event.target.value = '';
-            }}
-         />
-         <Card
-            className='flex-1'
-            hint={`${t('{{count}} документ', { count: documents.length })} · ${t(
-               '{{total}} на проверке',
-               { total: reviewCount },
-            )}`}
-            title='Data room'
-         >
-            <div className='border-line flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-5 py-3'>
-               <nav aria-label={t('Папки data room')}>
-                  <ol className='text-meta flex flex-wrap items-center gap-1'>
-                     {[{ id: '', name: 'Data room' }, ...path].map(
-                        (item, index, all) => {
-                           const last = index === all.length - 1;
-                           return (
-                              <li
-                                 key={item.id}
-                                 className='flex items-center gap-1'
-                              >
-                                 {index > 0 && (
-                                    <ChevronRight
-                                       aria-hidden
-                                       className='text-ink-faint size-3.5'
-                                    />
-                                 )}
-                                 {last ? (
-                                    <span
-                                       aria-current='page'
-                                       className='font-semibold'
-                                    >
-                                       {item.name}
-                                    </span>
-                                 ) : (
-                                    <button
-                                       type='button'
-                                       className='link'
-                                       onClick={() => onFolder(item.id)}
-                                    >
-                                       {item.name}
-                                    </button>
-                                 )}
-                              </li>
-                           );
-                        },
-                     )}
-                  </ol>
-               </nav>
-               {writable && (
-                  <span className='text-meta flex flex-wrap items-center gap-x-4 gap-y-1'>
-                     <button
-                        type='button'
-                        aria-busy={uploading > 0 || undefined}
-                        className='link disabled:text-ink-soft inline-flex items-center gap-1.5 disabled:no-underline'
-                        disabled={uploading > 0}
-                        onClick={choose}
-                     >
-                        {uploading > 0 ? (
-                           <Spinner className='size-3.5' />
-                        ) : (
-                           <Upload aria-hidden className='size-3.5' />
-                        )}
-                        {uploading > 0
-                           ? t('Загружается: {{count}}', { count: uploading })
-                           : t('Загрузить файлы')}
-                     </button>
-                     <button
-                        type='button'
-                        className='link'
-                        onClick={() => setEditingFolder('new')}
-                     >
-                        {t('Новая папка')}
-                     </button>
-                  </span>
-               )}
-            </div>
-
-            {subfolders.length || files.length ? (
-               <div className='p-5'>
-                  <ul className='flex flex-col gap-2.5'>
-                     {subfolders.map((folder) => (
-                        <li
-                           key={folder.id}
-                           className='border-line hover:bg-ground/60 relative flex items-center gap-3.5 rounded-lg border px-4 py-3'
-                        >
-                           <span className='bg-accent-tint text-accent grid size-9 shrink-0 place-items-center rounded-md'>
-                              <Folder aria-hidden className='size-4' />
-                           </span>
-                           <div className='min-w-0 flex-1'>
-                              {/* the whole row opens the folder */}
-                              <button
-                                 type='button'
-                                 className='text-left font-semibold after:absolute after:inset-0'
-                                 onClick={() => onFolder(folder.id)}
-                              >
-                                 {folder.name}
-                              </button>
-                              <div className='text-ink-soft mt-0.5 text-xs'>
-                                 {contentsOf(folder.id) || t('пустая папка')}
-                              </div>
-                           </div>
-                           {writable && (
-                              <ItemActions
-                                 className='relative text-xs'
-                                 name={folder.name}
-                                 onDelete={() => setRemovingFolder(folder)}
-                                 onEdit={() => setEditingFolder(folder)}
-                              />
-                           )}
-                        </li>
-                     ))}
-                     {files.map((document) => (
-                        <li
-                           key={document.id}
-                           className='border-line rounded-lg border px-4 py-3'
-                        >
-                           <div className='flex items-center gap-3.5'>
-                              <span className='bg-ground text-ink-faint grid size-9 shrink-0 place-items-center rounded-md'>
-                                 <FileText aria-hidden className='size-4' />
-                              </span>
-                              <div className='min-w-0 flex-1'>
-                                 <div className='flex flex-wrap items-center gap-x-2.5 gap-y-1'>
-                                    <span className='font-semibold break-words'>
-                                       {document.title}
-                                    </span>
-                                    <Badge
-                                       caps
-                                       tone={
-                                          DOCUMENT_STATUS_TONES[document.status]
-                                       }
-                                    >
-                                       {t(
-                                          DOCUMENT_STATUS_LABELS[
-                                             document.status
-                                          ],
-                                       )}
-                                    </Badge>
-                                 </div>
-                                 <div className='text-ink-soft mt-0.5 text-xs'>
-                                    {documentLine(document)}
-                                 </div>
-                              </div>
-                              {reviewId !== document.id &&
-                                 documentAction(document)}
-                           </div>
-                           {reviewId === document.id && (
-                              <div className='border-line mt-3 border-t pt-3'>
-                                 <textarea
-                                    aria-label={t('Причина отклонения')}
-                                    className='field-input text-meta'
-                                    maxLength={TEXT_MAX}
-                                    placeholder={t(
-                                       'Причина — нужна, только если документ отклоняется',
-                                    )}
-                                    rows={2}
-                                    value={reason}
-                                    onChange={(event) =>
-                                       setReason(event.target.value)
-                                    }
-                                 />
-                                 <div className='mt-2.5 flex flex-wrap items-center gap-2.5'>
-                                    {document.url && (
-                                       <a
-                                          className='link text-meta mr-auto'
-                                          href={document.url}
-                                          rel='noreferrer'
-                                          target='_blank'
-                                       >
-                                          {t('Открыть файл')}
-                                       </a>
-                                    )}
-                                    <Button
-                                       className='h-9'
-                                       disabled={reviewing.pending}
-                                       loading={verdict === true}
-                                       onClick={() => review(document, true)}
-                                    >
-                                       {t('Принять')}
-                                    </Button>
-                                    <Button
-                                       className='h-9'
-                                       // a rejection always says why
-                                       disabled={
-                                          !reason.trim() || reviewing.pending
-                                       }
-                                       loading={verdict === false}
-                                       variant='ghost'
-                                       onClick={() => review(document, false)}
-                                    >
-                                       {t('Отклонить')}
-                                    </Button>
-                                    <Button
-                                       className='h-9'
-                                       disabled={reviewing.pending}
-                                       variant='text'
-                                       onClick={() => setReviewId(null)}
-                                    >
-                                       {t('Отмена')}
-                                    </Button>
-                                 </div>
-                              </div>
-                           )}
-                        </li>
-                     ))}
-                  </ul>
-                  <p className='text-ink-soft mt-3.5 text-xs'>
-                     {t(
-                        'Каждая версия хранится с автором и временем. «Загрузить файлы» кладёт файлы в открытую папку, их можно и перетащить на карточку; документ переносят в другую папку кнопкой «Изменить». Отклонение без причины недоступно — иначе заявитель вернётся в почту.',
-                     )}
-                  </p>
-               </div>
-            ) : writable ? (
-               // an empty folder: where to drop files, or the button
-               <div className='p-5'>
-                  <div className='border-line-strong text-ink-soft grid place-items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center'>
-                     <p>
-                        {current
-                           ? t('В этой папке пока пусто')
-                           : t('Документов в data room пока нет')}
-                        <br />
-                        {t(
-                           'Перетащите файлы сюда или выберите их на компьютере.',
-                        )}
-                     </p>
-                     <Button
-                        className='h-9'
-                        loading={uploading > 0}
-                        variant='ghost'
-                        onClick={choose}
-                     >
-                        {uploading > 0
-                           ? t('Загружается: {{count}}', { count: uploading })
-                           : t('Загрузить файлы')}
-                     </Button>
-                  </div>
-               </div>
-            ) : (
-               <NoData>
-                  {current
-                     ? t('В этой папке пока пусто')
-                     : t('Документов в data room пока нет')}
-               </NoData>
-            )}
-
-            <Modal
-               open={editingFolder !== null}
-               subtitle={deal.company}
-               title={editingFolder === 'new' ? t('Новая папка') : t('Папка')}
-               onClose={() => setEditingFolder(null)}
-            >
-               {editingFolder && (
-                  <FolderForm
-                     key={editingFolder === 'new' ? 'new' : editingFolder.id}
-                     deal={deal}
-                     folder={editingFolder === 'new' ? null : editingFolder}
-                     parentId={current}
-                     onClose={() => setEditingFolder(null)}
-                  />
-               )}
-            </Modal>
-            <ConfirmDialog
-               open={removingFolder !== null}
-               subtitle={removingFolder?.name}
-               success={t('Папка удалена')}
-               title={t('Удалить папку?')}
-               onClose={() => setRemovingFolder(null)}
-               onConfirm={async () => {
-                  if (!removingFolder) return;
-                  await deals.removeFolder(deal.id, removingFolder.id);
-                  // the open folder, or one inside it, is gone: go up
-                  if (
-                     removingFolder.id === current ||
-                     path.some(({ id }) => id === removingFolder.id)
-                  )
-                     onFolder(removingFolder.parentId);
-               }}
-            >
-               <p>
-                  {t(
-                     'Файлы и папки из неё не удалятся — они перейдут в «{{parent}}».',
-                     { parent: folderName(removingFolder?.parentId ?? '') },
+      <div className='gap-section grid items-start lg:grid-cols-[14.375rem_minmax(0,1fr)]'>
+         <Card className='p-2'>
+            <nav aria-label={t('Папки data room')}>
+               <ul className='grid gap-0.5'>
+                  {treeOf(folders).map(({ folder, depth }) => (
+                     <li key={folder.id}>
+                        <FolderButton
+                           active={folder.id === current}
+                           count={countIn(folder.id)}
+                           depth={depth}
+                           name={folder.name}
+                           onClick={() => onFolder(folder.id)}
+                        />
+                     </li>
+                  ))}
+                  {(countIn('') > 0 || !folders.length) && (
+                     <li>
+                        <FolderButton
+                           active={current === ''}
+                           count={countIn('')}
+                           depth={0}
+                           name={t('Без папки')}
+                           onClick={() => onFolder(NO_FOLDER)}
+                        />
+                     </li>
                   )}
-               </p>
-            </ConfirmDialog>
-            <Modal
-               open={editingDocument !== null}
-               subtitle={deal.company}
-               title={t('Документ')}
-               onClose={() => setEditingDocument(null)}
-            >
-               {editingDocument && (
-                  <DocumentForm
-                     key={editingDocument.id}
-                     deal={deal}
-                     document={editingDocument}
-                     onClose={() => setEditingDocument(null)}
-                  />
-               )}
-            </Modal>
-            <ConfirmDialog
-               open={removingDocument !== null}
-               subtitle={
-                  removingDocument &&
-                  `${removingDocument.title}${removingDocument.version ? ` · v${removingDocument.version}` : ''}`
-               }
-               success={t('Документ удалён')}
-               title={t('Удалить документ?')}
-               onClose={() => setRemovingDocument(null)}
-               onConfirm={() =>
-                  removingDocument &&
-                  deals.removeDocument(deal.id, removingDocument.id)
-               }
-            >
-               <p>
-                  {removingDocument?.fileId
-                     ? t(
-                          'Файл удалится из data room и из хранилища; другие версии документа останутся.',
-                       )
-                     : t(
-                          'Документ уйдёт из data room; другие версии останутся.',
-                       )}
-               </p>
-            </ConfirmDialog>
+               </ul>
+            </nav>
          </Card>
+
+         {/* files dropped anywhere on the list go into the open folder */}
+         <div
+            className='relative min-w-0'
+            onDragLeave={(event) => {
+               if (!event.currentTarget.contains(event.relatedTarget as Node))
+                  setDragging(false);
+            }}
+            onDragOver={(event) => {
+               if (!withFiles(event)) return;
+               event.preventDefault();
+               setDragging(true);
+            }}
+            onDrop={(event) => {
+               if (!withFiles(event)) return;
+               event.preventDefault();
+               setDragging(false);
+               upload([...event.dataTransfer.files]);
+            }}
+         >
+            {dragging && (
+               <div className='border-accent bg-accent-tint/90 text-accent pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-lg border-2 border-dashed p-6 text-center font-semibold'>
+                  {t('Отпустите — файлы загрузятся в «{{folder}}»', {
+                     folder: folderName(current),
+                  })}
+               </div>
+            )}
+            <input
+               ref={input}
+               hidden
+               multiple
+               type='file'
+               onChange={(event) => {
+                  upload([...(event.target.files ?? [])]);
+                  event.target.value = '';
+               }}
+            />
+            <Card
+               action={
+                  writable && (
+                     <span className='flex items-center gap-1.5'>
+                        {open && (
+                           <ItemActions
+                              icons
+                              name={open.name}
+                              onDelete={() => setRemovingFolder(open)}
+                              onEdit={() => setEditingFolder(open)}
+                           />
+                        )}
+                        <Button
+                           className='h-8 px-3 text-xs'
+                           loading={uploading > 0}
+                           onClick={choose}
+                        >
+                           {uploading > 0 ? (
+                              t('Загружается: {{count}}', { count: uploading })
+                           ) : (
+                              <>
+                                 <Upload aria-hidden />
+                                 {t('Загрузить')}
+                              </>
+                           )}
+                        </Button>
+                     </span>
+                  )
+               }
+               hint={way}
+               title={`${folderName(current)} · ${deal.company}`}
+            >
+               {files.length ? (
+                  <Table
+                     className='min-w-2xl'
+                     head={
+                        <>
+                           <th className={TH}>{t('Документ')}</th>
+                           <th className={clsx(TH, 'text-right')}>
+                              {t('Размер')}
+                           </th>
+                           <th className={TH}>{t('Статус')}</th>
+                           <th className={TH}>{t('Загружен')}</th>
+                           <th className={TH}>{t('Кем')}</th>
+                           <th className={TH}>
+                              <span className='sr-only'>{t('Действия')}</span>
+                           </th>
+                        </>
+                     }
+                  >
+                     {files.map((document) => {
+                        const line = documentLine(document);
+                        return (
+                           <tr
+                              key={document.id}
+                              className={clsx(
+                                 document.url &&
+                                    'hover:bg-hover cursor-pointer',
+                              )}
+                              onClick={() =>
+                                 document.url &&
+                                 window.open(document.url, '_blank', 'noopener')
+                              }
+                           >
+                              <td className={TD}>
+                                 <div className='flex items-center gap-2.5'>
+                                    <span className='bg-accent-tint text-accent grid size-8.5 shrink-0 place-items-center rounded-lg'>
+                                       <FileText
+                                          aria-hidden
+                                          className='size-4'
+                                       />
+                                    </span>
+                                    <div className='min-w-0'>
+                                       <div className='font-medium break-words'>
+                                          {document.title}
+                                       </div>
+                                       {line && (
+                                          <div className='text-ink-soft text-xs'>
+                                             {line}
+                                          </div>
+                                       )}
+                                    </div>
+                                 </div>
+                              </td>
+                              <td
+                                 className={clsx(
+                                    TD,
+                                    'text-ink-soft text-right whitespace-nowrap tabular-nums',
+                                 )}
+                              >
+                                 {sizeOf(document)}
+                              </td>
+                              <td className={clsx(TD, 'whitespace-nowrap')}>
+                                 <Badge
+                                    tone={
+                                       DOCUMENT_STATUS_TONES[document.status]
+                                    }
+                                 >
+                                    {t(DOCUMENT_STATUS_LABELS[document.status])}
+                                 </Badge>
+                              </td>
+                              <td
+                                 className={clsx(
+                                    TD,
+                                    'text-ink-soft whitespace-nowrap',
+                                 )}
+                              >
+                                 {document.uploadedAt
+                                    ? formatStamp(document.uploadedAt)
+                                    : '—'}
+                              </td>
+                              <td className={clsx(TD, 'whitespace-nowrap')}>
+                                 {ownerOf(document)}
+                              </td>
+                              <td className={clsx(TD, 'w-0 text-right')}>
+                                 <ActionMenu
+                                    actions={actionsOf(document)}
+                                    name={document.title}
+                                 />
+                              </td>
+                           </tr>
+                        );
+                     })}
+                  </Table>
+               ) : writable ? (
+                  // an empty folder: where to drop files, or the button
+                  <div className='p-5'>
+                     <div className='border-line-strong text-ink-soft grid place-items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center'>
+                        <p>
+                           {t(
+                              'В этой папке пока нет документов. Основатель загружает их в своём кабинете, или загрузите сами.',
+                           )}
+                        </p>
+                        <Button
+                           className='h-9'
+                           loading={uploading > 0}
+                           variant='ghost'
+                           onClick={choose}
+                        >
+                           {uploading > 0
+                              ? t('Загружается: {{count}}', {
+                                   count: uploading,
+                                })
+                              : t('Загрузить файлы')}
+                        </Button>
+                     </div>
+                  </div>
+               ) : (
+                  <NoData>{t('В этой папке пока нет документов.')}</NoData>
+               )}
+               <footer className='border-line text-ink-soft flex flex-wrap justify-between gap-x-4 gap-y-1 border-t px-4.5 py-2.5 text-xs'>
+                  <span>
+                     {t(
+                        'Дата рум общий с кабинетом основателя: заявитель видит свои файлы, файлы фонда — только команда.',
+                     )}
+                  </span>
+                  <span>
+                     {t('{{total}} на проверке', { total: reviewCount })}
+                  </span>
+                  {!hasRoomFields() && (
+                     <span className='basis-full'>
+                        {t(
+                           'Папка файла и его размер сохранятся, когда в ucode будет партия 16.',
+                        )}
+                     </span>
+                  )}
+               </footer>
+            </Card>
+         </div>
+
+         <Modal
+            open={reviewing !== null}
+            subtitle={reviewing?.title}
+            title={t('Проверка документа')}
+            onClose={() => setReviewing(null)}
+         >
+            {reviewing && (
+               <>
+                  <ModalBody>
+                     <div className='grid gap-4'>
+                        {reviewing.url && (
+                           <a
+                              className='link text-meta'
+                              href={reviewing.url}
+                              rel='noreferrer'
+                              target='_blank'
+                           >
+                              {t('Открыть файл')}
+                           </a>
+                        )}
+                        <Field label={t('Причина отклонения')}>
+                           <textarea
+                              data-autofocus
+                              className='field-input text-meta'
+                              maxLength={TEXT_MAX}
+                              placeholder={t(
+                                 'Причина — нужна, только если документ отклоняется',
+                              )}
+                              rows={3}
+                              value={reason}
+                              onChange={(event) =>
+                                 setReason(event.target.value)
+                              }
+                           />
+                        </Field>
+                     </div>
+                  </ModalBody>
+                  <ModalFooter
+                     note={t(
+                        'Отклонение без причины недоступно — иначе заявитель вернётся в почту.',
+                     )}
+                  >
+                     <Button
+                        disabled={checking.pending}
+                        variant='text'
+                        onClick={() => setReviewing(null)}
+                     >
+                        {t('Отмена')}
+                     </Button>
+                     <Button
+                        // a rejection always says why
+                        disabled={!reason.trim() || checking.pending}
+                        loading={verdict === false}
+                        variant='ghost'
+                        onClick={() => review(reviewing, false)}
+                     >
+                        {t('Отклонить')}
+                     </Button>
+                     <Button
+                        disabled={checking.pending}
+                        loading={verdict === true}
+                        onClick={() => review(reviewing, true)}
+                     >
+                        {t('Принять')}
+                     </Button>
+                  </ModalFooter>
+               </>
+            )}
+         </Modal>
+         <Modal
+            open={editingFolder !== null}
+            subtitle={deal.company}
+            title={t('Папка')}
+            onClose={() => setEditingFolder(null)}
+         >
+            {editingFolder && (
+               <FolderForm
+                  key={editingFolder.id}
+                  deal={deal}
+                  folder={editingFolder}
+                  onClose={() => setEditingFolder(null)}
+               />
+            )}
+         </Modal>
+         <ConfirmDialog
+            open={removingFolder !== null}
+            subtitle={removingFolder?.name}
+            success={t('Папка удалена')}
+            title={t('Удалить папку?')}
+            onClose={() => setRemovingFolder(null)}
+            onConfirm={async () => {
+               if (!removingFolder) return;
+               await deals.removeFolder(deal.id, removingFolder.id);
+               // the open folder, or one it is inside, is gone: go up
+               if (
+                  removingFolder.id === current ||
+                  path.some(({ id }) => id === removingFolder.id)
+               )
+                  onFolder(removingFolder.parentId);
+            }}
+         >
+            <p>
+               {t(
+                  'Файлы и папки из неё не удалятся — они перейдут в «{{parent}}».',
+                  { parent: folderName(removingFolder?.parentId ?? '') },
+               )}
+            </p>
+         </ConfirmDialog>
+         <Modal
+            open={editingDocument !== null}
+            subtitle={deal.company}
+            title={t('Документ')}
+            onClose={() => setEditingDocument(null)}
+         >
+            {editingDocument && (
+               <DocumentForm
+                  key={editingDocument.id}
+                  deal={deal}
+                  document={editingDocument}
+                  onClose={() => setEditingDocument(null)}
+               />
+            )}
+         </Modal>
+         <ConfirmDialog
+            open={removingDocument !== null}
+            subtitle={
+               removingDocument &&
+               `${removingDocument.title}${removingDocument.version ? ` · v${removingDocument.version}` : ''}`
+            }
+            success={t('Документ удалён')}
+            title={t('Удалить документ?')}
+            onClose={() => setRemovingDocument(null)}
+            onConfirm={() =>
+               removingDocument &&
+               deals.removeDocument(deal.id, removingDocument.id)
+            }
+         >
+            <p>
+               {removingDocument?.fileId
+                  ? t(
+                       'Файл удалится из data room и из хранилища; другие версии документа останутся.',
+                    )
+                  : t('Документ уйдёт из data room; другие версии останутся.')}
+            </p>
+         </ConfirmDialog>
       </div>
    );
 };

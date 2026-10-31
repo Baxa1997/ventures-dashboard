@@ -11,7 +11,9 @@ interface ModalProps {
    // the top line in place of the title, which screen readers still get:
    // a task's card shows what it is about and its buttons there
    header?: ReactNode;
-   size?: 'md' | 'wide'; // wide: a card with columns, such as a task's
+   // wide: a form with columns; card: a task's card, as wide, keeping its
+   // height while its columns scroll, so it does not jump as it changes
+   size?: 'md' | 'wide' | 'card';
    onClose: () => void;
    children: ReactNode;
 }
@@ -19,6 +21,7 @@ interface ModalProps {
 const WIDTHS = {
    md: 'w-[min(36rem,calc(100vw-2rem))]',
    wide: 'w-[min(73.75rem,calc(100vw-2rem))]',
+   card: 'h-[min(42rem,calc(100dvh-4rem))] w-[min(73.75rem,calc(100vw-2rem))]',
 };
 
 interface ModalPartProps {
@@ -31,7 +34,7 @@ interface ModalFooterProps extends ModalPartProps {
 
 /* Built on the native <dialog>, which traps focus and closes on Escape.
    The title stays at the top and the buttons at the bottom; only the content
-   between them scrolls. Put the content in ModalBody and the buttons in
+   between them scrolls, and the page behind it stands still (tailwind.css). Put the content in ModalBody and the buttons in
    ModalFooter; a form wraps both with the MODAL_FORM class. */
 const Modal = ({
    open,
@@ -115,7 +118,9 @@ export const MODAL_FORM = 'flex min-h-0 flex-auto flex-col';
 
 // The scrolling part of a modal.
 export const ModalBody = ({ children }: ModalPartProps) => (
-   <div className='min-h-0 flex-auto overflow-y-auto p-5'>{children}</div>
+   <div className='min-h-0 flex-auto overflow-y-auto overscroll-contain p-5'>
+      {children}
+   </div>
 );
 
 // The buttons of a modal; always in view.

@@ -2,6 +2,9 @@
 /* The fields of the batches in docs/ucode-migration.md, made and set through the
    ucode admin API (api.mjs), with the requests the ucode admin itself sends.
 
+     node scripts/ucode/fields.mjs tables <batch> [--folder "<name>"]
+        makes the batch's new tables that do not exist yet, in that sub-folder
+        of Admin ("Settings and lists" unless named)
      node scripts/ucode/fields.mjs create <batch>
         makes the batch's fields that its tables do not have yet
      node scripts/ucode/fields.mjs options <batch|all> [--write] [--with-rows]
@@ -10,8 +13,8 @@
         makes the batches' status fields ucode STATUS fields: the pick list's
         values in ucode's groups, with their names and colours (names.mjs)
 
-   Tables come first (the MCP's create_table, into Admin) and relations after
-   (the MCP's update_table). `create` checks each reply's slug and type and
+   Tables come first (`tables`, or the MCP's create_table, into Admin) and
+   relations after (the MCP's update_table). `create` checks each reply's slug and type and
    stops at the first difference. `options` and `status` only print what they
    would change unless given --write. A field update replaces the whole field,
    so they also skip tables that have rows unless given --with-rows. `status`
@@ -99,6 +102,48 @@ const rowsOf = async (table) => {
       rowCache.set(table, data?.data?.data?.count ?? 0);
    }
    return rowCache.get(table);
+};
+
+// The Admin folder of ucode's menu (docs/ucode-migration.md).
+const ADMIN_FOLDER = '60e0336b-5017-49ca-8c96-123aa5e2c9db';
+
+const tables = async (id, folderName = 'Settings and lists') => {
+   const menus = await ucode('GET', `/v3/menus?parent_id=${ADMIN_FOLDER}`);
+   const folder = (menus.data?.data?.menus ?? []).find(
+      (entry) =>
+         entry.type === 'FOLDER' &&
+         (entry.attributes?.label_en ?? entry.label) === folderName,
+   );
+   if (!folder) throw new Error(`No folder "${folderName}" in Admin`);
+   const known = await ucode('GET', '/v1/table?limit=200');
+   if (!known.ok) throw new Error(`Cannot read the tables (HTTP ${known.status})`);
+   const existing = new Set((known.data?.data?.tables ?? []).map(({ slug }) => slug));
+   let created = 0;
+   for (const batch of batchesOf(id))
+      for (const table of batch.tables) {
+         if (table.existing || existing.has(table.name)) continue;
+         const label = fieldLabel(table.name);
+         const { ok, status, data } = await ucode('POST', '/v1/table', {
+            label,
+            slug: table.name,
+            description: batch.title,
+            show_in_menu: true,
+            icon: 'https://api.iconify.design/mdi:table.svg',
+            is_cached: false,
+            soft_delete: false,
+            order_by: false,
+            menu_id: folder.id,
+            attributes: { label: '', label_en: label },
+         });
+         if (!ok) {
+            console.log(`✗ ${table.name}: HTTP ${status} ${JSON.stringify(data).slice(0, 400)}`);
+            console.log(`Stopped. ${created} created.`);
+            process.exit(1);
+         }
+         created++;
+         console.log(`✓ ${table.name} "${label}" in ${folderName}`);
+      }
+   console.log(`Done. ${created} created.`);
 };
 
 const create = async (id) => {
@@ -350,7 +395,8 @@ const flagValue = (name) => {
    const index = all.indexOf(name);
    return index === -1 ? undefined : all[index + 1];
 };
-if (command === 'create' && target) await create(target);
+if (command === 'tables' && target) await tables(target, flagValue('--folder'));
+else if (command === 'create' && target) await create(target);
 else if (command === 'status')
    await status({
       write: [target, ...flags].includes('--write'),
@@ -364,7 +410,7 @@ else if (command === 'options' && target)
    });
 else {
    console.error(
-      'Usage: node scripts/ucode/fields.mjs create <batch> | options <batch|all> [--write] [--with-rows] | status [--write] [--with-rows] [--only table.field]',
+      'Usage: node scripts/ucode/fields.mjs tables <batch> [--folder "<name>"] | create <batch> | options <batch|all> [--write] [--with-rows] | status [--write] [--with-rows] [--only table.field]',
    );
    process.exitCode = 2;
 }

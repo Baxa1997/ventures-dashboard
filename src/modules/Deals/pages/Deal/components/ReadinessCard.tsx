@@ -30,7 +30,7 @@ interface ReadinessCardProps {
 // The tab of the card where an item the panel counts is worked on.
 const ITEM_TABS = [
    ['memo', 'memo', 'Открыть меморандум'],
-   ['stream-', 'dd', 'Открыть «Due diligence»'],
+   ['stream-', 'dd', 'Открыть «Due Diligence»'],
    ['request-', 'requests', 'Открыть «Запросы и документы»'],
    ['document-', 'requests', 'Открыть «Запросы и документы»'],
 ] as const;

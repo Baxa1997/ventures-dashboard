@@ -1,6 +1,5 @@
 import CompanyDialog from '@modules/Portfolio/components/CompanyDialog';
 import DataRequestDialog from '@modules/Portfolio/components/DataRequestDialog';
-import DataRequests from '@modules/Portfolio/components/DataRequests';
 import ExitDialog from '@modules/Portfolio/components/ExitDialog';
 import FollowOnDialog from '@modules/Portfolio/components/FollowOnDialog';
 import QuarterMetricsDialog from '@modules/Portfolio/components/QuarterMetricsDialog';
@@ -33,9 +32,8 @@ import {
 } from '@shared/components';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import {
-   FileQuestion,
-   FileSpreadsheet,
    FlaskConical,
+   FolderLock,
    LayoutPanelLeft,
    ListChecks,
    type LucideIcon,
@@ -44,20 +42,19 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { Pilots } from '../List/components';
 import CompanyHeader from './components/CompanyHeader';
+import DataRoomTab from './components/DataRoomTab';
 import Metrics from './components/Metrics';
 import Overview from './components/Overview';
-import Reports from './components/Reports';
+import Pilots from './components/Pilots';
 import Tasks from './components/Tasks';
 
 const TAB_ICONS: Record<CardTab, LucideIcon> = {
    overview: LayoutPanelLeft,
    metrics: TableProperties,
-   reports: FileSpreadsheet,
-   data: FileQuestion,
    pilots: FlaskConical,
    tasks: ListChecks,
+   dataroom: FolderLock,
 };
 
 // The open tab from the address; the old tabs' names lead to where their
@@ -106,9 +103,11 @@ interface ViewProps {
 }
 
 /* The card, as the design draws it: the company's head, then «Обзор»,
-   «Показатели», «Отчётность», «Запросы данных», «Пилоты SQB» and «Задачи».
-   An active company is asked for data, gets a follow-on or is exited; an
-   exited one has its exit changed, or is made active again. */
+   «Показатели» (with each quarter's report), «Пилоты SQB», «Задачи» and
+   «Документы Data Room» (its deal's data room, the fund's requests for data
+   and the reports' documents). An active company is asked for data, gets a
+   follow-on or is exited; an exited one has its exit changed, or is made
+   active again. */
 const CompanyView = ({ data, company }: ViewProps) => {
    const { t } = useTranslation('portfolio');
    const [params, setParams] = useSearchParams();
@@ -129,12 +128,8 @@ const CompanyView = ({ data, company }: ViewProps) => {
    const dataRequests = data.dataRequests.filter(
       ({ companyId }) => companyId === company.id,
    );
-   // waiting for the company, or for the fund's check
-   const openData = dataRequests.filter(
-      ({ status }) => status !== 'accepted',
-   ).length;
    const counts: Partial<Record<CardTab, number>> = {
-      data: openData || undefined,
+      dataroom: deal?.documents?.length || undefined,
       pilots:
          company.pilots.filter(({ status }) => status === 'in_progress')
             .length || undefined,
@@ -211,18 +206,17 @@ const CompanyView = ({ data, company }: ViewProps) => {
                   onEdit={setEditingQuarter}
                />
             )}
-            {tab === 'reports' && (
-               <Reports company={company} cycle={data.cycle} />
-            )}
-            {tab === 'data' && (
-               <DataRequests
+            {tab === 'pilots' && <Pilots company={company} />}
+            {tab === 'tasks' && <Tasks company={company} />}
+            {tab === 'dataroom' && (
+               <DataRoomTab
                   company={company}
+                  cycle={data.cycle}
+                  deal={deal}
                   requests={dataRequests}
-                  onNew={() => setRequesting(true)}
+                  onNewRequest={() => setRequesting(true)}
                />
             )}
-            {tab === 'pilots' && <Pilots companyId={company.id} data={data} />}
-            {tab === 'tasks' && <Tasks company={company} />}
          </PageBody>
          <CompanyDialog
             company={editing ? company : null}

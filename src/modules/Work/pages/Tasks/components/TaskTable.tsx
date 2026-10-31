@@ -1,12 +1,15 @@
 import { listName } from '@modules/Settings/services';
 import { StatusBadge, TaskCheck } from '@modules/Work/components';
 import {
+   TASK_GROUP_LABELS,
+   TASK_GROUP_ORDER,
    TASK_PRIORITY_LABELS,
    TASK_RELATION_SECTIONS,
 } from '@modules/Work/constants';
 import {
    getAssigneeId,
    isOverdue,
+   statusGroup,
    taskKey,
    tickOf,
    typeTone,
@@ -27,7 +30,7 @@ import { formatNumericDate, personName } from '@shared/helpers';
 import { useCurrentUser, useRequest } from '@shared/hooks';
 import type { Task, TaskPriority } from '@shared/types/work.types';
 import clsx from 'clsx';
-import type { MouseEvent } from 'react';
+import { Fragment, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -154,9 +157,17 @@ const TaskRow = ({ task, targetName, fileCount, onTick }: TaskRowProps) => {
    );
 };
 
-// «Список»: the tasks in a table, the nearest deadline first.
+const COLUMNS = 8;
+
+/* «Список»: the tasks in a table by the groups of their statuses — «К
+   выполнению», «В работе», «Завершено» — each under its name and count,
+   the nearest deadline first within it. */
 const TaskTable = ({ tasks, targetName, files, onTick }: TaskTableProps) => {
    const { t } = useTranslation('work');
+   const groups = TASK_GROUP_ORDER.map((group) => ({
+      group,
+      tasks: tasks.filter((task) => statusGroup(task.status) === group),
+   })).filter((one) => one.tasks.length);
 
    return (
       <Card>
@@ -178,14 +189,30 @@ const TaskTable = ({ tasks, targetName, files, onTick }: TaskTableProps) => {
                   </>
                }
             >
-               {tasks.map((task) => (
-                  <TaskRow
-                     key={task.id}
-                     fileCount={files.get(task.id) ?? 0}
-                     targetName={targetName}
-                     task={task}
-                     onTick={onTick}
-                  />
+               {groups.map(({ group, tasks: inGroup }) => (
+                  <Fragment key={group}>
+                     <tr className='bg-ground/70'>
+                        <th
+                           className='text-ink-soft px-4.5 py-2 text-left text-[11px] font-bold tracking-[0.06em] uppercase'
+                           colSpan={COLUMNS}
+                           scope='rowgroup'
+                        >
+                           {t(TASK_GROUP_LABELS[group])}
+                           <span className='bg-hover ml-2 rounded-full px-2 py-0.5 tabular-nums'>
+                              {inGroup.length}
+                           </span>
+                        </th>
+                     </tr>
+                     {inGroup.map((task) => (
+                        <TaskRow
+                           key={task.id}
+                           fileCount={files.get(task.id) ?? 0}
+                           targetName={targetName}
+                           task={task}
+                           onTick={onTick}
+                        />
+                     ))}
+                  </Fragment>
                ))}
             </Table>
          ) : (

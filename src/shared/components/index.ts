@@ -11,6 +11,11 @@ export { default as BadgeSelect, type BadgeOption } from './BadgeSelect';
 export { default as BoardGap } from './BoardGap';
 export { default as Button, buttonClass, Spinner } from './Button';
 export { default as Card, STACK } from './Card';
+export {
+   default as ChartTooltip,
+   type TooltipRow,
+   useChartHover,
+} from './ChartTooltip';
 export { default as Checkbox } from './Checkbox';
 export { default as CheckList } from './CheckList';
 export { default as ChoiceCards, type Choice } from './ChoiceCards';

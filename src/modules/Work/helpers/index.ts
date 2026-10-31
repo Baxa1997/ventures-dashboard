@@ -370,6 +370,7 @@ export const getInitialValues = (
    relationId: task?.relationId ?? '',
    assigneeId: task ? task.assigneeId : userId,
    reviewerId: task?.reviewerId ?? '',
+   startDate: task?.startDate ?? '',
    dueDate: task?.dueDate ?? '',
    priority: task?.priority ?? 'medium',
    status: task?.status ?? 'assigned',

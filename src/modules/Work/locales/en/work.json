@@ -278,5 +278,14 @@
    "ещё {{count}}_few": "{{count}} more",
    "ещё {{count}}_many": "{{count}} more",
    "ещё {{count}}_other": "{{count}} more",
-   "Исполнители": "Assignees"
+   "Исполнители": "Assignees",
+   "Начало позже дедлайна": "The start is after the deadline",
+   "К выполнению": "To do",
+   "Завершено": "Complete",
+   "Дата начала": "Start date",
+   "Дата начала сохранится, когда в ucode будет партия 14": "The start date is kept once ucode has batch 14",
+   "Изменена": "Updated",
+   "Начата": "Started",
+   "«Начата», «Завершена» со временем и дата начала сохраняются, когда в ucode есть партия 14.": "“Started”, “Completed” with its time and the start date are kept once ucode has batch 14.",
+   "Всего": "Total"
 }

@@ -296,7 +296,7 @@ A document holds a link, not the file: what is uploaded to ucode Files opens for
 | Stage | Norm | Leaves when | Moved by | Applicant sees |
 | --- | --- | --- | --- | --- |
 | inbox | 2 wd | taken into screening or rejected | an analyst takes it; the director assigns | Заявка отправлена |
-| screening | 5 wd, published | 7 criteria scored with reasons; a second employee confirms | owner | Скрининг |
+| screening | 5 wd, published | the criteria of Настройки scored with reasons; a second employee confirms | owner | Скрининг |
 | meeting | 10 wd | meeting protocol; DD questionnaire sent | owner | Встреча |
 | analysis | 10 wd | memorandum and IC materials 3 wd before the meeting; readiness list done | owner, with the director's approval | Due diligence |
 | ic1 | until the meeting | ИК-1 decides: detailed DD or refusal | the protocol | Due diligence |
@@ -322,7 +322,7 @@ wd = working days. The clock stands while the fund waits for the applicant (an o
 **deal_take**(deal, owner): review → active, stage screening, starts the clock, makes the seven empty `screening_scores` rows, writes `taken` and `stage`.
 
 **deal_transfer**(deal):
-1. Checks the current stage's exit conditions: for screening, all seven criteria scored with reasons and a second reviewer chosen; for the other stages, every `deal_checklists` row of the list `exit` done.
+1. Checks the current stage's exit conditions: for screening, all the criteria of Настройки scored with reasons and a second reviewer chosen; for the other stages, every `deal_checklists` row of the list `exit` done.
 2. The moves analysis → ic1 and dd → ic2 need the director's approval (system map: the director approves moves to the committee).
 3. Closes the stage: `left_at`, `days_used`, `late` in `deal_stage_history`.
 4. Opens the next one: norm and due date from `stage_norms`, the next step's wording from the stage.

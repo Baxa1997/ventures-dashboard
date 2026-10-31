@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { COMPANY_MAX, FIELD_FACTS, TEXT_MAX } from '../constants';
 import { applicationText } from '../helpers';
 import deals from '../services';
+import { hasCompanyFields } from '../services/ucode';
 import { fieldErrors, newDealSchema, type ValidationKey } from '../validations';
 
 interface NewDealDialogProps {
@@ -24,10 +25,33 @@ interface NewDealDialogProps {
    onCreated?: (deal: Deal) => void;
 }
 
-type TextKey = 'company' | 'about' | 'industry' | 'amount';
+type TextKey =
+   | 'company'
+   | 'about'
+   | 'industry'
+   | 'amount'
+   | 'legalName'
+   | 'tin'
+   | 'foundedYear'
+   | 'employees'
+   | 'website'
+   | 'applicantEmail'
+   | 'applicantPhone';
 type ListKey = 'industryKey' | 'source' | 'roundStage' | 'country';
 
-const INITIAL = { company: '', about: '', industry: '', amount: '' };
+const INITIAL = {
+   company: '',
+   about: '',
+   industry: '',
+   amount: '',
+   legalName: '',
+   tin: '',
+   foundedYear: '',
+   employees: '',
+   website: '',
+   applicantEmail: '',
+   applicantPhone: '',
+};
 
 // The list's row with this key if the list has it in use, else its first row.
 const preferred = (kind: ListKind, key: string) => {
@@ -50,6 +74,13 @@ const NewDealForm = ({
               about: deal.about,
               industry: deal.industry,
               amount: deal.amount ? String(deal.amount) : '',
+              legalName: deal.legalName,
+              tin: deal.tin,
+              foundedYear: deal.foundedYear ? String(deal.foundedYear) : '',
+              employees: deal.employees ? String(deal.employees) : '',
+              website: deal.website,
+              applicantEmail: deal.applicantEmail ?? '',
+              applicantPhone: deal.applicantPhone ?? '',
            }
          : INITIAL,
    );
@@ -124,7 +155,12 @@ const NewDealForm = ({
          });
          return;
       }
-      saving.run({ ...result.data, ...choices });
+      saving.run({
+         ...result.data,
+         ...choices,
+         foundedYear: Number(result.data.foundedYear) || null,
+         employees: Number(result.data.employees) || null,
+      });
    };
 
    const select = (key: ListKey, kind: ListKind, empty?: string) => (
@@ -220,6 +256,41 @@ const NewDealForm = ({
                <Field label={t('Страна')}>
                   {select('country', 'countries')}
                </Field>
+               <Field error={errorOf('legalName')} label={t('Юр. лицо')}>
+                  {input('legalName')}
+               </Field>
+               <Field error={errorOf('tin')} label={t('ИНН')}>
+                  {input('tin', { inputMode: 'numeric' })}
+               </Field>
+               <Field error={errorOf('foundedYear')} label={t('Год основания')}>
+                  {input('foundedYear', { inputMode: 'numeric' })}
+               </Field>
+               <Field error={errorOf('employees')} label={t('Сотрудников')}>
+                  {input('employees', { inputMode: 'numeric' })}
+               </Field>
+               <Field
+                  className='sm:col-span-2'
+                  error={errorOf('website')}
+                  label={t('Сайт')}
+               >
+                  {input('website')}
+               </Field>
+               <Field
+                  error={errorOf('applicantEmail')}
+                  label={t('Эл. почта')}
+               >
+                  {input('applicantEmail')}
+               </Field>
+               <Field error={errorOf('applicantPhone')} label={t('Телефон')}>
+                  {input('applicantPhone')}
+               </Field>
+               {!hasCompanyFields() && (
+                  <p className='text-ink-soft text-xs sm:col-span-2'>
+                     {t(
+                        'Юр. лицо, ИНН, год основания и число сотрудников сохранятся, когда в ucode будет партия 17.',
+                     )}
+                  </p>
+               )}
                {facts.map(
                   ([label, value], index) =>
                      !FIELD_FACTS.includes(label) && (

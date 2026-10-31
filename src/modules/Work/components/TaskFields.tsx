@@ -1,9 +1,11 @@
 import { listName, listOf } from '@modules/Settings/services';
 import { Avatar, type BadgeTone, inkOf, tintOf } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
+import { formatNumericDate, formatNumericStamp } from '@shared/helpers';
 import { useCurrentUser } from '@shared/hooks';
 import type {
    Employee,
+   Task,
    TaskInput,
    TaskPriority,
    TaskRecurrence,
@@ -12,11 +14,16 @@ import type {
 import clsx from 'clsx';
 import {
    Briefcase,
+   CalendarArrowUp,
    CalendarClock,
+   CalendarPlus,
+   CircleCheck,
    ExternalLink,
    FileText,
    Handshake,
    type LucideIcon,
+   PencilLine,
+   Play,
    Repeat,
    Shapes,
    SignalMedium,
@@ -28,6 +35,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import {
+   TASK_GROUP_LABELS,
+   TASK_GROUP_ORDER,
    TASK_PRIORITY_LABELS,
    TASK_PRIORITY_ORDER,
    TASK_RECURRENCE_LABELS,
@@ -37,11 +46,13 @@ import {
 import {
    shortName,
    statusColor,
+   statusGroup,
    statusName,
    statusTone,
    taskStatuses,
 } from '../helpers';
 import { closeTaskDialog } from '../hooks/useTaskDialog';
+import work from '../services';
 
 // The status select takes the colour of the chosen status.
 const STATUS_TONES: Record<BadgeTone, string> = {
@@ -157,14 +168,23 @@ export const StatusSelect = ({ value, onChange }: StatusSelectProps) => {
          value={value}
          onChange={(event) => onChange(event.target.value)}
       >
-         {withCurrent(
-            taskStatuses().map(({ key }) => key),
-            value,
-         ).map((status) => (
-            <option key={status} value={status}>
-               {statusName(t, status)}
-            </option>
-         ))}
+         {TASK_GROUP_ORDER.map((group) => {
+            const statuses = withCurrent(
+               taskStatuses().map(({ key }) => key),
+               value,
+            ).filter((status) => statusGroup(status) === group);
+            return (
+               statuses.length > 0 && (
+                  <optgroup key={group} label={t(TASK_GROUP_LABELS[group])}>
+                     {statuses.map((status) => (
+                        <option key={status} value={status}>
+                           {statusName(t, status)}
+                        </option>
+                     ))}
+                  </optgroup>
+               )
+            );
+         })}
       </select>
    );
 };
@@ -177,26 +197,38 @@ export type DetailValues = Pick<
    | 'priority'
    | 'relation'
    | 'relationId'
+   | 'startDate'
    | 'dueDate'
    | 'reviewerId'
    | 'recurrence'
 >;
+
+// A moment as a date with its time, or a day where only the day is known.
+const momentText = (moment: string) =>
+   moment.length > 10
+      ? formatNumericStamp(moment)
+      : formatNumericDate(moment);
 
 interface TaskDetailsProps {
    values: DetailValues;
    creatorId: string;
    employees: Employee[];
    targets: TaskTargets;
-   errors?: Partial<Record<'relationId' | 'dueDate', string>>;
+   errors?: Partial<Record<'relationId' | 'startDate' | 'dueDate', string>>;
    overdue?: boolean; // the deadline in red
    basis?: string; // the document the task comes from
    withLinks?: boolean; // the deal and the company open from here
+   task?: Task; // a task that exists: its technical fields too
    onChange: (patch: Partial<DetailValues>) => void;
 }
 
 /* «Детали» of a task: its type, who does and checks it, its priority, what
-   it is about, its deadline and its repetition. Each value reads as text
-   and turns into its select when pointed at. */
+   it is about, when it starts and its deadline, and its repetition. Each
+   value reads as text and turns into its select when pointed at. A task
+   that exists also shows its technical fields: when it was made, last
+   changed, begun (first left «К выполнению») and finished (entered
+   «Завершено»). The start and the last two are kept once ucode has batch
+   14. */
 export const TaskDetails = ({
    values,
    creatorId,
@@ -206,6 +238,7 @@ export const TaskDetails = ({
    overdue = false,
    basis,
    withLinks = false,
+   task,
    onChange,
 }: TaskDetailsProps) => {
    const { t } = useTranslation('work');
@@ -326,7 +359,33 @@ export const TaskDetails = ({
          <Detail error={errors.relationId} icon={Handshake} label={t('Сделка')}>
             {target('deal', t('Без сделки'), targets.deal)}
          </Detail>
-         <Detail error={errors.dueDate} icon={CalendarClock} label={t('Дедлайн')}>
+         <Detail
+            error={errors.startDate}
+            icon={CalendarArrowUp}
+            label={t('Дата начала')}
+         >
+            <input
+               aria-invalid={!!errors.startDate}
+               className={DETAIL_INPUT}
+               disabled={!work.hasStampFields()}
+               max={values.dueDate || undefined}
+               title={
+                  work.hasStampFields()
+                     ? undefined
+                     : t(
+                          'Дата начала сохранится, когда в ucode будет партия 14',
+                       )
+               }
+               type='date'
+               value={values.startDate}
+               onChange={(event) => onChange({ startDate: event.target.value })}
+            />
+         </Detail>
+         <Detail
+            error={errors.dueDate}
+            icon={CalendarClock}
+            label={t('Дедлайн')}
+         >
             <input
                aria-invalid={!!errors.dueDate}
                className={clsx(DETAIL_INPUT, overdue && 'text-danger')}
@@ -359,6 +418,38 @@ export const TaskDetails = ({
             <Detail icon={FileText} label={t('Основание')}>
                <span className='block px-1.5 font-semibold'>{basis}</span>
             </Detail>
+         )}
+         {task &&
+            [
+               {
+                  icon: CalendarPlus,
+                  label: t('Создана'),
+                  moment: task.stamps.created || task.createdAt,
+               },
+               {
+                  icon: PencilLine,
+                  label: t('Изменена'),
+                  moment: task.stamps.updated,
+               },
+               { icon: Play, label: t('Начата'), moment: task.stamps.started },
+               {
+                  icon: CircleCheck,
+                  label: t('Завершена'),
+                  moment: task.stamps.finished || (task.completedAt ?? ''),
+               },
+            ].map(({ icon, label, moment }) => (
+               <Detail key={label} icon={icon} label={label}>
+                  <span className='block px-1.5 font-semibold tabular-nums'>
+                     {moment ? momentText(moment) : '—'}
+                  </span>
+               </Detail>
+            ))}
+         {task && !work.hasStampFields() && (
+            <p className='text-ink-soft px-1.5 pt-1.5 text-xs'>
+               {t(
+                  '«Начата», «Завершена» со временем и дата начала сохраняются, когда в ucode есть партия 14.',
+               )}
+            </p>
          )}
       </div>
    );

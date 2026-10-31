@@ -1193,6 +1193,137 @@ New fields in the existing table portfolio_companies
 - exit_buyer: SINGLE_LINE
 ```
 
+## Batch 14 — a task's start and its moments
+
+Задачи keep, as the prototype does, the day a task is to begin (the timeline draws its bar from there to the deadline) and, as technical fields on the task's card, the moments it was begun (first left «К выполнению») and finished (entered «Завершено»). ucode's own `created_at` and `updated_at` are the moments it was made and last changed. `completed_at` (DATE) stays as it is: a type change empties the column. Until these fields exist the panel keeps neither the start nor the two moments, and the task's card says so.
+
+```
+Batch 14. Same rules.
+
+New fields in the existing table tasks
+- start_date: DATE
+- started_at: DATE_TIME
+- finished_at: DATE_TIME
+```
+
+## Batch 15 — a DD workstream's conclusion
+
+Due Diligence draws each workstream as the design's audit card: the auditor (`executor`), its status, the conclusion picked — positive, with remarks or negative — the remarks (`conclusion`), the files and the day of the conclusion, set when the workstream is done and cleared when it is reopened. Until these fields exist the card keeps the rest and says that the conclusion and its date are not kept.
+
+```
+Batch 15. Same rules.
+
+New fields in the existing table workstreams
+- verdict: PICK_LIST [positive, remarks, negative]
+- concluded_at: DATE
+```
+
+## Batch 16 — the DD's audits and the data room's folders
+
+The client's notes of 30 October: every deal has the design's three audits and the data room the design's seven folders, both lists in Настройки → Сделки, and a request names the folder its file goes to.
+
+- **Audits.** `dd_audit_types` lists them. Every deal shows a card per row in use. A card gets its `workstreams` row with its first change, and `audit_type` keeps the audit's slug on it; a row from before the field counts as an audit by its name. A filled-in audit whose row in the list is turned off or deleted stays on its deal as a card of its own.
+- **Folders.** `doc_folders` lists them. `deal_documents.doc_folder` and `deal_requests.doc_folder` keep a folder's slug, as plain fields. A deal's older folder stays in the relation `deal_documents → deal_folders`, and no new ones are made. A file of the cabinet has no folder of its own and lies in its request's.
+- **Size.** `deal_documents.file_size` keeps a file's bytes, for the design's «Размер». Older files show «—».
+
+Until the tables have rows the panel shows the same lists built in, and Настройки shows them with a note and does not change them. Until the fields exist a file's folder and size are not kept and the data room's foot says so; an audit's row is then tied to its card by its name.
+
+The tables, fields and rows are made with `node scripts/ucode/fields.mjs tables 16`, `node scripts/ucode/fields.mjs create 16` and `node scripts/ucode/rows.mjs insert 16 --write`, in that order.
+
+```
+Batch 16. Same rules: every new table inside the folder "Admin", in "Settings and lists".
+
+Table doc_folders
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table dd_audit_types
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+New fields in the existing table deal_documents
+- doc_folder: SINGLE_LINE
+- file_size: NUMBER
+
+New fields in the existing table deal_requests
+- doc_folder: SINGLE_LINE
+
+New fields in the existing table workstreams
+- audit_type: SINGLE_LINE
+
+Rows for doc_folders (slug | name_ru | name_uz | name_en | sort_order | is_active)
+- corporate | Корпоративные | Korporativ | Corporate | 1 | true
+- financial | Финансовые | Moliyaviy | Financial | 2 | true
+- legal | Юридические | Yuridik | Legal | 3 | true
+- product | Продукт и технологии | Mahsulot va texnologiyalar | Product and technology | 4 | true
+- team | Команда | Jamoa | Team | 5 | true
+- market | Рынок и трекшн | Bozor va trekshn | Market and traction | 6 | true
+- investment | Инвестиционные документы | Investitsiya hujjatlari | Investment documents | 7 | true
+
+Rows for dd_audit_types (slug | name_ru | name_uz | name_en | sort_order | is_active)
+- legal | Юридический аудит | Yuridik audit | Legal audit | 1 | true
+- finance | Финансовый аудит | Moliyaviy audit | Financial audit | 2 | true
+- it | IT-аудит | IT-audit | IT audit | 3 | true
+```
+
+## Batch 17 — the screening's criteria, the company's details, the questionnaire's questions
+
+The client's notes of 31 October: every deal is scored on the same criteria, which the fund can change; the deal's card shows the company as the design has it; the founder's questionnaire is one for all deals, its questions changed in Настройки, its answers written by the fund and the founder alike.
+
+- **Criteria.** `screening_criteria` lists them with what each covers and its weight, %. A score stays in `screening_scores` by the criterion's slug. A deal's scores on the criteria from before this list count on the design's where one replaces another (`demand` on `traction`, `economics` on `model`, `mandate` on `synergy`); those on `regulation`, and on a criterion deleted later, stay in the table and are not shown.
+- **The company.** `deals` gets the legal name, the TIN, the year founded, the employees, and `owners`, the capital before the deal as JSON: `[{name, role, share}]`.
+- **Questions.** `fund_settings.questionnaire` holds them as JSON: `[{id, title: {ru, uz, en}, fields: [{id, kind, label: {ru, uz, en}, options: [{ru, uz, en}]}]}]`, `kind` being `text`, `area`, `number`, `select` or `yesno`. The panel and the startup cabinet read the same field; both have the design's list built in until it is set. A question's id keys its answers and its kind checks them, so neither changes once it is made.
+- **Answers.** `deal_questionnaires` stays one row per deal in use (the newest). `updated_by_id` says which employee wrote last; the cabinet empties it when the founder saves.
+
+Until the table has rows the panel shows the same criteria built in, and Настройки shows them with a note and does not change them; the same for the questions until the field exists. Until the fields exist the company's details and the capital are not kept, and the deal's form says so.
+
+The tables, fields and rows are made with `node scripts/ucode/fields.mjs tables 17`, `node scripts/ucode/fields.mjs create 17` and `node scripts/ucode/rows.mjs insert 17 --write`, in that order.
+
+```
+Batch 17. Same rules: every new table inside the folder "Admin", in "Settings and lists".
+
+Table screening_criteria
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- hint_ru: SINGLE_LINE
+- hint_uz: SINGLE_LINE
+- hint_en: SINGLE_LINE
+- weight: NUMBER
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+New fields in the existing table deals
+- legal_name: SINGLE_LINE
+- tin: SINGLE_LINE
+- founded_year: NUMBER
+- employees_count: NUMBER
+- owners: JSON
+
+New fields in the existing table fund_settings
+- questionnaire: JSON
+
+New fields in the existing table deal_questionnaires
+- updated_by_id: SINGLE_LINE
+
+Rows for screening_criteria (slug | name_ru | name_uz | name_en | hint_ru | hint_uz | hint_en | weight | sort_order | is_active)
+- team | Команда | Jamoa | Team | Опыт основателей в отрасли, полнота команды | Asoschilarning sohadagi tajribasi, jamoaning to‘liqligi | The founders’ experience in the industry, how complete the team is | 25 | 1 | true
+- market | Рынок | Bozor | Market | Размер и рост рынка в Центральной Азии | Markaziy Osiyoda bozor hajmi va o‘sishi | The size and growth of the market in Central Asia | 15 | 2 | true
+- product | Продукт | Mahsulot | Product | Готовность, технологичность, защищённость | Tayyorlik, texnologik daraja, himoyalanganlik | Readiness, technology, defensibility | 15 | 3 | true
+- traction | Трекшн | Trekshn | Traction | Выручка, клиенты, динамика | Tushum, mijozlar, dinamika | Revenue, customers, momentum | 15 | 4 | true
+- model | Бизнес-модель | Biznes-model | Business model | Юнит-экономика и путь к прибыльности | Birlik iqtisodiyoti va foydaga chiqish yo‘li | Unit economics and the path to profit | 10 | 5 | true
+- synergy | Синергия с SQB | SQB bilan sinergiya | Synergy with SQB | Пилот или интеграция с банком и его клиентами | Bank va uning mijozlari bilan pilot yoki integratsiya | A pilot or integration with the bank and its customers | 20 | 6 | true
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

@@ -5,7 +5,7 @@ export interface TabItem<T extends string> {
    id: T;
    label: string;
    icon?: LucideIcon;
-   count?: number;
+   count?: number | string; // a number, or a share such as 1/3
 }
 
 interface TabsProps<T extends string> {

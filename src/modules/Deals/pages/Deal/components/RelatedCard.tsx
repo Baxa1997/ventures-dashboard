@@ -1,3 +1,4 @@
+import { ddStreams } from '@modules/Deals/helpers';
 import { useDealLinks } from '@modules/Deals/hooks';
 import { PORTFOLIO_PATH } from '@modules/Portfolio/constants';
 import { Card, FactList, type FactRow } from '@shared/components';
@@ -22,7 +23,7 @@ const RelatedCard = ({ deal }: RelatedCardProps) => {
       ({ status }) => status === 'waiting',
    ).length;
    const documents = deal.documents?.length ?? 0;
-   const streams = deal.workstreams ?? [];
+   const streams = ddStreams(deal);
    const closed = streams.filter(({ status }) => status === 'done').length;
    const decisions = deal.decisions?.length ?? 0;
 
@@ -45,7 +46,7 @@ const RelatedCard = ({ deal }: RelatedCardProps) => {
                .join(' · '),
          ),
       },
-      streams.length > 0 && {
+      !!deal.workstreams?.length && {
          label: t('DD'),
          value: link(
             '?tab=dd',

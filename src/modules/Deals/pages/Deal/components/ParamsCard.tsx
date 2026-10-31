@@ -15,18 +15,6 @@ interface ParamsCardProps {
 
 const SELECT = 'field-input text-meta h-8 text-ink';
 
-// What updateDetails writes: the deal's details as they are.
-const detailsOf = (deal: Deal): NewDealInput => ({
-   company: deal.company,
-   about: deal.about,
-   industryKey: deal.industryKey,
-   industry: deal.industry,
-   source: deal.source,
-   amount: deal.amount,
-   country: deal.country,
-   roundStage: deal.roundStage,
-});
-
 /* «Параметры сделки», as the prototype has them: the amount asked for, and
    the owner, the round's stage and the source, each changed where it stands
    while the deal is open; a refused deal shows its reason. */
@@ -40,7 +28,7 @@ const ParamsCard = ({ deal }: ParamsCardProps) => {
       { success: t('Владелец назначен') },
    );
    const saving = useAction((patch: Partial<NewDealInput>) =>
-      deals.updateDetails(deal.id, { ...detailsOf(deal), ...patch }, user.id),
+      deals.updateDetails(deal.id, patch, user.id),
    );
 
    // a list's rows in use, and the deal's own value if the list lost it
@@ -62,7 +50,7 @@ const ParamsCard = ({ deal }: ParamsCardProps) => {
                   {formatAmount(deal.amount, language)}
                </div>
             </div>
-            <Field label={t('Владелец')}>
+            <Field label={t('Инвестиционный менеджер')}>
                <select
                   className={SELECT}
                   disabled={!editable || owning.pending}
@@ -77,7 +65,7 @@ const ParamsCard = ({ deal }: ParamsCardProps) => {
                   ))}
                </select>
             </Field>
-            <Field label={t('Стадия раунда')}>
+            <Field label={t('Раунд')}>
                <select
                   className={SELECT}
                   disabled={!editable || saving.pending}
@@ -96,7 +84,7 @@ const ParamsCard = ({ deal }: ParamsCardProps) => {
                   )}
                </select>
             </Field>
-            <Field label={t('Источник')}>
+            <Field label={t('Источник сделки')}>
                <select
                   className={SELECT}
                   disabled={!editable || saving.pending}

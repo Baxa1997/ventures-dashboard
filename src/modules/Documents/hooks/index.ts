@@ -5,7 +5,7 @@ import {
    DOCUMENT_STATUS_LABELS,
    DOCUMENT_STATUS_TONES,
 } from '@modules/Deals/constants';
-import { isOpen } from '@modules/Deals/helpers';
+import { isOpen, placeOf, roomFolders } from '@modules/Deals/helpers';
 import { useDeals } from '@modules/Deals/hooks';
 import { stageName } from '@modules/Settings/services';
 import { personName } from '@shared/helpers';
@@ -91,12 +91,6 @@ export const useFileTree = (data: FilesData) => {
    const meetingOf = (id: string) =>
       meetings.find((meeting) => meeting.id === id);
 
-   // a document in a folder that is gone lies at the top, as on the card
-   const placeOf = (deal: Deal, document: DealDocument) =>
-      deal.folders?.some(({ id }) => id === document.folderId)
-         ? document.folderId
-         : '';
-
    const dealDocumentNode = (
       deal: Deal,
       document: DealDocument,
@@ -119,9 +113,9 @@ export const useFileTree = (data: FilesData) => {
       subject: { type: 'deal_document', deal, document },
    });
 
-   // a data room's level: its folders, then its documents
+   // a data room's level: its folders, as on the card, then its documents
    const dealLevel = (deal: Deal, folderId: string): FileNode[] => {
-      const folders = (deal.folders ?? []).filter(
+      const folders = roomFolders(deal).filter(
          (folder) => folder.parentId === folderId && folder.id !== folderId,
       );
       const files = (deal.documents ?? []).filter(
@@ -292,7 +286,13 @@ export const useFileTree = (data: FilesData) => {
                      (document) => dealDocumentNode(deal, document).date,
                   ),
                ),
-               folder: { path: ['deals', deal.id], count: inner.length },
+               // the folders with something in them, as the design counts
+               folder: {
+                  path: ['deals', deal.id],
+                  count: inner.filter(
+                     ({ folder }) => !folder || folder.count > 0,
+                  ).length,
+               },
                url: '',
                subject: { type: 'deal', deal },
             };
@@ -341,7 +341,7 @@ export const useFileTree = (data: FilesData) => {
       if (area === 'deals') {
          const deal = dealOf(first);
          if (!deal) return null;
-         const folders = deal.folders ?? [];
+         const folders = roomFolders(deal);
          // the folders from the top down to the open one
          const chain: DealFolder[] = [];
          for (

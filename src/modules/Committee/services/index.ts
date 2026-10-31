@@ -1066,6 +1066,7 @@ class Committee {
                      relationId: item.dealId ?? '',
                      assigneeId: owner || directorId(),
                      reviewerId: '',
+                     startDate: '',
                      dueDate: '',
                      priority: 'high',
                      status: 'assigned',

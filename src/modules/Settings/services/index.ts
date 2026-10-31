@@ -27,6 +27,7 @@ import type {
    ListItem,
    ListItemInput,
    ListKind,
+   QuestionSection,
    SettingsState,
    StaffInput,
    StaffMember,
@@ -35,7 +36,8 @@ import type {
    StageItem,
    StatusGroup,
 } from '@shared/types/settings.types';
-import { DEFAULT_STAGES } from '../constants';
+import { BUILT_IN_LISTS, DEFAULT_STAGES } from '../constants';
+import { BUILT_IN_QUESTIONNAIRE } from '../constants/questionnaire';
 import type { SupportedLanguageType } from '@shared/types/system/language.types';
 import type { Role } from '@shared/types/work.types';
 
@@ -191,6 +193,9 @@ const LIST_TABLES: Record<
    metrics: { table: 'portfolio_metrics', key: 'slug', names: 'name' },
    reportDocs: { table: 'report_documents', key: 'slug', names: 'name' },
    docTemplates: { table: 'document_templates', key: 'slug', names: 'name' },
+   docFolders: { table: 'doc_folders', key: 'slug', names: 'name' },
+   ddAudits: { table: 'dd_audit_types', key: 'slug', names: 'name' },
+   criteria: { table: 'screening_criteria', key: 'slug', names: 'name' },
 };
 
 /* Where a list's rows are used: the tables whose rows point to an item, by
@@ -225,6 +230,14 @@ const USES: Record<
    ],
    reportDocs: [],
    docTemplates: [],
+   docFolders: [
+      { table: 'deal_documents', field: 'doc_folder', by: 'key' },
+      { table: 'deal_requests', field: 'doc_folder', by: 'key' },
+   ],
+   // a filled-in audit keeps its name and stays on its deal as its own card
+   ddAudits: [],
+   // a deal's scores stay in ucode, not shown, and come back with the criterion
+   criteria: [],
 };
 
 const GROUPS: StatusGroup[] = ['todo', 'progress', 'complete'];
@@ -235,6 +248,19 @@ const oneOf = <T extends string>(options: T[], value: unknown, fallback: T) =>
    options.find((option) => option === value) ?? fallback;
 
 export const LIST_KINDS = Object.keys(LIST_TABLES) as ListKind[];
+
+const BUILT_IN = 'built-in:';
+
+// A row of the design's own list, not yet in ucode (batch 16): shown, not changed.
+export const isBuiltIn = (item: ListItem) => item.id.startsWith(BUILT_IN);
+
+const builtInList = (kind: ListKind): ListItem[] =>
+   (BUILT_IN_LISTS[kind] ?? []).map((item, index) => ({
+      ...item,
+      id: `${BUILT_IN}${item.key}`,
+      sortOrder: index + 1,
+      active: true,
+   }));
 
 /* Deletes a list's file — a template replaced or deleted — unless a request
    still offers it: a request's template is a copy pointing to the same file,
@@ -281,6 +307,14 @@ const toItem = (kind: ListKind, row: Row): ListItem => {
       ...(kind === 'metrics' && {
          format: oneOf(FORMATS, row.format, 'number'),
       }),
+      ...(kind === 'criteria' && {
+         hints: {
+            ru: str(row.hint_ru),
+            uz: str(row.hint_uz),
+            en: str(row.hint_en),
+         },
+         weight: num(row.weight),
+      }),
       ...(withFile(kind) && {
          file: row.file_url
             ? {
@@ -315,6 +349,12 @@ const itemFields = (kind: ListKind, item: ListItemInput) => {
       // still saves the rest
       ...(kind === 'taskStatuses' && item.color && { color: item.color }),
       ...(kind === 'metrics' && { format: item.format ?? 'number' }),
+      ...(kind === 'criteria' && {
+         hint_ru: item.hints?.ru ?? '',
+         hint_uz: item.hints?.uz ?? '',
+         hint_en: item.hints?.en ?? '',
+         weight: item.weight ?? 0,
+      }),
       ...(withFile(kind) && {
          file_url: item.file?.url ?? '',
          file_name: item.file?.name ?? '',
@@ -362,15 +402,18 @@ let rowIds = { settings: '' };
 
 const store = createStore<SettingsState>(async () => {
    const [settingsRows, normRows, journal, employees, ...listRowsOf] =
-      await Promise.all(
-         [
-            'fund_settings',
-            'stage_norms',
-            'settings_journal',
-            'employees',
-            ...LIST_KINDS.map((kind) => LIST_TABLES[kind].table),
-         ].map((table) => listRows(table)),
-      );
+      await Promise.all([
+         listRows('fund_settings'),
+         listRows('stage_norms'),
+         listRows('settings_journal'),
+         listRows('employees'),
+         // a list with built-in rows may not have its table yet
+         ...LIST_KINDS.map((kind) =>
+            BUILT_IN_LISTS[kind]
+               ? listRows(LIST_TABLES[kind].table).catch(() => [])
+               : listRows(LIST_TABLES[kind].table),
+         ),
+      ]);
    const row: Partial<Row> = settingsRows[0] ?? {};
    rowIds = { settings: row.guid ?? '' };
    return {
@@ -401,11 +444,18 @@ const store = createStore<SettingsState>(async () => {
       lists: Object.fromEntries(
          LIST_KINDS.map((kind, index) => [
             kind,
-            listRowsOf[index]
-               .map((item) => toItem(kind, item))
-               .sort((a, b) => a.sortOrder - b.sortOrder),
+            listRowsOf[index].length
+               ? listRowsOf[index]
+                    .map((item) => toItem(kind, item))
+                    .sort((a, b) => a.sortOrder - b.sortOrder)
+               : builtInList(kind),
          ]),
       ) as Record<ListKind, ListItem[]>,
+      // an empty list the fund left is kept; no field, or never set: the design's
+      questionnaire: row.questionnaire
+         ? fromJson<QuestionSection[]>(row.questionnaire, BUILT_IN_QUESTIONNAIRE)
+         : BUILT_IN_QUESTIONNAIRE,
+      questionnaireStored: 'questionnaire' in row,
    };
 });
 
@@ -427,6 +477,18 @@ const language = () => (i18n.resolvedLanguage ?? 'ru') as SupportedLanguageType;
 // An item's name in the interface language, then in Russian.
 export const nameOf = (item: ListItem) =>
    item.names[language()] || item.names.ru || item.key;
+
+// A criterion's hint in the interface language, then in Russian.
+export const hintOf = (item: ListItem) =>
+   item.hints?.[language()] || item.hints?.ru || '';
+
+// The questions in a language, for a section's or a question's own name.
+export const namesIn = (names: Record<SupportedLanguageType, string>) =>
+   names[language()] || names.ru;
+
+// The founder's questionnaire as it is now (the design's until Настройки are read).
+export const questionnaireOf = () =>
+   currentSettings()?.questionnaire ?? BUILT_IN_QUESTIONNAIRE;
 
 // ---- the stages of a deal, for Сделки
 
@@ -572,6 +634,33 @@ class Settings {
             field,
             from_value: describe(before ?? null),
             to_value: describe(item),
+         }),
+      ]);
+      await store.reload();
+   }
+
+   /* Writes the founder's questionnaire, one for all deals, which the startup
+      cabinet reads too. The change goes to the journal. */
+   async saveQuestionnaire(
+      next: QuestionSection[],
+      userId: string,
+      change: { field: string; from: string; to: string },
+   ) {
+      const questionnaire = toJson(next);
+      await Promise.all([
+         rowIds.settings
+            ? updateRow('fund_settings', {
+                 guid: rowIds.settings,
+                 questionnaire,
+              })
+            : createRow('fund_settings', { guid: newId(), questionnaire }),
+         createRow('settings_journal', {
+            guid: newId(),
+            date: todayISO(),
+            employee_id: userId,
+            field: change.field,
+            from_value: change.from,
+            to_value: change.to,
          }),
       ]);
       await store.reload();

@@ -365,7 +365,7 @@ try {
    check('a question taken off the agenda: the item gone, the deal off the meeting', question?.dealId === other.id && emptied?.agenda.length === 0 && !otherAfter?.committee && !(await api.listRows('agenda_items')).some((row) => row.guid === question?.id), { question: question?.title, left: emptied?.agenda.length, committee: otherAfter?.committee });
 
    // ---- the card's sections the owner writes, read back from ucode (the deal is on DD)
-   const { defaultPath, readinessOf, teamOf } = await import('@modules/Deals/helpers');
+   const { ddStreams, defaultPath, readinessOf, teamOf } = await import('@modules/Deals/helpers');
    await deals.setTerms(deal.id, { instrument: 'safe', roundSize: 1000000, preMoney: 4000000, conditions: 'ZZ Cap $15M', valuation: 'ZZ $5–9M', structure: '', founder: 'ZZ Основатель', warning: 'ZZ вне мандата' });
    await deals.setMetrics(deal.id, { hint: 'факт 2025', items: [{ label: 'GMV', value: '$4,68M', note: '×2,6', warn: true }], note: 'ZZ DD' });
    await deals.setSynergy(deal.id, [['Расчёты', 'ZZ расчётный банк']]);
@@ -389,11 +389,11 @@ try {
    await deals.updateReadinessItem(deal.id, ownItems[0]?.id ?? '', 'ZZ Обоснование исключения v2');
    await deals.removeReadinessItem(deal.id, ownItems[1]?.id ?? '');
    forget('deal_checklists', ownItems[1]?.id ?? '');
-   await deals.addWorkstream(deal.id, { name: 'ZZ Legal DD', executor: 'ООО «ZZ» · договор № 1', dueDate: today });
-   const streamId = (await deals.getDeals()).find((d) => d.id === deal.id)?.workstreams?.find((w) => w.name === 'ZZ Legal DD')?.id ?? '';
+   // the first audit of Настройки: its row comes with its first change
+   const streamId = await deals.openAudit(deal.id, ddStreams((await deals.getDeals()).find((d) => d.id === deal.id)!)[0]);
    await deals.handOverWorkstream(deal.id, streamId, 'ООО «ZZ» · договор № 1');
    const handedReady = readinessOf(keys, { ...(await deals.getDeals()).find((d) => d.id === deal.id)!, stage: 'ic2' }).find((i) => i.id === `stream-${streamId}`)?.state;
-   await deals.concludeWorkstream(deal.id, streamId, 'ZZ вывод');
+   await deals.updateWorkstream(deal.id, streamId, { conclusion: 'ZZ вывод', status: 'done' });
    clearStores();
    const card = (await deals.getDeals()).find((d) => d.id === deal.id)!;
    const cardRow = (await api.listRows('deals')).find((row) => row.guid === deal.id);
@@ -416,19 +416,19 @@ try {
    await deals.updateDetails(deal.id, { company: original.company, about: original.about, industryKey: original.industryKey, industry: original.industry, source: original.source, amount: original.amount, country: original.country, roundStage: original.roundStage }, me.id);
    check("the deal's details changed, read back and in its journal", editedDeal.company === 'ZZ Test Co 2' && editedDeal.amount === 175000 && editedDeal.journal.some((e) => e.kind === 'edited'), { company: editedDeal.company, amount: editedDeal.amount, journal: editedDeal.journal.slice(0, 4).map((e) => e.kind) });
    const attachments = (await import('@shared/services/attachments')).default;
-   // a request answered by mail: it closes, and the clock runs again
-   await deals.addRequest(deal.id, { title: 'ZZ Отчётность за Q3', text: 'ZZ', dueDate: addWorkingDays(today, 5), ddQuestionnaire: false }, me.id);
+   // a request ticked as received: it closes, and the clock runs again
+   await deals.addRequest(deal.id, { title: 'ZZ Отчётность за Q3', text: 'ZZ', dueDate: addWorkingDays(today, 5), folder: 'financial', ddQuestionnaire: false }, me.id);
    const waitingDeal = await dealNow();
    const dealRequestId = waitingDeal.requests!.find((r) => r.title === 'ZZ Отчётность за Q3')!.id;
-   await deals.answerRequest(deal.id, dealRequestId, 'ZZ прислали по почте', me.id);
-   await deals.addRequest(deal.id, { title: 'ZZ Лишний запрос', text: '', dueDate: addWorkingDays(today, 5), ddQuestionnaire: false }, me.id);
+   await deals.receiveRequest(deal.id, dealRequestId, me.id);
+   await deals.addRequest(deal.id, { title: 'ZZ Лишний запрос', text: '', dueDate: addWorkingDays(today, 5), folder: '', ddQuestionnaire: false }, me.id);
    const extraId = (await dealNow()).requests!.find((r) => r.title === 'ZZ Лишний запрос')!.id;
    await attachments.addLink({ dealId: deal.id, section: 'request', itemId: extraId }, { title: 'ZZ к запросу', url: 'https://example.com/zz-extra' }, me.id);
    await deals.removeRequest(deal.id, extraId);
    clearStores();
    const answered = await dealNow();
    const answeredRequest = answered.requests?.find((r) => r.id === dealRequestId);
-   check('a request answered: closed with the answer, the clock runs again; a withdrawn one is gone with its link', waitingDeal.waiting && !answered.waiting && answeredRequest?.status === 'accepted' && answeredRequest.detail === 'ZZ прислали по почте' && !answered.requests?.some((r) => r.id === extraId) && !(await attachments.getAll()).some((a) => a.itemId === extraId) && answered.journal.some((e) => e.kind === 'answered'), { waiting: answered.waiting, request: answeredRequest });
+   check('a request ticked: closed, the clock runs again; a withdrawn one is gone with its link', waitingDeal.waiting && !answered.waiting && answeredRequest?.status === 'accepted' && !answered.requests?.some((r) => r.id === extraId) && !(await attachments.getAll()).some((a) => a.itemId === extraId) && answered.journal.some((e) => e.kind === 'answered'), { waiting: answered.waiting, request: answeredRequest });
    // a file the fund uploads to the data room, twice: two versions; then deleted with its file
    await deals.uploadDocument(deal.id, new File(['ZZ term sheet'], 'zz-term-sheet.txt', { type: 'text/plain' }), me.id);
    await deals.uploadDocument(deal.id, new File(['ZZ term sheet v2'], 'zz-term-sheet.txt', { type: 'text/plain' }), me.id);
@@ -438,41 +438,26 @@ try {
    if (uploaded[0]) await deals.updateDocument(deal.id, uploaded[0].id, { title: 'zz-term-sheet-renamed', folderId: '' });
    clearStores();
    const renamedDoc = (await dealNow()).documents?.find((d) => d.id === uploaded[0]?.id)?.title;
-   // data room folders: one inside another, a document moved in, the outer folder deleted: what it held moves up
-   await deals.addFolder(deal.id, 'ZZ Финансы', '', me.id);
-   const outer = (await dealNow()).folders!.find((f) => f.name === 'ZZ Финансы')!;
-   await deals.addFolder(deal.id, 'ZZ 2025', outer.id, me.id);
-   const inner = (await dealNow()).folders!.find((f) => f.name === 'ZZ 2025')!;
-   if (uploaded[1]) await deals.updateDocument(deal.id, uploaded[1].id, { title: uploaded[1].title, folderId: outer.id });
+   // a document moved into a folder of Настройки, kept by its key
+   if (uploaded[1]) await deals.updateDocument(deal.id, uploaded[1].id, { title: uploaded[1].title, folderId: 'financial' });
    clearStores();
    const filed = await dealNow();
-   await deals.removeFolder(deal.id, outer.id);
-   clearStores();
-   const unfiled = await dealNow();
-   check('data room folders: a folder inside another read back, a document moved in, the outer folder deleted moves both up', inner.parentId === outer.id && filed.documents?.find((d) => d.id === uploaded[1]?.id)?.folderId === outer.id && !unfiled.folders?.some((f) => f.id === outer.id) && unfiled.folders?.find((f) => f.id === inner.id)?.parentId === '' && unfiled.documents?.find((d) => d.id === uploaded[1]?.id)?.folderId === '', { folders: unfiled.folders });
-   await deals.removeFolder(deal.id, inner.id);
+   check('a document moved into a folder of Настройки reads back there', filed.documents?.find((d) => d.id === uploaded[1]?.id)?.folderId === 'financial', filed.documents);
    for (const document of uploaded) await deals.removeDocument(deal.id, document.id);
    clearStores();
-   // a request that carries a template; the answer's filled-in file goes to the data room, to be checked
-   await deals.addRequest(deal.id, { title: 'ZZ Анкета DD', text: 'ZZ заполните', dueDate: addWorkingDays(today, 5), ddQuestionnaire: false }, me.id, [{ title: 'ZZ Анкета', url: template!.file!.url }]);
+   // a request that carries a template
+   await deals.addRequest(deal.id, { title: 'ZZ Анкета DD', text: 'ZZ заполните', dueDate: addWorkingDays(today, 5), folder: '', ddQuestionnaire: false }, me.id, [{ title: 'ZZ Анкета', url: template!.file!.url }]);
    const templateRequest = (await dealNow()).requests!.find((r) => r.title === 'ZZ Анкета DD')!;
    const copies = (await attachments.getAll()).filter((a) => a.section === 'request' && a.itemId === templateRequest.id);
-   await deals.answerRequest(deal.id, templateRequest.id, 'ZZ заполнили', me.id, [new File(['ZZ filled'], 'zz-anketa-filled.txt', { type: 'text/plain' })]);
-   clearStores();
-   const afterAnswer = await dealNow();
-   const filled = afterAnswer.documents?.find((d) => d.requestId === templateRequest.id);
-   const filledOpens = filled?.url ? (await fetch(filled.url)).status : 0;
-   check("a request carries its template as a copy (no file id of its own); the answer's filled-in file is in the data room to be checked, tied to the request", copies.length === 1 && copies[0].url === template!.file!.url && copies[0].fileId === '' && copies[0].kind === 'file' && afterAnswer.requests?.find((r) => r.id === templateRequest.id)?.status === 'accepted' && filled?.status === 'review' && filled.uploadedBy === 'applicant' && filled.uploadedById === me.id && !!filled.fileId && filled.version === 1 && filledOpens === 200, { copies, filled, filledOpens });
+   check('a request carries its template as a copy (no file id of its own)', copies.length === 1 && copies[0].url === template!.file!.url && copies[0].fileId === '' && copies[0].kind === 'file', { copies });
    await deals.removeRequest(deal.id, templateRequest.id);
    clearStores();
-   const untied = (await dealNow()).documents?.find((d) => d.id === filled?.id);
-   check('a deleted request takes its copies and leaves the template; its answer stays in the data room, untied', untied?.requestId === '' && !(await attachments.getAll()).some((a) => a.itemId === templateRequest.id) && !!itemOf('docTemplates', 'zz_questionnaire')?.file, untied);
-   if (filled) await deals.removeDocument(deal.id, filled.id);
+   check('a deleted request takes its copies and leaves the template', !(await attachments.getAll()).some((a) => a.itemId === templateRequest.id) && !!itemOf('docTemplates', 'zz_questionnaire')?.file);
    await settings.deleteListItem('docTemplates', template!.id, null, me.id, 'Справочник «Шаблоны документов» · удалено: ZZ', 'ZZ Анкета');
    check('the template deleted from the list', !itemOf('docTemplates', 'zz_questionnaire'));
    check('documents the fund uploads: versions 1 and 2 with their files, read back as uploaded by the fund, one renamed, then deleted', uploaded.length === 2 && uploaded.map((d) => d.version).sort().join() === '1,2' && uploaded.every((d) => d.url && d.fileId && d.handled?.kind === 'uploaded' && d.uploadedBy === 'fund' && d.uploadedById === me.id) && opened === 200 && renamedDoc === 'zz-term-sheet-renamed' && !(await dealNow()).documents?.some((d) => uploaded.some((u) => u.id === d.id)), { versions: uploaded.map((d) => d.version), kinds: uploaded.map((d) => d.handled?.kind), opened, renamedDoc });
    // a workstream changed and deleted; DD's frame
-   const streamToEdit = (await dealNow()).workstreams!.find((w) => w.name === 'ZZ Legal DD')!;
+   const streamToEdit = (await dealNow()).workstreams!.find((w) => w.id === streamId)!;
    await deals.updateWorkstream(deal.id, streamToEdit.id, { name: 'ZZ Legal DD (группа)', executor: streamToEdit.executor, dueDate: addWorkingDays(today, 7), status: streamToEdit.status, conclusion: streamToEdit.conclusion });
    const renamed = (await dealNow()).workstreams?.find((w) => w.id === streamToEdit.id)?.name;
    await attachments.addLink({ dealId: deal.id, section: 'workstream', itemId: streamToEdit.id }, { title: 'ZZ отчёт', url: 'https://example.com/zz-report' }, me.id);

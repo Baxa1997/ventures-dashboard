@@ -63,7 +63,9 @@ export const describeRow = (
              ? t(METRIC_FORMAT_LABELS[row.format ?? 'number'])
              : flag === 'file'
                ? (row.file?.name ?? '')
-               : isSwitchFlag(flag) && row[flag]
+               : flag === 'weight'
+                 ? `${row.weight ?? 0}%`
+                 : isSwitchFlag(flag) && row[flag]
                  ? t(SWITCH_LABELS[flag])
                  : '';
    return [

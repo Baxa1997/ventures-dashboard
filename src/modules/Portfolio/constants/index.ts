@@ -16,55 +16,40 @@ import type {
 export const PORTFOLIO_PATH = '/portfolio';
 
 // The list's views; the address keeps the one shown (?view=board).
-export const LIST_VIEWS = [
-   'table',
-   'board',
-   'reports',
-   'requests',
-   'pilots',
-] as const;
+export const LIST_VIEWS = ['table', 'board'] as const;
 export type ListView = (typeof LIST_VIEWS)[number];
 
 export const LIST_VIEW_LABELS = {
    table: 'Таблица',
    board: 'Канбан',
-   reports: 'Отчётность',
-   requests: 'Запросы',
-   pilots: 'Пилоты',
 } as const satisfies Record<ListView, string>;
 
-// The list's tabs before it had views, as old links name them.
-export const OLD_LIST_TABS: Record<string, ListView> = {
-   companies: 'table',
-   reports: 'reports',
-   requests: 'requests',
-   pilots: 'pilots',
-};
-
+// The card's tabs, as the prototype draws them.
 export const CARD_TABS = [
    'overview',
    'metrics',
-   'reports',
-   'data',
    'pilots',
    'tasks',
+   'dataroom',
 ] as const;
 export type CardTab = (typeof CARD_TABS)[number];
 
 export const CARD_TAB_LABELS = {
    overview: 'Обзор',
    metrics: 'Показатели',
-   reports: 'Отчётность',
-   data: 'Запросы данных',
    pilots: 'Пилоты SQB',
    tasks: 'Задачи',
+   dataroom: 'Документы Data Room',
 } as const satisfies Record<CardTab, string>;
 
-// The card's tabs before the design, as old links name them.
+// Tabs that are gone, as old links name them, and where their content went:
+// the report's documents and the requests for data are in the data room.
 export const OLD_CARD_TABS: Record<string, CardTab> = {
    requests: 'overview',
    position: 'overview',
-   documents: 'reports',
+   documents: 'dataroom',
+   reports: 'dataroom',
+   data: 'dataroom',
 };
 
 // A company's status: the board's columns are «Активные» and «Выходы».
@@ -125,18 +110,6 @@ export const QUARTERS_SHOWN = 3;
 // automatic reminder this many days before (the design's 25 October for Q3).
 export const REPORTS_DUE_DAY = 25;
 export const AUTO_REMINDER_DAYS = 5;
-
-// The fund's report template, block by block.
-export const TEMPLATE_BLOCKS = [
-   'Общая информация',
-   'Выручка и рост',
-   'Финансовые показатели',
-   'Команда',
-   'Ключевые достижения',
-   'Риски',
-   'План на квартал',
-   'Запрос помощи от фонда',
-] as const;
 
 export const PILOT_STATUSES = {
    planned: { label: 'Запланирован', tone: 'neutral' },

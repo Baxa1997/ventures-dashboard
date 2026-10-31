@@ -92,7 +92,7 @@ const TaskDialog = () => {
       <Modal
          header={state?.kind === 'task' && <OpenTaskHead id={state.id} />}
          open={state !== null}
-         size='wide'
+         size='card'
          title={state?.kind === 'task' ? t('Задача') : t('Новая задача')}
          onClose={closeTaskDialog}
       >

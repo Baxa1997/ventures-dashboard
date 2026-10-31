@@ -33,6 +33,13 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
             {
                company: `${company.name} · follow-on`,
                about: company.about,
+               legalName: '',
+               tin: '',
+               foundedYear: null,
+               employees: null,
+               website: '',
+               applicantEmail: '',
+               applicantPhone: '',
                industryKey: company.industryKey,
                industry: company.tagline || company.about,
                // Настройки → Источники: «Портфель (follow-on)»

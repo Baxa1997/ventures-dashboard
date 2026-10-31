@@ -20,19 +20,20 @@ interface TaskTimelineProps {
    tasks: Task[];
 }
 
-/* «Таймлайн»: each task as a bar from the day it was made to its deadline,
-   in red once it is late, over four weeks of days, sixteen weeks or a year
-   of months. A task without a deadline has no bar. */
+/* «Таймлайн»: each task as a bar from its start (or, without one, the day
+   it was made) to its deadline, in red once it is late, over four weeks of
+   days, sixteen weeks or a year of months. A task without a deadline has
+   no bar. */
 const TaskTimeline = ({ tasks }: TaskTimelineProps) => {
    const { t } = useTranslation('work');
 
    const rows = (grid: TimelineGrid) =>
       tasks.flatMap((task) => {
          if (!task.dueDate) return [];
-         const start =
-            task.createdAt && task.createdAt < task.dueDate
-               ? task.createdAt
-               : task.dueDate;
+         // from its start to its deadline; without a start, from the day
+         // it was made
+         const begin = task.startDate || task.createdAt;
+         const start = begin && begin < task.dueDate ? begin : task.dueDate;
          if (grid.index(task.dueDate) < 0 || grid.index(start) >= grid.total)
             return [];
          const first = Math.max(0, grid.index(start));

@@ -16,6 +16,8 @@ type ValidationKey = keyof RuTranslation['validation'];
 const REQUIRED: ValidationKey = 'Обязательное поле';
 const TOO_LONG: ValidationKey = 'Слишком длинное значение';
 const DATE_INVALID: ValidationKey = 'Укажите дату';
+const START_LATE: ValidationKey = 'Начало позже дедлайна';
+const DATE = /^(\d{4}-\d{2}-\d{2})?$/;
 
 const oneOf = <T extends string>(values: T[]) => z.enum(values as [T, ...T[]]);
 
@@ -30,8 +32,9 @@ export const taskSchema: z.ZodType<TaskFormValues> = z
       relationId: z.string(),
       assigneeId: z.string(),
       reviewerId: z.string(),
-      // the deadline is optional
-      dueDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, DATE_INVALID),
+      // the start and the deadline are optional
+      startDate: z.string().regex(DATE, DATE_INVALID),
+      dueDate: z.string().regex(DATE, DATE_INVALID),
       priority: oneOf(TASK_PRIORITY_ORDER),
       status: z.string().min(1, REQUIRED), // a key of Настройки → Статусы задач
       recurrence: oneOf(TASK_RECURRENCE_ORDER),
@@ -43,6 +46,16 @@ export const taskSchema: z.ZodType<TaskFormValues> = z
             code: z.ZodIssueCode.custom,
             message: REQUIRED,
             path: ['relationId'],
+         });
+      if (
+         values.startDate &&
+         values.dueDate &&
+         values.startDate > values.dueDate
+      )
+         context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: START_LATE,
+            path: ['startDate'],
          });
    });
 

@@ -1,3 +1,4 @@
+export { CapitalBar, CapitalDialog } from './Capital';
 export { default as CommitteeLink } from './CommitteeLink';
 export {
    default as MoveDealDialog,
@@ -12,8 +13,3 @@ export { default as RiskList } from './RiskList';
 export { default as RisksCard } from './RisksCard';
 export { default as SecondReviewer } from './SecondReviewer';
 export { default as TransferDialog } from './TransferDialog';
-export {
-   concludable,
-   default as WorkstreamDialog,
-   type WorkstreamMode,
-} from './WorkstreamDialog';

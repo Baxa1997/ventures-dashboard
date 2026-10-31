@@ -1,4 +1,4 @@
-import type { Instrument } from './portfolio.types';
+import type { CabinetMember, Instrument } from './portfolio.types';
 import type { DealStage } from './work.types';
 
 // Where an application or a deal stands. "review" is an incoming application
@@ -101,23 +101,31 @@ export type ScreeningDecision = 'meeting' | 'request' | 'reject';
 export type ScreeningNoteKey = 'essence' | 'whyNow' | 'redFlags' | 'questions';
 
 export interface Screening {
+   // what the deal has on the criteria of Настройки, by key (scoreRows)
    criteria: Criterion[];
-   decision: ScreeningDecision;
+   decision: ScreeningDecision | ''; // '' until it is chosen
    secondId: string; // the colleague who confirms the decision
    savedAt: string; // HH:mm of the last change, '' before the first one
    note: Record<ScreeningNoteKey, string>;
    completedAt: string | null; // YYYY-MM-DD
 }
 
-// The founders' DD questionnaire as the startup cabinet stores it
-// (deal_questionnaires, ucode batch 10): each question with its answer, in Russian.
-export interface QuestionnaireAnswers {
-   sections: {
-      id: string;
-      title: string;
-      items: { id: string; question: string; answer: string }[];
-   }[];
+// The founder's questionnaire, one row the fund and the startup cabinet both
+// write (deal_questionnaires, batches 10 and 17): the answers by question.
+export interface DealQuestionnaire {
+   id: string;
+   values: Record<string, string>; // a question's id → its answer
+   requestId: string; // the fund's request it answers, '' when the fund began it
+   updatedAt: string; // YYYY-MM-DD HH:mm, '' before the first answer
+   updatedById: string; // the employee who wrote last; '' for the founder
    submittedAt: string; // YYYY-MM-DD HH:mm, '' while the founder fills it in
+}
+
+// A participant of the startup's capital before the deal.
+export interface DealOwner {
+   name: string;
+   role: string;
+   share: number; // %
 }
 
 export interface DealRequest {
@@ -127,6 +135,7 @@ export interface DealRequest {
    byId: string;
    sentAt: string; // YYYY-MM-DD
    dueDate: string; // YYYY-MM-DD
+   folder: string; // the data room folder of Настройки its file goes to, '' for none
    // answered: the founder answered in the cabinet and the fund checks it;
    // accepted: closed, by the fund's check or an answer the fund recorded itself
    status: 'waiting' | 'answered' | 'accepted';
@@ -134,7 +143,6 @@ export interface DealRequest {
    detail: string; // the applicant's answer, once it came
    warning: string; // what holds the request up, if anything
    ddQuestionnaire: boolean; // the fund's DD questionnaire, answered in the cabinet
-   questionnaire?: QuestionnaireAnswers; // its answers, once the founder starts
 }
 
 export type DocumentStatus = 'review' | 'accepted' | 'rejected' | 'required';
@@ -146,7 +154,10 @@ export interface DealDocument {
    version: number; // 0 while nothing is uploaded
    url: string; // where its file opens, '' without one
    fileId: string; // the file's ucode Files id, to delete it with the document
-   folderId: string; // the data room folder it is in, '' at the top
+   // the data room folder it is in: a folder of Настройки by its key, or a
+   // deal's own older folder by its id; '' for none
+   folderId: string;
+   size: number; // the file's bytes, 0 when not known
    requestId: string; // the request it answers, '' for none
    // whose file it is: the applicant's (from the website, or uploaded by the
    // fund for them) or the fund's own; '' for an older row
@@ -175,14 +186,20 @@ export interface DealFolder {
 export type WorkstreamStatus =
    'rework' | 'in_progress' | 'not_started' | 'done';
 
+// An auditor's conclusion, as the design's DD card picks it.
+export type WorkstreamVerdict = 'positive' | 'remarks' | 'negative';
+
 export interface Workstream {
    id: string;
    name: string;
-   executor: string; // who does it and on what grounds
+   auditKey: string; // the audit of Настройки it stands for, '' for none
+   executor: string; // who does it and on what grounds: the auditor
    handedAt: string; // YYYY-MM-DD, '' until handed over
    dueDate: string; // YYYY-MM-DD
    status: WorkstreamStatus;
-   conclusion: string;
+   conclusion: string; // the auditor's remarks
+   verdict: WorkstreamVerdict | ''; // '' — no conclusion yet (batch 15)
+   concludedAt: string; // YYYY-MM-DD it was done, '' until then (batch 15)
 }
 
 export type Recommendation = 'strong_yes' | 'yes' | 'conditional' | 'no';
@@ -258,6 +275,12 @@ export interface Deal {
    number: string; // SQBV-2026-0172
    company: string;
    about: string; // what the company does, in a line
+   legalName: string;
+   tin: string; // ИНН
+   foundedYear: number | null;
+   employees: number | null;
+   website: string;
+   owners: DealOwner[]; // its capital before the deal
    industryKey: string; // the sector, an industries key; '' when not chosen
    industry: string; // the niche as the analyst writes it; may be empty
    tags: string; // further descriptors shown after the industry
@@ -307,6 +330,9 @@ export interface Deal {
    folders?: DealFolder[];
    applicantEmail?: string;
    applicantName?: string;
+   applicantPhone?: string;
+   cabinet?: CabinetMember[]; // the people the applicant added to the cabinet
+   questionnaire?: DealQuestionnaire;
    // the website's application: the startup cabinet's people belong to it
    applicationId?: string;
    clock?: { pausedDays: number; pausedSince: string };
@@ -340,6 +366,13 @@ export interface DealsSummary {
 export interface NewDealInput {
    company: string;
    about: string;
+   legalName: string;
+   tin: string;
+   foundedYear: number | null;
+   employees: number | null;
+   website: string;
+   applicantEmail: string;
+   applicantPhone: string;
    industryKey: string;
    industry: string;
    source: DealSource;
@@ -359,5 +392,6 @@ export interface RequestInput {
    title: string;
    text: string;
    dueDate: string;
+   folder: string;
    ddQuestionnaire: boolean;
 }

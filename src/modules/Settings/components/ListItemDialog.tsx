@@ -67,6 +67,9 @@ const KEY_PATTERNS: Record<ListKind, RegExp> = {
    metrics: SNAKE,
    reportDocs: SNAKE,
    docTemplates: SNAKE,
+   docFolders: SNAKE,
+   ddAudits: SNAKE,
+   criteria: SNAKE,
 };
 
 // "Series B" → "series_b"; "Industrial Tech" → "industrial-tech"
@@ -91,6 +94,10 @@ const blank = (kind: ListKind): ListItemInput => ({
       tone: 'accent' as ItemTone,
    }),
    ...(kind === 'metrics' && { format: 'number' as MetricFormat }),
+   ...(kind === 'criteria' && {
+      hints: { ru: '', uz: '', en: '' },
+      weight: 0,
+   }),
    ...(LISTS[kind].flag === 'file' && { file: null }),
 });
 
@@ -215,6 +222,43 @@ const ListItemForm = ({
                      }}
                   />
                </Field>
+               {flag === 'weight' && (
+                  <>
+                     <Field label={t('Что оценивается')}>
+                        <input
+                           className='field-input'
+                           maxLength={160}
+                           value={value.hints?.ru ?? ''}
+                           onChange={(event) =>
+                              setValue((prev) => ({
+                                 ...prev,
+                                 hints: {
+                                    ru: event.target.value,
+                                    uz: prev.hints?.uz ?? '',
+                                    en: prev.hints?.en ?? '',
+                                 },
+                              }))
+                           }
+                        />
+                     </Field>
+                     <Field label={t(list.flagLabel)}>
+                        <input
+                           className='field-input'
+                           inputMode='numeric'
+                           value={value.weight ?? 0}
+                           onChange={(event) =>
+                              setValue((prev) => ({
+                                 ...prev,
+                                 weight:
+                                    Number(
+                                       event.target.value.replace(/\D/g, ''),
+                                    ) || 0,
+                              }))
+                           }
+                        />
+                     </Field>
+                  </>
+               )}
                {flag === 'mandate' && (
                   <Field label={t(list.flagLabel)}>
                      <select

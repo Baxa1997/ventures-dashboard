@@ -12,7 +12,6 @@ import { ConfirmDialog, TONE_COLORS } from '@shared/components';
 import { useCurrentUser } from '@shared/hooks';
 import type { Deal, PathStep } from '@shared/types/deals.types';
 import clsx from 'clsx';
-import { Check } from 'lucide-react';
 import { type CSSProperties, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -26,8 +25,7 @@ interface DealStepperProps {
 const KEEPS_STATUS = ['active', 'paused', 'withdrawn'];
 
 /* The stages of the deal as the prototype's stepper: the current one tinted
-   in its part of the way's colour, the passed ones underlined in it, a late
-   one marked. Each step tells its dates and days on hover. A click moves
+   in its part of the way's colour, the passed ones underlined in it. Each step tells its dates and days on hover. A click moves
    the deal there: to the next stage with its conditions, further on through
    «Сменить этап», back to a passed stage after a confirmation — that stage
    is current again and the ones after it not passed, the status kept. */
@@ -93,16 +91,6 @@ const DealStepper = ({ deal, onTransfer, onMove }: DealStepperProps) => {
                            .join(' · ')}
                         onClick={action}
                      >
-                        {state === 'done' && (
-                           <Check
-                              aria-hidden
-                              className={clsx(
-                                 'size-3.5 shrink-0',
-                                 step.late ? 'text-warning' : 'text-success',
-                              )}
-                              strokeWidth={3}
-                           />
-                        )}
                         <span className='truncate'>{name}</span>
                      </button>
                   </li>

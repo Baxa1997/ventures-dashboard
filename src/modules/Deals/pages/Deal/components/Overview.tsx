@@ -5,16 +5,17 @@ import {
    committeeStateOf,
    countryText,
    factRows,
-   formatStamp,
    hasTermsStage,
-   industryText,
    isOpen,
 } from '@modules/Deals/helpers';
 import { Card, FactList, STACK } from '@shared/components';
+import { formatNumericDate } from '@shared/helpers';
 import type { Deal } from '@shared/types/deals.types';
 import type { DealStage } from '@shared/types/work.types';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import CabinetCard from './CabinetCard';
+import CapitalCard from './CapitalCard';
 import MandateCard from './MandateCard';
 import MetricsCard from './MetricsCard';
 import NextStep from './NextStep';
@@ -38,8 +39,8 @@ interface OverviewProps {
 const METRICS_STAGES: DealStage[] = ['dd', 'ic2', 'board', 'closing'];
 
 /* The deal at a glance, as the prototype lays it out: what the company is
-   and what the fund knows of it on the left — the application, and from
-   ИК-1 on the terms, DD's metrics and risks, the synergy with the bank and
+   and what the fund knows of it on the left — its details, its capital, its
+   team in the cabinet, and from ИК-1 on the terms, DD's metrics and risks, the synergy with the bank and
    the owner's team; on the right the deal's parameters, what to do next,
    where it is on its way, its open tasks and where else it is in the panel.
    A new application shows its mandate check; a deal on a committee stage
@@ -83,15 +84,30 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
                   <FactList
                      labelWidth='10.5rem'
                      rows={[
-                        { label: t('Отрасль'), value: industryText(deal) },
-                        { label: t('География'), value: countryText(deal) },
+                        { label: t('Юр. лицо'), value: deal.legalName || '—' },
+                        { label: t('ИНН'), value: deal.tin || '—' },
                         {
-                           label: t('Контакты'),
-                           value: deal.applicantEmail ?? '',
+                           label: t('Год основания'),
+                           value: String(deal.foundedYear ?? '—'),
                         },
                         {
-                           label: t('Поступила'),
-                           value: formatStamp(deal.receivedAt),
+                           label: t('Сотрудников'),
+                           value: String(deal.employees ?? '—'),
+                        },
+                        { label: t('Регион'), value: countryText(deal) || '—' },
+                        { label: t('Сайт'), value: deal.website || '—' },
+                        {
+                           label: t('Контакты'),
+                           value:
+                              [deal.applicantEmail, deal.applicantPhone]
+                                 .filter(Boolean)
+                                 .join(' · ') || '—',
+                        },
+                        {
+                           label: t('Заявка подана'),
+                           value: formatNumericDate(
+                              deal.receivedAt.slice(0, 10),
+                           ),
                         },
                         ...factRows(
                            t,
@@ -103,6 +119,8 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
                   />
                </div>
             </Card>
+            <CapitalCard deal={deal} editable={editable} />
+            <CabinetCard deal={deal} />
             {terms && <TermsCard deal={deal} editable={editable} />}
             {metrics && <MetricsCard deal={deal} editable={editable} />}
             {risks && (

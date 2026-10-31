@@ -1,20 +1,16 @@
 import { stageName } from '@modules/Settings/services';
 import {
-   concludable,
    MoveDealDialog,
    type MoveTarget,
    NewDealDialog,
    RejectDialog,
    RequestDialog,
    TransferDialog,
-   WorkstreamDialog,
-   type WorkstreamMode,
 } from '@modules/Deals/components';
 import {
    CARD_TAB_LABELS,
    CARD_TABS,
    type CardTab,
-   CRITERIA,
    DEALS_PATH,
    RESUBMIT_LABELS,
 } from '@modules/Deals/constants';
@@ -26,6 +22,7 @@ import {
    isScored,
    nextStageOf,
    personName,
+   scoreRows,
    statusOf,
    tabCounts,
 } from '@modules/Deals/helpers';
@@ -81,8 +78,10 @@ const TAB_ICONS: Record<CardTab, LucideIcon> = {
 const toTab = (value: string | null): CardTab =>
    CARD_TABS.find((tab) => tab === value) ?? 'overview';
 
-/* A deal's card. The address keeps the open tab (?tab=dd). The two buttons in
-   the header belong to the tab: each tab has its own next step. */
+/* A deal's card, as the design draws it. The address keeps the open tab
+   (?tab=dd). The head's buttons are Обзор's next step; the other tabs carry
+   their own buttons, as the design does. The memorandum's tab is not shown
+   among the tabs but still opens by its address (?tab=memo). */
 const DealCard = () => {
    const { t } = useTranslation('deals');
    const { id } = useParams();
@@ -100,7 +99,8 @@ const DealCard = () => {
    const [folderId, setFolderId] = useState(params.get('folder') ?? '');
    // null: the request dialog is closed; otherwise what the request starts with
    const [requestTitle, setRequestTitle] = useState<string | null>(null);
-   const [workstream, setWorkstream] = useState<WorkstreamMode | null>(null);
+   // the request starts as the fund's DD questionnaire
+   const [askingQuestionnaire, setAskingQuestionnaire] = useState(false);
    const deal = all.find((item) => item.id === id);
    const taking = useAction(
       (dealId: string, ownerId: string) =>
@@ -215,11 +215,9 @@ const DealCard = () => {
    const screeningReady =
       deal.stage === 'screening' &&
       !!screening?.secondId &&
-      screening.criteria.filter(isScored).length === CRITERIA.length;
+      !!screening.decision &&
+      scoreRows(deal).every(({ criterion }) => isScored(criterion));
 
-   const pending = (deal.workstreams ?? []).some(
-      ({ status: state }) => state === 'not_started',
-   );
 
    const actions: Record<CardTab, ReactNode> = {
       overview: (
@@ -231,47 +229,10 @@ const DealCard = () => {
             {overviewPrimary()}
          </>
       ),
-      screening: deal.status === 'active' && (
-         <>
-            {requestButton}
-            <Button
-               disabled={!screeningReady}
-               loading={completing.pending}
-               title={
-                  screeningReady
-                     ? undefined
-                     : t('Нужны 7 обоснований и второй оценщик')
-               }
-               onClick={completeScreening}
-            >
-               {t('Завершить скрининг')}
-            </Button>
-         </>
-      ),
-      requests: (
-         <Button onClick={() => setRequestTitle('')}>
-            {t('Новый запрос')}
-         </Button>
-      ),
-      dd: (
-         <>
-            <Button variant='ghost' onClick={() => setWorkstream('add')}>
-               {t('Добавить направление')}
-            </Button>
-            <Button
-               disabled={!pending}
-               variant={concludable(deal).length ? 'ghost' : 'primary'}
-               onClick={() => setWorkstream('hand')}
-            >
-               {t('Передать исполнителю')}
-            </Button>
-            {concludable(deal).length > 0 && (
-               <Button onClick={() => setWorkstream('conclude')}>
-                  {t('Принять вывод')}
-               </Button>
-            )}
-         </>
-      ),
+      // as the design has them, the other tabs' buttons are in the tabs
+      screening: null,
+      requests: null,
+      dd: null,
       memo: memo && (
          <>
             <Button variant='ghost' onClick={() => window.print()}>
@@ -355,15 +316,16 @@ const DealCard = () => {
             <div className='border-line mb-4.5 border-b'>
                <Tabs
                   active={tab}
-                  items={CARD_TABS.map((key) => ({
+                  // the memorandum is not among the design's tabs: it is
+                  // kept, and opens from Мой день and the DD's risks
+                  items={CARD_TABS.filter(
+                     (key) => key !== 'memo' || tab === 'memo',
+                  ).map((key) => ({
                      id: key,
                      label: t(CARD_TAB_LABELS[key]),
                      icon: TAB_ICONS[key],
                      count:
-                        (key === 'requests' ||
-                           key === 'dd' ||
-                           key === 'decisions') &&
-                        counts[key]
+                        key === 'requests' || key === 'dd'
                            ? counts[key]
                            : undefined,
                   }))}
@@ -383,7 +345,20 @@ const DealCard = () => {
                   onTransfer={() => setTransferring(true)}
                />
             )}
-            {tab === 'screening' && <Screening key={deal.id} deal={deal} />}
+            {tab === 'screening' && (
+               <Screening
+                  key={deal.id}
+                  completing={completing.pending}
+                  deal={deal}
+                  ready={screeningReady}
+                  onComplete={completeScreening}
+                  onQuestionnaire={() => {
+                     setAskingQuestionnaire(true);
+                     setRequestTitle(t('DD-вопросник'));
+                  }}
+                  onRequest={() => setRequestTitle('')}
+               />
+            )}
             {tab === 'requests' && (
                <Requests
                   deal={deal}
@@ -399,7 +374,12 @@ const DealCard = () => {
                </p>
             )}
             {tab === 'memo' && <Memorandum deal={deal} />}
-            {tab === 'decisions' && <Decisions deal={deal} />}
+            {tab === 'decisions' && (
+               <Decisions
+                  deal={deal}
+                  onTransfer={() => setTransferring(true)}
+               />
+            )}
             {tab === 'history' && <History deal={deal} />}
          </PageBody>
          <RejectDialog
@@ -422,13 +402,13 @@ const DealCard = () => {
          />
          <RequestDialog
             deal={requestTitle === null ? null : deal}
+            folder={folderId}
+            questionnaire={askingQuestionnaire}
             title={requestTitle ?? ''}
-            onClose={() => setRequestTitle(null)}
-         />
-         <WorkstreamDialog
-            deal={deal}
-            mode={workstream}
-            onClose={() => setWorkstream(null)}
+            onClose={() => {
+               setRequestTitle(null);
+               setAskingQuestionnaire(false);
+            }}
          />
       </>
    );

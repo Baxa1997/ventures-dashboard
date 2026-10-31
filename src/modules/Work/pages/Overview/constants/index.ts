@@ -18,14 +18,34 @@ export const ATTENTION_TONES = {
 
 // The funnel's bars as the design draws them: a name (a key of the "work"
 // translations) and a colour for each group of deals.
+// Each bar's fill, and the same colour for its note on hover.
 export const FUNNEL_BARS = {
-   new: { label: 'Новая заявка', fill: 'bg-sky' },
-   work: { label: 'Due Diligence', fill: 'bg-warning' },
-   committee: { label: 'Инвесткомитет', fill: 'bg-indigo' },
-   invested: { label: 'Инвестировано', fill: 'bg-success' },
-   rejected: { label: 'Отказ', fill: 'bg-danger' },
-   exit: { label: 'Выход', fill: 'bg-info' },
-} as const satisfies Record<FunnelGroup, { label: string; fill: string }>;
+   new: { label: 'Новая заявка', fill: 'bg-sky', color: 'var(--color-sky)' },
+   work: {
+      label: 'Due Diligence',
+      fill: 'bg-warning',
+      color: 'var(--color-warning)',
+   },
+   committee: {
+      label: 'Инвесткомитет',
+      fill: 'bg-indigo',
+      color: 'var(--color-indigo)',
+   },
+   invested: {
+      label: 'Инвестировано',
+      fill: 'bg-success',
+      color: 'var(--color-success)',
+   },
+   rejected: {
+      label: 'Отказ',
+      fill: 'bg-danger',
+      color: 'var(--color-danger)',
+   },
+   exit: { label: 'Выход', fill: 'bg-info', color: 'var(--color-info)' },
+} as const satisfies Record<
+   FunnelGroup,
+   { label: string; fill: string; color: string }
+>;
 
 // The donut's colours, largest sector first, from the brand palette as the
 // design orders them; the sectors past them are summed as «Другие».

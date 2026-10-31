@@ -56,6 +56,16 @@ export const TASK_STATUS_GROUPS: Record<SystemTaskStatus, StatusGroup> = {
    done: 'complete',
 };
 
+// The groups every status belongs to (TO DO, IN PROGRESS, COMPLETE): the
+// list shows its tasks in them, the selects list the statuses under them.
+export const TASK_GROUP_ORDER: StatusGroup[] = ['todo', 'progress', 'complete'];
+
+export const TASK_GROUP_LABELS = {
+   todo: 'К выполнению',
+   progress: 'В работе',
+   complete: 'Завершено',
+} as const satisfies Record<StatusGroup, string>;
+
 export const TASK_PRIORITY_ORDER: TaskPriority[] = ['high', 'medium', 'low'];
 
 export const TASK_PRIORITY_LABELS = {

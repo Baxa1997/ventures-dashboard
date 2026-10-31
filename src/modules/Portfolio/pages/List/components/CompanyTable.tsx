@@ -39,8 +39,9 @@ const NUM = 'text-right whitespace-nowrap tabular-nums';
 /* «Таблица», as the design draws it: each company with its status, the
    investment, the fund's stake, the company's valuation (pressed to update
    it), what the stake is worth, MOIC, the latest MRR and the pilots under
-   way. A request the fund has left unanswered too long shows under the
-   name. A row opens the company's card. */
+   way. Under the name, a request the fund has left unanswered too long, or
+   else how many wait for its answer (on the card's «Обзор»). A row opens
+   the company's card. */
 const CompanyTable = ({ data, companies, onValuation }: CompanyTableProps) => {
    const { t, i18n } = useTranslation('portfolio');
    const navigate = useNavigate();
@@ -79,6 +80,10 @@ const CompanyTable = ({ data, companies, onValuation }: CompanyTableProps) => {
                   const status = COMPANY_STATUSES[company.status];
                   const now = nowOf(t, company, data.requests, data.cycle);
                   const mrr = latestValue(company, 'mrr');
+                  const asking = data.requests.filter(
+                     ({ companyId, status }) =>
+                        companyId === company.id && status !== 'closed',
+                  ).length;
                   const first = company.investments[0];
                   const pilots = company.pilots.filter(
                      ({ status: state }) => state === 'in_progress',
@@ -106,10 +111,18 @@ const CompanyTable = ({ data, companies, onValuation }: CompanyTableProps) => {
                                        company.tagline ||
                                        '—'}
                                  </div>
-                                 {now.late && (
+                                 {now.late ? (
                                     <div className='text-danger text-xs'>
                                        {now.text}
                                     </div>
+                                 ) : (
+                                    asking > 0 && (
+                                       <div className='text-accent text-xs'>
+                                          {t('Ждёт ответа фонда: {{count}}', {
+                                             count: asking,
+                                          })}
+                                       </div>
+                                    )
                                  )}
                               </div>
                            </div>

@@ -1,4 +1,5 @@
 import ReportDocTitle from '@modules/Portfolio/components/ReportDocTitle';
+import ReportFiles from '@modules/Portfolio/components/ReportFiles';
 import {
    quarterLabel,
    recentQuarters,
@@ -6,7 +7,7 @@ import {
 } from '@modules/Portfolio/helpers';
 import type { PortfolioData } from '@modules/Portfolio/hooks';
 import { Badge, Card, Table, TD, TH } from '@shared/components';
-import { formatDate } from '@shared/helpers';
+import { formatDate, todayISO } from '@shared/helpers';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -16,12 +17,16 @@ interface ReportsProps {
    cycle: PortfolioData['cycle'];
 }
 
-/* «Отчётность»: each quarter's documents and the day each came from the
-   company's cabinet, the newest quarter first. */
+/* The quarterly reports' documents, in the data room: each quarter's
+   documents with the day each came from the company's cabinet and its
+   files, the newest quarter first. A document of the open quarter not sent
+   by the deadline is late. */
 const Reports = ({ company, cycle }: ReportsProps) => {
    const { t } = useTranslation('portfolio');
+   const late = todayISO() > cycle.due;
+
    return (
-      <Card className='flex flex-1 flex-col'>
+      <Card title={t('Квартальная отчётность')}>
          <Table
             className='min-w-2xl'
             head={
@@ -53,16 +58,23 @@ const Reports = ({ company, cycle }: ReportsProps) => {
                                        {formatDate(day)}
                                     </div>
                                  </>
+                              ) : late && quarter === cycle.quarter ? (
+                                 <Badge tone='danger'>{t('Просрочен')}</Badge>
                               ) : (
                                  <Badge>{t('Ожидается')}</Badge>
                               )}
+                              <ReportFiles
+                                 companyId={company.id}
+                                 doc={doc}
+                                 quarter={quarter}
+                              />
                            </td>
                         );
                      })}
                   </tr>
                ))}
          </Table>
-         <p className='border-line text-ink-soft mt-auto border-t px-4.5 py-2.5 text-xs'>
+         <p className='border-line text-ink-soft border-t px-4.5 py-2.5 text-xs'>
             {t(
                'Компания загружает отчёты в кабинете основателя; срок сдачи — {{date}}. Шаблоны документов — «Настройки → Портфель → Отчётность».',
                { date: formatDate(cycle.due) },

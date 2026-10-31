@@ -48,7 +48,7 @@ const CardFace = ({ deal, lifted = false }: CardFaceProps) => {
    return (
       <div
          className={clsx(
-            'border-line grid gap-2 rounded-lg border bg-white px-3 py-2.75',
+            'border-line grid grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border bg-white px-3 py-2.75',
             lifted
                ? 'shadow-popup animate-lift scale-[1.02] rotate-2'
                : 'hover:border-line-strong hover:shadow-raised transition-shadow',
@@ -130,7 +130,7 @@ const DealBoard = ({ deals, stage, onDrop }: DealBoardProps) => {
                            {cards.length}
                         </span>
                      </header>
-                     <ul className='grid min-h-12.5 gap-2 px-2 pb-2'>
+                     <ul className='grid min-h-12.5 grid-cols-[minmax(0,1fr)] gap-2 px-2 pb-2'>
                         {shown.flatMap((deal, index) => [
                            ...(index === gap
                               ? [<BoardGap key='gap' height={height} />]

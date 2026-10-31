@@ -131,18 +131,18 @@ How it moves:
 
 ### 5.1 What the fund does in the panel
 
-On the deal, the fund opens «Запросы и документы» → «Новый запрос» and fills in:
+On the deal, the fund opens «Запросы и документы» → «Запросить документ» and fills in:
 
-- title, text and deadline;
-- optionally the box «Это DD-вопросник по шаблону фонда»;
-- templates ticked from Настройки → «Шаблоны документов»;
-- later, more files and links under «Шаблоны и файлы для заявителя».
+- what is needed, the data room folder its file goes to, and the deadline;
+- templates ticked from Настройки → «Шаблоны документов».
+
+«Запросить анкету» on Скрининг sends the same window marked as the DD questionnaire.
 
 The panel then writes these rows:
 
 | Table | Row |
 | --- | --- |
-| `deal_requests` | `title`, `text`, `sent_by_id` (employee guid), `sent_at` (date), `due_date`, `status` = `waiting`, `answer` = `''`, `closed_at` = null, `warning`, `deals_id`. `is_dd_questionnaire` is **not written yet** (P2) |
+| `deal_requests` | `title`, `text` (empty for a new request: the title says what is needed), `doc_folder` (the data room folder its file goes to), `sent_by_id` (employee guid), `sent_at` (date), `due_date`, `status` = `waiting`, `answer` = `''`, `closed_at` = null, `warning`, `deals_id`. `is_dd_questionnaire` is **not written yet** (P2) |
 | `attachments` | One row per file or link the founder gets: `section` = `request`, `item_id` = the request's guid, `deals_id`, `kind` (`link` or `file`), `title`, `url`, `file_id`, `added_by_id`, `added_at`. A template is a copy: it keeps the template's `url` and has an empty `file_id` |
 | `deals` | `waiting` = true, and `paused_since` = today if the deal was not waiting already: the stage clock stops while the fund waits for the founder |
 | `deal_events` | `kind` = `request`, `title`, `stage`, `at`, `employee_id` |
@@ -163,7 +163,7 @@ The panel then writes these rows:
 
 The answer is a text and/or files, with at least one of them. Accept PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, ZIP and images, up to 20 MB each (like the pitch deck) and at most 10 files.
 
-`POST /api/account/requests/{id}/answer` does what the panel's own «Ответ получен» does (`answerRequest` in `src/modules/Deals/services/index.ts`), in this order:
+`POST /api/account/requests/{id}/answer` closes the request with the founder's answer and files, in this order (the panel itself only ticks a request as received, `receiveRequest` in `src/modules/Deals/services/index.ts`):
 
 1. **Check the request.** It must belong to the session's deal and still be `waiting`. Otherwise answer 409.
 2. **Upload the files.** Each file goes to ucode Files (`POST /v1/files/folder_upload`, folder e.g. `Cabinet`). Keep `id` and `link`. Store the link as a full URL: `https://cdn.u-code.io/<link>` when ucode returns a path (see P5).
@@ -179,7 +179,7 @@ The answer is a text and/or files, with at least one of them. Accept PDF, DOC/DO
    | `uploaded_by_id` | `''`: empty means it came from the cabinet |
    | `uploaded_at` | now (ISO) |
    | `deal_requests_id` | the request |
-   | `deal_folders_id` | null: the top of the data room |
+   | `deal_folders_id` | null. The panel files it in the request's folder (`deal_requests.doc_folder`, batch 16) |
    | `deals_id` | the deal |
 
 4. **Close the request.** Set `status` = `answered` (decision D4), `answer` = the text and `closed_at` = today in Tashkent.
@@ -207,7 +207,7 @@ The panel reads ucode when a page opens, so staff see the answer after reopening
 **What the founder sees.** Only their own documents: `deal_documents` with `uploaded_by` = `applicant`. That is the pitch deck, the files sent with answers, and the files uploaded here.
 
 - The fund's own files (`uploaded_by` = `fund`, and older rows with it empty) stay hidden (decision D3).
-- The data room's folders (`deal_folders`) are how the fund arranges things internally, and are not shown. Group the founder's documents by request (`deal_requests_id`), then «Другие документы».
+- The data room's folders (`doc_folders`, batch 16) are how the fund arranges things internally, and are not shown yet, though the design shares them with the cabinet. Group the founder's documents by request (`deal_requests_id`), then «Другие документы».
 
 **Status shown for each document:**
 
@@ -236,20 +236,11 @@ The founder never deletes; the fund deletes in the panel.
 
 The website promises that teams invited further «fill in a longer questionnaire in the Founder Account: team and cap table, metrics, market, finance and risks».
 
-**What exists today:**
-
-- A request can be marked as the DD questionnaire («Это DD-вопросник по шаблону фонда»). That ticks the DD exit conditions it fulfils (`fulfilled_by` = `dd_questionnaire`).
-- The flag itself is not stored (P2).
-- No table holds the answers.
-
-**Proposal:**
-
-- **Table.** A new table, `deal_questionnaires`, holds the answers (§11).
-- **Questions.** The questions live in the cabinet's code at first, in the sections team and cap table, metrics, market, finance and risks. They can become a list in Настройки later.
-- **When it opens.** The questionnaire opens when the deal has a `waiting` request with `is_dd_questionnaire` = true.
+- **Questions.** The fund keeps them in the panel, Настройки → «Анкета основателя» (`fund_settings.questionnaire`, batch 17). The cabinet reads the same field with the account, and has the same list built in until it is set. Removing a question or a choice while a founder's page is open drops that answer on the next save instead of refusing it.
+- **When it opens.** The questionnaire opens for filling in when the deal has a `waiting` request with `is_dd_questionnaire` = true («Запросить анкету» on the deal's Скрининг). Before that, the founder sees what the fund has written, read-only.
+- **One row.** The fund and the founder write the same answers (`deal_questionnaires`, the deal's newest row): the fund on the deal's tab «Скрининг и оценка», the founder here. `updated_by_id` holds the employee who wrote last, and is empty when the founder did.
 - **While filling in.** Answers are saved as they are typed (`answers`, `updated_at`), so the founder can come back.
-- **Sending.** «Отправить» sets `submitted_at` and answers that request exactly as in §5.3, steps 4–6.
-- **In the panel.** The panel shows the answers on the request (P3).
+- **Sending.** «Отправить» sets `submitted_at` and answers that request exactly as in §5.3, steps 4–6. The fund can still add to the answers afterwards.
 
 ## 8. After the investment: the company's cabinet (phase 2b)
 
@@ -298,7 +289,7 @@ When the deal joins the portfolio (`public_status` = `portfolio`), the cabinet a
 
 | # | Change | Why |
 | --- | --- | --- |
-| P1 | Show `answered` requests as «Ответ получен — проверьте», with «Принять» (sets `accepted`) and «Запросить ещё» (a new request). Today `toRequest` reads `answered` as closed | So the fund checks what came from the cabinet |
+| P1 | Show `answered` requests as «Ответ получен» with what the founder wrote; the row's tick sets `accepted`. Today `toRequest` reads `answered` as closed | So the fund checks what came from the cabinet |
 | P2 | Write and read `deal_requests.is_dd_questionnaire` (RequestDialog → `addRequest` → `ucode.ts`) | The cabinet must know which request opens the questionnaire |
 | P3 | Show the questionnaire's answers on its request | After batch 10 |
 | P4 | Once the cabinet is live, replace «Кабинета заявителя пока нет…» in «Так видит заявитель» | The text becomes wrong |
@@ -371,7 +362,7 @@ The website content tables of §12 (`faq`, `site_settings`) go into the same bat
 | Step | Build | Check |
 | --- | --- | --- |
 | 1. Sign-in and status | `/[lang]/account/login` (with `?email=` filled in), the session, Overview (§4) | Apply on Pitch Us and sign in: «Awaiting review». In the panel take it into screening: still Awaiting review, step Скрининг. Complete screening: Reviewed. Reject with a reason and a letter: the reason, the letter and the date to apply again |
-| 2. Requests | §5, and P1 and P6 in the panel | In the panel, «Новый запрос» with a template: it appears in the cabinet with the template to download. Answer with two files. In the panel: the request answered, two documents «На проверке» tied to it in the data room, a journal entry, the clock running again |
+| 2. Requests | §5, and P1 and P6 in the panel | In the panel, «Запросить документ» with a template: it appears in the cabinet with the template to download. Answer with two files. In the panel: the request answered, two documents «На проверке» tied to it in the data room, a journal entry, the clock running again |
 | 3. Documents | §6 | Reject a document in the panel with a reason. The cabinet shows the reason. Upload a new version: the panel shows v2 «На проверке» |
 | 4. Questionnaire | Batch 10, §7, P2, P3 | A request marked as the DD questionnaire opens the questionnaire. Leave and come back: the answers are kept. «Отправить» answers the request, and the DD exit condition is ticked |
 | 5. Letters | D8 | Each event of D8 sends one letter, once |

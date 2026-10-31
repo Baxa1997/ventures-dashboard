@@ -1,8 +1,13 @@
 import { listName } from '@modules/Settings/services';
 import {
+   TASK_GROUP_LABELS,
+   TASK_GROUP_ORDER,
+} from '@modules/Work/constants';
+import {
    getAssigneeId,
    isOverdue,
    statusFill,
+   statusGroup,
    statusName,
    taskKey,
    taskStatuses,
@@ -41,7 +46,7 @@ const CardFace = ({ task, target, lifted = false }: CardFaceProps) => {
    return (
       <div
          className={clsx(
-            'border-line grid gap-1.5 rounded-lg border bg-white px-3 py-2.75',
+            'border-line grid grid-cols-[minmax(0,1fr)] gap-1.5 rounded-lg border bg-white px-3 py-2.75',
             lifted
                ? 'shadow-popup animate-lift scale-[1.02] rotate-2'
                : 'hover:border-line-strong hover:shadow-raised transition-shadow',
@@ -75,10 +80,11 @@ const CardFace = ({ task, target, lifted = false }: CardFaceProps) => {
    );
 };
 
-/* «Доска»: a column per status, in the order Настройки give them, each
-   topped with its colour. A card is carried as on a Notion board: it lifts
-   and follows the pointer, its place closes, and a gap opens where it would
-   drop. Dropped in another column it takes that status; anywhere it keeps
+/* «Доска»: a column per status, grouped as «К выполнению», «В работе» and
+   «Завершено» (each column names its group) and within a group in the
+   order Настройки give them, each topped with its colour. A card is
+   carried as on a Notion board: it lifts and follows the pointer, its place
+   closes, and a gap opens where it would drop. Dropped in another column it takes that status; anywhere it keeps
    the place it was dropped at (in this browser). The card's own status
    select does the same from the keyboard. */
 const TaskBoard = ({ tasks, targetName, onMove }: TaskBoardProps) => {
@@ -86,6 +92,8 @@ const TaskBoard = ({ tasks, targetName, onMove }: TaskBoardProps) => {
    const user = useCurrentUser();
    const { arrange, place } = useBoardOrder('board', user.id);
    const listed = taskStatuses().map(({ key }) => key);
+   // by their groups, «К выполнению» first; within a group as Настройки
+   // order them
    const columns = [
       ...listed,
       ...new Set(
@@ -93,7 +101,11 @@ const TaskBoard = ({ tasks, targetName, onMove }: TaskBoardProps) => {
             .map(({ status }) => status)
             .filter((key) => !listed.includes(key)),
       ),
-   ];
+   ].sort(
+      (a, b) =>
+         TASK_GROUP_ORDER.indexOf(statusGroup(a)) -
+         TASK_GROUP_ORDER.indexOf(statusGroup(b)),
+   );
    const columnOf = (status: TaskStatus) =>
       arrange(
          status,
@@ -130,13 +142,18 @@ const TaskBoard = ({ tasks, targetName, onMove }: TaskBoardProps) => {
                      data-column={status}
                      style={{ borderTopColor: statusFill(status) }}
                   >
-                     <header className='text-meta flex justify-between px-3.5 py-2.75 font-bold'>
-                        <span>{statusName(t, status)}</span>
-                        <span className='text-ink-faint font-medium tabular-nums'>
-                           {cards.length}
+                     <header className='px-3.5 py-2.75'>
+                        <span className='text-ink-faint block text-[10px] font-bold tracking-[0.06em] uppercase'>
+                           {t(TASK_GROUP_LABELS[statusGroup(status)])}
+                        </span>
+                        <span className='text-meta flex justify-between font-bold'>
+                           <span>{statusName(t, status)}</span>
+                           <span className='text-ink-faint font-medium tabular-nums'>
+                              {cards.length}
+                           </span>
                         </span>
                      </header>
-                     <ul className='grid min-h-12.5 gap-2 px-2 pb-2'>
+                     <ul className='grid min-h-12.5 grid-cols-[minmax(0,1fr)] gap-2 px-2 pb-2'>
                         {shown.flatMap((task, index) => [
                            ...(index === gap
                               ? [<BoardGap key='gap' height={height} />]

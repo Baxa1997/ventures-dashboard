@@ -1,6 +1,6 @@
 import portfolio from '@modules/Portfolio/services';
 import settings from '@modules/Settings/services';
-import { deleteFile, type StoredFile, uploadFile } from '@shared/api/ucode';
+import { deleteFile, uploadFile } from '@shared/api/ucode';
 import { addWorkingDays, createStore, newId, todayISO } from '@shared/helpers';
 import attachments from '@shared/services/attachments';
 import type {
@@ -8,6 +8,7 @@ import type {
    Deal,
    DealDocument,
    DealFolder,
+   DealOwner,
    DealsSummary,
    DealTerms,
    Fact,
@@ -26,8 +27,14 @@ import type {
 import type { Investment } from '@shared/types/portfolio.types';
 import type { DealStage } from '@shared/types/work.types';
 import dayjs from 'dayjs';
-import { CRITERIA } from '../constants';
-import { countryText, industryText, nextStageOf, stageNorm } from '../helpers';
+import {
+   countryText,
+   emptyScreening,
+   industryText,
+   isUntouchedAudit,
+   nextStageOf,
+   stageNorm,
+} from '../helpers';
 import { insertDeal, loadDeals, saveDeal, summarize } from './ucode';
 
 /* The deals come from ucode's tables, applications from the website among
@@ -154,20 +161,6 @@ const onStage = (deal: Deal, stage: DealStage): Deal => {
    };
 };
 
-const emptyScreening = (): Screening => ({
-   criteria: CRITERIA.map(({ key }) => ({
-      key,
-      score: null,
-      rationale: '',
-      source: '',
-   })),
-   decision: 'meeting',
-   secondId: '',
-   savedAt: '',
-   note: { essence: '', whyNow: '', redFlags: '', questions: '' },
-   completedAt: null,
-});
-
 // SQBV-2026-0173: the year and the next free number in it.
 const nextNumber = (deals: Deal[], year: string) => {
    const prefix = `SQBV-${year}-`;
@@ -217,6 +210,7 @@ class Deals {
          days: null,
          waiting: false,
          next: null,
+         owners: [],
          journal: [entry({ kind: 'created', userId })],
       };
       store.set((current) => [deal, ...current]);
@@ -298,27 +292,50 @@ class Deals {
    // The application's details; `facts`, when given, are its other rows.
    async updateDetails(
       id: string,
-      input: NewDealInput,
+      input: Partial<NewDealInput>,
       userId: string,
       facts?: Fact[],
    ) {
       await change(id, (deal) =>
          logged(
-            {
-               ...deal,
-               ...(facts && { facts }),
-               company: input.company,
-               about: input.about,
-               industryKey: input.industryKey,
-               industry: input.industry,
-               source: input.source,
-               amount: input.amount,
-               country: input.country,
-               roundStage: input.roundStage,
-            },
+            { ...deal, ...(facts && { facts }), ...input },
             { kind: 'edited', userId },
          ),
       );
+   }
+
+   // The startup's capital before the deal.
+   async setOwners(id: string, owners: DealOwner[]) {
+      await change(id, (deal) => ({ ...deal, owners }));
+   }
+
+   /* An answer to the founder's questionnaire, written by the fund, on the row
+      the cabinet reads: the founder sees it, and goes on from it. A new row
+      answers the request that waits, if any, so the cabinet takes it as its own. */
+   async setAnswer(
+      id: string,
+      questionId: string,
+      value: string,
+      userId: string,
+   ) {
+      await change(id, (deal) => ({
+         ...deal,
+         questionnaire: {
+            ...(deal.questionnaire ?? {
+               id: newId(),
+               values: {},
+               requestId:
+                  deal.requests?.find(
+                     ({ ddQuestionnaire, status }) =>
+                        ddQuestionnaire && status === 'waiting',
+                  )?.id ?? '',
+               submittedAt: '',
+            }),
+            values: { ...deal.questionnaire?.values, [questionId]: value },
+            updatedAt: `${todayISO()} ${nowTime()}`,
+            updatedById: userId,
+         },
+      }));
    }
 
    /* Puts a deal on any stage, in work, paused or withdrawn, past the
@@ -417,9 +434,15 @@ class Deals {
    async setCriterion(id: string, key: string, patch: Partial<Criterion>) {
       await this.updateScreening(id, (screening) => ({
          ...screening,
-         criteria: screening.criteria.map((item) =>
-            item.key === key ? { ...item, ...patch } : item,
-         ),
+         // a criterion gets its place with its first change
+         criteria: screening.criteria.some((item) => item.key === key)
+            ? screening.criteria.map((item) =>
+                 item.key === key ? { ...item, ...patch } : item,
+              )
+            : [
+                 ...screening.criteria,
+                 { key, score: null, rationale: '', source: '', ...patch },
+              ],
       }));
    }
 
@@ -491,6 +514,7 @@ class Deals {
                      byId: userId,
                      sentAt: today,
                      dueDate: input.dueDate,
+                     folder: input.folder,
                      status: 'waiting',
                      closedAt: '',
                      detail: '',
@@ -574,6 +598,7 @@ class Deals {
                      url: stored.url,
                      fileId: stored.id,
                      folderId,
+                     size: file.size,
                      requestId: '',
                      uploadedBy: 'fund',
                      uploadedById: userId,
@@ -605,23 +630,6 @@ class Deals {
          documents: deal.documents?.map((item) =>
             item.id === documentId ? { ...item, ...input } : item,
          ),
-      }));
-   }
-
-   // A folder of the data room, inside another or at the top.
-   async addFolder(id: string, name: string, parentId: string, userId: string) {
-      await change(id, (deal) => ({
-         ...deal,
-         folders: [
-            ...(deal.folders ?? []),
-            {
-               id: newId(),
-               name,
-               parentId,
-               sortOrder: (deal.folders ?? []).length + 1,
-               createdById: userId,
-            },
-         ],
       }));
    }
 
@@ -685,60 +693,25 @@ class Deals {
       if (document?.fileId) await deleteFile(document.fileId);
    }
 
-   /* The applicant answered a request (by mail, until the founders' cabinet
-      answers itself): the request closes with what they said, and once no
-      request waits, the stage clock runs again. */
-   async answerRequest(
-      id: string,
-      requestId: string,
-      answer: string,
-      userId: string,
-      files: File[] = [],
-   ) {
+   /* The tick on a request: what was asked for has come, by the cabinet or
+      by mail, and its file is in the data room. Once no request waits, the
+      stage clock runs again. */
+   async receiveRequest(id: string, requestId: string, userId: string) {
       const today = todayISO();
-      // the applicant's filled-in files go to the data room, to be checked
-      const stored: StoredFile[] = [];
-      for (const file of files) stored.push(await uploadFile(file, 'Deals'));
-      const at = `${today} ${nowTime()}`;
       await change(id, (deal) => {
          const requests = (deal.requests ?? []).map((item) =>
             item.id === requestId
-               ? {
-                    ...item,
-                    status: 'accepted' as const,
-                    closedAt: today,
-                    detail: answer,
-                 }
+               ? { ...item, status: 'accepted' as const, closedAt: today }
                : item,
          );
          const waiting = requests.some(({ status }) => status === 'waiting');
          const resumed = deal.waiting && !waiting && deal.clock;
          const title =
             requests.find((item) => item.id === requestId)?.title ?? '';
-         const answered: DealDocument[] = stored.map((file) => {
-            const name = titleOf(file.name);
-            return {
-               id: newId(),
-               title: name,
-               status: 'review',
-               version: nextVersion(deal, name),
-               url: file.url,
-               fileId: file.id,
-               folderId: '',
-               requestId,
-               uploadedBy: 'applicant',
-               uploadedById: userId,
-               uploadedAt: at,
-               detail: '',
-            };
-         });
          return logged(
             {
                ...deal,
                requests,
-               ...(answered.length && {
-                  documents: [...answered, ...(deal.documents ?? [])],
-               }),
                waiting,
                clock: resumed
                   ? {
@@ -752,6 +725,39 @@ class Deals {
             { kind: 'answered', title, userId },
          );
       });
+   }
+
+   // The tick taken off: the request waits again, and the clock stops from
+   // today, unless it already waits.
+   async reopenRequest(id: string, requestId: string, userId: string) {
+      const today = todayISO();
+      await change(id, (deal) =>
+         logged(
+            {
+               ...deal,
+               requests: deal.requests?.map((item) =>
+                  item.id === requestId
+                     ? { ...item, status: 'waiting' as const, closedAt: '' }
+                     : item,
+               ),
+               waiting: true,
+               clock:
+                  deal.waiting && deal.clock
+                     ? deal.clock
+                     : {
+                          pausedDays: deal.clock?.pausedDays ?? 0,
+                          pausedSince: today,
+                       },
+            },
+            {
+               kind: 'request',
+               title:
+                  deal.requests?.find((item) => item.id === requestId)?.title ??
+                  '',
+               userId,
+            },
+         ),
+      );
    }
 
    /* The fund accepts what the founder answered in the cabinet: the request
@@ -768,13 +774,11 @@ class Deals {
       }));
    }
 
-   // A request's wording and deadline; for an answered one, its answer too.
+   // A request's wording, folder and deadline.
    async updateRequest(
       id: string,
       requestId: string,
-      input: Pick<RequestInput, 'title' | 'text' | 'dueDate'> & {
-         detail?: string;
-      },
+      input: Pick<RequestInput, 'title' | 'text' | 'dueDate' | 'folder'>,
    ) {
       await change(id, (deal) => ({
          ...deal,
@@ -837,44 +841,19 @@ class Deals {
       );
    }
 
-   async addWorkstream(
-      id: string,
-      input: { name: string; executor: string; dueDate: string },
-   ) {
-      await change(id, (deal) =>
-         logged(
-            {
-               ...deal,
-               workstreams: [
-                  ...(deal.workstreams ?? []),
-                  {
-                     id: newId(),
-                     ...input,
-                     handedAt: '',
-                     status: 'not_started',
-                     conclusion: '',
-                  },
-               ],
-            },
-            { kind: 'workstream', name: input.name, handed: false },
-         ),
-      );
-   }
-
-   // The workstream's executor has reported: its conclusion closes it.
-   async concludeWorkstream(
-      id: string,
-      workstreamId: string,
-      conclusion: string,
-   ) {
+   /* An audit nobody has touched has no row yet (ddStreams): its first change
+      makes one. Says the row's id. */
+   async openAudit(id: string, stream: Workstream) {
+      if (!isUntouchedAudit(stream)) return stream.id;
+      const workstreamId = newId();
       await change(id, (deal) => ({
          ...deal,
-         workstreams: deal.workstreams?.map((item) =>
-            item.id === workstreamId
-               ? { ...item, conclusion, status: 'done' as const }
-               : item,
-         ),
+         workstreams: [
+            ...(deal.workstreams ?? []),
+            { ...stream, id: workstreamId },
+         ],
       }));
+      return workstreamId;
    }
 
    // ---- what the owner writes on the card: the terms, the metrics DD
@@ -1005,19 +984,36 @@ class Deals {
       });
    }
 
+   // A workstream's fields; done, it gets the day of its conclusion, and
+   // reopened, loses it.
    async updateWorkstream(
       id: string,
       workstreamId: string,
-      input: Pick<
-         Workstream,
-         'name' | 'executor' | 'dueDate' | 'status' | 'conclusion'
+      input: Partial<
+         Pick<
+            Workstream,
+            | 'name'
+            | 'executor'
+            | 'dueDate'
+            | 'status'
+            | 'conclusion'
+            | 'verdict'
+         >
       >,
    ) {
       await change(id, (deal) => ({
          ...deal,
-         workstreams: deal.workstreams?.map((item) =>
-            item.id === workstreamId ? { ...item, ...input } : item,
-         ),
+         workstreams: deal.workstreams?.map((item) => {
+            if (item.id !== workstreamId) return item;
+            const next = { ...item, ...input };
+            return {
+               ...next,
+               concludedAt:
+                  next.status === 'done'
+                     ? next.concludedAt || todayISO()
+                     : '',
+            };
+         }),
       }));
    }
 

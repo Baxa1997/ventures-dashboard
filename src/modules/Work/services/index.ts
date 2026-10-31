@@ -38,6 +38,7 @@ import type {
    Task,
    TaskEvent,
    TaskInput,
+   TaskStatus,
    TaskTargets,
    UpcomingItem,
 } from '@shared/types/work.types';
@@ -191,6 +192,7 @@ const toTask = (
    relationId: str(row.deals_id || row.portfolio_companies_id),
    assigneeId: str(row.assignee_id),
    reviewerId: str(row.reviewer_id),
+   startDate: day(row.start_date),
    dueDate: day(row.due_date),
    priority: (str(row.priority) || 'medium') as Task['priority'],
    status: (str(row.status) || 'assigned') as Task['status'],
@@ -211,6 +213,12 @@ const toTask = (
       ? dayjs(str(row.created_at)).format('YYYY-MM-DD')
       : '',
    completedAt: day(row.completed_at) || null,
+   stamps: {
+      created: str(row.created_at),
+      updated: str(row.updated_at),
+      started: str(row.started_at),
+      finished: str(row.finished_at),
+   },
    history: [...events].sort(newest).map(toEvent),
 });
 
@@ -225,6 +233,7 @@ const taskFields = (task: Task) => ({
    assignee_id: task.assigneeId,
    reviewer_id: task.reviewerId,
    created_by_id: task.createdById,
+   start_date: task.startDate || null,
    due_date: task.dueDate || null,
    due_label: task.dueLabel,
    priority: task.priority,
@@ -232,6 +241,8 @@ const taskFields = (task: Task) => ({
    recurrence: task.recurrence,
    origin: task.origin,
    completed_at: task.completedAt,
+   started_at: task.stamps.started || null,
+   finished_at: task.stamps.finished || null,
    deals_id: task.relation === 'deal' ? task.relationId || null : null,
    portfolio_companies_id:
       task.relation === 'portfolio' ? task.relationId || null : null,
@@ -258,6 +269,10 @@ const eventRow = (taskId: string, event: TaskEvent) => ({
    tasks_id: taskId,
 });
 
+// Whether ucode has batch 14's fields (start_date, started_at, finished_at):
+// a row lists every field of its table, so the first task tells.
+let stampFields = true;
+
 const store = createStore(async () => {
    // the types are rows of Настройки's list
    await settings.getSettings();
@@ -266,6 +281,7 @@ const store = createStore(async () => {
          listRows(table),
       ),
    );
+   stampFields = !tasks.length || 'start_date' in tasks[0];
    const checks = groupBy(checklist, 'tasks_id');
    const history = groupBy(events, 'tasks_id');
    // numbered in the order they were made: the first is SQV-1
@@ -312,6 +328,18 @@ const readQueueDone = (): Record<string, string> => {
    }
 };
 
+// A new task's moments: made now, begun unless it waits to be done, finished
+// if it is made already done.
+const stampsOf = (status: TaskStatus) => {
+   const now = new Date().toISOString();
+   return {
+      created: now,
+      updated: now,
+      started: statusGroup(status) === 'todo' ? '' : now,
+      finished: statusGroup(status) === 'complete' ? now : '',
+   };
+};
+
 // The number the next task made gets.
 const nextNumber = (tasks: Task[]) =>
    tasks.reduce((top, { number }) => Math.max(top, number), 0) + 1;
@@ -327,6 +355,10 @@ const nextOccurrence = (task: Task, today: string): Task => ({
    ...task,
    id: newId(),
    status: 'assigned',
+   startDate:
+      task.startDate && task.recurrence !== 'none'
+         ? shiftMonths(task.startDate, RECURRENCE_MONTHS[task.recurrence])
+         : '',
    dueDate:
       task.dueDate && task.recurrence !== 'none'
          ? shiftMonths(task.dueDate, RECURRENCE_MONTHS[task.recurrence])
@@ -338,6 +370,7 @@ const nextOccurrence = (task: Task, today: string): Task => ({
    })),
    createdAt: today,
    completedAt: null,
+   stamps: stampsOf('assigned'),
    history: [{ id: newId(), date: today, kind: 'recurred' }],
 });
 
@@ -388,7 +421,11 @@ const change = async (
 ) => {
    const tasks = await store.get();
    const before = findTask(tasks, id);
-   const after = apply(before);
+   const changed = apply(before);
+   const after: Task = {
+      ...changed,
+      stamps: { ...changed.stamps, updated: new Date().toISOString() },
+   };
    const extra = added(after).map((task, index) => ({
       ...task,
       number: nextNumber(tasks) + index,
@@ -520,6 +557,12 @@ class Work {
       return TEAM;
    }
 
+   // false until ucode has batch 14: start dates and the moments a task was
+   // begun and finished are not kept
+   hasStampFields() {
+      return stampFields;
+   }
+
    async getTasks(): Promise<Task[]> {
       return store.get();
    }
@@ -562,6 +605,7 @@ class Work {
          createdById: userId,
          createdAt: today,
          completedAt: statusGroup(input.status) === 'complete' ? today : null,
+         stamps: stampsOf(input.status),
          history: [],
       };
       store.set((current) => [task, ...current]);
@@ -595,10 +639,20 @@ class Work {
                status: next.status,
                userId,
             };
+            const now = new Date().toISOString();
             return {
                ...next,
                history: [event, ...current.history],
                completedAt: isDone(next) ? today : null,
+               // begun the first time it leaves «К выполнению»; finished
+               // when it enters «Завершено», and no longer when reopened
+               stamps: {
+                  ...next.stamps,
+                  started:
+                     next.stamps.started ||
+                     (statusGroup(next.status) === 'todo' ? '' : now),
+                  finished: isDone(next) ? next.stamps.finished || now : '',
+               },
             };
          },
          (next) => (closedRecurring ? [nextOccurrence(next, today)] : []),

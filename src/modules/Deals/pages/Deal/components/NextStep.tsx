@@ -29,13 +29,13 @@ interface NextStepProps {
 type TabLabel =
    | 'Открыть оценку'
    | 'Открыть «Запросы и документы»'
-   | 'Открыть «Due diligence»';
+   | 'Открыть «Due Diligence»';
 
 // The tab of the card where a stage's work is done.
 const STAGE_TABS: Partial<Record<DealStage, [tab: string, label: TabLabel]>> = {
    screening: ['screening', 'Открыть оценку'],
    analysis: ['requests', 'Открыть «Запросы и документы»'],
-   dd: ['dd', 'Открыть «Due diligence»'],
+   dd: ['dd', 'Открыть «Due Diligence»'],
 };
 
 /* What the deal's owner does now: the step from where the deal stands, what

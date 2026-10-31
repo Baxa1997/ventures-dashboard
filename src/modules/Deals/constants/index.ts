@@ -3,9 +3,9 @@ import type {
    DocumentStatus,
    Recommendation,
    Resubmit,
-   ScreeningNoteKey,
    Tone,
    WorkstreamStatus,
+   WorkstreamVerdict,
 } from '@shared/types/deals.types';
 import type { DealStage, DefaultStage } from '@shared/types/work.types';
 
@@ -34,7 +34,7 @@ export const STAGE_NORMS: Partial<Record<DealStage, number | null>> = {
 // What a deal that has just entered a stage has to do next.
 export const STAGE_NEXT_LABELS = {
    inbox: 'Решение по заявке',
-   screening: 'Оценка по 7 критериям',
+   screening: 'Оценка по критериям',
    meeting: 'Встреча с командой',
    analysis: 'Анализ и запрос документов',
    ic1: 'Вынос на ИК-1',
@@ -132,7 +132,13 @@ export const APPLICATION_PHRASES = [
 
 // Rows of «Из заявки» the deal's card already shows from the deal's own
 // fields (amount, industry, round stage), so it leaves them out.
-export const FIELD_FACTS: string[] = ['Запрос', 'Отрасль', 'Стадия'];
+export const FIELD_FACTS: string[] = [
+   'Запрос',
+   'Отрасль',
+   'Стадия',
+   'Контакт',
+   'Сайт',
+];
 
 // The check range while Настройки have none. The stages, the geography and
 // the sectors are marks on Настройки's lists (rounds, countries, industries).
@@ -153,53 +159,10 @@ export const RESUBMIT_LABELS = {
    in_12_months: 'Через 12 месяцев',
 } as const satisfies Record<Resubmit, string>;
 
-// The seven criteria of the screening score.
-export const CRITERIA = [
-   {
-      key: 'market',
-      title: 'Размер и динамика рынка',
-      hint: 'Кто покупает, сколько платят сегодня, как быстро растёт',
-   },
-   {
-      key: 'demand',
-      title: 'Проблема и доказательства спроса',
-      hint: 'Есть ли платящие клиенты или подписанные пилоты',
-   },
-   {
-      key: 'product',
-      title: 'Продукт и защищённость решения',
-      hint: 'Что мешает конкуренту повторить за 6 месяцев',
-   },
-   {
-      key: 'economics',
-      title: 'Юнит-экономика и путь к прибыльности',
-      hint: 'Маржа, CAC, окупаемость клиента',
-   },
-   {
-      key: 'team',
-      title: 'Команда и founder-market fit',
-      hint: 'Почему именно эта команда выиграет этот рынок',
-   },
-   {
-      key: 'regulation',
-      title: 'Регуляторный и комплаенс-риск',
-      hint: 'Лицензии, персональные данные, требования ЦБ',
-   },
-   {
-      key: 'mandate',
-      title: 'Соответствие мандату и синергия с SQB',
-      hint: 'Стадия, чек, отрасль; польза для бизнес-линий банка',
-   },
-] as const;
-
 export const SCORES = [1, 2, 3, 4, 5];
 
-export const SCREENING_NOTE_FIELDS = [
-   { key: 'essence', label: 'Суть' },
-   { key: 'whyNow', label: 'Почему сейчас' },
-   { key: 'redFlags', label: 'Красные флаги' },
-   { key: 'questions', label: 'Вопросы на встречу' },
-] as const satisfies { key: ScreeningNoteKey; label: string }[];
+// From this score a deal is recommended to go on, as the design has it.
+export const SCORE_THRESHOLD = 4;
 
 export const DOCUMENT_STATUS_LABELS = {
    review: 'На проверке',
@@ -228,6 +191,13 @@ export const WORKSTREAM_STATUS_TONES: Record<WorkstreamStatus, Tone> = {
    not_started: 'neutral',
    done: 'success',
 };
+
+// An auditor's conclusion on a DD workstream, as the design picks it.
+export const WORKSTREAM_VERDICTS = {
+   positive: { label: 'Положительное', tone: 'success' },
+   remarks: { label: 'С замечаниями', tone: 'warning' },
+   negative: { label: 'Отрицательное', tone: 'danger' },
+} as const satisfies Record<WorkstreamVerdict, { label: string; tone: Tone }>;
 
 export const RECOMMENDATIONS: Recommendation[] = [
    'strong_yes',
@@ -268,8 +238,8 @@ export const CARD_TAB_LABELS = {
    overview: 'Обзор',
    screening: 'Скрининг и оценка',
    requests: 'Запросы и документы',
-   dd: 'Due diligence',
+   dd: 'Due Diligence',
    memo: 'Меморандум',
-   decisions: 'Решения ИК и НС',
+   decisions: 'Решение ИК и НС',
    history: 'История',
 } as const satisfies Record<CardTab, string>;

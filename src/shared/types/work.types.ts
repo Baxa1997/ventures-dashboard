@@ -73,11 +73,22 @@ export interface TaskInput {
    relationId: string; // the deal or the company, '' without a relation
    assigneeId: string; // '' — not assigned, goes to the director by default
    reviewerId: string; // '' — nobody checks the result
+   startDate: string; // YYYY-MM-DD the work is to begin, or '' — not planned
    dueDate: string; // YYYY-MM-DD, or '' when no deadline is set
    priority: TaskPriority;
    status: TaskStatus;
    recurrence: TaskRecurrence;
    checklist: ChecklistItem[];
+}
+
+/* When a task was made, last changed, begun (first left «К выполнению») and
+   finished (entered «Завершено»), as ucode keeps the moments; '' — not
+   yet. Begun and finished need ucode batch 14; before it they stay ''. */
+export interface TaskStamps {
+   created: string;
+   updated: string;
+   started: string;
+   finished: string;
 }
 
 export interface Task extends TaskInput {
@@ -90,6 +101,7 @@ export interface Task extends TaskInput {
    decisionId: string; // the committee decision it carries out, or ''
    createdAt: string; // YYYY-MM-DD
    completedAt: string | null; // YYYY-MM-DD, set while the status is "done"
+   stamps: TaskStamps;
    history: TaskEvent[]; // newest first
 }
 

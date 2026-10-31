@@ -172,7 +172,7 @@ interface DataRequestsProps {
    onNew: () => void;
 }
 
-// The company card's «Запросы данных»: what the fund asked the company for.
+// What the fund asked the company for, on its card's «Документы Data Room».
 const DataRequests = ({ company, requests, onNew }: DataRequestsProps) => {
    const { t } = useTranslation('portfolio');
    const [editing, setEditing] = useState<CompanyDataRequest | null>(null);

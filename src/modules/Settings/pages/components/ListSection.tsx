@@ -12,7 +12,11 @@ import {
    isSwitchFlag,
    SWITCH_LABELS,
 } from '@modules/Settings/helpers';
-import settings, { nameOf, releaseFile } from '@modules/Settings/services';
+import settings, {
+   isBuiltIn,
+   nameOf,
+   releaseFile,
+} from '@modules/Settings/services';
 import { uploadFile } from '@shared/api/ucode';
 import { ColorInput, Notice, Spinner, Switch } from '@shared/components';
 import { toast } from '@shared/helpers/toast';
@@ -71,7 +75,8 @@ interface ListRowProps {
    since records keep it; a system row is renamed, never deleted. Every change
    goes to the journal. */
 const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
-   const { t } = useTranslation('settings');
+   const { t, i18n } = useTranslation('settings');
+   const language = (i18n.resolvedLanguage ?? 'ru') as SupportedLanguageType;
    const user = useCurrentUser();
    const list = LISTS[kind];
    const fileInput = useRef<HTMLInputElement>(null);
@@ -268,6 +273,21 @@ const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
                )}
             </div>
          );
+      if (flag === 'weight')
+         return (
+            <RowInput
+               disabled={!editable}
+               inputMode='numeric'
+               label={t('Вес: {{name}}', { name: nameOf(item) })}
+               value={String(shown.weight ?? 0)}
+               onSave={(weight) =>
+                  row.change(
+                     { weight: Number(weight.replace(/\D/g, '')) || 0 },
+                     saved,
+                  )
+               }
+            />
+         );
       if (isSwitchFlag(flag))
          return (
             <Switch
@@ -320,6 +340,31 @@ const ListRow = ({ kind, item, editable, drag, onDelete }: ListRowProps) => {
                />
             </td>
          ))}
+         {kind === 'criteria' && (
+            <td className={CELL}>
+               {/* in the interface's language, as a list's names are kept */}
+               <RowInput
+                  disabled={!editable}
+                  label={t('Что оценивается: {{name}}', { name: nameOf(item) })}
+                  maxLength={160}
+                  placeholder={language === 'ru' ? undefined : shown.hints?.ru}
+                  value={shown.hints?.[language] ?? ''}
+                  onSave={(hint) =>
+                     row.change(
+                        {
+                           hints: {
+                              ru: shown.hints?.ru ?? '',
+                              uz: shown.hints?.uz ?? '',
+                              en: shown.hints?.en ?? '',
+                              [language]: hint,
+                           },
+                        },
+                        saved,
+                     )
+                  }
+               />
+            </td>
+         )}
          <td className={CELL}>
             <span
                className='border-line bg-hover text-ink-soft block h-7 truncate rounded-md border px-2 font-mono text-xs leading-6.5'
@@ -360,16 +405,22 @@ interface ListSectionProps {
    stands. The director turns rows on and off, renames them, sets their
    marks, orders and deletes them; a row in use is deleted once its records
    move to another, and the platform's own rows are renamed, never deleted.
-   A new row is added in a dialog, which checks its key. */
+   A new row is added in a dialog, which checks its key. A list still on its
+   built-in rows is only shown until ucode has its table. */
 const ListSection = ({
    kind,
    items,
-   editable,
+   editable: allowed,
    onAdd,
    onDelete,
 }: ListSectionProps) => {
    const { t } = useTranslation('settings');
    const list = LISTS[kind];
+   const builtIn = items.some(isBuiltIn);
+   const editable = allowed && !builtIn;
+   const weights = items
+      .filter(({ active }) => active)
+      .reduce((sum, { weight }) => sum + (weight ?? 0), 0);
    const order = useRowOrder(
       items,
       (item) => item.id,
@@ -379,11 +430,22 @@ const ListSection = ({
 
    return (
       <>
+         {builtIn && (
+            <Notice warning>
+               {t(
+                  'Это встроенный список: менять его здесь можно будет, когда в ucode появятся партии 16 и 17.',
+               )}
+            </Notice>
+         )}
          <DictCard
             addLabel={t('Добавить')}
             body={drag.body}
             className={
-               kind === 'taskStatuses' ? 'min-w-[50rem]' : 'min-w-[46rem]'
+               kind === 'criteria'
+                  ? 'min-w-[62rem]'
+                  : kind === 'taskStatuses'
+                    ? 'min-w-[50rem]'
+                    : 'min-w-[46rem]'
             }
             editable={editable}
             note={
@@ -407,6 +469,11 @@ const ListSection = ({
                         {t(label)}
                      </th>
                   ))}
+                  {kind === 'criteria' && (
+                     <th className={clsx(HEAD, 'w-64')}>
+                        {t('Что оценивается')}
+                     </th>
+                  )}
                   <th className={clsx(HEAD, 'w-28')}>{t(list.keyLabel)}</th>
                   {list.flag && (
                      <th
@@ -414,7 +481,7 @@ const ListSection = ({
                            HEAD,
                            list.flag === 'file'
                               ? 'w-52'
-                              : isSwitchFlag(list.flag)
+                              : isSwitchFlag(list.flag) || list.flag === 'weight'
                                 ? 'w-21'
                                 : 'w-40',
                         )}
@@ -463,6 +530,11 @@ const ListSection = ({
                </tr>
             )}
          </DictCard>
+         {kind === 'criteria' && (
+            <Notice className='mt-4' warning={weights !== 100}>
+               {t('Сумма весов: {{total}}%', { total: weights })}
+            </Notice>
+         )}
          <Notice className='mt-4'>{t(list.note)}</Notice>
       </>
    );

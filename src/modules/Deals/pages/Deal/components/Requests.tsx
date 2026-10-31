@@ -1,32 +1,25 @@
-import { listOf, nameOf, stageName } from '@modules/Settings/services';
-import { TEXT_MAX } from '@modules/Deals/constants';
-import { isOpen, personName } from '@modules/Deals/helpers';
+import { RequestDialog } from '@modules/Deals/components';
+import { isOpen } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
+import { listName } from '@modules/Settings/services';
 import {
-   Attachments,
+   ActionMenu,
    Badge,
    Button,
    Card,
    ConfirmDialog,
-   FactList,
-   FilterSelect,
-   ItemActions,
    NoData,
-   STACK,
+   Spinner,
+   Table,
+   TD,
+   TH,
 } from '@shared/components';
-import { employeeOf, ROLE_LABELS } from '@shared/constants';
 import { formatDate, todayISO } from '@shared/helpers';
-import {
-   useAction,
-   useAttachments,
-   useCurrentUser,
-   useRequest,
-} from '@shared/hooks';
-import attachments from '@shared/services/attachments';
+import { useCurrentUser, useRequest } from '@shared/hooks';
 import type { Deal, DealRequest } from '@shared/types/deals.types';
-import dayjs from 'dayjs';
-import { FileText, Paperclip, X } from 'lucide-react';
-import { type FormEvent, useRef, useState } from 'react';
+import clsx from 'clsx';
+import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import DataRoom from './DataRoom';
 
@@ -37,305 +30,211 @@ interface RequestsProps {
    onRequest: (title: string) => void;
 }
 
-interface TemplatePickerProps {
-   dealId: string;
-   requestId: string;
-}
-
-/* Adds a template from Настройки → Шаблоны документов to a request: the
-   applicant downloads it, fills it in and sends it back. A template already
-   on the request is not offered again. */
-const TemplatePicker = ({ dealId, requestId }: TemplatePickerProps) => {
-   const { t } = useTranslation('deals');
-   const user = useCurrentUser();
-   const place = { dealId, section: 'request', itemId: requestId };
-   const attached = new Set(useAttachments(place).map(({ url }) => url));
-   const templates = listOf('docTemplates').filter(
-      (item) => item.file && !attached.has(item.file.url),
-   );
-   const adding = useAction(
-      (key: string) => {
-         const item = templates.find((template) => template.key === key);
-         return (
-            item?.file &&
-            attachments.addCopies(
-               place,
-               [{ title: nameOf(item), url: item.file.url }],
-               user.id,
-            )
-         );
-      },
-      { kind: 'create', success: t('Шаблон добавлен к запросу') },
-   );
-
-   if (!templates.length) return null;
-   return (
-      <FilterSelect
-         busy={adding.pending}
-         label={t('Добавить шаблон')}
-         options={[
-            { value: '', label: t('Добавить шаблон…') },
-            ...templates.map((item) => ({
-               value: item.key,
-               label: nameOf(item),
-            })),
-         ]}
-         showLabel={false}
-         value=''
-         onChange={(key) => key && adding.run(key)}
-      />
-   );
-};
-
-// Working days from tomorrow to the day, inclusive.
-const workingDaysLeft = (date: string, today = todayISO()) => {
-   let count = 0;
-   for (
-      let day = dayjs(today).add(1, 'day');
-      !day.isAfter(date);
-      day = day.add(1, 'day')
-   )
-      if (day.day() !== 0 && day.day() !== 6) count += 1;
-   return count;
-};
-
 interface RequestRowProps {
    dealId: string;
    request: DealRequest;
-   line: string;
    writable: boolean;
-   onRequest: (title: string) => void; // a new request, prefilled
+   onEdit: () => void;
+   onRemove: () => void;
 }
 
-// The founder's answers to the DD questionnaire, as the cabinet stored them.
-const QuestionnaireAnswers = ({ request }: { request: DealRequest }) => {
-   const { t } = useTranslation('deals');
-   const questionnaire = request.questionnaire;
-   if (!questionnaire)
-      return request.ddQuestionnaire ? (
-         <p className='text-ink-soft mt-1 text-xs'>
-            {t('DD-вопросник: заявитель заполняет анкету в кабинете основателя')}
-         </p>
-      ) : null;
-   const answered = questionnaire.sections.filter((section) =>
-      section.items.every((item) => item.answer.trim()),
-   ).length;
-   return (
-      <details className='border-line mt-2 rounded-lg border'>
-         <summary className='text-meta cursor-pointer px-3 py-2 font-medium'>
-            {questionnaire.submittedAt
-               ? t('Анкета заявителя · отправлена {{date}}', {
-                    date: formatDate(questionnaire.submittedAt.slice(0, 10)),
-                 })
-               : t('Анкета заявителя · заполняется: {{done}} из {{total}} разделов', {
-                    done: answered,
-                    total: questionnaire.sections.length,
-                 })}
-         </summary>
-         <div className='divide-line divide-y px-3 pb-2'>
-            {questionnaire.sections.map((section) => (
-               <div key={section.id} className='py-2'>
-                  <div className='text-meta font-semibold'>{section.title}</div>
-                  <dl className='mt-1 grid gap-1.5'>
-                     {section.items.map((item) => (
-                        <div key={item.id} className='text-xs'>
-                           <dt className='text-ink-soft'>{item.question}</dt>
-                           <dd className='text-ink mt-0.5 whitespace-pre-line'>
-                              {item.answer || '—'}
-                           </dd>
-                        </div>
-                     ))}
-                  </dl>
-               </div>
-            ))}
-         </div>
-      </details>
-   );
-};
-
-/* A request to the applicant: what was asked and until when. The founder
-   answers in the startup cabinet: the request is then «Ответ получен —
-   проверьте» until the fund accepts it or asks for more. For a deal without
-   a cabinet the fund records the answer itself; it changes the request or
-   withdraws it, and the answer's files go with it. */
+/* A request to the founder, as the design's row: its tick, what was asked,
+   the data room folder its file goes to, the deadline and the status. The
+   tick says it came; taken off, the request waits again. The founder answers
+   in the startup cabinet, and the request then shows «Ответ получен» with
+   what they wrote until the fund ticks it. */
 const RequestRow = ({
    dealId,
    request,
-   line,
    writable,
-   onRequest,
+   onEdit,
+   onRemove,
 }: RequestRowProps) => {
    const { t } = useTranslation('deals');
    const user = useCurrentUser();
-   // what is open under the request: the answer, the request's own fields
-   const [mode, setMode] = useState<'answer' | 'edit' | null>(null);
-   const [answer, setAnswer] = useState('');
-   // the applicant's filled-in files, uploaded with the answer
-   const [files, setFiles] = useState<File[]>([]);
-   const fileInput = useRef<HTMLInputElement>(null);
-   const place = { dealId, section: 'request', itemId: request.id };
-   const sent = useAttachments(place);
-   const [draft, setDraft] = useState({
-      title: request.title,
-      text: request.text,
-      dueDate: request.dueDate,
-      detail: request.detail,
-   });
-   const [removing, setRemoving] = useState(false);
-   const waiting = request.status === 'waiting';
-   const answered = request.status === 'answered';
-   const accepting = useRequest({ success: t('Ответ принят') });
-   const answering = useRequest({
-      success: files.length
-         ? t('Запрос закрыт, файлы — в data room на проверке')
-         : t('Запрос закрыт'),
-   });
-   const saving = useRequest();
+   const ticking = useRequest();
+   const { status } = request;
+   const received = status === 'accepted';
+   const late = status === 'waiting' && request.dueDate < todayISO();
+   const line =
+      status !== 'waiting' && request.detail
+         ? t('Ответ: {{text}}', { text: request.detail })
+         : request.ddQuestionnaire
+           ? t('DD-вопросник · анкета в кабинете основателя')
+           : request.text;
 
-   const submitAnswer = async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!answer.trim()) return;
-      if (
-         await answering.run(() =>
-            deals.answerRequest(
-               dealId,
-               request.id,
-               answer.trim(),
-               user.id,
-               files,
-            ),
-         )
-      ) {
-         setMode(null);
-         setFiles([]);
-      }
-   };
-
-   const submitEdit = async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!draft.title.trim() || !draft.dueDate) return;
-      if (
-         await saving.run(() =>
-            deals.updateRequest(dealId, request.id, {
-               title: draft.title.trim(),
-               text: draft.text.trim(),
-               dueDate: draft.dueDate,
-               ...(!waiting && { detail: draft.detail.trim() }),
-            }),
-         )
-      )
-         setMode(null);
-   };
+   const tick = () =>
+      ticking.run(() =>
+         received
+            ? deals.reopenRequest(dealId, request.id, user.id)
+            : status === 'answered'
+              ? deals.acceptAnswer(dealId, request.id)
+              : deals.receiveRequest(dealId, request.id, user.id),
+      );
 
    return (
-      <li className='py-3.5'>
-         <div className='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_10rem_7.5rem]'>
-            <div className='min-w-0'>
-               <div className='font-semibold'>{request.title}</div>
-               <div className='text-ink-soft mt-0.5 text-xs'>{line}</div>
-               {request.text && (
-                  <p className='text-meta mt-1'>{request.text}</p>
+      <tr>
+         <td className={clsx(TD, 'w-9')}>
+            <button
+               type='button'
+               aria-label={t('Получено')}
+               aria-pressed={received}
+               className={clsx(
+                  'grid size-4.5 place-items-center rounded-[5px] border',
+                  received
+                     ? 'bg-success border-success text-white'
+                     : 'border-line-strong hover:border-success bg-white',
                )}
-               <QuestionnaireAnswers request={request} />
-               {!waiting && request.detail && (
-                  <p className='text-meta mt-1'>
-                     <span className='text-ink-soft'>{t('Ответ')}: </span>
-                     {request.detail}
-                  </p>
-               )}
-               {request.warning && (
-                  <div className='text-warning-ink mt-1 text-xs'>
-                     {request.warning}
-                  </div>
-               )}
-            </div>
-            <div className='text-ink-soft text-meta max-sm:order-last'>
-               {waiting
-                  ? t('Ответ до {{date}}', {
-                       date: formatDate(request.dueDate),
-                    })
-                  : answered
-                    ? t('Ответ получен {{date}}', {
-                         date: formatDate(request.closedAt),
-                      })
-                    : t('Закрыт {{date}}', {
-                         date: formatDate(request.closedAt),
-                      })}
-            </div>
-            <div>
-               {waiting ? (
-                  <Badge tone='warning'>{t('Ждём ответа')}</Badge>
-               ) : answered ? (
-                  <Badge tone='accent'>{t('Ответ получен — проверьте')}</Badge>
+               disabled={!writable || ticking.pending}
+               onClick={tick}
+            >
+               {ticking.pending ? (
+                  <Spinner className='size-3' />
                ) : (
-                  <Badge tone='success'>{t('Принят')}</Badge>
+                  received && <Check aria-hidden className='size-3' />
                )}
+            </button>
+         </td>
+         <td className={TD}>
+            <div
+               className={clsx(
+                  'font-semibold',
+                  received && 'text-ink-soft font-normal line-through',
+               )}
+            >
+               {request.title}
             </div>
-         </div>
-         {/* what goes to the applicant: templates to fill in, examples */}
-         {(sent.length > 0 || writable) && (
-            <div className='text-ink-soft mt-2.5 text-xs font-medium'>
-               {t('Шаблоны и файлы для заявителя')}
-            </div>
-         )}
-         <Attachments
-            className='mt-1.5'
-            editable={writable}
-            extra={
+            {line && (
+               <div className='text-ink-soft line-clamp-1 text-xs' title={line}>
+                  {line}
+               </div>
+            )}
+         </td>
+         <td className={clsx(TD, 'whitespace-nowrap')}>
+            {request.folder ? listName('docFolders', request.folder) : '—'}
+         </td>
+         <td
+            className={clsx(
+               TD,
+               'whitespace-nowrap',
+               late && 'text-danger font-semibold',
+            )}
+         >
+            {formatDate(request.dueDate)}
+         </td>
+         <td className={clsx(TD, 'whitespace-nowrap')}>
+            {received ? (
+               <Badge tone='success'>{t('Получено')}</Badge>
+            ) : status === 'answered' ? (
+               <Badge tone='accent'>{t('Ответ получен')}</Badge>
+            ) : late ? (
+               <Badge tone='danger'>{t('Просрочено')}</Badge>
+            ) : (
+               <Badge tone='warning'>{t('Ожидаем')}</Badge>
+            )}
+         </td>
+         <td className={clsx(TD, 'w-0 text-right')}>
+            {writable && (
+               <ActionMenu
+                  actions={[
+                     {
+                        label: t('Изменить'),
+                        icon: Pencil,
+                        onSelect: onEdit,
+                     },
+                     {
+                        label: t('Удалить'),
+                        icon: Trash2,
+                        danger: true,
+                        onSelect: onRemove,
+                     },
+                  ]}
+                  name={request.title}
+               />
+            )}
+         </td>
+      </tr>
+   );
+};
+
+/* «Запросы и документы», as the design draws them: the requests to the
+   founder as a table, the data room under them. */
+const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
+   const { t } = useTranslation('deals');
+   const requests = deal.requests ?? [];
+   const writable = isOpen(deal);
+   const [editing, setEditing] = useState<DealRequest | null>(null);
+   const [removing, setRemoving] = useState<DealRequest | null>(null);
+
+   return (
+      <div className='gap-section flex flex-1 flex-col'>
+         <Card
+            action={
                writable && (
-                  <TemplatePicker dealId={dealId} requestId={request.id} />
+                  <Button
+                     className='h-8 px-3 text-xs'
+                     onClick={() => onRequest('')}
+                  >
+                     <Plus aria-hidden />
+                     {t('Запросить документ')}
+                  </Button>
                )
             }
-            place={place}
-         />
-         {answered && writable && mode === null && (
-            <div className='mt-2.5 flex flex-wrap items-center gap-2.5'>
-               <Button
-                  className='h-8 px-3 text-xs'
-                  loading={accepting.pending}
-                  onClick={() =>
-                     accepting.run(() => deals.acceptAnswer(dealId, request.id))
+            title={t('Запросы основателю')}
+         >
+            {requests.length ? (
+               <Table
+                  className='min-w-2xl'
+                  head={
+                     <>
+                        <th className={clsx(TH, 'w-9')}>
+                           <span className='sr-only'>{t('Получено')}</span>
+                        </th>
+                        <th className={TH}>{t('Что запрошено')}</th>
+                        <th className={TH}>{t('Папка дата рума')}</th>
+                        <th className={TH}>{t('Срок')}</th>
+                        <th className={TH}>{t('Статус')}</th>
+                        <th className={TH}>
+                           <span className='sr-only'>{t('Действия')}</span>
+                        </th>
+                     </>
                   }
                >
-                  {t('Принять')}
-               </Button>
-               <Button
-                  className='h-8 px-3 text-xs'
-                  disabled={accepting.pending}
-                  variant='ghost'
-                  onClick={() => onRequest(request.title)}
-               >
-                  {t('Запросить ещё')}
-               </Button>
-               <span className='text-ink-soft text-xs'>
-                  {t('Файлы ответа — в data room «На проверке»')}
-               </span>
-            </div>
-         )}
-         {writable && mode === null && (
-            <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs'>
-               {waiting && (
-                  <button
-                     type='button'
-                     className='link'
-                     onClick={() => setMode('answer')}
-                  >
-                     {t('Ответ получен')}
-                  </button>
-               )}
-               <ItemActions
-                  name={request.title}
-                  onDelete={() => setRemoving(true)}
-                  onEdit={() => setMode('edit')}
-               />
-            </div>
-         )}
+                  {requests.map((request) => (
+                     <RequestRow
+                        key={request.id}
+                        dealId={deal.id}
+                        request={request}
+                        writable={writable}
+                        onEdit={() => setEditing(request)}
+                        onRemove={() => setRemoving(request)}
+                     />
+                  ))}
+               </Table>
+            ) : (
+               <NoData>{t('Запросов пока нет.')}</NoData>
+            )}
+         </Card>
+
+         <DataRoom
+            deal={deal}
+            folderId={folderId}
+            onFolder={onFolder}
+            onRequest={onRequest}
+         />
+         <RequestDialog
+            deal={editing && deal}
+            request={editing}
+            onClose={() => setEditing(null)}
+         />
          <ConfirmDialog
-            open={removing}
-            subtitle={request.title}
+            open={removing !== null}
+            subtitle={removing?.title}
             title={t('Удалить запрос?')}
-            onClose={() => setRemoving(false)}
-            onConfirm={() => deals.removeRequest(dealId, request.id)}
+            onClose={() => setRemoving(null)}
+            onConfirm={() =>
+               removing && deals.removeRequest(deal.id, removing.id)
+            }
          >
             <p>
                {t(
@@ -343,413 +242,6 @@ const RequestRow = ({
                )}
             </p>
          </ConfirmDialog>
-         {mode === 'answer' && (
-            <form className='mt-3' onSubmit={submitAnswer}>
-               <textarea
-                  aria-label={t('Ответ заявителя')}
-                  autoFocus
-                  className='field-input text-meta'
-                  maxLength={TEXT_MAX}
-                  placeholder={t('Что ответил заявитель')}
-                  rows={2}
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-               />
-               {/* the filled-in templates and other files the applicant sent */}
-               <div className='mt-2 text-xs'>
-                  {files.length > 0 && (
-                     <ul className='mb-1.5 flex flex-col gap-1'>
-                        {files.map((file, index) => (
-                           <li
-                              key={`${file.name}-${index}`}
-                              className='flex items-center gap-2'
-                           >
-                              <Paperclip
-                                 aria-hidden
-                                 className='text-ink-soft size-3.5 shrink-0'
-                              />
-                              <span className='min-w-0 truncate'>
-                                 {file.name}
-                              </span>
-                              <button
-                                 type='button'
-                                 aria-label={t('Убрать файл: {{name}}', {
-                                    name: file.name,
-                                 })}
-                                 className='text-ink-soft hover:text-danger grid size-5 place-items-center rounded'
-                                 onClick={() =>
-                                    setFiles((prev) =>
-                                       prev.filter((_, at) => at !== index),
-                                    )
-                                 }
-                              >
-                                 <X aria-hidden className='size-3.5' />
-                              </button>
-                           </li>
-                        ))}
-                     </ul>
-                  )}
-                  <button
-                     type='button'
-                     className='link'
-                     onClick={() => fileInput.current?.click()}
-                  >
-                     {t('Приложить заполненные файлы')}
-                  </button>
-                  <span className='text-ink-soft'>
-                     {' '}
-                     {t('— они попадут в data room на проверку')}
-                  </span>
-                  <input
-                     ref={fileInput}
-                     hidden
-                     multiple
-                     type='file'
-                     onChange={(event) => {
-                        const chosen = [...(event.target.files ?? [])];
-                        setFiles((prev) => [...prev, ...chosen]);
-                        event.target.value = '';
-                     }}
-                  />
-               </div>
-               <div className='mt-2.5 flex gap-2.5'>
-                  <Button
-                     className='h-9'
-                     disabled={!answer.trim()}
-                     loading={answering.pending}
-                     type='submit'
-                  >
-                     {t('Закрыть запрос')}
-                  </Button>
-                  <Button
-                     className='h-9'
-                     disabled={answering.pending}
-                     variant='text'
-                     onClick={() => setMode(null)}
-                  >
-                     {t('Отмена')}
-                  </Button>
-               </div>
-            </form>
-         )}
-         {mode === 'edit' && (
-            <form
-               className='mt-3 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_10rem]'
-               onSubmit={submitEdit}
-            >
-               <input
-                  aria-label={t('Что запрашиваем')}
-                  autoFocus
-                  className='field-input'
-                  maxLength={160}
-                  placeholder={t('Что запрашиваем')}
-                  value={draft.title}
-                  onChange={(event) =>
-                     setDraft((prev) => ({
-                        ...prev,
-                        title: event.target.value,
-                     }))
-                  }
-               />
-               <input
-                  aria-label={t('Срок ответа')}
-                  className='field-input'
-                  type='date'
-                  value={draft.dueDate}
-                  onChange={(event) =>
-                     setDraft((prev) => ({
-                        ...prev,
-                        dueDate: event.target.value,
-                     }))
-                  }
-               />
-               <textarea
-                  aria-label={t('Текст запроса')}
-                  className='field-input text-meta sm:col-span-2'
-                  maxLength={TEXT_MAX}
-                  placeholder={t('Текст запроса')}
-                  rows={2}
-                  value={draft.text}
-                  onChange={(event) =>
-                     setDraft((prev) => ({ ...prev, text: event.target.value }))
-                  }
-               />
-               {!waiting && (
-                  <textarea
-                     aria-label={t('Ответ заявителя')}
-                     className='field-input text-meta sm:col-span-2'
-                     maxLength={TEXT_MAX}
-                     placeholder={t('Ответ заявителя')}
-                     rows={2}
-                     value={draft.detail}
-                     onChange={(event) =>
-                        setDraft((prev) => ({
-                           ...prev,
-                           detail: event.target.value,
-                        }))
-                     }
-                  />
-               )}
-               <div className='flex gap-2.5 sm:col-span-2'>
-                  <Button
-                     className='h-9'
-                     loading={saving.pending}
-                     type='submit'
-                  >
-                     {t('Сохранить')}
-                  </Button>
-                  <Button
-                     className='h-9'
-                     disabled={saving.pending}
-                     variant='text'
-                     onClick={() => setMode(null)}
-                  >
-                     {t('Отмена')}
-                  </Button>
-               </div>
-            </form>
-         )}
-      </li>
-   );
-};
-
-// What the fund has asked the applicant for, and the documents received.
-const Requests = ({ deal, folderId, onFolder, onRequest }: RequestsProps) => {
-   const { t } = useTranslation('deals');
-   const { t: tLayout } = useTranslation('layout');
-   const requests = deal.requests ?? [];
-   const open = requests.filter(({ status }) => status === 'waiting');
-   const checking = requests.filter(({ status }) => status === 'answered');
-   const writable = isOpen(deal);
-   const first = open[0];
-   const author = first && employeeOf(first.byId);
-   // what the applicant downloads with the first open request
-   const firstFiles = useAttachments({
-      dealId: deal.id,
-      section: 'request',
-      itemId: first?.id ?? '',
-   });
-
-   // who asked and when; `detail` is the applicant's answer
-   const requestLine = (request: DealRequest) =>
-      t('Запросил {{name}} · {{date}}', {
-         name: personName(request.byId),
-         date: formatDate(request.sentAt),
-      });
-
-   return (
-      <div className='gap-section grid flex-1 xl:grid-cols-[minmax(0,1fr)_23.75rem]'>
-         <div className={STACK}>
-            <Card
-               hint={[
-                  t('{{count}} открытый', { count: open.length }),
-                  ...(checking.length
-                     ? [t('{{count}} ответ на проверке', { count: checking.length })]
-                     : []),
-                  t('{{count}} закрыт', {
-                     count: requests.length - open.length - checking.length,
-                  }),
-               ].join(' · ')}
-               title={t('Запросы заявителю')}
-            >
-               {requests.length ? (
-                  <ul className='divide-line divide-y px-5 py-1'>
-                     {requests.map((request) => (
-                        <RequestRow
-                           key={request.id}
-                           dealId={deal.id}
-                           line={requestLine(request)}
-                           request={request}
-                           writable={writable}
-                           onRequest={onRequest}
-                        />
-                     ))}
-                  </ul>
-               ) : (
-                  <NoData>{t('Запросов заявителю пока нет')}</NoData>
-               )}
-            </Card>
-
-            <DataRoom
-               deal={deal}
-               folderId={folderId}
-               onFolder={onFolder}
-               onRequest={onRequest}
-            />
-         </div>
-
-         <div className={STACK}>
-            {deal.days && (
-               <Card
-                  title={t('Часы стадии «{{stage}}»', {
-                     stage: stageName(deal.stage),
-                  })}
-               >
-                  <div className='p-5'>
-                     <div className='bg-neutral-tint flex gap-3 rounded-lg px-4 py-3'>
-                        <span
-                           aria-hidden
-                           className='bg-neutral-ink mt-1.5 size-2 shrink-0 rounded-full'
-                        />
-                        <div className='text-meta'>
-                           <div>
-                              {deal.waiting
-                                 ? t('Таймер остановлен')
-                                 : t('Таймер идёт')}
-                           </div>
-                           <div className='text-ink-soft mt-0.5 text-xs'>
-                              {deal.waiting
-                                 ? t('Ждём данные от заявителя с {{date}}', {
-                                      date: formatDate(
-                                         deal.clock?.pausedSince ?? todayISO(),
-                                      ),
-                                   })
-                                 : t('Срок фонда считается в рабочих днях')}
-                           </div>
-                        </div>
-                     </div>
-                     <FactList
-                        className='text-meta mt-2'
-                        labelWidth='7.5rem'
-                        rows={[
-                           {
-                              label: t('Норма стадии'),
-                              value: t('{{count}} рабочий день', {
-                                 count: deal.days.norm,
-                              }),
-                           },
-                           {
-                              label: t('Использовано'),
-                              value: t('{{count}} рабочий день', {
-                                 count: deal.days.used,
-                              }),
-                           },
-                           ...(deal.clock
-                              ? [
-                                   {
-                                      label: t('На паузе'),
-                                      value: `${t('{{count}} рабочий день', {
-                                         count: deal.clock.pausedDays,
-                                      })} · ${t('по вине заявителя')}`,
-                                   },
-                                ]
-                              : []),
-                           ...(deal.waiting
-                              ? [
-                                   {
-                                      label: t('Возобновится'),
-                                      value: t(
-                                         'после ответа на {{count}} запрос',
-                                         {
-                                            count: open.length,
-                                         },
-                                      ),
-                                   },
-                                ]
-                              : []),
-                        ]}
-                     />
-                  </div>
-               </Card>
-            )}
-
-            {first && (
-               <Card
-                  hint={t('кабинет {{company}}', { company: deal.company })}
-                  title={t('Так видит заявитель')}
-               >
-                  <div className='p-5'>
-                     <p className='text-ink-soft text-xs'>
-                        {deal.fromSite
-                           ? t(
-                                'Заявитель видит запрос в кабинете основателя и отвечает там; ответ и файлы придут сюда. Ниже — как запрос выглядит у него.',
-                             )
-                           : deal.applicantEmail
-                             ? t(
-                                  'У сделки без заявки с сайта нет кабинета: отправьте запрос на {{email}} сами. Ниже — как он выглядел бы в кабинете.',
-                                  { email: deal.applicantEmail },
-                               )
-                             : t(
-                                  'У сделки без заявки с сайта нет кабинета: отправьте запрос заявителю сами. Ниже — как он выглядел бы в кабинете.',
-                               )}
-                     </p>
-                     {/* a picture of the applicant's screen, not controls */}
-                     <div
-                        inert
-                        aria-label={t('Так видит заявитель')}
-                        className='border-line mt-3 rounded-lg border p-4'
-                     >
-                        <div className='flex items-start justify-between gap-3'>
-                           <div className='text-title leading-5 font-bold'>
-                              {first.title}
-                           </div>
-                           <Badge tone='warning'>{t('Нужен ответ')}</Badge>
-                        </div>
-                        <div className='text-ink-soft mt-2.5 text-xs'>
-                           {t('Запросил: {{name}}, {{role}} · {{date}}', {
-                              name: personName(first.byId),
-                              role: author
-                                 ? tLayout(
-                                      ROLE_LABELS[author.role],
-                                   ).toLowerCase()
-                                 : '',
-                              date: formatDate(first.sentAt),
-                           })}
-                        </div>
-                        {first.text && (
-                           <p className='text-meta mt-2.5'>{first.text}</p>
-                        )}
-                        {firstFiles.length > 0 && (
-                           <div className='mt-3'>
-                              <div className='text-ink-soft text-xs'>
-                                 {t(
-                                    'Скачайте, заполните и приложите к ответу:',
-                                 )}
-                              </div>
-                              <ul className='mt-1.5 flex flex-col gap-1'>
-                                 {firstFiles.map((item) => (
-                                    <li
-                                       key={item.id}
-                                       className='text-accent text-meta flex items-center gap-2'
-                                    >
-                                       <FileText
-                                          aria-hidden
-                                          className='size-3.5 shrink-0'
-                                       />
-                                       <span className='min-w-0 truncate'>
-                                          {item.title}
-                                       </span>
-                                    </li>
-                                 ))}
-                              </ul>
-                           </div>
-                        )}
-                        <div className='bg-warning-tint text-warning-ink mt-3 flex items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium'>
-                           <span
-                              aria-hidden
-                              className='bg-warning-ink size-1.5 rounded-full'
-                           />
-                           {t('Ответить до {{date}}', {
-                              date: formatDate(first.dueDate),
-                           })}
-                           {' · '}
-                           {t('остался {{count}} день', {
-                              count: workingDaysLeft(first.dueDate),
-                           })}
-                        </div>
-                        <div className='mt-3 flex items-center gap-4'>
-                           <span className='bg-accent inline-flex h-11 items-center rounded-lg px-5 font-semibold text-white'>
-                              {t('Ответить и приложить файл')}
-                           </span>
-                           <span className='text-accent text-meta font-medium'>
-                              {t('История')}
-                           </span>
-                        </div>
-                     </div>
-                  </div>
-               </Card>
-            )}
-         </div>
       </div>
    );
 };

@@ -33,6 +33,7 @@ import {
    Journal,
    ListSection,
    Mandate,
+   Questionnaire,
    Roles,
    SectionHeader,
    SettingsNav,
@@ -215,6 +216,14 @@ const SettingsPage = () => {
          case 'flags':
             return (
                <Flags draft={draft} editable={director} onChange={setDraft} />
+            );
+         case 'questionnaire':
+            return (
+               <Questionnaire
+                  editable={director && data.questionnaireStored}
+                  sections={data.questionnaire}
+                  stored={data.questionnaireStored}
+               />
             );
          case 'committee':
             return <Committee />;

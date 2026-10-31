@@ -94,8 +94,8 @@ const TaskForm = ({
 
    return (
       <form noValidate className={MODAL_FORM} onSubmit={handleSubmit}>
-         <div className='grid min-h-0 flex-auto overflow-y-auto md:grid-cols-[minmax(0,1fr)_23.75rem]'>
-            <div className='grid min-w-0 content-start gap-6.5 px-5 pt-5 pb-7 md:px-7'>
+         <div className='grid min-h-0 flex-auto overflow-y-auto md:grid-cols-[minmax(0,1fr)_23.75rem] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden'>
+            <div className='grid min-w-0 content-start gap-6.5 px-5 pt-5 pb-7 md:overflow-y-auto md:px-7'>
                <div>
                   <input
                      data-autofocus
@@ -172,7 +172,7 @@ const TaskForm = ({
                </Section>
             </div>
 
-            <div className='bg-ground border-line grid content-start gap-3.5 border-t p-4 md:border-t-0 md:border-l'>
+            <div className='bg-ground border-line grid content-start gap-3.5 border-t p-4 md:overflow-y-auto md:border-t-0 md:border-l'>
                <div className='flex gap-2'>
                   <StatusSelect
                      value={values.status}
@@ -188,6 +188,7 @@ const TaskForm = ({
                   employees={employees}
                   errors={{
                      relationId: errorOf('relationId'),
+                     startDate: errorOf('startDate'),
                      dueDate: errorOf('dueDate'),
                   }}
                   targets={targets}

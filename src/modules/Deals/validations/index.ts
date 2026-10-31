@@ -21,18 +21,20 @@ export const newDealSchema = z.object({
    amount: z.coerce
       .number({ message: AMOUNT_INVALID })
       .positive(AMOUNT_INVALID),
+   legalName: text(COMPANY_MAX),
+   tin: text(20),
+   foundedYear: text(4),
+   employees: text(7),
+   website: text(COMPANY_MAX),
+   applicantEmail: text(COMPANY_MAX),
+   applicantPhone: text(30),
 });
 
 export const requestSchema = z.object({
    title: required(COMPANY_MAX * 2),
    text: text(TEXT_MAX),
    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, DATE_INVALID),
-});
-
-export const workstreamSchema = z.object({
-   name: required(COMPANY_MAX),
-   executor: required(COMPANY_MAX * 2),
-   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, DATE_INVALID),
+   folder: z.string(),
 });
 
 // The first message of each invalid field.
