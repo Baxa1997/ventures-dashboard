@@ -124,7 +124,10 @@ const SitePage = () => {
                   </Notice>
                )}
                <SectionHeader meta={t(info.meta)} title={t(info.label)} />
-               <div className='pb-5 lg:-mr-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-5'>
+               <div
+                  data-scroll-area
+                  className='pb-5 lg:-mr-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-5'
+               >
                   {!data ? (
                      <Loading />
                   ) : data.stored ? (

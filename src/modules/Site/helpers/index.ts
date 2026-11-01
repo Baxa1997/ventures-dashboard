@@ -66,17 +66,3 @@ export const slugOf = (title: string, taken: string[] = []) => {
       slug = `${base}-${number}`;
    return slug;
 };
-
-export const moved = <T extends { id: string }>(
-   list: T[],
-   id: string,
-   step: number,
-) => {
-   const from = list.findIndex((item) => item.id === id);
-   const to = from + step;
-   if (from < 0 || to < 0 || to >= list.length) return null;
-   const next = [...list];
-   const [item] = next.splice(from, 1);
-   next.splice(to, 0, item);
-   return next;
-};

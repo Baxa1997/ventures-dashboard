@@ -279,6 +279,26 @@ interface RecordOf {
    companies: SiteCompany;
 }
 
+// A row in its new place: only the rows that changed place are written.
+const writeOrder = async (
+   table: string,
+   rows: { id: string; order: number }[],
+   id: string,
+   to: number,
+) => {
+   const list = [...rows];
+   const from = list.findIndex((row) => row.id === id);
+   if (from < 0) return;
+   list.splice(to, 0, ...list.splice(from, 1));
+   await Promise.all(
+      list.flatMap((row, index) =>
+         row.order === index + 1
+            ? []
+            : [updateRow(table, { guid: row.id, sort_order: index + 1 })],
+      ),
+   );
+};
+
 class Site {
    subscribe(listener: () => void) {
       return store.subscribe(listener);
@@ -331,23 +351,16 @@ class Site {
       await refresh(kind);
    }
 
-   // A list in its new order: only the rows that moved are written.
-   async reorder(
-      kind: 'sources' | 'companies',
-      list: { id: string; order: number }[],
-   ) {
-      await Promise.all(
-         list.flatMap((item, index) =>
-            item.order === index + 1
-               ? []
-               : [
-                    updateRow(TABLES[kind].table, {
-                       guid: item.id,
-                       sort_order: index + 1,
-                    }),
-                 ],
-         ),
-      );
+   // A row moved in its list; a source moves among those of its kind.
+   async move(kind: 'sources' | 'companies', id: string, to: number) {
+      const state = store.peek();
+      if (!state) return;
+      const kindOf = state.sources.find((source) => source.id === id)?.kind;
+      const list =
+         kind === 'sources'
+            ? state.sources.filter((source) => source.kind === kindOf)
+            : state.companies;
+      await writeOrder(TABLES[kind].table, list, id, to);
       await refresh(kind);
    }
 
@@ -384,19 +397,13 @@ class Site {
       await refreshTable(id);
    }
 
-   // A table in its new order: only the rows that moved are written.
-   async reorderRows(id: SiteTableId, rows: Row[]) {
-      await Promise.all(
-         rows.flatMap((row, index) =>
-            num(row.sort_order) === index + 1
-               ? []
-               : [
-                    updateRow(SITE_TABLES[id].table, {
-                       guid: row.guid,
-                       sort_order: index + 1,
-                    }),
-                 ],
-         ),
+   async moveRow(id: SiteTableId, guid: string, to: number) {
+      const rows = store.peek()?.tables[id] ?? [];
+      await writeOrder(
+         SITE_TABLES[id].table,
+         rows.map((row) => ({ id: row.guid, order: num(row.sort_order) })),
+         guid,
+         to,
       );
       await refreshTable(id);
    }

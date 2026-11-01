@@ -2,14 +2,11 @@ import { Button, Field, Spinner } from '@shared/components';
 import { toast } from '@shared/helpers/toast';
 import type { Localized, SiteLanguage } from '@shared/types/site.types';
 import clsx from 'clsx';
-import { ChevronDown, ChevronUp, ExternalLink, Upload, X } from 'lucide-react';
+import { ExternalLink, Upload, X } from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGE_NAMES, SITE_LANGUAGES } from '../../constants';
 import site from '../../services';
-
-const ARROW =
-   'text-ink-soft hover:bg-ground grid size-7 place-items-center rounded-md disabled:opacity-35';
 
 // Which languages a record is written in.
 export const LangMarks = ({ filled }: { filled: SiteLanguage[] }) => (
@@ -121,46 +118,6 @@ export const LocalizedRow = ({
       ))}
    </div>
 );
-
-export const OrderButtons = ({
-   name,
-   first,
-   last,
-   busy,
-   onMove,
-}: {
-   name: string;
-   first: boolean;
-   last: boolean;
-   busy: boolean;
-   onMove: (step: number) => void;
-}) => {
-   const { t } = useTranslation('site');
-   return (
-      <span className='flex items-center'>
-         <button
-            type='button'
-            aria-label={t('Выше: {{name}}', { name })}
-            className={ARROW}
-            data-hint={t('Поднять выше: на сайте порядок такой же')}
-            disabled={first || busy}
-            onClick={() => onMove(-1)}
-         >
-            <ChevronUp aria-hidden className='size-4' />
-         </button>
-         <button
-            type='button'
-            aria-label={t('Ниже: {{name}}', { name })}
-            className={ARROW}
-            data-hint={t('Опустить ниже: на сайте порядок такой же')}
-            disabled={last || busy}
-            onClick={() => onMove(1)}
-         >
-            <ChevronDown aria-hidden className='size-4' />
-         </button>
-      </span>
-   );
-};
 
 // A file of the website: picked and stored at once, its address kept.
 export const FileField = ({

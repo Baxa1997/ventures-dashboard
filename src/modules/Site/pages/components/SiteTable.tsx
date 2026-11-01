@@ -14,6 +14,12 @@ import {
    TD,
    TH,
 } from '@shared/components';
+import {
+   DRAGGED_ROW,
+   RowHandle,
+   useRowDrag,
+   useRowOrder,
+} from '@modules/Settings/pages/components/Dict';
 import type { Row } from '@shared/api/ucode';
 import clsx from 'clsx';
 import {
@@ -48,10 +54,10 @@ import {
    type SiteTableId,
    type SiteTableInfo,
 } from '../../constants';
-import { filledIn, firstOf, moved } from '../../helpers';
+import { filledIn, firstOf } from '../../helpers';
 import { useSiteSave } from '../../hooks';
 import site, { localized, localizedRow } from '../../services';
-import { LangMarks, LocalizedRow, OnSite, OrderButtons } from './parts';
+import { LangMarks, LocalizedRow, OnSite } from './parts';
 
 // The icons a card can have: the website knows the same names (SiteIcon).
 const ICONS: Record<string, LucideIcon> = {
@@ -204,12 +210,21 @@ const RowDialog = ({
 };
 
 // A table of the website: one array of its code, its rows added and changed here.
-const SiteTable = ({ id, rows }: { id: SiteTableId; rows: Row[] }) => {
+const SiteTable = ({ id, rows: stored }: { id: SiteTableId; rows: Row[] }) => {
    const { t } = useTranslation('site');
    const info: SiteTableInfo = SITE_TABLES[id];
    const [editing, setEditing] = useState<Row | null>(null);
    const [removing, setRemoving] = useState<Row | null>(null);
-   const moving = useSiteSave((list: Row[]) => site.reorderRows(id, list));
+   const moving = useSiteSave((guid: string, to: number) =>
+      site.moveRow(id, guid, to),
+   );
+   const order = useRowOrder(
+      stored,
+      (row) => row.guid,
+      (guid, to) => moving.run(guid, to),
+   );
+   const drag = useRowDrag(order.move);
+   const rows = order.rows;
    const showing = useSiteSave((guid: string, shown: boolean) =>
       site.showRow(id, guid, shown),
    );
@@ -252,6 +267,7 @@ const SiteTable = ({ id, rows }: { id: SiteTableId; rows: Row[] }) => {
          <Card>
             {rows.length ? (
                <Table
+                  body={drag.body}
                   head={
                      <>
                         <th className={TH} />
@@ -270,24 +286,20 @@ const SiteTable = ({ id, rows }: { id: SiteTableId; rows: Row[] }) => {
                   {rows.map((row, index) => {
                      const Icon = ICONS[String(row.icon)];
                      return (
-                        <tr key={row.guid}>
+                        <tr
+                           key={row.guid}
+                           className={clsx(
+                              drag.dragged === index && DRAGGED_ROW,
+                           )}
+                           style={drag.rowStyle(index)}
+                        >
                            <td className={TD}>
-                              <OrderButtons
-                                 busy={moving.pending}
-                                 first={index === 0}
-                                 last={index === rows.length - 1}
+                              <RowHandle
+                                 count={rows.length}
+                                 index={index}
                                  name={nameOf(row)}
-                                 onMove={(step) => {
-                                    const next = moved(
-                                       rows.map((item) => ({
-                                          ...item,
-                                          id: item.guid,
-                                       })),
-                                       row.guid,
-                                       step,
-                                    );
-                                    if (next) void moving.run(next);
-                                 }}
+                                 onMove={order.move}
+                                 onPress={(event) => drag.press(index, event)}
                               />
                            </td>
                            {info.icon && (

@@ -1,4 +1,10 @@
 import {
+   DRAGGED_ROW,
+   RowHandle,
+   useRowDrag,
+   useRowOrder,
+} from '@modules/Settings/pages/components/Dict';
+import {
    Button,
    Card,
    ConfirmDialog,
@@ -10,15 +16,19 @@ import {
    ModalFooter,
    NoData,
    Switch,
+   Table,
+   TD,
+   TH,
 } from '@shared/components';
 import type { SiteSource, SiteSourceKind } from '@shared/types/site.types';
+import clsx from 'clsx';
 import { Plus } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { moved } from '../../helpers';
+import {} from '../../helpers';
 import { useSiteSave } from '../../hooks';
 import site from '../../services';
-import { LocalizedRow, OnSite, OrderButtons } from './parts';
+import { LocalizedRow, OnSite } from './parts';
 
 const SourceDialog = ({
    source,
@@ -100,16 +110,104 @@ const GROUPS: { kind: SiteSourceKind; title: string; add: string }[] = [
    { kind: 'report', title: 'Отраслевые отчёты', add: 'Добавить отчёт' },
 ];
 
-const Sources = ({ sources }: { sources: SiteSource[] }) => {
+// The sources of one kind, in the order the site shows them.
+const SourceList = ({
+   list,
+   onEdit,
+   onRemove,
+}: {
+   list: SiteSource[];
+   onEdit: (source: SiteSource) => void;
+   onRemove: (source: SiteSource) => void;
+}) => {
    const { t } = useTranslation('site');
-   const [editing, setEditing] = useState<SiteSource | null>(null);
-   const [removing, setRemoving] = useState<SiteSource | null>(null);
-   const moving = useSiteSave((list: SiteSource[]) =>
-      site.reorder('sources', list),
+   const moving = useSiteSave((id: string, to: number) =>
+      site.move('sources', id, to),
    );
    const showing = useSiteSave((id: string, shown: boolean) =>
       site.setShown('sources', id, shown),
    );
+   const order = useRowOrder(
+      list,
+      (source) => source.id,
+      (id, to) => moving.run(id, to),
+   );
+   const drag = useRowDrag(order.move);
+
+   return (
+      <Table
+         body={drag.body}
+         head={
+            <>
+               <th className={TH} />
+               <th className={TH}>{t('Название')}</th>
+               <th className={TH}>{t('На сайте')}</th>
+               <th className={TH} />
+            </>
+         }
+      >
+         {order.rows.map((source, index) => (
+            <tr
+               key={source.id}
+               className={clsx(drag.dragged === index && DRAGGED_ROW)}
+               style={drag.rowStyle(index)}
+            >
+               <td className={TD}>
+                  <RowHandle
+                     count={order.rows.length}
+                     index={index}
+                     name={source.name}
+                     onMove={order.move}
+                     onPress={(event) => drag.press(index, event)}
+                  />
+               </td>
+               <td className={TD}>
+                  <button
+                     type='button'
+                     className='text-left font-semibold'
+                     data-hint={t('Открыть источник')}
+                     onClick={() => onEdit(source)}
+                  >
+                     {source.name}
+                  </button>
+                  {source.url && (
+                     <div className='text-ink-faint max-w-[56ch] truncate text-xs'>
+                        {source.url}
+                     </div>
+                  )}
+               </td>
+               <td className={TD}>
+                  <Switch
+                     small
+                     checked={source.visible}
+                     disabled={showing.pending}
+                     hint={
+                        source.visible
+                           ? t('Скрыть источник с сайта')
+                           : t('Показать источник на сайте')
+                     }
+                     label={source.name}
+                     onChange={(next) => void showing.run(source.id, next)}
+                  />
+               </td>
+               <td className={TD}>
+                  <ItemActions
+                     icons
+                     name={source.name}
+                     onDelete={() => onRemove(source)}
+                     onEdit={() => onEdit(source)}
+                  />
+               </td>
+            </tr>
+         ))}
+      </Table>
+   );
+};
+
+const Sources = ({ sources }: { sources: SiteSource[] }) => {
+   const { t } = useTranslation('site');
+   const [editing, setEditing] = useState<SiteSource | null>(null);
+   const [removing, setRemoving] = useState<SiteSource | null>(null);
 
    return (
       <div className='grid gap-4'>
@@ -138,60 +236,11 @@ const Sources = ({ sources }: { sources: SiteSource[] }) => {
                   title={t(title as never)}
                >
                   {list.length ? (
-                     <ul className='divide-line divide-y'>
-                        {list.map((source, index) => (
-                           <li
-                              key={source.id}
-                              className='flex items-center gap-3 px-4.5 py-2.5'
-                           >
-                              <OrderButtons
-                                 busy={moving.pending}
-                                 first={index === 0}
-                                 last={index === list.length - 1}
-                                 name={source.name}
-                                 onMove={(step) => {
-                                    const next = moved(list, source.id, step);
-                                    if (next) void moving.run(next);
-                                 }}
-                              />
-                              <div className='min-w-0 flex-1'>
-                                 <button
-                                    type='button'
-                                    className='text-left font-semibold'
-                                    data-hint={t('Открыть источник')}
-                                    onClick={() => setEditing(source)}
-                                 >
-                                    {source.name}
-                                 </button>
-                                 {source.url && (
-                                    <div className='text-ink-faint truncate text-xs'>
-                                       {source.url}
-                                    </div>
-                                 )}
-                              </div>
-                              <Switch
-                                 small
-                                 checked={source.visible}
-                                 disabled={showing.pending}
-                                 hint={
-                                    source.visible
-                                       ? t('Скрыть источник с сайта')
-                                       : t('Показать источник на сайте')
-                                 }
-                                 label={source.name}
-                                 onChange={(next) =>
-                                    void showing.run(source.id, next)
-                                 }
-                              />
-                              <ItemActions
-                                 icons
-                                 name={source.name}
-                                 onDelete={() => setRemoving(source)}
-                                 onEdit={() => setEditing(source)}
-                              />
-                           </li>
-                        ))}
-                     </ul>
+                     <SourceList
+                        list={list}
+                        onEdit={setEditing}
+                        onRemove={setRemoving}
+                     />
                   ) : (
                      <NoData>{t('В этом списке пока ничего нет')}</NoData>
                   )}
