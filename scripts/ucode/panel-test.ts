@@ -781,6 +781,87 @@ try {
    const roadCompanies = (await portfolio.getState()).companies.filter((c) => c.name.startsWith('ZZ Road Co'));
    check('a follow-on adds to the company instead of making a second one', followOnCompany === roadCompany && roadCompanies.length === 1 && afterFollowOn.invested === 250000 && afterFollowOn.investments?.some((i) => i.kind === 'follow_on'), { invested: afterFollowOn.invested, companies: roadCompanies.map((c) => c.name) });
 
+   // ---- the money: a follow-on counts once, however it is reached
+   const { companyOfDeal, positionOf: worthOf, stakeOf, valuationOf } = await import('@modules/Portfolio/helpers');
+   const repeated = await deals.joinPortfolio(followOn.id, { instrument: 'safe', amount: 100000, date: today, stakePct: 2, valuation: 7000000 });
+   const afterRepeat = await companyNow();
+   check('a follow-on joined again adds nothing', repeated === roadCompany && afterRepeat.invested === 250000 && afterRepeat.investments?.length === 2, afterRepeat.investments);
+   check('its deal knows its company, so its card does not offer to add it again', companyOfDeal((await portfolio.getState()).companies, followOn.id)?.id === roadCompany);
+   check("the follow-on's price becomes the company's valuation, over the one set by hand", valuationOf(afterRepeat as never) === 7000000, valuationOf(afterRepeat as never));
+   // a follow-on opened from the card stays with its company whatever either is called
+   const renamedFollowOn = await deals.createDeal({ company: 'ZZ Совсем другое имя', about: 'ZZ', legalName: '', tin: '', foundedYear: null, employees: null, website: '', applicantEmail: '', applicantPhone: '', industryKey: 'fintech', industry: '', source: 'portfolio', amount: 50000, country: 'UZ', roundStage: 'seed', followOnOf: roadCompany }, me.id);
+   clearStores();
+   await settings.getSettings();
+   check('a follow-on keeps the link to its company', (await deals.getDeals()).find((d) => d.id === renamedFollowOn.id)?.followOnOf === roadCompany);
+   await deals.takeToScreening(renamedFollowOn.id, me.id);
+   await deals.moveDeal(renamedFollowOn.id, { stage: 'closing', status: 'active' }, 'ZZ', me.id);
+   const linkedTo = await deals.joinPortfolio(renamedFollowOn.id, { instrument: 'safe', amount: 50000, date: today, stakePct: 1, valuation: null });
+   const afterLinked = await companyNow();
+   const companiesNow = (await portfolio.getState()).companies;
+   check('so a renamed one still adds to the company, and makes no second one', linkedTo === roadCompany && afterLinked.invested === 300000 && !companiesNow.some((c) => c.name === 'ZZ Совсем другое имя'), { linkedTo, invested: afterLinked.invested });
+
+   // ---- the money: what is written later, and the figures that come from it
+   const payments = afterLinked.investments ?? [];
+   const paid = payments.find((item) => item.dealId === renamedFollowOn.id)!;
+   await portfolio.updateInvestment(roadCompany, paid, { instrument: 'equity', amount: 60000, date: today, stakePct: 3, valuation: null });
+   const corrected = await companyNow();
+   check('a payment is corrected: what was invested follows', corrected.invested === 310000 && corrected.investments?.find((i) => i.id === paid.id)?.amount === 60000, corrected.invested);
+   const stake = stakeOf(corrected as never);
+   const worth = worthOf(corrected as never);
+   check('the stake is the sum of the payments', Math.abs((stake ?? 0) - (payments.reduce((sum, i) => sum + (i.id === paid.id ? 3 : (i.stakePct ?? 0)), 0))) < 1e-9, stake);
+   check('what it is worth: the valuation by the stake, and MOIC against what was invested', worth.value !== null && Math.abs(worth.value - (7000000 * (stake ?? 0)) / 100) < 1e-6 && Math.abs((worth.moic ?? 0) - worth.value / 310000) < 1e-9, worth);
+   const first = corrected.investments?.find((i) => i.kind === 'initial');
+   await portfolio.updateInvestment(roadCompany, first!, { instrument: 'equity', amount: first!.amount, date: first!.date, stakePct: first!.stakePct, valuation: first!.valuation });
+   const reInstrument = await companyNow();
+   check('a SAFE converted: the company shows its first payment\'s instrument', reInstrument.instrument === 'equity', reInstrument.instrument);
+   await portfolio.removeInvestment(paid.id);
+   const afterRemove = await companyNow();
+   check('a follow-on deleted leaves what was invested and the stake', afterRemove.invested === 250000 && !afterRemove.investments?.some((i) => i.id === paid.id), afterRemove.invested);
+   check('its deal then knows it has no payment there', !companyOfDeal((await portfolio.getState()).companies, renamedFollowOn.id));
+
+   // ---- the money: a sum as people type it
+   const { parseAmount } = await import('@shared/helpers');
+   check('a sum typed any way', parseAmount('250,000') === 250000 && parseAmount('250 000') === 250000 && parseAmount('$250.000') === 250000 && parseAmount('1,250,000.50') === 1250000.5 && parseAmount('1 250 000,5') === 1250000.5 && parseAmount('1.5') === 1.5 && parseAmount('12,5') === 12.5 && parseAmount('−18 500') === -18500);
+   check('what is not a sum is refused', Number.isNaN(parseAmount('abc')) && Number.isNaN(parseAmount('')) && Number.isNaN(parseAmount('10$0x')));
+   const { investmentDraft, readInvestment } = await import('@modules/Deals/helpers/investment');
+   const asKey = ((key: string) => key) as never;
+   const read = readInvestment(asKey, { instrument: 'safe', amount: '250,000', date: today, stakePct: '12,5', valuation: '2,000,000' });
+   check('the investment form reads them', 'investment' in read && read.investment.amount === 250000 && read.investment.stakePct === 12.5 && read.investment.valuation === 2000000, read);
+   const termed = investmentDraft({ amount: 300000, terms: { instrument: 'equity', roundSize: 1000000, preMoney: 4000000 } } as never);
+   check('the form starts from the approved terms: instrument, post-money, the stake they give', termed.instrument === 'equity' && termed.valuation === '5000000' && termed.stakePct === '6' && termed.amount === '300000', termed);
+   const safe = investmentDraft({ amount: 300000, terms: { instrument: 'safe', roundSize: 1000000, preMoney: 4000000 } } as never);
+   check('a SAFE has no stake until it converts', safe.instrument === 'safe' && safe.stakePct === '' && safe.valuation === '5000000', safe);
+   check('with no terms it starts as a SAFE on the request', investmentDraft({ amount: 100000 } as never).instrument === 'safe');
+
+   // ---- the clock: each stage counts for itself
+   const clocked = await deals.createDeal({ company: 'ZZ Clock Co', about: 'ZZ', legalName: '', tin: '', foundedYear: null, employees: null, website: '', applicantEmail: '', applicantPhone: '', industryKey: 'fintech', industry: '', source: 'network', amount: 100000, country: 'UZ', roundStage: 'seed' }, me.id);
+   await deals.takeToScreening(clocked.id, me.id);
+   await api.updateRow('deals', { guid: clocked.id, paused_days: 5, paused_since: null, waiting: false });
+   clearStores();
+   await settings.getSettings();
+   await deals.moveDeal(clocked.id, { stage: 'analysis', status: 'active' }, 'ZZ', me.id);
+   clearStores();
+   await settings.getSettings();
+   const nextStage = (await deals.getDeals()).find((d) => d.id === clocked.id)!;
+   check("the days it waited on a stage do not hide the next stage's own", !nextStage.clock && nextStage.days?.used === 0 && (await api.listRows('deals')).find((row) => row.guid === clocked.id)?.paused_days === 0, nextStage.clock);
+   await deals.addRequest(clocked.id, { title: 'ZZ ждём', text: '', dueDate: today, folder: '', ddQuestionnaire: false }, me.id);
+   await deals.moveDeal(clocked.id, { stage: 'dd', status: 'active' }, 'ZZ', me.id);
+   const stillWaiting = (await deals.getDeals()).find((d) => d.id === clocked.id)!;
+   check('a request still open keeps the new stage waiting', stillWaiting.waiting === true && stillWaiting.clock?.pausedSince === today, { waiting: stillWaiting.waiting, clock: stillWaiting.clock });
+   await deals.receiveRequest(clocked.id, stillWaiting.requests![0].id, me.id);
+   const answeredNow = (await deals.getDeals()).find((d) => d.id === clocked.id)!;
+   check('and its answer starts the clock', answeredNow.waiting === false && !answeredNow.clock?.pausedSince, answeredNow.clock);
+
+   // ---- a recurring task closed, reopened and closed again makes one next task
+   const { getInitialValues: blankTask } = await import('@modules/Work/helpers');
+   const recurring = await work.createTask({ ...blankTask(undefined, me.id), title: 'ZZ Повтор', recurrence: 'monthly', dueDate: today, checklist: [] } as never, me.id);
+   const repeats = async () => (await work.getTasks()).filter((task) => task.title === 'ZZ Повтор').length;
+   await work.updateTask(recurring.id, { status: 'done' }, me.id);
+   const afterClose = await repeats();
+   await work.updateTask(recurring.id, { status: 'in_progress' }, me.id);
+   await work.updateTask(recurring.id, { status: 'done' }, me.id);
+   check('closing a recurring task twice makes one next task', afterClose === 2 && (await repeats()) === 2, { afterClose, now: await repeats() });
+
    // a company reports from the quarter the fund first paid in
    const { owesReport } = await import('@modules/Portfolio/helpers');
    const reporting = await portfolio.getState();

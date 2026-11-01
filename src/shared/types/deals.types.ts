@@ -344,6 +344,7 @@ export interface Deal {
    applicationId?: string;
    applicationEmail?: string;
    applicationName?: string;
+   followOnOf?: string; // the portfolio company a follow-on adds to (batch 22)
    clock?: { pausedDays: number; pausedSince: string };
    workstreams?: Workstream[];
    dd?: {
@@ -388,6 +389,7 @@ export interface NewDealInput {
    amount: number;
    country: string;
    roundStage: RoundStage;
+   followOnOf?: string; // opened from a company's card
 }
 
 export interface RejectInput {

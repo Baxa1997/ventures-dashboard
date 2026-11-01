@@ -1,3 +1,4 @@
+import { parseAmount } from '@shared/helpers';
 import type { RuTranslation } from '@shared/i18n/ru';
 import { z } from 'zod';
 import { COMPANY_MAX, TEXT_MAX } from '../constants';
@@ -18,9 +19,10 @@ export const newDealSchema = z.object({
    company: required(COMPANY_MAX),
    about: text(TEXT_MAX),
    industry: text(COMPANY_MAX), // the niche; the sector is chosen from the list
-   amount: z.coerce
-      .number({ message: AMOUNT_INVALID })
-      .positive(AMOUNT_INVALID),
+   amount: z.preprocess(
+      (value) => (typeof value === 'string' ? parseAmount(value) : value),
+      z.number({ message: AMOUNT_INVALID }).positive(AMOUNT_INVALID),
+   ),
    legalName: text(COMPANY_MAX),
    tin: text(20),
    foundedYear: text(4),

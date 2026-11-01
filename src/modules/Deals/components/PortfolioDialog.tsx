@@ -10,11 +10,12 @@ import type { Deal } from '@shared/types/deals.types';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import deals from '../services';
-import InvestmentFields, {
+import {
    type InvestmentErrors,
    investmentDraft,
    readInvestment,
-} from './InvestmentFields';
+} from '../helpers/investment';
+import InvestmentFields from './InvestmentFields';
 
 interface PortfolioDialogProps {
    deal: Deal | null; // null: the dialog is closed

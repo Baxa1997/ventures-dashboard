@@ -36,6 +36,7 @@ import type {
    SystemReportDoc,
 } from '@shared/types/portfolio.types';
 import {
+   companyOfDeal,
    lastClosedQuarter,
    metricFormat,
    metricKeys,
@@ -70,6 +71,7 @@ const toInvestment = (row: Row): InvestmentRecord => ({
    amount: num(row.amount),
    valuation: numOrNull(row.valuation),
    stakePct: numOrNull(row.stake_pct),
+   dealId: str(row.deals_id),
 });
 
 // The days the documents of batch 4 came, in their own columns; the fund's
@@ -213,7 +215,6 @@ let rowIds = {
    columns: new Set<string>(),
 };
 const investmentFields = (investment: Investment) => ({
-   guid: newId(),
    date: investment.date,
    instrument: investment.instrument,
    amount: investment.amount,
@@ -448,10 +449,11 @@ class Portfolio {
    }
 
    /* A closed deal joins the portfolio: the company, with the deal's owner as
-      its owner, and the fund's first investment. Once per deal: for a deal that
-      already has its company nothing is added. A follow-on deal («Компания ·
-      follow-on», opened from the company's card) adds its investment to the
-      company instead. Returns the company's id. */
+      its owner, and the fund's first investment. Once per deal: a deal whose
+      payment is already there adds nothing. A follow-on, opened from the company's
+      card, adds its investment to that company instead, and its round's price
+      becomes the company's valuation. An older follow-on is known by its name
+      («Компания · follow-on»). Returns the company's id. */
    async addFromDeal(
       deal: Deal,
       sector: { tagline: string; countries: string },
@@ -459,19 +461,40 @@ class Portfolio {
       decisionId: string,
    ): Promise<string> {
       const { companies } = await store.get();
-      const known = companies.find(({ dealId }) => dealId === deal.id);
-      if (known) return known.id;
-      const parent = companies.find(({ name }) =>
-         deal.company.toLowerCase().startsWith(`${name.toLowerCase()} ·`),
-      );
+      const known = companyOfDeal(companies, deal.id);
+      // a company whose first payment was refused halfway gets it on the next try
+      if (known?.investments.length) return known.id;
+      if (known) {
+         await createRow('investments', {
+            guid: newId(),
+            ...investmentFields(investment),
+            kind: 'initial',
+            portfolio_companies_id: known.id,
+            deals_id: deal.id,
+            decisions_id: decisionId || null,
+         });
+         await store.reload();
+         return known.id;
+      }
+      const parent =
+         companies.find(({ id }) => id === deal.followOnOf) ??
+         companies.find(({ name }) =>
+            deal.company.toLowerCase().startsWith(`${name.toLowerCase()} ·`),
+         );
       if (parent) {
          await createRow('investments', {
+            guid: newId(),
             ...investmentFields(investment),
             kind: 'follow_on',
             portfolio_companies_id: parent.id,
             deals_id: deal.id,
             decisions_id: decisionId || null,
          });
+         if (investment.valuation !== null)
+            await updateRow('portfolio_companies', {
+               guid: parent.id,
+               valuation: String(Math.round(investment.valuation)),
+            });
          await store.reload();
          return parent.id;
       }
@@ -491,6 +514,7 @@ class Portfolio {
          deals_id: deal.id,
       });
       await createRow('investments', {
+         guid: newId(),
          ...investmentFields(investment),
          kind: 'initial',
          portfolio_companies_id: id,
@@ -499,6 +523,32 @@ class Portfolio {
       });
       await store.reload();
       return id;
+   }
+
+   /* A payment corrected, or its stake and valuation written once known: a SAFE
+      that converts. The company shows its first payment's instrument and year. */
+   async updateInvestment(
+      companyId: string,
+      investment: InvestmentRecord,
+      input: Investment,
+   ) {
+      await updateRow('investments', {
+         guid: investment.id,
+         ...investmentFields(input),
+      });
+      if (investment.kind === 'initial')
+         await updateRow('portfolio_companies', {
+            guid: companyId,
+            instrument: input.instrument,
+            since: Number(input.date.slice(0, 4)),
+         });
+      await store.reload();
+   }
+
+   // A follow-on recorded by mistake; the first payment stays.
+   async removeInvestment(id: string) {
+      await deleteRow('investments', id);
+      await store.reload();
    }
 
    // What the card changes about the company.

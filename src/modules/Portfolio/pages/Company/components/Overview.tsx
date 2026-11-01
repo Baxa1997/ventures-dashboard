@@ -2,6 +2,7 @@ import { investmentContractOf } from '@modules/Contracts/helpers';
 import { CabinetCard } from '@modules/Deals/components';
 import contractsService from '@modules/Contracts/services';
 import AnswerDialog from '@modules/Portfolio/components/AnswerDialog';
+import InvestmentDialog from '@modules/Portfolio/components/InvestmentDialog';
 import {
    EXIT_TYPES,
    INSTRUMENT_LABELS,
@@ -23,6 +24,7 @@ import {
    reportDocs,
 } from '@modules/Portfolio/helpers';
 import { type PortfolioData, useCompanyTasks } from '@modules/Portfolio/hooks';
+import portfolio from '@modules/Portfolio/services';
 import { listName } from '@modules/Settings/services';
 import { TaskLine } from '@modules/Work/components';
 import { isDone, statusAfterTick } from '@modules/Work/helpers';
@@ -31,7 +33,9 @@ import {
    Badge,
    Card,
    CheckList,
+   ConfirmDialog,
    FactList,
+   ItemActions,
    NoData,
    StatTile,
 } from '@shared/components';
@@ -48,6 +52,7 @@ import { useCurrentUser, useServiceData } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import type {
    CompanyRequest,
+   InvestmentRecord,
    PortfolioCompany,
 } from '@shared/types/portfolio.types';
 import type { Task } from '@shared/types/work.types';
@@ -93,6 +98,14 @@ const Overview = ({
    const language = i18n.resolvedLanguage ?? i18n.language;
    const user = useCurrentUser();
    const [answering, setAnswering] = useState<CompanyRequest | null>(null);
+   const [paying, setPaying] = useState<InvestmentRecord | null>(null);
+   const [removingPayment, setRemovingPayment] =
+      useState<InvestmentRecord | null>(null);
+   // who answers for the money on the card
+   const manages =
+      user.role === 'director' ||
+      user.role === 'deputy' ||
+      company.ownerId === user.id;
    const tasks = useCompanyTasks(company.id).filter((task) => !isDone(task));
    const contract = investmentContractOf(
       useServiceData(loadContracts, subscribeContracts) ?? [],
@@ -165,21 +178,62 @@ const Overview = ({
                : index === 0
                  ? t('Первая инвестиция')
                  : t('Инвестиция'),
-         value: [
-            formatUsd(item.amount, language),
-            formatDayYear(item.date),
-            item.stakePct !== null &&
-               t('доля {{stake}}', {
-                  stake: formatStake(item.stakePct, language),
-               }),
-            item.valuation !== null &&
-               t('оценка {{amount}}', {
-                  amount: formatMoneyShort(item.valuation),
-               }),
-         ]
-            .filter(Boolean)
-            .join(' · '),
+         value: (
+            <span className='flex items-start justify-between gap-2'>
+               <span>
+                  {[
+                     formatUsd(item.amount, language),
+                     formatDayYear(item.date),
+                     item.stakePct !== null &&
+                        t('доля {{stake}}', {
+                           stake: formatStake(item.stakePct, language),
+                        }),
+                     item.valuation !== null &&
+                        t('оценка {{amount}}', {
+                           amount: formatMoneyShort(item.valuation),
+                        }),
+                  ]
+                     .filter(Boolean)
+                     .join(' · ')}
+               </span>
+               {manages && (
+                  <ItemActions
+                     icons
+                     name={t('платёж {{amount}}', {
+                        amount: formatUsd(item.amount, language),
+                     })}
+                     // a company keeps its first payment
+                     onDelete={
+                        item.kind === 'follow_on'
+                           ? () => setRemovingPayment(item)
+                           : undefined
+                     }
+                     onEdit={() => setPaying(item)}
+                  />
+               )}
+            </span>
+         ),
       })),
+      {
+         label: t('Доля фонда'),
+         value:
+            position.stake !== null ? (
+               formatStake(position.stake, language)
+            ) : manages && company.investments.length ? (
+               <button
+                  type='button'
+                  className='link'
+                  data-hint={t(
+                     'Указать долю фонда: от неё считаются стоимость и MOIC',
+                  )}
+                  onClick={() => setPaying(company.investments.at(-1) ?? null)}
+               >
+                  {t('Внести долю')}
+               </button>
+            ) : (
+               '—'
+            ),
+      },
       {
          label: t('Ответственный'),
          value: personName(company.ownerId) || t('Не назначен'),
@@ -582,6 +636,28 @@ const Overview = ({
                </Card>
             </div>
          </div>
+         <InvestmentDialog
+            company={company}
+            investment={paying}
+            onClose={() => setPaying(null)}
+         />
+         <ConfirmDialog
+            error={t('Не удалось удалить платёж')}
+            open={removingPayment !== null}
+            subtitle={company.name}
+            success={t('Платёж удалён')}
+            title={t('Удалить платёж?')}
+            onClose={() => setRemovingPayment(null)}
+            onConfirm={() =>
+               removingPayment && portfolio.removeInvestment(removingPayment.id)
+            }
+         >
+            <p>
+               {t(
+                  'Платёж уйдёт из вложений компании, доля и MOIC пересчитаются. Его сделка останется в «Сделках».',
+               )}
+            </p>
+         </ConfirmDialog>
          <AnswerDialog request={answering} onClose={() => setAnswering(null)} />
       </>
    );

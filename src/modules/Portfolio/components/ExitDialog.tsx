@@ -11,7 +11,7 @@ import {
    ModalFooter,
    Notice,
 } from '@shared/components';
-import { todayISO } from '@shared/helpers';
+import { parseAmount, todayISO } from '@shared/helpers';
 import { useAction } from '@shared/hooks';
 import type {
    ExitInput,
@@ -51,6 +51,7 @@ const ExitForm = ({
    const [type, setType] = useState<ExitType | ''>(exit?.type || 'strategic');
    const [buyer, setBuyer] = useState(exit?.buyer ?? '');
    const [error, setError] = useState('');
+   const [dateError, setDateError] = useState('');
    const sold = outcome === 'exit';
    const saving = useAction(
       (input: ExitInput) => portfolio.recordExit(company.id, input),
@@ -68,9 +69,18 @@ const ExitForm = ({
          className={MODAL_FORM}
          onSubmit={async (event) => {
             event.preventDefault();
-            const amount = Number(proceeds.replace(/[\s,]/g, ''));
-            if (sold && (!Number.isFinite(amount) || amount < 0)) {
+            const amount = parseAmount(proceeds);
+            // a sale brought money: a company that brought nothing is written off
+            if (sold && !(amount > 0)) {
                setError(t('Укажите сумму в долларах'));
+               return;
+            }
+            if (!date || date > todayISO()) {
+               setDateError(
+                  date
+                     ? t('Дата не может быть позже сегодняшнего дня')
+                     : t('Укажите дату закрытия'),
+               );
                return;
             }
             const done = await saving.run({
@@ -121,12 +131,17 @@ const ExitForm = ({
                         />
                      </Field>
                   )}
-                  <Field label={t('Дата закрытия')}>
+                  <Field error={dateError} label={t('Дата закрытия')}>
                      <input
+                        aria-invalid={!!dateError}
                         className='field-input'
+                        max={todayISO()}
                         type='date'
                         value={date}
-                        onChange={(event) => setDate(event.target.value)}
+                        onChange={(event) => {
+                           setDate(event.target.value);
+                           setDateError('');
+                        }}
                      />
                   </Field>
                   {sold && (

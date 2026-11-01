@@ -138,10 +138,14 @@ const dealOf = async (id: string) => {
    return deal;
 };
 
+// A line in the deal's journal.
+const note = (id: string, text: string) =>
+   change(id, (deal) => logged(deal, { kind: 'text', text }));
+
 // After a change to who signs in to the cabinet: read back, and in the deal's journal.
 const cabinetChanged = async (id: string, text: string) => {
    await store.reload();
-   await change(id, (deal) => logged(deal, { kind: 'text', text }));
+   await note(id, text);
 };
 
 // The stage history once the deal leaves the stage it is on for `stage`,
@@ -174,12 +178,17 @@ const leaving = (deal: Deal, stage: StageRecord['stage']): StageRecord[] => {
 // The state of a deal that has just entered a stage.
 const onStage = (deal: Deal, stage: DealStage): Deal => {
    const norm = stageNorm(stage);
+   // a stage's clock counts for itself, and stands while a request still waits
+   const waiting = (deal.requests ?? []).some(
+      ({ status }) => status === 'waiting',
+   );
    return {
       ...deal,
       stages: leaving(deal, stage),
       status: 'active',
       stage,
-      waiting: false,
+      waiting,
+      clock: waiting ? { pausedDays: 0, pausedSince: todayISO() } : undefined,
       days: norm ? { used: 0, norm } : null,
       // the wording of the next step comes from the stage
       next: { title: '', dueDate: addWorkingDays(todayISO(), norm ?? 5) },
@@ -217,6 +226,11 @@ class Deals {
    // Reads the deals again, after another section wrote to their rows.
    async reload() {
       await store.reload();
+   }
+
+   // What another section did about the deal, for its history.
+   async addNote(id: string, text: string) {
+      await note(id, text);
    }
 
    // Who signs in to the startup cabinet (./cabinet): a new person's login and

@@ -26,7 +26,7 @@ import type {
    Workstream,
 } from '@shared/types/deals.types';
 import dayjs from 'dayjs';
-import { getAssigneeId } from '@modules/Work/helpers';
+import { getAssigneeId, isDone } from '@modules/Work/helpers';
 import { RIGHT_SECTIONS, ROLE_RIGHTS } from '@modules/Settings/constants';
 import type { DealStage, Employee, Task } from '@shared/types/work.types';
 import type { TFunction } from 'i18next';
@@ -706,7 +706,7 @@ const conditionsCondition = (t: T, deal: Deal, tasks: Task[]): CheckItem[] => {
       ({ dueLabel }) => dueLabel === due,
    );
    if (!own.length) return [];
-   const open = own.filter(({ status }) => status !== 'done').length;
+   const open = own.filter((task) => !isDone(task)).length;
    return [
       {
          id: 'conditions',
@@ -1066,7 +1066,22 @@ export const pathHintOf = (t: T, deal: Deal) => {
          : undefined;
    }
    if (deal.status !== 'active') return undefined;
-   const paused = deal.clock?.pausedDays ?? 0;
+   // the stages it has left, each by what it took against what it counted
+   const before = (deal.stages ?? []).reduce(
+      (sum, { enteredAt, leftAt, daysUsed }) =>
+         leftAt && daysUsed !== null
+            ? sum +
+              Math.max(
+                 0,
+                 workingDaysBetween(
+                    dayjs(enteredAt).add(1, 'day').format('YYYY-MM-DD'),
+                    leftAt,
+                 ) - daysUsed,
+              )
+            : sum,
+      0,
+   );
+   const paused = before + (deal.clock?.pausedDays ?? 0);
    return [
       t('в работе {{count}} рабочий день', {
          count: workingDaysBetween(start, todayISO()),
@@ -1099,6 +1114,17 @@ export const TERMS_STAGES: DealStage[] = [
    'board',
    'closing',
 ];
+
+// The committees on the fund's path that have not approved the deal. A deal moved
+// by hand may reach Закрытие without them: it is warned of, not stopped.
+export const missingApprovals = (deal: Deal) =>
+   COMMITTEE_STAGES.filter(
+      (stage) => stageKeys().includes(stage) && !approvalOf(deal, stage),
+   );
+
+// A follow-on: its company's cabinet and first payment are its first deal's.
+export const isFollowOn = (deal: Deal) =>
+   !!deal.followOnOf || deal.source === 'portfolio';
 
 export const hasTermsStage = (deal: Deal) =>
    deal.status === 'portfolio' || TERMS_STAGES.includes(deal.stage);

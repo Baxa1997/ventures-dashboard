@@ -1780,6 +1780,17 @@ New fields in the existing table cabinet_members
 - password_hash: SINGLE_LINE
 ```
 
+## Batch 22 — the company a follow-on adds to
+
+A follow-on is opened from a company's card and adds its payment to that company when it closes. It was known by its name («Компания · follow-on»), so renaming either would have made a second company. Older rows, without the link, are still known by the name. **Not created yet:** ucode drops the field until it is, and the follow-on is known by its name as before. `node scripts/ucode/fields.mjs create 22` makes it.
+
+```
+Batch 22. Same rules.
+
+New fields in the existing table deals
+- follow_on_company_id: SINGLE_LINE
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

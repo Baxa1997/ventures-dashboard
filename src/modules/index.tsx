@@ -33,6 +33,19 @@ const SignedIn = () => {
             to={LOGIN_PATH}
          />
       );
+   if (team === 'closed')
+      return (
+         <div className='grid min-h-dvh place-content-center gap-4 p-8 text-center'>
+            <p role='alert'>
+               {t('Ваш доступ к панели закрыт. Обратитесь к директору фонда.')}
+            </p>
+            <div className='flex justify-center'>
+               <Button hint={t('Выйти из панели')} onClick={signOut}>
+                  {t('Выйти')}
+               </Button>
+            </div>
+         </div>
+      );
    return (
       <Layout>
          {team === 'ready' ? (

@@ -595,6 +595,10 @@ const toDeal = (
       ...(row.applicant_phone ? { applicantPhone: str(row.applicant_phone) } : {}),
       ...(members.length > 0 && { cabinet: members.map(toMember) }),
       ...(questionnaire && { questionnaire }),
+      // batch 22: a project without the field knows a follow-on by its name
+      ...('follow_on_company_id' in row && row.follow_on_company_id
+         ? { followOnOf: str(row.follow_on_company_id) }
+         : {}),
       ...(row.applications_id ? { applicationId: str(row.applications_id) } : {}),
       ...(application && {
          applicationEmail: str(application.email).trim().toLowerCase(),
@@ -767,6 +771,7 @@ const dealFields = (deal: Deal): Record<string, unknown> => ({
    resubmit: deal.closed?.resubmit ?? '',
    reject_reasons_id: (deal.closed?.reason && listIdOf('reasons', deal.closed.reason)) || null,
    applicant_email: deal.applicantEmail ?? '',
+   ...(deal.followOnOf && { follow_on_company_id: deal.followOnOf }),
    paused_days: deal.clock?.pausedDays ?? 0,
    paused_since: deal.clock?.pausedSince || null,
    facts: deal.facts ? toJson(deal.facts) : null,

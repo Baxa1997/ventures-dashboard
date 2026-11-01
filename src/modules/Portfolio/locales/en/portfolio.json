@@ -326,5 +326,20 @@
    "Показать, кто не сдал отчёт, и напомнить им": "Show who has not reported and remind them",
    "Записать ответ на этот запрос": "Record the answer to this request",
    "Перейти на вкладку пилотов": "Go to the pilots tab",
-   "Перейти на вкладку задач": "Go to the tasks tab"
+   "Перейти на вкладку задач": "Go to the tasks tab",
+   "Внести долю": "Enter the stake",
+   "Указать долю фонда: от неё считаются стоимость и MOIC": "Enter the fund’s stake: value and MOIC come from it",
+   "Платёж фонда": "Fund payment",
+   "платёж {{amount}}": "payment {{amount}}",
+   "Платёж сохранён": "Payment saved",
+   "Не удалось сохранить платёж": "Could not save the payment",
+   "Удалить платёж?": "Delete this payment?",
+   "Платёж удалён": "Payment deleted",
+   "Не удалось удалить платёж": "Could not delete the payment",
+   "Платёж уйдёт из вложений компании, доля и MOIC пересчитаются. Его сделка останется в «Сделках».": "The payment leaves the company’s investments, and the stake and MOIC are recounted. Its deal stays in Deals.",
+   "Инвестиция изменена: {{value}}": "Investment changed: {{value}}",
+   "что купил этот платёж; доля фонда — сумма всех": "what this payment bought; the fund’s stake is the sum of them",
+   "Сохранить: от платежа считаются вложения, доля и MOIC": "Save: invested, stake and MOIC come from the payment",
+   "Укажите дату закрытия": "Enter the closing date",
+   "Дата не может быть позже сегодняшнего дня": "The date cannot be after today"
 }

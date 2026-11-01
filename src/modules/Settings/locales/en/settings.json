@@ -471,7 +471,7 @@
    "Открытых задач нет.": "No open tasks.",
    "Поставить задачу": "Give a task",
    "Что видно этому сотруднику в панели": "What this person sees in the panel",
-   "Роль в системе задаёт, что человек может в панели; обязанности — за что он отвечает. Неактивный сотрудник пропадает из списков исполнителей и владельцев и входит с наименьшими правами, его имя остаётся на записях.": "The role in the system sets what a person can do in the panel; duties say what they answer for. An inactive employee leaves the lists of assignees and owners and signs in with the least rights; their name stays on the records.",
+   "Роль в системе задаёт, что человек может в панели; обязанности — за что он отвечает. Неактивный сотрудник пропадает из списков исполнителей и владельцев и не может войти в панель, его имя остаётся на записях.": "The role in the system sets what a person can do in the panel; duties, what they answer for. An inactive employee leaves the lists of assignees and owners and cannot sign in to the panel; their name stays on the records.",
    "Новый пароль": "New password",
    "Новый пароль · {{name}}": "New password · {{name}}",
    "выдан": "issued",

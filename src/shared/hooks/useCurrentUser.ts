@@ -11,11 +11,13 @@ import { useSyncExternalStore } from 'react';
    whose user_id is their ucode user; a user without a row is shown by their
    login, with the least access, until the director adds them in Настройки. */
 
-export type TeamStatus = 'idle' | 'loading' | 'ready' | 'failed';
+// closed: the director closed this person's access, and the panel stays shut
+export type TeamStatus = 'idle' | 'loading' | 'ready' | 'failed' | 'closed';
 
 const listeners = new Set<() => void>();
 let status: TeamStatus = 'idle';
 let currentId = '';
+let accessClosed = false;
 let signedIn = { userId: '', login: '' };
 let version = 0; // grows when TEAM or the person changes, so the pages read them again
 
@@ -68,8 +70,9 @@ export const reloadTeam = async () => {
       FORMER_TEAM.length,
       ...rows.filter((row) => row.is_active === false).map(toEmployee),
    );
-   currentId =
-      rows.find((row) => str(row.user_id) === signedIn.userId)?.guid ?? '';
+   const own = rows.find((row) => str(row.user_id) === signedIn.userId);
+   currentId = own?.guid ?? '';
+   accessClosed = own?.is_active === false;
    notify();
 };
 
@@ -85,7 +88,7 @@ export const setSignedInUser = async (userId: string, login = '') => {
    if (!userId) return;
    try {
       await reloadTeam();
-      status = 'ready';
+      status = accessClosed ? 'closed' : 'ready';
    } catch (error) {
       status = 'failed';
       throw error;

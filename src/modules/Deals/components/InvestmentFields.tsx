@@ -1,78 +1,26 @@
 import { INSTRUMENT_LABELS } from '@modules/Portfolio/constants';
 import { Field } from '@shared/components';
 import { todayISO } from '@shared/helpers';
-import type { Deal } from '@shared/types/deals.types';
-import type { Instrument, Investment } from '@shared/types/portfolio.types';
-import type { TFunction } from 'i18next';
+import type { Instrument } from '@shared/types/portfolio.types';
 import { useTranslation } from 'react-i18next';
-
-// The fund's first investment as typed in, before it is checked.
-export interface InvestmentDraft {
-   instrument: Instrument;
-   amount: string;
-   date: string;
-   stakePct: string;
-   valuation: string;
-}
-
-export type InvestmentErrors = Partial<
-   Record<'amount' | 'date' | 'stakePct' | 'valuation', string>
->;
-
-const INSTRUMENTS = Object.keys(INSTRUMENT_LABELS) as Instrument[];
-
-// The deal's request, paid today as a SAFE, until the owner says otherwise.
-export const investmentDraft = (deal: Deal): InvestmentDraft => ({
-   instrument: 'safe',
-   amount: deal.amount ? String(deal.amount) : '',
-   date: todayISO(),
-   stakePct: '',
-   valuation: '',
-});
-
-const toNumber = (text: string) =>
-   Number(text.replace(/\s/g, '').replace(',', '.'));
-
-// The investment the draft holds, or what is wrong with it.
-export const readInvestment = (
-   t: TFunction<'deals'>,
-   draft: InvestmentDraft,
-): { investment: Investment } | { errors: InvestmentErrors } => {
-   const errors: InvestmentErrors = {};
-   const amount = toNumber(draft.amount);
-   if (!amount || amount <= 0) errors.amount = t('Укажите сумму в долларах');
-   if (!draft.date) errors.date = t('Укажите дату платежа');
-   else if (draft.date > todayISO())
-      errors.date = t('Платёж не может быть позже сегодняшнего дня');
-   const stakePct = draft.stakePct.trim() ? toNumber(draft.stakePct) : null;
-   if (stakePct !== null && !(stakePct > 0 && stakePct <= 100))
-      errors.stakePct = t('Доля — число от 0 до 100');
-   const valuation = draft.valuation.trim() ? toNumber(draft.valuation) : null;
-   if (valuation !== null && !(valuation > 0))
-      errors.valuation = t('Укажите оценку в долларах');
-   if (Object.keys(errors).length) return { errors };
-   return {
-      investment: {
-         instrument: draft.instrument,
-         amount,
-         date: draft.date,
-         stakePct,
-         valuation,
-      },
-   };
-};
+import type { InvestmentDraft, InvestmentErrors } from '../helpers/investment';
 
 interface InvestmentFieldsProps {
    value: InvestmentDraft;
    errors: InvestmentErrors;
+   stakeHint?: string; // what the stake means here, «можно указать позже» unless given
    onChange: (value: InvestmentDraft) => void;
 }
 
+const INSTRUMENTS = Object.keys(INSTRUMENT_LABELS) as Instrument[];
+
 /* What the fund paid when a closed deal joins the portfolio: the company's
-   first investment in Портфель. The stake and the valuation may come later. */
+   first investment in Портфель, or a follow-on. The stake and the valuation may
+   come later, on the company's card. */
 const InvestmentFields = ({
    value,
    errors,
+   stakeHint,
    onChange,
 }: InvestmentFieldsProps) => {
    const { t } = useTranslation('deals');
@@ -117,7 +65,7 @@ const InvestmentFields = ({
          </Field>
          <Field
             error={errors.stakePct}
-            hint={t('можно указать позже')}
+            hint={stakeHint ?? t('можно указать позже')}
             label={t('Доля фонда, %')}
          >
             <input

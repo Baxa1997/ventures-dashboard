@@ -120,7 +120,8 @@ export interface InvestmentRecord {
    instrument: Instrument;
    amount: number; // USD
    valuation: number | null; // USD, post-money
-   stakePct: number | null;
+   stakePct: number | null; // what this payment bought; the fund's stake is their sum
+   dealId: string; // the deal it closed
 }
 
 // A person of the company who signs in to the startup cabinet (cabinet_members,
