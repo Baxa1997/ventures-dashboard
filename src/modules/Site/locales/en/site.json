@@ -23,7 +23,6 @@
    "События": "Events",
    "Пресса о нас": "Press",
    "Сохранено и уже на сайте": "Saved and already on the site",
-   "Сохранено. На сайте появится в течение 5 минут": "Saved. It will appear on the site within 5 minutes",
    "Подставит название, отрасль, страну, сумму и описание. Проверьте их перед сохранением.": "Fills in the name, industry, country, amount and description. Check them before saving.",
    "Заполнить из портфеля фонда": "Fill in from the fund’s portfolio",
    "Выберите компанию": "Choose a company",
@@ -238,7 +237,6 @@
    "Заполнить данными сайта": "Fill with the site’s data",
    "Таблицы заполнены": "Tables filled",
    "Заполнить пустые таблицы?": "Fill the empty tables?",
-   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте. Новости-примеры попадут как черновики и на сайт не выйдут.": "The data from the site’s code goes only to the empty tables; the filled ones do not change. The portfolio companies appear on the site at once. The sample news goes in as drafts and does not reach the site.",
    "Заполнить": "Fill",
    "Не удалось заполнить таблицы": "Could not fill the tables",
    "Условия на первом экране": "Terms in the first screen",
@@ -257,5 +255,6 @@
    "В планах": "Planned",
    "Без метки": "No label",
    "Статусы заявки": "Application statuses",
-   "Список в блоке «Аккаунт основателя».": "The list in the “Founder Account” block."
+   "Список в блоке «Аккаунт основателя».": "The list in the “Founder Account” block.",
+   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте.": "The data from the site’s code goes only to the empty tables; the filled ones do not change. The portfolio companies appear on the site at once."
 }

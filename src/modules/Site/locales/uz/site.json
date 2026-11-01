@@ -23,7 +23,6 @@
    "События": "Tadbirlar",
    "Пресса о нас": "Matbuot biz haqimizda",
    "Сохранено и уже на сайте": "Saqlandi va allaqachon saytda",
-   "Сохранено. На сайте появится в течение 5 минут": "Saqlandi. Saytda 5 daqiqa ichida paydo bo‘ladi",
    "Подставит название, отрасль, страну, сумму и описание. Проверьте их перед сохранением.": "Nom, soha, davlat, summa va tavsifni qo‘yadi. Saqlashdan oldin tekshiring.",
    "Заполнить из портфеля фонда": "Fond portfelidan to‘ldirish",
    "Выберите компанию": "Kompaniyani tanlang",
@@ -238,7 +237,6 @@
    "Заполнить данными сайта": "Sayt ma’lumotlari bilan to‘ldirish",
    "Таблицы заполнены": "Jadvallar to‘ldirildi",
    "Заполнить пустые таблицы?": "Bo‘sh jadvallarni to‘ldirasizmi?",
-   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте. Новости-примеры попадут как черновики и на сайт не выйдут.": "Sayt kodidagi ma’lumotlar faqat bo‘sh jadvallarga yoziladi, to‘ldirilganlari o‘zgarmaydi. Portfel kompaniyalari darhol saytda paydo bo‘ladi. Namuna yangiliklar qoralama sifatida tushadi va saytga chiqmaydi.",
    "Заполнить": "To‘ldirish",
    "Не удалось заполнить таблицы": "Jadvallarni to‘ldirib bo‘lmadi",
    "Условия на первом экране": "Birinchi ekrandagi shartlar",
@@ -257,5 +255,6 @@
    "В планах": "Rejada",
    "Без метки": "Yorliqsiz",
    "Статусы заявки": "Ariza holatlari",
-   "Список в блоке «Аккаунт основателя».": "«Asoschi akkaunti» blokidagi ro‘yxat."
+   "Список в блоке «Аккаунт основателя».": "«Asoschi akkaunti» blokidagi ro‘yxat.",
+   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте.": "Sayt kodidagi ma’lumotlar faqat bo‘sh jadvallarga yoziladi, to‘ldirilganlari o‘zgarmaydi. Portfel kompaniyalari darhol saytda paydo bo‘ladi."
 }

@@ -8,20 +8,15 @@ const subscribe = (listener: () => void) => site.subscribe(listener);
 
 export const useSite = () => useServiceData(load, subscribe);
 
-/* A save on the website: its note says when the visitors see it, since the
-   website may not have been reachable to be told. */
+// A save on the website: the website reads ucode on every visit.
 export const useSiteSave = <Args extends unknown[]>(
-   action: (...args: Args) => Promise<boolean>,
+   action: (...args: Args) => Promise<unknown>,
 ) => {
    const { t } = useTranslation('site');
    return useAction(
       async (...args: Args) => {
-         const told = await action(...args);
-         toast.success(
-            told
-               ? t('Сохранено и уже на сайте')
-               : t('Сохранено. На сайте появится в течение 5 минут'),
-         );
+         await action(...args);
+         toast.success(t('Сохранено и уже на сайте'));
       },
       { success: false },
    );

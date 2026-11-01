@@ -221,31 +221,6 @@ const call = async <T>(
    return json as T;
 };
 
-/* A call to the fund's own website, which checks the person's token with ucode:
-   the same refresh when it has run out. */
-export const callWithToken = async (url: string, init: RequestInit) => {
-   if (!tokens) throw new UcodeError('Not signed in', 401);
-   const send = () =>
-      fetch(url, {
-         ...init,
-         headers: {
-            ...init.headers,
-            Authorization: `Bearer ${tokens?.accessToken ?? ''}`,
-            'X-Environment-Id': ENVIRONMENT,
-         },
-      });
-   const response = await send();
-   if (response.status !== 401) return response;
-   const next = await refresh();
-   if (!next) {
-      onExpired();
-      throw new UcodeError('The session has ended', 401);
-   }
-   tokens = next;
-   onRefreshed(next);
-   return send();
-};
-
 interface ListReply {
    data?: { data?: { count?: number; response?: Row[] } };
 }

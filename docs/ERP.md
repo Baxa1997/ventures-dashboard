@@ -16,7 +16,7 @@ Sources: the system map «Операционная платформа фонда
 | 3 | **Fund: Документы** — the register of the fund's documents and the open governance questions | On ucode (§4.9). A document links to its file where the fund keeps it |
 | 3 | **Fund: Договоры, Закупки** — the contracts' register and the purchase requests, with their approvals in Мой день | On ucode, as the prototype draws them (docs/ucode-migration.md, batch 18) |
 | 3 | Финансы, Корреспонденция (the prototype's «Чат и письма»), Контент | Not in the panel. Nothing in the deal cycle depends on them |
-| — | **Admin: Сайт** — the public website's data, for the director and the deputy: a table for each array of its code | Built. Kept in ucode (batches 19 and 20); the website reads it and is told to refresh at once |
+| — | **Admin: Сайт** — the public website's data, for the director and the deputy: a table for each array of its code | Built. Kept in ucode (batches 19 and 20); the website reads it on every visit |
 
 ## 2. How the parts connect
 
