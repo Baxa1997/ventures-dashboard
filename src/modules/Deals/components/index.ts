@@ -1,3 +1,4 @@
+export { default as CabinetCard } from './CabinetCard';
 export { CapitalBar, CapitalDialog } from './Capital';
 export { default as CommitteeLink } from './CommitteeLink';
 export {

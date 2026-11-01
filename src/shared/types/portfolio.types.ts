@@ -123,8 +123,9 @@ export interface InvestmentRecord {
    stakePct: number | null;
 }
 
-// A person of the company who signs in to the startup cabinet
-// (cabinet_members, batch 11), besides the applicant themself.
+// A person of the company who signs in to the startup cabinet (cabinet_members,
+// batch 11). The applicant has a row too once the fund gives them a password or
+// closes their access (batch 21).
 export interface CabinetMember {
    id: string;
    applicationId: string;
@@ -132,6 +133,7 @@ export interface CabinetMember {
    name: string;
    role: 'ceo' | 'cfo' | 'cto' | 'other';
    active: boolean;
+   hasPassword: boolean;
 }
 
 // What the fund changes about a company on its card.

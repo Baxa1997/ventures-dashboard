@@ -54,7 +54,8 @@ Uploaded files are kept in ucode Files and open for anyone who has their link (d
 ## What the founder sees
 
 The startup cabinet (`venture/startup-cabinet`, built, not deployed yet): the
-founder signs in with a one-time code sent to the application's email and sees
+founder signs in with a password the fund gave them on the deal's card, or a
+one-time code to their email once the cabinet has SMTP, and sees
 the application's status (four steps, with the stage under them), the fund's
 requests with their templates and deadlines, their own documents, and the DD
 questionnaire when a request asks for it; after the investment, the quarter's

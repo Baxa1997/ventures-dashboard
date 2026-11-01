@@ -11,6 +11,7 @@ import {
 } from '@shared/helpers';
 import type { BadgeTone, FactRow } from '@shared/components';
 import type {
+   CabinetPerson,
    CheckItem,
    Criterion,
    Deal,
@@ -1101,6 +1102,39 @@ export const TERMS_STAGES: DealStage[] = [
 
 export const hasTermsStage = (deal: Deal) =>
    deal.status === 'portfolio' || TERMS_STAGES.includes(deal.stage);
+
+// ---- who signs in to the startup cabinet
+
+/* Who the cabinet's card lists: the one who applied, by the application, with
+   their row if they have one, then the others. None without an application. */
+export const cabinetPeople = (deal: Deal): CabinetPerson[] => {
+   if (!deal.applicationId) return [];
+   const email = (deal.applicationEmail ?? deal.applicantEmail ?? '').toLowerCase();
+   const rows = deal.cabinet ?? [];
+   const own = rows.find((row) => row.email.toLowerCase() === email);
+   return [
+      {
+         id: own?.id ?? '',
+         name: deal.applicationName || own?.name || deal.applicantName || deal.company,
+         email,
+         role: 'ceo',
+         active: own?.active ?? true,
+         hasPassword: own?.hasPassword ?? false,
+         owner: true,
+      },
+      ...rows
+         .filter((row) => row !== own)
+         .map(({ id, name, email: address, role, active, hasPassword }) => ({
+            id,
+            name,
+            email: address.toLowerCase(),
+            role,
+            active,
+            hasPassword,
+            owner: false,
+         })),
+   ];
+};
 
 // ---- who sees a deal
 

@@ -33,7 +33,7 @@ Sources: the system map «Операционная платформа фонда
 
 - The website keeps calling ucode from its server with the project API key, as it does now.
 - The admin panel runs in the browser, so it must not carry the API key. Each person signs in to ucode (`POST /v2/login`) and the panel sends that person's token; ucode then applies their role's permissions.
-- The startup cabinet signs a founder in with a one-time code sent to the application's email (ucode supports `EMAIL_OTP` logins).
+- The startup cabinet signs a founder in itself: with a password the fund gives on the deal's card (a hash in `cabinet_members`, batch 21), or with a one-time code to their email once SMTP is set. They are no ucode users.
 
 ## 3. Rules the model follows
 

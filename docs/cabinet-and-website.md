@@ -12,6 +12,8 @@ Field names below are ucode slugs. Values in `code` are the exact values to writ
 
 **Status, 25 October 2026.** Part A is built, as a separate app in the venture folder, `venture/startup-cabinet` (React + TypeScript like this panel, with a small Node server of its own), instead of inside the website repo as §2 recommended; everything else in §2 holds: ucode only on the cabinet's server with the project key, a signed httpOnly session cookie, no ucode user per founder. Its README lists what each page reads and writes.
 
+**1 November 2026.** Besides the code of D1 (a), a person can sign in with a password the fund gives them on a deal's or a company's card (batch 21), so the cabinet works without a mailbox. It is still no ucode user per person: the password's hash is a column of `cabinet_members`, and the cabinet's server alone checks it. With SMTP set the page offers the code first, and the password stays.
+
 - Decisions taken: D1 (a), a one-time code to the email (needs SMTP; in development the code is shown on the page); D2, four statuses with the stage under them; D3, the fund's files hidden; D4, `answered`; D5, uploads allowed into «Другие документы»; D6, never back; D10, uz/ru/en. D7, D8 and D9 are left for later.
 - Batch 10 is created in the test project: `founder_codes` and `deal_questionnaires` (ucode-migration.md).
 - The panel: P1 (answered requests with «Принять» / «Запросить ещё»), P2 (`is_dd_questionnaire` written and read), P3 (the questionnaire's answers on its request), P4 (the preview's wording), P6 (the applicant named in История), P7 (answers and documents from the cabinet in Мой день), P8 (Сделки and Портфель read again when the person returns to the tab), P9 (a quarter's files from the company in Квартальная отчётность). P5 was done on 24 October.
@@ -85,7 +87,7 @@ Build the cabinet **inside the website repo**, at `/[lang]/account/…`, with it
 | Who asked | `employees` where `guid` is `deal_requests.sent_by_id`: `full_name` and `position` |
 | After the investment | `portfolio_companies` where `deals_id` is the deal |
 
-- A deal entered by hand in the panel («Новая сделка») has no application, so it has no founder and no cabinet.
+- A deal entered by hand in the panel («Новая сделка») has no application until the fund adds its first user on the deal's card, which opens one (`source` = `panel`) with that person as its owner. A follow-on has none: its company's cabinet is its first deal's.
 - ucode list filters on text fields match parts of a value. The website's email check works around this. **Always compare exactly after reading.**
 
 ## 4. Overview: the application's status

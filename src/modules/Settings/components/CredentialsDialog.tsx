@@ -13,6 +13,11 @@ import { useTranslation } from 'react-i18next';
 
 interface CredentialsDialogProps {
    credentials: StaffCredentials | null; // null: closed
+   // the panel's own unless given: the startup cabinet's card says its own
+   address?: string;
+   addressLabel?: string;
+   note?: string;
+   copyHint?: string;
    onClose: () => void;
 }
 
@@ -21,10 +26,13 @@ interface CredentialsDialogProps {
    cannot be shown again. */
 const CredentialsDialog = ({
    credentials,
+   address = window.location.origin,
+   addressLabel,
+   note,
+   copyHint,
    onClose,
 }: CredentialsDialogProps) => {
    const { t } = useTranslation('settings');
-   const address = window.location.origin;
 
    const copy = async () => {
       if (!credentials) return;
@@ -45,11 +53,12 @@ const CredentialsDialog = ({
                <ModalBody>
                   <div className='grid gap-4'>
                      <Notice warning>
-                        {t(
-                           'Передайте их сотруднику. Пароль показывается один раз: после закрытия окна его не увидеть, но можно выдать новый.',
-                        )}
+                        {note ??
+                           t(
+                              'Передайте их сотруднику. Пароль показывается один раз: после закрытия окна его не увидеть, но можно выдать новый.',
+                           )}
                      </Notice>
-                     <Field label={t('Адрес панели')}>
+                     <Field label={addressLabel ?? t('Адрес панели')}>
                         <input
                            readOnly
                            className='field-input'
@@ -74,9 +83,12 @@ const CredentialsDialog = ({
                </ModalBody>
                <ModalFooter>
                   <Button
-                     hint={t(
-                        'Скопировать логин и пароль, чтобы передать сотруднику',
-                     )}
+                     hint={
+                        copyHint ??
+                        t(
+                           'Скопировать логин и пароль, чтобы передать сотруднику',
+                        )
+                     }
                      variant='ghost'
                      onClick={copy}
                   >

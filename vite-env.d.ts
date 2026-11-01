@@ -6,6 +6,7 @@ interface ImportMetaEnv {
    readonly VITE_UCODE_ENVIRONMENT_ID?: string;
    readonly VITE_UCODE_CLIENT_TYPE_IDS?: string; // comma-separated, tried in order
    readonly VITE_SITE_URL?: string; // the website «Сайт» links to: https://sqbvc.uz unless given
+   readonly VITE_CABINET_URL?: string; // the startup cabinet: https://app.sqbvc.uz unless given
 }
 
 interface ImportMeta {

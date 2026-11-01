@@ -337,10 +337,13 @@ export interface Deal {
    applicantEmail?: string;
    applicantName?: string;
    applicantPhone?: string;
-   cabinet?: CabinetMember[]; // the people the applicant added to the cabinet
+   cabinet?: CabinetMember[]; // the rows of who signs in to the cabinet
    questionnaire?: DealQuestionnaire;
-   // the website's application: the startup cabinet's people belong to it
+   // the application, the website's or one the panel opened for a deal entered by
+   // hand: the startup cabinet belongs to it, and it names the cabinet's owner
    applicationId?: string;
+   applicationEmail?: string;
+   applicationName?: string;
    clock?: { pausedDays: number; pausedSince: string };
    workstreams?: Workstream[];
    dd?: {
@@ -401,3 +404,15 @@ export interface RequestInput {
    folder: string;
    ddQuestionnaire: boolean;
 }
+
+// A person on the card of the startup cabinet: the one who applied, who owns it,
+// then the others. `id` is their cabinet_members row, '' for an owner without one.
+export interface CabinetPerson
+   extends Pick<
+      CabinetMember,
+      'id' | 'email' | 'name' | 'role' | 'active' | 'hasPassword'
+   > {
+   owner: boolean;
+}
+
+export type CabinetUserInput = Pick<CabinetMember, 'name' | 'email' | 'role'>;

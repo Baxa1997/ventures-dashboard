@@ -16,7 +16,6 @@ import { createStore, newId, todayISO } from '@shared/helpers';
 import attachments from '@shared/services/attachments';
 import type { Deal } from '@shared/types/deals.types';
 import type {
-   CabinetMember,
    CompanyDataRequest,
    CompanyInput,
    CompanyRequest,
@@ -56,14 +55,12 @@ export interface PortfolioState {
    companies: PortfolioCompany[];
    requests: CompanyRequest[]; // the companies' requests to the fund
    dataRequests: CompanyDataRequest[]; // the fund's requests for data, newest first
-   members: CabinetMember[]; // the startup cabinet's people, by application
    cycle: ReportingCycle;
    exitFields: boolean; // ucode has batch 13's fields for an exit
 }
 
 const COMPANY_STATUSES: CompanyStatus[] = ['active', 'exit', 'written_off'];
 const EXIT_TYPES: ExitType[] = ['strategic', 'secondary', 'buyback', 'ipo'];
-const MEMBER_ROLES: CabinetMember['role'][] = ['ceo', 'cfo', 'cto', 'other'];
 
 const toInvestment = (row: Row): InvestmentRecord => ({
    id: row.guid,
@@ -73,15 +70,6 @@ const toInvestment = (row: Row): InvestmentRecord => ({
    amount: num(row.amount),
    valuation: numOrNull(row.valuation),
    stakePct: numOrNull(row.stake_pct),
-});
-
-const toMember = (row: Row): CabinetMember => ({
-   id: row.guid,
-   applicationId: str(row.applications_id),
-   email: str(row.email),
-   name: str(row.full_name),
-   role: MEMBER_ROLES.find((role) => role === row.role) ?? 'other',
-   active: row.is_active !== false,
 });
 
 // The days the documents of batch 4 came, in their own columns; the fund's
@@ -253,7 +241,6 @@ const store = createStore<PortfolioState>(async () => {
    const [
       [companies, investments, reports, pilots, requests, cycles, values],
       dataRequests,
-      members,
    ] = await Promise.all([
       Promise.all(
          [
@@ -269,10 +256,6 @@ const store = createStore<PortfolioState>(async () => {
       // the startup cabinet's table (batch 11): a project without it reads none
       listRows('company_data_requests').catch((error: unknown) => {
          console.warn('company_data_requests could not be read', error);
-         return [];
-      }),
-      listRows('cabinet_members').catch((error: unknown) => {
-         console.warn('cabinet_members could not be read', error);
          return [];
       }),
    ]);
@@ -337,7 +320,6 @@ const store = createStore<PortfolioState>(async () => {
       dataRequests: dataRequests
          .map(toDataRequest)
          .sort((a, b) => b.sentAt.localeCompare(a.sentAt)),
-      members: members.map(toMember),
       // ucode lists every field of a row, empty ones as null
       exitFields: companies.some((row) => 'exit_proceeds' in row),
       cycle: {
