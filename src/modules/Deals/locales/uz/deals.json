@@ -960,5 +960,9 @@
    "Кабинет основателя: удалён {{name}} ({{email}})": "Asoschi kabineti: {{name}} o‘chirildi ({{email}})",
    "Кабинет основателя: выдан пароль, {{email}}": "Asoschi kabineti: parol berildi, {{email}}",
    "Кабинет основателя: доступ закрыт, {{email}}": "Asoschi kabineti: kirish yopildi, {{email}}",
-   "Кабинет основателя: доступ открыт, {{email}}": "Asoschi kabineti: kirish ochildi, {{email}}"
+   "Кабинет основателя: доступ открыт, {{email}}": "Asoschi kabineti: kirish ochildi, {{email}}",
+   "Нет одобрения: {{stages}}.": "Tasdiq yo‘q: {{stages}}.",
+   "Нет одобрения: {{stages}}. Сделка дошла сюда вручную: проверьте, что деньги можно вкладывать.": "Tasdiq yo‘q: {{stages}}. Bitim bu yerga qo‘lda keltirilgan: pul kiritish mumkinligini tekshiring.",
+   "Платёж добавится к компании в «Портфеле».": "To‘lov «Portfel»dagi kompaniyaga qo‘shiladi.",
+   "доля этого платежа: она прибавится к прежней": "shu to‘lov ulushi: avvalgisiga qo‘shiladi"
 }

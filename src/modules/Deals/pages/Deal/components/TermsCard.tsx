@@ -11,6 +11,7 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { parseAmount } from '@shared/helpers';
 import type { Deal, DealTerms } from '@shared/types/deals.types';
 import type { Instrument } from '@shared/types/portfolio.types';
 import clsx from 'clsx';
@@ -110,9 +111,6 @@ type Draft = Record<
 
 type Errors = Partial<Record<'roundSize' | 'preMoney', string>>;
 
-const toNumber = (text: string) =>
-   Number(text.replace(/\s/g, '').replace(',', '.'));
-
 const TermsForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => {
    const { t } = useTranslation('deals');
    const terms = deal.terms;
@@ -136,7 +134,7 @@ const TermsForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => {
 
    const amountOf = (text: string) => {
       if (!text.trim()) return null;
-      const value = toNumber(text);
+      const value = parseAmount(text);
       return value > 0 ? value : Number.NaN;
    };
 

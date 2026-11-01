@@ -209,6 +209,14 @@ export const formatMetric = (
 
 // ---- the fund's position in a company
 
+// The company a deal became or added to: its first deal, or a follow-on's payment.
+export const companyOfDeal = (companies: PortfolioCompany[], dealId: string) =>
+   companies.find(
+      (company) =>
+         company.dealId === dealId ||
+         company.investments.some((item) => item.dealId === dealId),
+   );
+
 // The fund's valuation of the company (USD): the one set on its card, or the
 // post-money of its latest investment that has one; null when neither says.
 export const valuationOf = (company: PortfolioCompany) => {

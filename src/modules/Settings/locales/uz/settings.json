@@ -471,7 +471,7 @@
    "Открытых задач нет.": "Ochiq vazifalar yo‘q.",
    "Поставить задачу": "Vazifa berish",
    "Что видно этому сотруднику в панели": "Bu xodimga panelda nima ko‘rinadi",
-   "Роль в системе задаёт, что человек может в панели; обязанности — за что он отвечает. Неактивный сотрудник пропадает из списков исполнителей и владельцев и входит с наименьшими правами, его имя остаётся на записях.": "Tizimdagi rol odam panelda nima qila olishini belgilaydi; vazifalar — u nimaga javobgarligini. Faol bo‘lmagan xodim ijrochilar va egalar ro‘yxatidan chiqadi va eng kam huquqlar bilan kiradi, uning ismi yozuvlarda qoladi.",
+   "Роль в системе задаёт, что человек может в панели; обязанности — за что он отвечает. Неактивный сотрудник пропадает из списков исполнителей и владельцев и не может войти в панель, его имя остаётся на записях.": "Tizimdagi rol odam panelda nima qila olishini belgilaydi; vazifalar nimaga javob berishini. Faol bo‘lmagan xodim ijrochi va egalar ro‘yxatidan chiqadi va panelga kira olmaydi, ismi yozuvlarda qoladi.",
    "Новый пароль": "Yangi parol",
    "Новый пароль · {{name}}": "Yangi parol · {{name}}",
    "выдан": "berildi",

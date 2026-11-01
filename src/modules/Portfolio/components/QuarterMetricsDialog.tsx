@@ -14,7 +14,8 @@ import {
    ModalFooter,
 } from '@shared/components';
 import { SETTINGS_PATH } from '@shared/constants';
-import type { PortfolioCompany } from '@shared/types/portfolio.types';
+import { parseAmount } from '@shared/helpers';
+import type { MetricFormat, PortfolioCompany } from '@shared/types/portfolio.types';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -39,9 +40,14 @@ const UNITS = {
    number: '',
 } as const;
 
-const toNumber = (text: string) => {
-   const value = Number(text.replace(/\s/g, '').replace(',', '.'));
-   return text.trim() === '' ? null : Number.isFinite(value) ? value : NaN;
+// A sum or a count takes "12,000"; a percent's or a month's comma is a decimal point.
+const toNumber = (text: string, format: MetricFormat) => {
+   if (text.trim() === '') return null;
+   const value =
+      format === 'usd' || format === 'number'
+         ? parseAmount(text)
+         : Number(text.replace(/\s/g, '').replace(',', '.').replace('−', '-'));
+   return Number.isFinite(value) ? value : NaN;
 };
 
 const QuarterForm = ({
@@ -70,7 +76,14 @@ const QuarterForm = ({
    const submit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const parsed = Object.fromEntries(
-         Object.entries(values).map(([key, text]) => [key, toNumber(text)]),
+         Object.entries(values).map(([key, text]) => [
+            key,
+            toNumber(
+               text,
+               company.metrics.find((metric) => metric.key === key)?.format ??
+                  'number',
+            ),
+         ]),
       );
       const wrong = Object.entries(parsed)
          .filter(([, value]) => Number.isNaN(value))

@@ -673,7 +673,15 @@ class Work {
             const next: Task = { ...current, ...patch };
             if (next.relation === 'none') next.relationId = '';
             if (next.status === current.status) return next;
-            closedRecurring = isDone(next) && next.recurrence !== 'none';
+            // closed before and reopened: its next one is already there
+            closedRecurring =
+               isDone(next) &&
+               next.recurrence !== 'none' &&
+               !current.history.some(
+                  (event) =>
+                     event.kind === 'status' &&
+                     statusGroup(event.status) === 'complete',
+               );
             const event: TaskEvent = {
                id: newId(),
                date: today,

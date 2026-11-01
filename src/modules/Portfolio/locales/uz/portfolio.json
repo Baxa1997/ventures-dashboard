@@ -326,5 +326,20 @@
    "Показать, кто не сдал отчёт, и напомнить им": "Hisobot topshirmaganlarni ko‘rsatish va ularga eslatish",
    "Записать ответ на этот запрос": "Bu so‘rovga javobni yozish",
    "Перейти на вкладку пилотов": "Pilotlar yorlig‘iga o‘tish",
-   "Перейти на вкладку задач": "Vazifalar yorlig‘iga o‘tish"
+   "Перейти на вкладку задач": "Vazifalar yorlig‘iga o‘tish",
+   "Внести долю": "Ulushni kiritish",
+   "Указать долю фонда: от неё считаются стоимость и MOIC": "Fond ulushini ko‘rsatish: qiymat va MOIC shundan hisoblanadi",
+   "Платёж фонда": "Fond to‘lovi",
+   "платёж {{amount}}": "to‘lov {{amount}}",
+   "Платёж сохранён": "To‘lov saqlandi",
+   "Не удалось сохранить платёж": "To‘lovni saqlab bo‘lmadi",
+   "Удалить платёж?": "To‘lov o‘chirilsinmi?",
+   "Платёж удалён": "To‘lov o‘chirildi",
+   "Не удалось удалить платёж": "To‘lovni o‘chirib bo‘lmadi",
+   "Платёж уйдёт из вложений компании, доля и MOIC пересчитаются. Его сделка останется в «Сделках».": "To‘lov kompaniya investitsiyalaridan chiqadi, ulush va MOIC qayta hisoblanadi. Uning bitimi «Bitimlar»da qoladi.",
+   "Инвестиция изменена: {{value}}": "Investitsiya o‘zgartirildi: {{value}}",
+   "что купил этот платёж; доля фонда — сумма всех": "shu to‘lov sotib olgan ulush; fond ulushi — barchasining yig‘indisi",
+   "Сохранить: от платежа считаются вложения, доля и MOIC": "Saqlash: investitsiya, ulush va MOIC to‘lovdan hisoblanadi",
+   "Укажите дату закрытия": "Yopilish sanasini kiriting",
+   "Дата не может быть позже сегодняшнего дня": "Sana bugundan keyin bo‘lishi mumkin emas"
 }

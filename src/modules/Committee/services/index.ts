@@ -488,7 +488,7 @@ class Committee {
          breakAt: null,
          chairId:
             input.body === 'ic'
-               ? (active.find(({ role }) => role === 'chair')?.id ?? null)
+               ? (invited.find(({ role }) => role === 'chair')?.id ?? null)
                : null,
          attendance: Object.fromEntries(
             invited.map(({ id }) => [id, 'no_answer' as const]),

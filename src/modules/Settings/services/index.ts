@@ -904,7 +904,9 @@ class Settings {
 
    // The deals on a stage now.
    async stageUsage(key: string) {
-      return (await listRows('deals', { stage: key })).length;
+      return (await listRows('deals', { stage: key })).filter(
+         (row) => row.stage === key,
+      ).length;
    }
 
    /* Deletes a stage; the deals on it move to `replacement` first. A system
@@ -919,7 +921,9 @@ class Settings {
       const stages = (await store.get()).stages;
       const stage = stages.find((item) => item.key === key);
       if (!stage) throw new Error(`No stage ${key}`);
-      const deals = await listRows('deals', { stage: key });
+      const deals = (await listRows('deals', { stage: key })).filter(
+         (row) => row.stage === key,
+      );
       const other = stages.find(
          (item) => item.key === replacement && item.key !== key,
       );

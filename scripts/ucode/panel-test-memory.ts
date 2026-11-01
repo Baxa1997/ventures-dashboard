@@ -78,7 +78,12 @@ export const memoryFetch = (send: typeof fetch, apiKey: string, environment: str
          rows.push(...list);
          if (list.length < 500) break;
       }
-      const copy = { fields: [...new Set([...SYSTEM, ...fields])], rows };
+      // a pending batch's new fields on a table that exists: empty on its rows
+      const added = (pending[table]?.fields ?? []).filter((field) => !fields.includes(field) && field !== 'guid');
+      const copy = {
+         fields: [...new Set([...SYSTEM, ...fields, ...added])],
+         rows: rows.map((row) => ({ ...Object.fromEntries(added.map((field) => [field, null])), ...row })),
+      };
       tables.set(table, copy);
       return copy;
    };

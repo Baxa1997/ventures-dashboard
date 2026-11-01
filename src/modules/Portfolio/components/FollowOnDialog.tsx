@@ -7,6 +7,7 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { parseAmount } from '@shared/helpers';
 import { useAction, useCurrentUser } from '@shared/hooks';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import { useState } from 'react';
@@ -44,6 +45,7 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
                industry: company.tagline || company.about,
                // Настройки → Источники: «Портфель (follow-on)»
                source: 'portfolio',
+               followOnOf: company.id,
                amount: value,
                country: 'UZ',
                roundStage: 'seed',
@@ -73,7 +75,7 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
             className={MODAL_FORM}
             onSubmit={async (event) => {
                event.preventDefault();
-               const value = Number(amount.replace(/\s/g, ''));
+               const value = parseAmount(amount);
                if (!value || value <= 0) {
                   setError(t('Укажите сумму в долларах'));
                   return;

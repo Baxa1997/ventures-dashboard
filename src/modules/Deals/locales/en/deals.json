@@ -960,5 +960,9 @@
    "Кабинет основателя: удалён {{name}} ({{email}})": "Founder account: {{name}} deleted ({{email}})",
    "Кабинет основателя: выдан пароль, {{email}}": "Founder account: password issued, {{email}}",
    "Кабинет основателя: доступ закрыт, {{email}}": "Founder account: access closed, {{email}}",
-   "Кабинет основателя: доступ открыт, {{email}}": "Founder account: access opened, {{email}}"
+   "Кабинет основателя: доступ открыт, {{email}}": "Founder account: access opened, {{email}}",
+   "Нет одобрения: {{stages}}.": "No approval: {{stages}}.",
+   "Нет одобрения: {{stages}}. Сделка дошла сюда вручную: проверьте, что деньги можно вкладывать.": "No approval: {{stages}}. The deal was moved here by hand: check that the money may be invested.",
+   "Платёж добавится к компании в «Портфеле».": "The payment is added to the company in the Portfolio.",
+   "доля этого платежа: она прибавится к прежней": "the stake of this payment: it adds to the earlier one"
 }

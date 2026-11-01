@@ -7,6 +7,7 @@ import {
    Modal,
    ModalBody,
    ModalFooter,
+   Notice,
 } from '@shared/components';
 import { SECTION_PATHS } from '@shared/constants';
 import { addWorkingDays, formatDate, todayISO } from '@shared/helpers';
@@ -20,18 +21,22 @@ import { CONDITION_STAGES } from '../constants';
 import {
    conditionTasks,
    exitConditions,
+   isFollowOn,
+   missingApprovals,
    nextStageOf,
    personName,
    stageNorm,
 } from '../helpers';
+import { isDone } from '@modules/Work/helpers';
 import { useDealLinks } from '../hooks';
 import deals from '../services';
 import CommitteeLink from './CommitteeLink';
-import InvestmentFields, {
+import {
    type InvestmentErrors,
    investmentDraft,
    readInvestment,
-} from './InvestmentFields';
+} from '../helpers/investment';
+import InvestmentFields from './InvestmentFields';
 import SecondReviewer from './SecondReviewer';
 
 interface TransferDialogProps {
@@ -101,8 +106,8 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
    const openCondition =
       deal &&
       conditionTasks(deal, tasks).find(
-         ({ dueLabel, status }) =>
-            dueLabel === CONDITION_STAGES[deal.stage] && status !== 'done',
+         (task) =>
+            task.dueLabel === CONDITION_STAGES[deal.stage] && !isDone(task),
       );
 
    // where a condition that is not met yet is met
@@ -204,14 +209,33 @@ const TransferDialog = ({ deal, onClose }: TransferDialogProps) => {
             )}
             {toPortfolio && draft && (
                <div className='border-line mt-5 border-t pt-4'>
+                  {deal && missingApprovals(deal).length > 0 && (
+                     <Notice warning className='mb-4'>
+                        {t(
+                           'Нет одобрения: {{stages}}. Сделка дошла сюда вручную: проверьте, что деньги можно вкладывать.',
+                           {
+                              stages: missingApprovals(deal)
+                                 .map(stageName)
+                                 .join(', '),
+                           },
+                        )}
+                     </Notice>
+                  )}
                   <div className='font-semibold'>{t('Инвестиция фонда')}</div>
                   <p className='text-ink-soft text-meta mt-1 mb-3'>
-                     {t(
-                        'Компания появится в «Портфеле» с этой первой инвестицией.',
-                     )}
+                     {deal && isFollowOn(deal)
+                        ? t('Платёж добавится к компании в «Портфеле».')
+                        : t(
+                             'Компания появится в «Портфеле» с этой первой инвестицией.',
+                          )}
                   </p>
                   <InvestmentFields
                      errors={errors}
+                     stakeHint={
+                        deal && isFollowOn(deal)
+                           ? t('доля этого платежа: она прибавится к прежней')
+                           : undefined
+                     }
                      value={draft}
                      onChange={(value) => {
                         setDraft(value);

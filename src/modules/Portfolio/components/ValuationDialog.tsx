@@ -8,6 +8,7 @@ import {
    ModalBody,
    ModalFooter,
 } from '@shared/components';
+import { parseAmount } from '@shared/helpers';
 import { useAction } from '@shared/hooks';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import { useState } from 'react';
@@ -40,7 +41,7 @@ const ValuationForm = ({
          className={MODAL_FORM}
          onSubmit={async (event) => {
             event.preventDefault();
-            const amount = Number(value.replace(/[\s,]/g, ''));
+            const amount = parseAmount(value);
             if (!amount || amount <= 0) {
                setError(t('Укажите оценку в долларах'));
                return;

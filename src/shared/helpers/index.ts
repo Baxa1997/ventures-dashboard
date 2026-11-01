@@ -88,6 +88,17 @@ export const workingDaysBetween = (from: string, to: string) => {
    return count;
 };
 
+/* A sum as people type it: "250 000", "$250,000", "250.000" and "1 250 000,50";
+   NaN when it is not a number. A comma or a dot before three digits groups
+   thousands, anywhere else it is the decimal point. */
+export const parseAmount = (text: string) => {
+   const compact = text.replace(/[\s$]/g, '').replace('−', '-');
+   if (!compact) return Number.NaN;
+   return Number(
+      compact.replace(/(\d)[.,](?=\d{3}(?!\d))/g, '$1').replace(',', '.'),
+   );
+};
+
 // A password to hand over: 12 characters without the look-alikes (0 and O, 1 and
 // l), so it can be read out. ucode wants a capital, a small letter and a digit.
 const PASSWORD_LETTERS =

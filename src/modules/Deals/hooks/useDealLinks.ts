@@ -1,5 +1,6 @@
 import contracts from '@modules/Contracts/services';
 import { investmentContractOf } from '@modules/Contracts/helpers';
+import { companyOfDeal } from '@modules/Portfolio/helpers';
 import portfolio from '@modules/Portfolio/services';
 import work from '@modules/Work/services';
 import { useServiceData } from '@shared/hooks';
@@ -37,7 +38,7 @@ const useDealLinks = (dealId: string) => {
    const data = useServiceData(load, subscribe);
    return {
       tasks: data?.tasks ?? [],
-      company: data?.companies.find((company) => company.dealId === dealId),
+      company: companyOfDeal(data?.companies ?? [], dealId),
       contract: investmentContractOf(data?.allContracts ?? [], dealId),
       contractsStored: data?.contractsStored ?? false,
       loaded: data !== null,

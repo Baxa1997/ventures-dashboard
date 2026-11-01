@@ -11,6 +11,7 @@ import {
    nextStageOf,
    nextStepOf,
    stageKeys,
+   missingApprovals,
 } from '@modules/Deals/helpers';
 import { stageName } from '@modules/Settings/services';
 import {
@@ -27,6 +28,7 @@ import type { CommitteeMember, Meeting } from '@shared/types/committee.types';
 import type { Deal, Decision } from '@shared/types/deals.types';
 import { BadgeCheck, CalendarClock, CalendarPlus } from 'lucide-react';
 import type { ReactNode } from 'react';
+import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -498,6 +500,7 @@ const Decisions = ({ deal, onTransfer, onReject }: DecisionsProps) => {
    const { t } = useTranslation('deals');
    const { t: tc } = useTranslation('committee');
    const data = useServiceData(loadCommittee, onCommittee);
+   const missing = missingApprovals(deal);
    const meetings = data?.meetings ?? [];
    const stages = stageKeys();
    const inUse = (stage: string) =>
@@ -587,10 +590,19 @@ const Decisions = ({ deal, onTransfer, onReject }: DecisionsProps) => {
                <div className='flex flex-wrap items-center gap-3.5 p-5'>
                   <BadgeCheck
                      aria-hidden
-                     className='text-success size-5.5 shrink-0'
+                     className={clsx(
+                        'size-5.5 shrink-0',
+                        missing.length ? 'text-warning' : 'text-success',
+                     )}
                   />
                   <p className='text-meta min-w-56 flex-1'>
-                     <b>{t('Все одобрения получены.')}</b>{' '}
+                     <b>
+                        {missing.length
+                           ? t('Нет одобрения: {{stages}}.', {
+                                stages: missing.map(stageName).join(', '),
+                             })
+                           : t('Все одобрения получены.')}
+                     </b>{' '}
                      {t(
                         'Закройте сделку после подписания договора: компания перейдёт в портфель, а основатель увидит, что заявка принята.',
                      )}

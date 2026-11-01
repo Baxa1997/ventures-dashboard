@@ -25,7 +25,7 @@ import {
    TONE_COLORS,
 } from '@shared/components';
 import { TEAM } from '@shared/constants';
-import { formatDate } from '@shared/helpers';
+import { formatDate, parseAmount } from '@shared/helpers';
 import {
    useAction,
    useAttachments,
@@ -797,7 +797,7 @@ const FrameForm = ({ deal, onClose }: { deal: Deal; onClose: () => void }) => {
 
    const submit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const cost = Number(values.cost.replace(/\s/g, ''));
+      const cost = parseAmount(values.cost);
       if (
          await saving.run(async () => {
             await deals.setDd(deal.id, {

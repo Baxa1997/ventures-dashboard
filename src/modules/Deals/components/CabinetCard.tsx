@@ -1,4 +1,4 @@
-import { cabinetPeople } from '@modules/Deals/helpers';
+import { cabinetPeople, isFollowOn } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import { CABINET_ROLES } from '@modules/Portfolio/constants';
 import CredentialsDialog from '@modules/Settings/components/CredentialsDialog';
@@ -69,7 +69,7 @@ const CabinetCard = ({ deal }: CabinetCardProps) => {
       user.role === 'deputy' ||
       deal.ownerId === user.id;
    // a follow-on belongs to a company whose cabinet its first deal opened
-   const followOn = !deal.applicationId && deal.source === 'portfolio';
+   const followOn = !deal.applicationId && isFollowOn(deal);
 
    return (
       <>
