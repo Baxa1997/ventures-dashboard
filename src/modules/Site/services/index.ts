@@ -1,5 +1,4 @@
 import {
-   callWithToken,
    createRow,
    day,
    deleteRow,
@@ -31,10 +30,8 @@ import {
    type SiteTableInfo,
 } from '../constants';
 
-/* «Сайт» in ucode (docs/ucode-migration.md, batch 19): the tables the website
-   reads, where its content lives. A change is written to ucode and the website
-   is told, so its pages read ucode again at once; if it cannot be told, they do
-   within 5 minutes. Each method answers whether the website was told. */
+/* «Сайт» in ucode (docs/ucode-migration.md, batches 19 and 20): the tables the
+   website reads on every visit, so what is saved here is on its next refresh. */
 
 export const SITE_URL = (
    import.meta.env.VITE_SITE_URL ??
@@ -200,9 +197,8 @@ const store = createStore<SiteState>(async () => {
 // How many tables have no rows yet, of those the website's data can fill.
 export const emptyTables = (state: SiteState) =>
    TABLE_IDS.filter((id) => !state.tables[id].length).length +
-   [state.news, state.legal, state.sources, state.companies].filter(
-      (list) => !list.length,
-   ).length +
+   [state.legal, state.sources, state.companies].filter((list) => !list.length)
+      .length +
    (state.contacts.id ? 0 : 1);
 
 const refresh = async (kind: Kind) => {
@@ -216,28 +212,6 @@ const refreshTable = async (id: SiteTableId) => {
       ...state,
       tables: { ...state.tables, [id]: inOrder(rows) },
    }));
-};
-
-// The website reads ucode again; a failure is no failure of the save.
-const tellWebsite = async () => {
-   try {
-      const reply = await callWithToken(`${SITE_URL}/api/site-refresh`, {
-         method: 'POST',
-      });
-      return reply.ok;
-   } catch {
-      return false;
-   }
-};
-
-const saved = async (kind: Kind) => {
-   await refresh(kind);
-   return tellWebsite();
-};
-
-const savedTable = async (id: SiteTableId) => {
-   await refreshTable(id);
-   return tellWebsite();
 };
 
 const newsRow = ({ id: _id, ...news }: SiteNews) => ({
@@ -327,7 +301,6 @@ class Site {
          );
       }
       await store.reload();
-      return tellWebsite();
    }
 
    pageUrl(path: string, language: SiteLanguage = 'ru') {
@@ -343,19 +316,19 @@ class Site {
       if (record.id)
          await updateRow(table, { guid: record.id, ...row(record) });
       else await createRow(table, { guid: newId(), ...row(record) });
-      return saved(kind);
+      await refresh(kind);
    }
 
    async remove(kind: RecordKind, id: string) {
       await deleteRow(TABLES[kind].table, id);
-      return saved(kind);
+      await refresh(kind);
    }
 
    async setShown(kind: RecordKind, id: string, shown: boolean) {
       const field =
          kind === 'news' || kind === 'legal' ? 'is_published' : 'is_visible';
       await updateRow(TABLES[kind].table, { guid: id, [field]: shown });
-      return saved(kind);
+      await refresh(kind);
    }
 
    // A list in its new order: only the rows that moved are written.
@@ -375,7 +348,7 @@ class Site {
                  ],
          ),
       );
-      return saved(kind);
+      await refresh(kind);
    }
 
    // ---- the rows of a table
@@ -398,17 +371,17 @@ class Site {
       };
       if (row.guid) await updateRow(table, { guid: row.guid, ...data });
       else await createRow(table, { guid: newId(), ...data });
-      return savedTable(id);
+      await refreshTable(id);
    }
 
    async removeRow(id: SiteTableId, guid: string) {
       await deleteRow(SITE_TABLES[id].table, guid);
-      return savedTable(id);
+      await refreshTable(id);
    }
 
    async showRow(id: SiteTableId, guid: string, shown: boolean) {
       await updateRow(SITE_TABLES[id].table, { guid, is_visible: shown });
-      return savedTable(id);
+      await refreshTable(id);
    }
 
    // A table in its new order: only the rows that moved are written.
@@ -425,7 +398,7 @@ class Site {
                  ],
          ),
       );
-      return savedTable(id);
+      await refreshTable(id);
    }
 
    // ---- contacts, logos and videos: one row
@@ -447,7 +420,7 @@ class Site {
       if (contacts.id)
          await updateRow('site_settings', { guid: contacts.id, ...row });
       else await createRow('site_settings', { guid: newId(), ...row });
-      return saved('contacts');
+      await refresh('contacts');
    }
 
    uploadFile(file: File) {

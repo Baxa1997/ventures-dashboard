@@ -1432,7 +1432,7 @@ Rows for procurement_stages (slug | name_ru | name_uz | name_en | color | needs_
 
 ## Batch 19 — Сайт
 
-The public website's content, edited in the panel's «Сайт» (`src/modules/Site`). It lives here: the website reads these tables with its API key and re-reads them when the panel tells it to (`POST /api/site-refresh` in the website), or within 5 minutes. A list emptied in the panel is empty on the site; the content built into the website's code shows only when ucode does not answer.
+The public website's content, edited in the panel's «Сайт» (`src/modules/Site`). It lives here: the website reads these tables with its API key on every visit. A list emptied in the panel is empty on the site; the content built into the website's code shows only when ucode does not answer.
 
 - **Tables the website already expected:** `news`, `team` and `pages` (the live site showed «Пока ничего не опубликовано», no team, and no privacy policy, since they did not exist). `portfolio` and `partner_requests` were made in batch T; the panel now edits and reads them.
 - **`site_settings`:** one row: contacts, social links, videos and logos.
@@ -1577,9 +1577,9 @@ The website's code holds its content in arrays of objects. Each array has its ow
 | `THREE_YES (Focus)` | `site_three_yes` | 3 |
 | `BENEFITS (Investors)` | `site_investor_benefits` | 4 |
 
-The arrays with a table from earlier batches: `PORTFOLIO` → `portfolio`, `NEWS` → `news`, `PAGES` → `pages`, `FAQ` (Contacts) → `site_faq`, `MEDIA` and `REPORTS` → `site_sources`. `INDUSTRIES` and `COUNTRIES` are the fund's lists of Настройки. `TEAM` went with the team, on the client's word of 1 November 2026, so the table `team` and the field `portfolio.manager` are no longer used. `NAV`, `TABS`, `STEPS` and `ROTATING_WORDS` are how the site works, not its content, and stay in its code.
+The arrays with a table from earlier batches: `PORTFOLIO` → `portfolio`, `PAGES` → `pages`, `FAQ` (Contacts) → `site_faq`, `MEDIA` and `REPORTS` → `site_sources`. `INDUSTRIES` and `COUNTRIES` are the fund's lists of Настройки. `TEAM` went with the team, on the client's word of 1 November 2026, so the table `team` and the field `portfolio.manager` are no longer used. `NAV`, `TABS`, `STEPS` and `ROTATING_WORDS` are how the site works, not its content, and stay in its code.
 
-The tables and fields are made with `node scripts/ucode/fields.mjs tables 20 --folder "Landing page"` and `node scripts/ucode/fields.mjs create 20`. Their rows, with those of the tables above, are in `src/modules/Site/seed.json`: «Заполнить данными сайта» in the panel writes them to the tables that have no rows, and leaves the others as they are. The news go in as drafts, since they are the prototype's samples.
+The tables and fields are made with `node scripts/ucode/fields.mjs tables 20 --folder "Landing page"` and `node scripts/ucode/fields.mjs create 20`. Their rows, with those of the tables above, are in `src/modules/Site/seed.json`: «Заполнить данными сайта» in the panel writes them to the tables that have no rows, and leaves the others as they are.
 
 The empty tables `site_texts` and `site_items` were made on the way to this and are not used; they can be deleted by hand in the ucode admin.
 
