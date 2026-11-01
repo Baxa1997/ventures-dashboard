@@ -6,6 +6,7 @@ import documents from '@modules/Documents/locales/en';
 import portfolio from '@modules/Portfolio/locales/en';
 import procurement from '@modules/Procurement/locales/en';
 import settings from '@modules/Settings/locales/en';
+import site from '@modules/Site/locales/en';
 import work from '@modules/Work/locales/en';
 import type { RuTranslation } from '../ru';
 import components from './components.json';
@@ -22,6 +23,7 @@ const en: RuTranslation = {
    ...portfolio,
    ...procurement,
    ...settings,
+   ...site,
    ...work,
    components,
    layout,

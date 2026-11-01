@@ -106,15 +106,19 @@ const rowsOf = async (table) => {
 
 // The Admin folder of ucode's menu (docs/ucode-migration.md).
 const ADMIN_FOLDER = '60e0336b-5017-49ca-8c96-123aa5e2c9db';
+const MAIN_MENU = 'c57eedc3-a954-4262-a0af-376c65b5a284';
 
 const tables = async (id, folderName = 'Settings and lists') => {
    const menus = await ucode('GET', `/v3/menus?parent_id=${ADMIN_FOLDER}`);
-   const folder = (menus.data?.data?.menus ?? []).find(
-      (entry) =>
-         entry.type === 'FOLDER' &&
-         (entry.attributes?.label_en ?? entry.label) === folderName,
-   );
-   if (!folder) throw new Error(`No folder "${folderName}" in Admin`);
+   const isIt = (entry) =>
+      entry.type === 'FOLDER' &&
+      (entry.attributes?.label_en ?? entry.label) === folderName;
+   // a sub-folder of Admin, or a folder beside it, as Landing page is
+   const beside = await ucode('GET', `/v3/menus?parent_id=${MAIN_MENU}`);
+   const folder =
+      (menus.data?.data?.menus ?? []).find(isIt) ??
+      (beside.data?.data?.menus ?? []).find(isIt);
+   if (!folder) throw new Error(`No folder "${folderName}" in Admin or beside it`);
    const known = await ucode('GET', '/v1/table?limit=200');
    if (!known.ok) throw new Error(`Cannot read the tables (HTTP ${known.status})`);
    const existing = new Set((known.data?.data?.tables ?? []).map(({ slug }) => slug));

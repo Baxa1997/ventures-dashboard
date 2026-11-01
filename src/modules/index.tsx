@@ -13,6 +13,7 @@ import NotFound from './NotFound/NotFound';
 import Portfolio from './Portfolio';
 import Procurement from './Procurement';
 import Settings from './Settings';
+import Site from './Site';
 import Work from './Work';
 
 // The pages inside the sidebar layout are for signed-in people. Anybody else
@@ -80,6 +81,7 @@ const Modules = () => {
             { path: 'documents', element: <Outlet />, children: Documents },
             { path: 'contracts', element: <Outlet />, children: Contracts },
             { path: 'procurement', element: <Outlet />, children: Procurement },
+            { path: 'site', element: <Outlet />, children: Site },
             { path: 'settings', element: <Outlet />, children: Settings },
             { path: '*', element: <NotFound /> },
          ],

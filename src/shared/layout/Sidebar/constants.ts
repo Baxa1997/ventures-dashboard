@@ -4,6 +4,7 @@ import {
    SECTION_LABELS,
    SECTION_PATHS,
    SETTINGS_PATH,
+   SITE_PATH,
 } from '@shared/constants';
 import type { Section, SectionCounters } from '@shared/types/work.types';
 import {
@@ -11,6 +12,7 @@ import {
    FileSignature,
    FolderOpen,
    Gavel,
+   Globe,
    Handshake,
    LayoutDashboard,
    ListChecks,
@@ -89,6 +91,14 @@ export const NAV_GROUPS = [
          section('documents'),
          section('contracts'),
          section('procurement'),
+         {
+            label: 'Сайт',
+            hint: 'Данные сайта: таблицы разделов, портфель, новости, FAQ и контакты',
+            to: SITE_PATH,
+            icon: Globe,
+            counter: null,
+            editorsOnly: true,
+         },
       ],
    },
 ] as const;
