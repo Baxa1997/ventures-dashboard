@@ -1430,6 +1430,345 @@ Rows for procurement_stages (slug | name_ru | name_uz | name_en | color | needs_
 - paid | Оплачено | To‘langan | Paid | #1f9d6b | false | false | 5 | true
 ```
 
+## Batch 19 — Сайт
+
+The public website's content, edited in the panel's «Сайт» (`src/modules/Site`). It lives here: the website reads these tables with its API key and re-reads them when the panel tells it to (`POST /api/site-refresh` in the website), or within 5 minutes. A list emptied in the panel is empty on the site; the content built into the website's code shows only when ucode does not answer.
+
+- **Tables the website already expected:** `news`, `team` and `pages` (the live site showed «Пока ничего не опубликовано», no team, and no privacy policy, since they did not exist). `portfolio` and `partner_requests` were made in batch T; the panel now edits and reads them.
+- **`site_settings`:** one row: contacts, social links, videos and logos.
+- **`site_faq`, `site_sources`:** filled below from what the website's code held, so the site looks the same once it reads them.
+
+The tables, fields and rows are made with `node scripts/ucode/fields.mjs tables 19 --folder "Landing page"`, `node scripts/ucode/fields.mjs create 19` and `node scripts/ucode/rows.mjs insert 19 --write`.
+
+Status, 1 November 2026: tables and fields made and checked with `verify.mjs`. The rows below are also in `src/modules/Site/seed.json`, which «Заполнить данными сайта» in the panel writes to the tables that have no rows. The Russian and Uzbek names in the ucode admin (`node scripts/ucode/admin-ui.mjs menus --write`, `fields --write`) have not been written.
+
+```
+Batch 19. Same rules: every new table inside the folder "Landing page". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table news
+- slug: SINGLE_LINE
+- date: DATE
+- category: SINGLE_LINE
+- outlet: SINGLE_LINE
+- url: SINGLE_LINE
+- image: SINGLE_LINE
+- is_published: BOOLEAN
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- excerpt_en: MULTI_LINE
+- excerpt_ru: MULTI_LINE
+- excerpt_uz: MULTI_LINE
+- body_en: MULTI_LINE
+- body_ru: MULTI_LINE
+- body_uz: MULTI_LINE
+
+Table team
+- name: SINGLE_LINE
+- email: SINGLE_LINE
+- position: SINGLE_LINE
+- position_ru: SINGLE_LINE
+- position_uz: SINGLE_LINE
+- linkedin: SINGLE_LINE
+- photo: SINGLE_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table pages
+- slug: SINGLE_LINE
+- is_published: BOOLEAN
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- body_en: MULTI_LINE
+- body_ru: MULTI_LINE
+- body_uz: MULTI_LINE
+
+Table site_settings
+- email: SINGLE_LINE
+- phone: SINGLE_LINE
+- map_url: SINGLE_LINE
+- telegram: SINGLE_LINE
+- linkedin: SINGLE_LINE
+- instagram: SINGLE_LINE
+- address_en: MULTI_LINE
+- address_ru: MULTI_LINE
+- address_uz: MULTI_LINE
+- hours_en: SINGLE_LINE
+- hours_ru: SINGLE_LINE
+- hours_uz: SINGLE_LINE
+- founders_video: SINGLE_LINE
+- investors_video: SINGLE_LINE
+- logo: SINGLE_LINE
+- logo_white: SINGLE_LINE
+
+Table site_faq
+- question_en: MULTI_LINE
+- question_ru: MULTI_LINE
+- question_uz: MULTI_LINE
+- answer_en: MULTI_LINE
+- answer_ru: MULTI_LINE
+- answer_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_sources
+- name: SINGLE_LINE
+- kind: SINGLE_LINE
+- url: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Rows for site_settings (email | address_en | address_ru | address_uz | hours_en | hours_ru | hours_uz | map_url)
+- info@sqbventures.example | 3 Shahrisabz Street, Tashkent, Uzbekistan | Узбекистан, Ташкент, улица Шахрисабз, 3 | O‘zbekiston, Toshkent, Shahrisabz ko‘chasi, 3 | Monday to Friday, 9:00–18:00 | Понедельник — пятница, 9:00–18:00 | Dushanba — juma, 9:00–18:00 | https://yandex.uz/maps/?text=Tashkent%2C%20Shahrisabz%20street%203
+
+Rows for site_faq (question_en | question_ru | question_uz | answer_en | answer_ru | answer_uz | sort_order | is_visible)
+- How do I apply? | Как подать заявку? | Arizani qanday topshiraman? | Press Pitch Us on any page. The form takes a few clicks: your contacts, a few facts about the startup and the pitch deck. | Нажмите Pitch Us на любой странице. Форма занимает несколько кликов: ваши контакты, несколько фактов о стартапе и питч-дек. | Istalgan sahifada Pitch Us tugmasini bosing. Shakl bir necha bosishda to‘ldiriladi: kontaktlaringiz, startap haqida bir necha ma’lumot va pitch-dek. | 1 | true
+- How long does a decision take? | Сколько времени занимает решение? | Qaror qancha vaqt oladi? | Screening takes up to ten working days. Due diligence and the committee stage depend on how quickly documents are provided. | Скрининг занимает до десяти рабочих дней. Due diligence и этап комитета зависят от того, как быстро предоставляются документы. | Skrining o‘n ish kunigacha davom etadi. Due diligence va qo‘mita bosqichi hujjatlar qanchalik tez taqdim etilishiga bog‘liq. | 2 | true
+- How will I know the result? | Как я узнаю результат? | Natijani qanday bilaman? | In your Founder Account the application shows one of four statuses: Awaiting review, Reviewed, Accepted or Rejected. We also write to your email. | В Аккаунте основателя у заявки один из четырёх статусов: «Ожидает рассмотрения», «Рассмотрена», «Принята» или «Отклонена». Мы также напишем вам на email. | Asoschi akkauntida ariza to‘rt holatdan birida bo‘ladi: «Ko‘rib chiqish kutilmoqda», «Ko‘rib chiqildi», «Qabul qilindi» yoki «Rad etildi». Shuningdek, emailingizga yozamiz. | 3 | true
+- Do we need revenue to apply? | Нужна ли выручка, чтобы подать заявку? | Ariza topshirish uchun daromad kerakmi? | No, but you need a working product and evidence that people use it. | Нет, но нужен работающий продукт и подтверждение, что им пользуются. | Yo‘q, lekin ishlaydigan mahsulot va undan foydalanilayotganining isboti kerak. | 4 | true
+- How much do you invest? | Сколько вы инвестируете? | Qancha sarmoya kiritasiz? | From $50K to $500K, including follow-on investment, for a minority stake of 5–15%. | От 50 до 500 тысяч долларов США, включая follow-on инвестиции, за миноритарную долю 5–15%. | 50 mingdan 500 ming AQSH dollarigacha, follow-on investitsiyalar bilan birga, 5–15% minoritar ulush evaziga. | 5 | true
+- Do you invest outside Uzbekistan? | Инвестируете ли вы за пределами Узбекистана? | O‘zbekistondan tashqarida sarmoya kiritasizmi? | Central Asia is our home market. We also look at companies from other countries when the business has strategic ties with the CIS and Central Asia or is expanding there. | Центральная Азия — наш домашний рынок. Мы также рассматриваем компании из других стран, если бизнес имеет стратегические связи с СНГ и Центральной Азией или выходит на эти рынки. | Markaziy Osiyo — bizning uy bozorimiz. Biznes MDH va Markaziy Osiyo bilan strategik aloqalarga ega bo‘lsa yoki u yerga kengayayotgan bo‘lsa, boshqa mamlakatlardagi kompaniyalarni ham ko‘rib chiqamiz. | 6 | true
+- What happens after a rejection? | Что происходит после отказа? | Rad javobidan keyin nima bo‘ladi? | You receive the reasons in writing and can apply again after six months or when the situation of the company changes. | Вы получаете причины в письменном виде и можете подать заявку снова через шесть месяцев или когда ситуация компании изменится. | Sabablarni yozma ravishda olasiz va olti oydan keyin yoki kompaniya holati o‘zgarganda qayta ariza topshirishingiz mumkin. | 7 | true
+
+Rows for site_sources (name | kind | url | text_en | text_ru | text_uz | sort_order | is_visible)
+- Pivot | media |  |  |  |  | 1 | true
+- Spot | media | https://www.spot.uz |  |  |  | 2 | true
+- Kapital | media | https://kapital.uz |  |  |  | 3 | true
+- Kursiv | media | https://kursiv.media |  |  |  | 4 | true
+- Stanbase | media |  |  |  |  | 5 | true
+- Startupbase | media |  |  |  |  | 6 | true
+- Review | media |  |  |  |  | 7 | true
+- RISE Research | report |  | Venture capital research on Central Asia: deal counts, round sizes and active investors. | Исследования венчурного рынка Центральной Азии: число сделок, размеры раундов и активные инвесторы. | Markaziy Osiyo venchur bozori tadqiqotlari: bitimlar soni, raundlar hajmi va faol investorlar. | 1 | true
+- StartupBlink | report | https://www.startupblink.com | Global Startup Ecosystem Index: how countries and cities rank each year. | Global Startup Ecosystem Index: как страны и города ранжируются каждый год. | Global Startup Ecosystem Index: mamlakatlar va shaharlarning yillik reytingi. | 2 | true
+- Startup Genome | report | https://startupgenome.com | Global Startup Ecosystem Report: ecosystem value, funding and talent benchmarks. | Global Startup Ecosystem Report: стоимость экосистем, финансирование и показатели по талантам. | Global Startup Ecosystem Report: ekotizimlar qiymati, moliyalashtirish va kadrlar ko‘rsatkichlari. | 3 | true
+- Dealroom | report | https://dealroom.co | Company and funding data for startups, investors and ecosystems. | Данные о компаниях и финансировании для стартапов, инвесторов и экосистем. | Startaplar, investorlar va ekotizimlar uchun kompaniyalar va moliyalashtirish ma’lumotlari. | 4 | true
+
+Rows for pages (slug | is_published | title_en | title_ru | title_uz | body_en)
+- privacy | true | Privacy policy | Политика конфиденциальности | Maxfiylik siyosati | <h2>What we collect</h2><p>When you apply for investment or send a partnership request, we collect the details you enter in the form: company information, founder names and contact details, and any files you attach.</p><h2>How we use it</h2><p>We use this information to review your application and to contact you about it. It is shared with the investment team and committee members only.</p><h2>How long we keep it</h2><p>Applications that do not lead to an investment are deleted on request. Write to the address on the Contacts page.</p>
+```
+
+## Batch 20 — a table for each array of the website's code
+
+The website's code holds its content in arrays of objects. Each array has its own table here, with a column for each field of its object (a text in three languages) and `sort_order` and `is_visible`. A page reads its table (`getTable`, `site.service.ts` in the website) and shows its array only while the table has no rows or ucode does not answer. They are edited in the panel's «Сайт» (`SITE_TABLES` in `src/modules/Site/constants`).
+
+| Array in the website's code | Table | Rows |
+| --- | --- | --- |
+| `TERMS (Home)` | `site_home_terms` | 3 |
+| `STATS (Home)` | `site_home_stats` | 4 |
+| `FOR_STARTUPS (Home)` | `site_for_startups` | 3 |
+| `FOR_INVESTORS (Home)` | `site_for_investors` | 3 |
+| `PROGRAMS (Founders)` | `site_programs` | 2 |
+| `FOUNDER_STATUSES (Founders)` | `site_founder_statuses` | 4 |
+| `BENEFITS (Home)` | `site_benefits` | 6 |
+| `PROCESS (Home)` | `site_process` | 5 |
+| `BELIEFS (Founders)` | `site_beliefs` | 4 |
+| `TIMELINE (Founders)` | `site_timeline` | 5 |
+| `DOCUMENTS (Founders)` | `site_documents` | 6 |
+| `FAQ (PitchUs)` | `site_pitch_faq` | 4 |
+| `HISTORY (About)` | `site_history` | 3 |
+| `FACTS (Focus)` | `site_facts` | 4 |
+| `SECTORS (Focus)` | `site_sectors` | 3 |
+| `ANTI_THESIS (Focus)` | `site_anti_thesis` | 6 |
+| `GEOGRAPHY (Focus)` | `site_geography` | 3 |
+| `THREE_YES (Focus)` | `site_three_yes` | 3 |
+| `BENEFITS (Investors)` | `site_investor_benefits` | 4 |
+
+The arrays with a table from earlier batches: `PORTFOLIO` → `portfolio`, `NEWS` → `news`, `PAGES` → `pages`, `FAQ` (Contacts) → `site_faq`, `MEDIA` and `REPORTS` → `site_sources`. `INDUSTRIES` and `COUNTRIES` are the fund's lists of Настройки. `TEAM` went with the team, on the client's word of 1 November 2026, so the table `team` and the field `portfolio.manager` are no longer used. `NAV`, `TABS`, `STEPS` and `ROTATING_WORDS` are how the site works, not its content, and stay in its code.
+
+The tables and fields are made with `node scripts/ucode/fields.mjs tables 20 --folder "Landing page"` and `node scripts/ucode/fields.mjs create 20`. Their rows, with those of the tables above, are in `src/modules/Site/seed.json`: «Заполнить данными сайта» in the panel writes them to the tables that have no rows, and leaves the others as they are. The news go in as drafts, since they are the prototype's samples.
+
+The empty tables `site_texts` and `site_items` were made on the way to this and are not used; they can be deleted by hand in the ucode admin.
+
+```
+Batch 20. Same rules: every new table inside the folder "Landing page".
+
+Table site_benefits
+- icon: SINGLE_LINE
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_process
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_beliefs
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_timeline
+- step_en: SINGLE_LINE
+- step_ru: SINGLE_LINE
+- step_uz: SINGLE_LINE
+- duration_en: SINGLE_LINE
+- duration_ru: SINGLE_LINE
+- duration_uz: SINGLE_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_documents
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_pitch_faq
+- question_en: MULTI_LINE
+- question_ru: MULTI_LINE
+- question_uz: MULTI_LINE
+- answer_en: MULTI_LINE
+- answer_ru: MULTI_LINE
+- answer_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_history
+- year: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_facts
+- label_en: SINGLE_LINE
+- label_ru: SINGLE_LINE
+- label_uz: SINGLE_LINE
+- value_en: SINGLE_LINE
+- value_ru: SINGLE_LINE
+- value_uz: SINGLE_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_sectors
+- icon: SINGLE_LINE
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- point1_label_en: SINGLE_LINE
+- point1_label_ru: SINGLE_LINE
+- point1_label_uz: SINGLE_LINE
+- point1_text_en: MULTI_LINE
+- point1_text_ru: MULTI_LINE
+- point1_text_uz: MULTI_LINE
+- point2_label_en: SINGLE_LINE
+- point2_label_ru: SINGLE_LINE
+- point2_label_uz: SINGLE_LINE
+- point2_text_en: MULTI_LINE
+- point2_text_ru: MULTI_LINE
+- point2_text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_anti_thesis
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_geography
+- icon: SINGLE_LINE
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_three_yes
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_investor_benefits
+- icon: SINGLE_LINE
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_home_terms
+- label_en: SINGLE_LINE
+- label_ru: SINGLE_LINE
+- label_uz: SINGLE_LINE
+- value_en: SINGLE_LINE
+- value_ru: SINGLE_LINE
+- value_uz: SINGLE_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_home_stats
+- value: SINGLE_LINE
+- caption_en: SINGLE_LINE
+- caption_ru: SINGLE_LINE
+- caption_uz: SINGLE_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_for_startups
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_for_investors
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_programs
+- tag: SINGLE_LINE
+- title_en: SINGLE_LINE
+- title_ru: SINGLE_LINE
+- title_uz: SINGLE_LINE
+- text_en: MULTI_LINE
+- text_ru: MULTI_LINE
+- text_uz: MULTI_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+
+Table site_founder_statuses
+- text_en: SINGLE_LINE
+- text_ru: SINGLE_LINE
+- text_uz: SINGLE_LINE
+- sort_order: NUMBER
+- is_visible: BOOLEAN
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

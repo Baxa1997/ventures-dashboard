@@ -6,6 +6,7 @@ import documents from '@modules/Documents/locales/ru';
 import portfolio from '@modules/Portfolio/locales/ru';
 import procurement from '@modules/Procurement/locales/ru';
 import settings from '@modules/Settings/locales/ru';
+import site from '@modules/Site/locales/ru';
 import work from '@modules/Work/locales/ru';
 import components from './components.json';
 import layout from './layout.json';
@@ -20,6 +21,7 @@ const ru = {
    ...portfolio,
    ...procurement,
    ...settings,
+   ...site,
    ...work,
    components,
    layout,

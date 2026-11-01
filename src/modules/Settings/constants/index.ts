@@ -807,6 +807,7 @@ export const RIGHT_SECTIONS = [
    'Корресп.',
    'Документы',
    'Настройки',
+   'Сайт',
 ] as const;
 
 export type Right = 'full' | 'own' | 'read' | 'none';
@@ -832,12 +833,12 @@ const r = (code: string): Right[] =>
 // The proposal for discussion (screen 25), the columns of the table: f —
 // full, o — own and assigned, r — read, - — none, section by section.
 export const ROLE_RIGHTS = [
-   { role: 'director', rights: r('fffffffff') },
-   { role: 'deputy', rights: r('fffrffff-') },
-   { role: 'analyst', rights: r('oro-r-or-') },
-   { role: 'manager', rights: r('orf-oror-') },
-   { role: 'ic_secretary', rights: r('rfr---fr-') },
-   { role: 'accountant', rights: r('r-rfrrrr-') },
+   { role: 'director', rights: r('ffffffffff') },
+   { role: 'deputy', rights: r('fffrffff-f') },
+   { role: 'analyst', rights: r('oro-r-or--') },
+   { role: 'manager', rights: r('orf-oror--') },
+   { role: 'ic_secretary', rights: r('rfr---fr--') },
+   { role: 'accountant', rights: r('r-rfrrrr--') },
 ] as const satisfies readonly { role: Role; rights: Right[] }[];
 
 export const EXTERNAL_RIGHTS = [

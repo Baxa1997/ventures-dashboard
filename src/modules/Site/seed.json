@@ -1,0 +1,1147 @@
+{
+   "site_home_terms": [
+      {
+         "label_en": "Fund size",
+         "label_ru": "Размер фонда",
+         "label_uz": "Fond hajmi",
+         "value_en": "$10M",
+         "value_ru": "$10M",
+         "value_uz": "$10M",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "label_en": "Ticket size",
+         "label_ru": "Размер чека",
+         "label_uz": "Investitsiya miqdori",
+         "value_en": "$50K – $500K",
+         "value_ru": "$50K – $500K",
+         "value_uz": "$50K – $500K",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "label_en": "Focus sectors",
+         "label_ru": "Ключевые отрасли",
+         "label_uz": "Asosiy sohalar",
+         "value_en": "FinTech · B2B SaaS · AI",
+         "value_ru": "FinTech · B2B SaaS · AI",
+         "value_uz": "FinTech · B2B SaaS · AI",
+         "sort_order": 3,
+         "is_visible": true
+      }
+   ],
+   "site_home_stats": [
+      {
+         "value": "$10M",
+         "caption_en": "Fund",
+         "caption_ru": "Фонд",
+         "caption_uz": "Fond",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "value": "$500K",
+         "caption_en": "Investment, up to",
+         "caption_ru": "Инвестиция, до",
+         "caption_uz": "Investitsiya, gacha",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "value": "15%",
+         "caption_en": "Stake, up to",
+         "caption_ru": "Доля, до",
+         "caption_uz": "Ulush, gacha",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "value": "Seed",
+         "caption_en": "and Pre-Series A",
+         "caption_ru": "и Pre-Series A",
+         "caption_uz": "va Pre-Series A",
+         "sort_order": 4,
+         "is_visible": true
+      }
+   ],
+   "site_benefits": [
+      {
+         "icon": "Landmark",
+         "title_en": "Pilots with the bank",
+         "title_ru": "Пилоты с банком",
+         "title_uz": "Bank bilan pilot loyihalar",
+         "text_en": "Test your product inside SQB or with its corporate clients, with a named sponsor on the bank’s side.",
+         "text_ru": "Проверьте продукт внутри SQB или у его корпоративных клиентов — с конкретным спонсором со стороны банка.",
+         "text_uz": "Mahsulotingizni SQB ichida yoki uning korporativ mijozlarida sinab ko‘ring — bank tomonidan aniq mas’ul shaxs bilan.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "icon": "PlugZap",
+         "title_en": "Integrations",
+         "title_ru": "Интеграции",
+         "title_uz": "Integratsiyalar",
+         "text_en": "Connect to the bank’s payment, lending and data infrastructure instead of building it yourself.",
+         "text_ru": "Подключайтесь к платёжной, кредитной и дата-инфраструктуре банка вместо того, чтобы строить её самим.",
+         "text_uz": "To‘lov, kredit va ma’lumotlar infratuzilmasini o‘zingiz qurish o‘rniga bank infratuzilmasiga ulaning.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "icon": "GraduationCap",
+         "title_en": "Mentorship",
+         "title_ru": "Менторство",
+         "title_uz": "Mentorlik",
+         "text_en": "Work with practitioners in finance, risk, compliance, sales and hiring.",
+         "text_ru": "Работайте с практиками в финансах, рисках, комплаенсе, продажах и найме.",
+         "text_uz": "Moliya, risk, komplayens, savdo va yollash bo‘yicha amaliyotchilar bilan ishlang.",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "icon": "TrendingUp",
+         "title_en": "Follow-on investment",
+         "title_ru": "Follow-on инвестиции",
+         "title_uz": "Follow-on investitsiyalar",
+         "text_en": "We reserve capital for your next rounds and bring co-investors to them.",
+         "text_ru": "Мы резервируем капитал на ваши следующие раунды и приводим в них соинвесторов.",
+         "text_uz": "Keyingi raundlaringiz uchun kapital zaxiralaymiz va ularga hammuallif investorlarni jalb qilamiz.",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "icon": "Globe",
+         "title_en": "New markets",
+         "title_ru": "Новые рынки",
+         "title_uz": "Yangi bozorlar",
+         "text_en": "Enter Central Asia, the CIS and the Gulf through our partners and portfolio network.",
+         "text_ru": "Выходите в Центральную Азию, СНГ и страны Персидского залива через наших партнёров и сеть портфельных компаний.",
+         "text_uz": "Hamkorlarimiz va portfel tarmog‘imiz orqali Markaziy Osiyo, MDH va Fors ko‘rfazi bozorlariga chiqing.",
+         "sort_order": 5,
+         "is_visible": true
+      },
+      {
+         "icon": "Handshake",
+         "title_en": "Introductions",
+         "title_ru": "Знакомства",
+         "title_uz": "Tanishtiruvlar",
+         "text_en": "Meet the regulators, corporate buyers and investors you need to reach.",
+         "text_ru": "Познакомьтесь с регуляторами, корпоративными заказчиками и инвесторами, до которых вам нужно дойти.",
+         "text_uz": "Sizga kerak bo‘lgan regulyatorlar, korporativ xaridorlar va investorlar bilan tanishing.",
+         "sort_order": 6,
+         "is_visible": true
+      }
+   ],
+   "site_process": [
+      {
+         "title_en": "Application",
+         "title_ru": "Заявка",
+         "title_uz": "Ariza",
+         "text_en": "Fill in the short form and attach your pitch deck.",
+         "text_ru": "Заполните короткую форму и приложите питч-дек.",
+         "text_uz": "Qisqa shaklni to‘ldiring va pitch-dekni biriktiring.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "title_en": "Screening",
+         "title_ru": "Скрининг",
+         "title_uz": "Skrining",
+         "text_en": "An investment manager reviews the application and calls the founders.",
+         "text_ru": "Инвестиционный менеджер изучает заявку и созванивается с основателями.",
+         "text_uz": "Investitsiya menejeri arizani ko‘rib chiqadi va asoschilar bilan bog‘lanadi.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "title_en": "Due diligence",
+         "title_ru": "Due diligence",
+         "title_uz": "Due diligence",
+         "text_en": "Legal, financial and technical review through a shared data room.",
+         "text_ru": "Юридическая, финансовая и техническая проверка через общую data room.",
+         "text_uz": "Umumiy data room orqali yuridik, moliyaviy va texnik tekshiruv.",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "title_en": "Investment committee",
+         "title_ru": "Инвестиционный комитет",
+         "title_uz": "Investitsiya qo‘mitasi",
+         "text_en": "Founders present. The committee decides and sets the terms.",
+         "text_ru": "Основатели презентуют проект. Комитет принимает решение и определяет условия.",
+         "text_uz": "Asoschilar taqdimot qiladi. Qo‘mita qaror qabul qiladi va shartlarni belgilaydi.",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "title_en": "Investment",
+         "title_ru": "Инвестиция",
+         "title_uz": "Investitsiya",
+         "text_en": "Documents are signed, funds are transferred and reporting begins.",
+         "text_ru": "Документы подписаны, средства переведены, начинается отчётность.",
+         "text_uz": "Hujjatlar imzolanadi, mablag‘ o‘tkaziladi va hisobot berish boshlanadi.",
+         "sort_order": 5,
+         "is_visible": true
+      }
+   ],
+   "site_for_startups": [
+      {
+         "text_en": "Pilots and integrations with the bank",
+         "text_ru": "Пилоты и интеграции с банком",
+         "text_uz": "Bank bilan pilot loyihalar va integratsiyalar",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "text_en": "Mentorship in business development, legal, PR and marketing",
+         "text_ru": "Менторство в развитии бизнеса, юридических вопросах, PR и маркетинге",
+         "text_uz": "Biznesni rivojlantirish, huquq, PR va marketing bo‘yicha mentorlik",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "text_en": "Follow-on investment and access to new markets",
+         "text_ru": "Follow-on инвестиции и выход на новые рынки",
+         "text_uz": "Follow-on investitsiyalar va yangi bozorlarga chiqish",
+         "sort_order": 3,
+         "is_visible": true
+      }
+   ],
+   "site_for_investors": [
+      {
+         "text_en": "Pitch sessions and access to reviewed deal flow",
+         "text_ru": "Питч-сессии и доступ к проверенному потоку сделок",
+         "text_uz": "Pitch-sessiyalar va tekshirilgan bitimlar oqimiga kirish",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "text_en": "Direct introductions to startups for co-investment",
+         "text_ru": "Прямые знакомства со стартапами для соинвестирования",
+         "text_uz": "Birgalikda sarmoya kiritish uchun startaplar bilan to‘g‘ridan-to‘g‘ri tanishtiruv",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "text_en": "Shared due diligence materials for each deal",
+         "text_ru": "Общие материалы due diligence по каждой сделке",
+         "text_uz": "Har bir bitim bo‘yicha umumiy due diligence materiallari",
+         "sort_order": 3,
+         "is_visible": true
+      }
+   ],
+   "site_beliefs": [
+      {
+         "text_en": "Founders with deep knowledge of the industry they are changing",
+         "text_ru": "В основателей с глубоким знанием индустрии, которую они меняют",
+         "text_uz": "O‘zi o‘zgartirayotgan sohani chuqur biladigan asoschilarga",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "text_en": "Teams that build in Central Asia with a plan to become global companies",
+         "text_ru": "В команды, которые строят в Центральной Азии и планируют стать глобальными компаниями",
+         "text_uz": "Markaziy Osiyoda quradigan va global kompaniyaga aylanishni rejalashtirgan jamoalarga",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "text_en": "Products that get stronger with the bank’s clients, data and infrastructure",
+         "text_ru": "В продукты, которые становятся сильнее с клиентами, данными и инфраструктурой банка",
+         "text_uz": "Bank mijozlari, ma’lumotlari va infratuzilmasi bilan kuchayadigan mahsulotlarga",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "text_en": "People who want an open dialogue with their investor, not only a transfer",
+         "text_ru": "В людей, которым нужен открытый диалог с инвестором, а не только перевод денег",
+         "text_uz": "Investordan faqat pul o‘tkazmasini emas, ochiq muloqotni istaydigan odamlarga",
+         "sort_order": 4,
+         "is_visible": true
+      }
+   ],
+   "site_programs": [
+      {
+         "tag": "open",
+         "title_en": "Pilot program",
+         "title_ru": "Пилотная программа",
+         "title_uz": "Pilot dasturi",
+         "text_en": "A paid or co-funded pilot of your product inside SQB or with one of its corporate clients. You get a sponsor in the bank, a scope agreed in advance and a clear success measure.",
+         "text_ru": "Оплачиваемый или софинансируемый пилот вашего продукта внутри SQB или у одного из его корпоративных клиентов. Вы получаете спонсора в банке, заранее согласованный объём работ и понятный критерий успеха.",
+         "text_uz": "Mahsulotingizning SQB ichida yoki uning korporativ mijozlaridan birida pullik yoki birgalikda moliyalashtiriladigan piloti. Siz bankda mas’ul shaxs, oldindan kelishilgan ish hajmi va aniq muvaffaqiyat mezoniga ega bo‘lasiz.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "tag": "planned",
+         "title_en": "Accelerator",
+         "title_ru": "Акселератор",
+         "title_uz": "Akselerator",
+         "text_en": "A cohort program for teams at the first-traction stage: weekly sessions with mentors, access to the bank’s sandbox and a demo day for investors. We will announce the dates here.",
+         "text_ru": "Программа для команд на стадии первого трекшена: еженедельные сессии с менторами, доступ к песочнице банка и демо-день для инвесторов. Даты объявим здесь.",
+         "text_uz": "Dastlabki natijalar bosqichidagi jamoalar uchun dastur: mentorlar bilan haftalik sessiyalar, bank sandbox muhitiga kirish va investorlar uchun demo-kun. Sanalarni shu yerda e’lon qilamiz.",
+         "sort_order": 2,
+         "is_visible": true
+      }
+   ],
+   "site_timeline": [
+      {
+         "step_en": "Application",
+         "step_ru": "Заявка",
+         "step_uz": "Ariza",
+         "duration_en": "5 minutes",
+         "duration_ru": "5 минут",
+         "duration_uz": "5 daqiqa",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "step_en": "Screening",
+         "step_ru": "Скрининг",
+         "step_uz": "Skrining",
+         "duration_en": "Up to 10 working days",
+         "duration_ru": "До 10 рабочих дней",
+         "duration_uz": "10 ish kunigacha",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "step_en": "Due diligence",
+         "step_ru": "Due diligence",
+         "step_uz": "Due diligence",
+         "duration_en": "3 to 4 weeks",
+         "duration_ru": "3–4 недели",
+         "duration_uz": "3–4 hafta",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "step_en": "Investment committee",
+         "step_ru": "Инвестиционный комитет",
+         "step_uz": "Investitsiya qo‘mitasi",
+         "duration_en": "1 week",
+         "duration_ru": "1 неделя",
+         "duration_uz": "1 hafta",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "step_en": "Investment",
+         "step_ru": "Инвестиция",
+         "step_uz": "Investitsiya",
+         "duration_en": "2 to 3 weeks",
+         "duration_ru": "2–3 недели",
+         "duration_uz": "2–3 hafta",
+         "sort_order": 5,
+         "is_visible": true
+      }
+   ],
+   "site_documents": [
+      {
+         "text_en": "Corporate: charter, registration, shareholder register.",
+         "text_ru": "Корпоративные: устав, регистрация, реестр акционеров.",
+         "text_uz": "Korporativ: ustav, ro‘yxatdan o‘tish, aksiyadorlar reyestri.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "text_en": "Financial: statements, management accounts, financial model.",
+         "text_ru": "Финансовые: отчётность, управленческий учёт, финансовая модель.",
+         "text_uz": "Moliyaviy: hisobotlar, boshqaruv hisobi, moliyaviy model.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "text_en": "Legal: key contracts, IP assignments.",
+         "text_ru": "Юридические: ключевые договоры, передача прав на интеллектуальную собственность.",
+         "text_uz": "Yuridik: asosiy shartnomalar, intellektual mulk huquqlarini o‘tkazish.",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "text_en": "Product and tech: architecture overview, roadmap.",
+         "text_ru": "Продукт и технологии: обзор архитектуры, дорожная карта.",
+         "text_uz": "Mahsulot va texnologiya: arxitektura sharhi, yo‘l xaritasi.",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "text_en": "Team: founder CVs, organisation chart.",
+         "text_ru": "Команда: резюме основателей, оргструктура.",
+         "text_uz": "Jamoa: asoschilar rezyumesi, tashkiliy tuzilma.",
+         "sort_order": 5,
+         "is_visible": true
+      },
+      {
+         "text_en": "Market and traction: pitch deck, market sizing, metrics.",
+         "text_ru": "Рынок и трекшен: питч-дек, оценка рынка, метрики.",
+         "text_uz": "Bozor va natijalar: pitch-dek, bozor hajmi, ko‘rsatkichlar.",
+         "sort_order": 6,
+         "is_visible": true
+      }
+   ],
+   "site_founder_statuses": [
+      {
+         "text_en": "Awaiting review",
+         "text_ru": "Ожидает рассмотрения",
+         "text_uz": "Ko‘rib chiqish kutilmoqda",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "text_en": "Reviewed",
+         "text_ru": "Рассмотрена",
+         "text_uz": "Ko‘rib chiqildi",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "text_en": "Accepted",
+         "text_ru": "Принята",
+         "text_uz": "Qabul qilindi",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "text_en": "Rejected",
+         "text_ru": "Отклонена",
+         "text_uz": "Rad etildi",
+         "sort_order": 4,
+         "is_visible": true
+      }
+   ],
+   "site_pitch_faq": [
+      {
+         "question_en": "How will I know the result?",
+         "question_ru": "Как я узнаю результат?",
+         "question_uz": "Natijani qanday bilaman?",
+         "answer_en": "In your Founder Account the application shows one of four statuses: Awaiting review, Reviewed, Accepted or Rejected. We also write to your email.",
+         "answer_ru": "В Аккаунте основателя у заявки один из четырёх статусов: «Ожидает рассмотрения», «Рассмотрена», «Принята» или «Отклонена». Мы также напишем вам на email.",
+         "answer_uz": "Asoschi akkauntida ariza to‘rt holatdan birida bo‘ladi: «Ko‘rib chiqish kutilmoqda», «Ko‘rib chiqildi», «Qabul qilindi» yoki «Rad etildi». Shuningdek, emailingizga yozamiz.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "question_en": "Do we need revenue to apply?",
+         "question_ru": "Нужна ли выручка, чтобы подать заявку?",
+         "question_uz": "Ariza topshirish uchun daromad kerakmi?",
+         "answer_en": "No, but you need a working product and evidence that people use it.",
+         "answer_ru": "Нет, но нужен работающий продукт и подтверждение, что им пользуются.",
+         "answer_uz": "Yo‘q, lekin ishlaydigan mahsulot va undan foydalanilayotganining isboti kerak.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "question_en": "What do you ask for after the first review?",
+         "question_ru": "Что вы запрашиваете после первого рассмотрения?",
+         "question_uz": "Birinchi ko‘rib chiqishdan keyin nimalarni so‘raysiz?",
+         "answer_en": "Teams we invite fill in a longer questionnaire in the Founder Account: team and cap table, metrics, market, finance and risks. Documents for due diligence are uploaded to a data room at that stage, not now.",
+         "answer_ru": "Команды, которых мы приглашаем дальше, заполняют расширенную анкету в Аккаунте основателя: команда и cap table, метрики, рынок, финансы и риски. Документы для due diligence загружаются в data room на том этапе, не сейчас.",
+         "answer_uz": "Keyingi bosqichga taklif qilingan jamoalar Asoschi akkauntida kengaytirilgan anketani to‘ldiradi: jamoa va cap table, ko‘rsatkichlar, bozor, moliya va risklar. Due diligence hujjatlari data room’ga hozir emas, o‘sha bosqichda yuklanadi.",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "question_en": "What happens after a rejection?",
+         "question_ru": "Что происходит после отказа?",
+         "question_uz": "Rad javobidan keyin nima bo‘ladi?",
+         "answer_en": "You receive the reasons in writing and can apply again after six months or when the situation of the company changes.",
+         "answer_ru": "Вы получаете причины в письменном виде и можете подать заявку снова через шесть месяцев или когда ситуация компании изменится.",
+         "answer_uz": "Sabablarni yozma ravishda olasiz va olti oydan keyin yoki kompaniya holati o‘zgarganda qayta ariza topshirishingiz mumkin.",
+         "sort_order": 4,
+         "is_visible": true
+      }
+   ],
+   "site_history": [
+      {
+         "year": "2024",
+         "text_en": "SQB sets up SQB Ventures as its venture capital arm. The fund makes its first investment.",
+         "text_ru": "SQB создаёт SQB Ventures как своё венчурное подразделение. Фонд делает первую инвестицию.",
+         "text_uz": "SQB o‘zining venchur bo‘linmasi sifatida SQB Ventures’ni tashkil etadi. Fond birinchi investitsiyasini kiritadi.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "year": "2025",
+         "text_en": "Three more companies join the portfolio. The first pilots with the bank’s corporate clients start.",
+         "text_ru": "В портфель входят ещё три компании. Стартуют первые пилоты с корпоративными клиентами банка.",
+         "text_uz": "Portfelga yana uchta kompaniya qo‘shiladi. Bankning korporativ mijozlari bilan birinchi pilot loyihalar boshlanadi.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "year": "2026",
+         "text_en": "The first exit from the portfolio. The Founder Account opens: applications, the data room and reporting move online.",
+         "text_ru": "Первый выход из портфеля. Открывается Аккаунт основателя: заявки, data room и отчётность переходят в онлайн.",
+         "text_uz": "Portfeldan birinchi chiqish. Asoschi akkaunti ochiladi: arizalar, data room va hisobotlar onlayn rejimga o‘tadi.",
+         "sort_order": 3,
+         "is_visible": true
+      }
+   ],
+   "site_facts": [
+      {
+         "label_en": "Stage",
+         "label_ru": "Стадия",
+         "label_uz": "Bosqich",
+         "value_en": "Seed & Pre-Series A",
+         "value_ru": "Seed & Pre-Series A",
+         "value_uz": "Seed & Pre-Series A",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "label_en": "Amount",
+         "label_ru": "Сумма",
+         "label_uz": "Summa",
+         "value_en": "$50K – $500K",
+         "value_ru": "$50K – $500K",
+         "value_uz": "$50K – $500K",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "label_en": "Instrument",
+         "label_ru": "Инструмент",
+         "label_uz": "Instrument",
+         "value_en": "SAFE, convertible note, equity",
+         "value_ru": "SAFE, convertible note и equity",
+         "value_uz": "SAFE, convertible note va equity",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "label_en": "Stake",
+         "label_ru": "Доля",
+         "label_uz": "Ulush",
+         "value_en": "Minority, 5–15%",
+         "value_ru": "Миноритарная, 5–15%",
+         "value_uz": "Minoritar, 5–15%",
+         "sort_order": 4,
+         "is_visible": true
+      }
+   ],
+   "site_sectors": [
+      {
+         "icon": "CreditCard",
+         "title_en": "FinTech & Embedded Finance",
+         "title_ru": "FinTech & Embedded Finance",
+         "title_uz": "FinTech & Embedded Finance",
+         "point1_label_en": "What we look for",
+         "point1_label_ru": "Что мы ищем",
+         "point1_label_uz": "Biz nimani izlaymiz",
+         "point1_text_en": "Payment infrastructure, B2B fintech and embedded financial services.",
+         "point1_text_ru": "Платёжную инфраструктуру, B2B-финтех и встроенные финансовые сервисы.",
+         "point1_text_uz": "To‘lov infratuzilmasi, B2B-fintex va o‘rnatilgan moliyaviy xizmatlar.",
+         "point2_label_en": "Our edge",
+         "point2_label_ru": "Наше преимущество",
+         "point2_label_uz": "Bizning ustunligimiz",
+         "point2_text_en": "Access to the banking expertise and resources of SQB gives portfolio companies a distribution advantage no other fund can offer.",
+         "point2_text_ru": "Наш уникальный доступ к банковской экспертизе и ресурсам SQB даёт портфельным компаниям колоссальное и эксклюзивное преимущество в дистрибуции.",
+         "point2_text_uz": "SQB bank ekspertizasi va resurslariga kirish imkoniyatimiz portfel kompaniyalariga distributsiyada boshqa fondlar bera olmaydigan ustunlik beradi.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "icon": "BrainCircuit",
+         "title_en": "B2B SaaS & Vertical AI",
+         "title_ru": "B2B SaaS & Vertical AI",
+         "title_uz": "B2B SaaS & Vertical AI",
+         "point1_label_en": "What we look for",
+         "point1_label_ru": "Что мы ищем",
+         "point1_label_uz": "Biz nimani izlaymiz",
+         "point1_text_en": "AI-first products built for specific industries of the region, such as logistics and retail.",
+         "point1_text_ru": "AI-first решения, разработанные под конкретные индустрии региона: логистику, ритейл и т. п.",
+         "point1_text_uz": "Mintaqaning muayyan sohalari — logistika, riteyl va boshqalar uchun yaratilgan AI-first yechimlar.",
+         "point2_label_en": "",
+         "point2_label_ru": "",
+         "point2_label_uz": "",
+         "point2_text_en": "",
+         "point2_text_ru": "",
+         "point2_text_uz": "",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "icon": "ShoppingCart",
+         "title_en": "Marketplaces & E-commerce",
+         "title_ru": "Marketplaces & E-commerce",
+         "title_uz": "Marketplaces & E-commerce",
+         "point1_label_en": "What we look for",
+         "point1_label_ru": "Что мы ищем",
+         "point1_label_uz": "Biz nimani izlaymiz",
+         "point1_text_en": "Marketplaces with real liquidity, B2B platforms and cross-border commerce.",
+         "point1_text_ru": "Маркетплейсы с высокой реальной ликвидностью, B2B-платформы и проекты в сфере cross-border коммерции.",
+         "point1_text_uz": "Haqiqiy likvidlikka ega marketpleyslar, B2B-platformalar va transchegaraviy savdo loyihalari.",
+         "point2_label_en": "Our focus",
+         "point2_label_ru": "Наш фокус",
+         "point2_label_uz": "Bizning fokusimiz",
+         "point2_text_en": "Companies built deep into the supply chains of Uzbekistan and the CIS.",
+         "point2_text_ru": "Проекты, глубоко интегрированные в цепочки поставок (supply chains) Узбекистана и стран СНГ.",
+         "point2_text_uz": "O‘zbekiston va MDH mamlakatlari ta’minot zanjirlariga chuqur integratsiyalashgan loyihalar.",
+         "sort_order": 3,
+         "is_visible": true
+      }
+   ],
+   "site_anti_thesis": [
+      {
+         "text_en": "Speculative Crypto and Web3 products and classic retail trading",
+         "text_ru": "Спекулятивные продукты в сфере Crypto/Web3 и классический ритейл-трейдинг",
+         "text_uz": "Crypto/Web3 sohasidagi spekulyativ mahsulotlar va klassik riteyl-treyding",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "text_en": "Template wrappers over LLMs with no access to unique proprietary data",
+         "text_ru": "Шаблонные обёртки над LLM, у которых нет доступа к уникальным проприетарным данным",
+         "text_uz": "Noyob xususiy ma’lumotlarga ega bo‘lmagan, LLM ustiga qurilgan andozaviy qobiqlar",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "text_en": "Purely consumer apps with no network effect",
+         "text_ru": "Чисто потребительские приложения, не обладающие сетевым эффектом",
+         "text_uz": "Tarmoq effektiga ega bo‘lmagan sof iste’mol ilovalari",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "text_en": "Complex hardware without first commercial contracts and sales",
+         "text_ru": "Сложные аппаратные решения без первых коммерческих контрактов и продаж",
+         "text_uz": "Dastlabki tijorat shartnomalari va savdolari bo‘lmagan murakkab apparat yechimlari",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "text_en": "Idea-stage projects whose founders lack deep expertise in the industry",
+         "text_ru": "Проекты на стадии идеи, если у фаундеров нет глубокой доменной экспертизы в этой индустрии",
+         "text_uz": "Asoschilarida sohada chuqur ekspertiza bo‘lmagan g‘oya bosqichidagi loyihalar",
+         "sort_order": 5,
+         "is_visible": true
+      },
+      {
+         "text_en": "Business models with no clear way to make money within three years",
+         "text_ru": "Бизнес-модели, где нет прозрачной и понятной логики монетизации на горизонте 3 лет",
+         "text_uz": "3 yil ichida shaffof va tushunarli monetizatsiya mantig‘i bo‘lmagan biznes-modellar",
+         "sort_order": 6,
+         "is_visible": true
+      }
+   ],
+   "site_geography": [
+      {
+         "icon": "MapPin",
+         "title_en": "Core focus",
+         "title_ru": "Основной фокус",
+         "title_uz": "Asosiy fokus",
+         "text_en": "Central Asia is our home market and the main one.",
+         "text_ru": "Центральная Азия — наш домашний и ключевой рынок.",
+         "text_uz": "Markaziy Osiyo — bizning uy bozorimiz va asosiy bozorimiz.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "icon": "Compass",
+         "title_en": "Window of opportunity",
+         "title_ru": "Окно возможностей",
+         "title_uz": "Imkoniyatlar oynasi",
+         "text_en": "Southeast Asia, the UAE, Turkey, Georgia, Armenia and the United States, when the business has strategic ties with the CIS and Central Asia or is expanding there.",
+         "text_ru": "Юго-Восточная Азия, ОАЭ, Турция, Грузия, Армения и США — при условии, что бизнес имеет стратегические связи или экспансию на рынок СНГ/ЦА.",
+         "text_uz": "Janubi-Sharqiy Osiyo, BAA, Turkiya, Gruziya, Armaniston va AQSH — biznes MDH/Markaziy Osiyo bozori bilan strategik aloqalarga ega bo‘lsa yoki u yerga kengayayotgan bo‘lsa.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "icon": "Plane",
+         "title_en": "Special focus",
+         "title_ru": "Специальный фокус",
+         "title_uz": "Maxsus fokus",
+         "text_en": "Global founders from our region who scale their products in the CIS and Central Asia.",
+         "text_ru": "Глобальные фаундеры из нашего региона, которые масштабируют свои решения на рынках СНГ и Центральной Азии.",
+         "text_uz": "O‘z yechimlarini MDH va Markaziy Osiyo bozorlarida kengaytirayotgan mintaqamizdan chiqqan global asoschilar.",
+         "sort_order": 3,
+         "is_visible": true
+      }
+   ],
+   "site_three_yes": [
+      {
+         "title_en": "Value beyond money",
+         "title_ru": "Ценность за рамками денег",
+         "title_uz": "Puldan tashqari qiymat",
+         "text_en": "We invest only where we can give a growth lever other funds do not have: exclusive distribution, partnerships or infrastructure.",
+         "text_ru": "Мы инвестируем только туда, где можем дать уникальный рычаг роста, недоступный другим фондам, — будь то эксклюзивная дистрибуция, партнёрства или инфраструктура.",
+         "text_uz": "Biz faqat boshqa fondlarda yo‘q o‘sish dastagini bera oladigan joyga sarmoya kiritamiz: eksklyuziv distributsiya, hamkorliklar yoki infratuzilma.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "title_en": "Partnership and synergy",
+         "title_ru": "Партнёрство и синергия",
+         "title_uz": "Hamkorlik va sinergiya",
+         "text_en": "We look for founders who are ready for an open dialogue, joint work at board level and an exchange of expertise.",
+         "text_ru": "Мы ищем фаундеров, готовых к открытому диалогу, совместной работе на уровне Совета директоров и обмену экспертизой.",
+         "text_uz": "Biz ochiq muloqotga, Direktorlar kengashi darajasida birgalikda ishlashga va tajriba almashishga tayyor asoschilarni izlaymiz.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "title_en": "A bridge to the next rounds",
+         "title_ru": "Мост к следующим раундам",
+         "title_uz": "Keyingi raundlarga ko‘prik",
+         "text_en": "We commit to helping companies raise follow-on capital and scale.",
+         "text_ru": "Мы берём на себя обязательство помогать компаниям с привлечением последующего капитала и масштабированием.",
+         "text_uz": "Biz kompaniyalarga keyingi kapitalni jalb qilish va kengayishda yordam berish majburiyatini olamiz.",
+         "sort_order": 3,
+         "is_visible": true
+      }
+   ],
+   "site_investor_benefits": [
+      {
+         "icon": "Presentation",
+         "title_en": "Regular pitch and deal flow sessions",
+         "title_ru": "Регулярные питч-сессии и сессии по потоку сделок",
+         "title_uz": "Muntazam pitch va bitimlar oqimi sessiyalari",
+         "text_en": "Meet founders from the current pipeline at scheduled sessions.",
+         "text_ru": "Знакомьтесь с основателями из текущего пайплайна на плановых сессиях.",
+         "text_uz": "Rejali sessiyalarda joriy payplayndagi asoschilar bilan tanishing.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "icon": "Handshake",
+         "title_en": "Direct introductions for co-investment",
+         "title_ru": "Прямые знакомства для соинвестирования",
+         "title_uz": "Birgalikda sarmoya kiritish uchun to‘g‘ridan-to‘g‘ri tanishtiruv",
+         "text_en": "We introduce you to selected startups where a co-investor strengthens the round.",
+         "text_ru": "Мы знакомим вас с отобранными стартапами, где соинвестор усиливает раунд.",
+         "text_uz": "Sizni hammuallif investor raundni kuchaytiradigan tanlangan startaplar bilan tanishtiramiz.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "icon": "FolderLock",
+         "title_en": "Shared due diligence",
+         "title_ru": "Общий due diligence",
+         "title_uz": "Umumiy due diligence",
+         "text_en": "Access to the data room and the fund’s review materials for deals you join.",
+         "text_ru": "Доступ к data room и материалам проверки фонда по сделкам, в которых вы участвуете.",
+         "text_uz": "Siz ishtirok etadigan bitimlar bo‘yicha data room va fond tekshiruv materiallariga kirish.",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "icon": "Briefcase",
+         "title_en": "Trust management",
+         "title_ru": "Доверительное управление",
+         "title_uz": "Ishonchli boshqaruv",
+         "text_en": "Apply to have the fund manage a venture allocation on your behalf.",
+         "text_ru": "Подайте заявку, чтобы фонд управлял венчурной аллокацией от вашего имени.",
+         "text_uz": "Fond sizning nomingizdan venchur allokatsiyani boshqarishi uchun ariza bering.",
+         "sort_order": 4,
+         "is_visible": true
+      }
+   ],
+   "site_faq": [
+      {
+         "question_en": "How do I apply?",
+         "question_ru": "Как подать заявку?",
+         "question_uz": "Arizani qanday topshiraman?",
+         "answer_en": "Press Pitch Us on any page. The form takes a few clicks: your contacts, a few facts about the startup and the pitch deck.",
+         "answer_ru": "Нажмите Pitch Us на любой странице. Форма занимает несколько кликов: ваши контакты, несколько фактов о стартапе и питч-дек.",
+         "answer_uz": "Istalgan sahifada Pitch Us tugmasini bosing. Shakl bir necha bosishda to‘ldiriladi: kontaktlaringiz, startap haqida bir necha ma’lumot va pitch-dek.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "question_en": "How long does a decision take?",
+         "question_ru": "Сколько времени занимает решение?",
+         "question_uz": "Qaror qancha vaqt oladi?",
+         "answer_en": "Screening takes up to ten working days. Due diligence and the committee stage depend on how quickly documents are provided.",
+         "answer_ru": "Скрининг занимает до десяти рабочих дней. Due diligence и этап комитета зависят от того, как быстро предоставляются документы.",
+         "answer_uz": "Skrining o‘n ish kunigacha davom etadi. Due diligence va qo‘mita bosqichi hujjatlar qanchalik tez taqdim etilishiga bog‘liq.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "question_en": "How will I know the result?",
+         "question_ru": "Как я узнаю результат?",
+         "question_uz": "Natijani qanday bilaman?",
+         "answer_en": "In your Founder Account the application shows one of four statuses: Awaiting review, Reviewed, Accepted or Rejected. We also write to your email.",
+         "answer_ru": "В Аккаунте основателя у заявки один из четырёх статусов: «Ожидает рассмотрения», «Рассмотрена», «Принята» или «Отклонена». Мы также напишем вам на email.",
+         "answer_uz": "Asoschi akkauntida ariza to‘rt holatdan birida bo‘ladi: «Ko‘rib chiqish kutilmoqda», «Ko‘rib chiqildi», «Qabul qilindi» yoki «Rad etildi». Shuningdek, emailingizga yozamiz.",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "question_en": "Do we need revenue to apply?",
+         "question_ru": "Нужна ли выручка, чтобы подать заявку?",
+         "question_uz": "Ariza topshirish uchun daromad kerakmi?",
+         "answer_en": "No, but you need a working product and evidence that people use it.",
+         "answer_ru": "Нет, но нужен работающий продукт и подтверждение, что им пользуются.",
+         "answer_uz": "Yo‘q, lekin ishlaydigan mahsulot va undan foydalanilayotganining isboti kerak.",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "question_en": "How much do you invest?",
+         "question_ru": "Сколько вы инвестируете?",
+         "question_uz": "Qancha sarmoya kiritasiz?",
+         "answer_en": "From $50K to $500K, including follow-on investment, for a minority stake of 5–15%.",
+         "answer_ru": "От 50 до 500 тысяч долларов США, включая follow-on инвестиции, за миноритарную долю 5–15%.",
+         "answer_uz": "50 mingdan 500 ming AQSH dollarigacha, follow-on investitsiyalar bilan birga, 5–15% minoritar ulush evaziga.",
+         "sort_order": 5,
+         "is_visible": true
+      },
+      {
+         "question_en": "Do you invest outside Uzbekistan?",
+         "question_ru": "Инвестируете ли вы за пределами Узбекистана?",
+         "question_uz": "O‘zbekistondan tashqarida sarmoya kiritasizmi?",
+         "answer_en": "Central Asia is our home market. We also look at companies from other countries when the business has strategic ties with the CIS and Central Asia or is expanding there.",
+         "answer_ru": "Центральная Азия — наш домашний рынок. Мы также рассматриваем компании из других стран, если бизнес имеет стратегические связи с СНГ и Центральной Азией или выходит на эти рынки.",
+         "answer_uz": "Markaziy Osiyo — bizning uy bozorimiz. Biznes MDH va Markaziy Osiyo bilan strategik aloqalarga ega bo‘lsa yoki u yerga kengayayotgan bo‘lsa, boshqa mamlakatlardagi kompaniyalarni ham ko‘rib chiqamiz.",
+         "sort_order": 6,
+         "is_visible": true
+      },
+      {
+         "question_en": "What happens after a rejection?",
+         "question_ru": "Что происходит после отказа?",
+         "question_uz": "Rad javobidan keyin nima bo‘ladi?",
+         "answer_en": "You receive the reasons in writing and can apply again after six months or when the situation of the company changes.",
+         "answer_ru": "Вы получаете причины в письменном виде и можете подать заявку снова через шесть месяцев или когда ситуация компании изменится.",
+         "answer_uz": "Sabablarni yozma ravishda olasiz va olti oydan keyin yoki kompaniya holati o‘zgarganda qayta ariza topshirishingiz mumkin.",
+         "sort_order": 7,
+         "is_visible": true
+      }
+   ],
+   "site_sources": [
+      {
+         "kind": "media",
+         "name": "Pivot",
+         "url": "",
+         "text_en": "",
+         "text_ru": "",
+         "text_uz": "",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "kind": "media",
+         "name": "Spot",
+         "url": "https://www.spot.uz",
+         "text_en": "",
+         "text_ru": "",
+         "text_uz": "",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "kind": "media",
+         "name": "Kapital",
+         "url": "https://kapital.uz",
+         "text_en": "",
+         "text_ru": "",
+         "text_uz": "",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "kind": "media",
+         "name": "Kursiv",
+         "url": "https://kursiv.media",
+         "text_en": "",
+         "text_ru": "",
+         "text_uz": "",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "kind": "media",
+         "name": "Stanbase",
+         "url": "",
+         "text_en": "",
+         "text_ru": "",
+         "text_uz": "",
+         "sort_order": 5,
+         "is_visible": true
+      },
+      {
+         "kind": "media",
+         "name": "Startupbase",
+         "url": "",
+         "text_en": "",
+         "text_ru": "",
+         "text_uz": "",
+         "sort_order": 6,
+         "is_visible": true
+      },
+      {
+         "kind": "media",
+         "name": "Review",
+         "url": "",
+         "text_en": "",
+         "text_ru": "",
+         "text_uz": "",
+         "sort_order": 7,
+         "is_visible": true
+      },
+      {
+         "kind": "report",
+         "name": "RISE Research",
+         "url": "",
+         "text_en": "Venture capital research on Central Asia: deal counts, round sizes and active investors.",
+         "text_ru": "Исследования венчурного рынка Центральной Азии: число сделок, размеры раундов и активные инвесторы.",
+         "text_uz": "Markaziy Osiyo venchur bozori tadqiqotlari: bitimlar soni, raundlar hajmi va faol investorlar.",
+         "sort_order": 8,
+         "is_visible": true
+      },
+      {
+         "kind": "report",
+         "name": "StartupBlink",
+         "url": "https://www.startupblink.com",
+         "text_en": "Global Startup Ecosystem Index: how countries and cities rank each year.",
+         "text_ru": "Global Startup Ecosystem Index: как страны и города ранжируются каждый год.",
+         "text_uz": "Global Startup Ecosystem Index: mamlakatlar va shaharlarning yillik reytingi.",
+         "sort_order": 9,
+         "is_visible": true
+      },
+      {
+         "kind": "report",
+         "name": "Startup Genome",
+         "url": "https://startupgenome.com",
+         "text_en": "Global Startup Ecosystem Report: ecosystem value, funding and talent benchmarks.",
+         "text_ru": "Global Startup Ecosystem Report: стоимость экосистем, финансирование и показатели по талантам.",
+         "text_uz": "Global Startup Ecosystem Report: ekotizimlar qiymati, moliyalashtirish va kadrlar ko‘rsatkichlari.",
+         "sort_order": 10,
+         "is_visible": true
+      },
+      {
+         "kind": "report",
+         "name": "Dealroom",
+         "url": "https://dealroom.co",
+         "text_en": "Company and funding data for startups, investors and ecosystems.",
+         "text_ru": "Данные о компаниях и финансировании для стартапов, инвесторов и экосистем.",
+         "text_uz": "Startaplar, investorlar va ekotizimlar uchun kompaniyalar va moliyalashtirish ma’lumotlari.",
+         "sort_order": 11,
+         "is_visible": true
+      }
+   ],
+   "portfolio": [
+      {
+         "name": "Clockster",
+         "industry": "saas",
+         "status": "active",
+         "country": "Uzbekistan",
+         "tagline_en": "Clockster builds frontline workforce management software that automates business processes. Its mission is to make every employee more effective: not tighter control or cuts, but more purpose and discipline per person. HR teams stop spending time on routine such as shift scheduling and payroll calculation. Hire, work, and the system does the rest.",
+         "tagline_ru": "Clockster развивает решения для управления линейным персоналом и автоматизирует процессы бизнеса. Миссия компании — повысить эффективность каждого сотрудника: не жесткий контроль или сокращения, а больше смысла и дисциплины на человека. HR-специалисты больше не тратят время на рутину — распределение смен и расчет зарплат. Нанимай, работай, а система сделает остальное.",
+         "tagline_uz": "Clockster chiziqli xodimlarni boshqarish yechimlarini ishlab chiqadi va biznes jarayonlarini avtomatlashtiradi. Kompaniya missiyasi — har bir xodim samaradorligini oshirish: qattiq nazorat yoki qisqartirish emas, balki har bir insonga ko‘proq ma’no va intizom. HR mutaxassislari smenalarni taqsimlash va ish haqini hisoblash kabi muntazam ishlarga vaqt sarflamaydi. Ishga oling, ishlang, qolganini tizim bajaradi.",
+         "sort_order": 1,
+         "is_visible": true
+      },
+      {
+         "name": "Verifix",
+         "industry": "saas",
+         "status": "active",
+         "country": "Uzbekistan",
+         "tagline_en": "Verifix is an HRM platform that meets the requirements of Uzbek law for digital signatures and document storage and management. It automates document flow, cuts costs and makes internal processes transparent, so a business can drop paper entirely. The SaaS also covers time tracking, workforce data collection and faster hiring.",
+         "tagline_ru": "Verifix — HRM-платформа, соответствующая требованиям законодательства Узбекистана в части цифровой подписи, хранения и управления документами. Решение автоматизирует документооборот, снижает издержки и повышает прозрачность внутренних процессов, позволяя полностью отказаться от бумаги. По модели SaaS стартап также предоставляет учет рабочего времени, сбор данных о персонале и ускоренный найм.",
+         "tagline_uz": "Verifix — raqamli imzo, hujjatlarni saqlash va boshqarish bo‘yicha O‘zbekiston qonunchiligi talablariga mos HRM platformasi. Yechim hujjat aylanishini avtomatlashtiradi, xarajatlarni kamaytiradi va ichki jarayonlarni shaffof qiladi, biznes qog‘ozdan butunlay voz kechishi mumkin. SaaS modeli bo‘yicha ish vaqtini hisobga olish, xodimlar haqida ma’lumot yig‘ish va tezkor yollash ham taqdim etiladi.",
+         "sort_order": 2,
+         "is_visible": true
+      },
+      {
+         "name": "Robosell",
+         "industry": "e-commerce",
+         "status": "active",
+         "country": "Uzbekistan",
+         "tagline_en": "Robosell brings the key e-commerce processes into one ecosystem. Entrepreneurs launch a website, a Telegram bot and a mini-app from a single admin panel and connect payments, delivery, CRM, analytics and other services. Robosell built a mini-app for businesses inside the Click Super App, giving merchants instant access to millions of users without building their own mobile app.",
+         "tagline_ru": "Robosell объединяет все ключевые процессы электронной коммерции в одной экосистеме. Предприниматели создают сайт, Telegram-бот и мини-приложение с единой админ-панели и подключают платежные системы, доставку, CRM, аналитику и другие сервисы. Robosell создал мини-приложение для бизнеса внутри Click Super App — это дает предпринимателям мгновенный доступ к миллионам пользователей без разработки собственного мобильного приложения.",
+         "tagline_uz": "Robosell elektron tijoratning barcha asosiy jarayonlarini yagona ekotizimga birlashtiradi. Tadbirkorlar bitta admin panel orqali sayt, Telegram-bot va mini-ilova yaratadi, to‘lov tizimlari, yetkazib berish, CRM, analitika va boshqa xizmatlarni ulaydi. Robosell Click Super App ichida biznes uchun mini-ilova yaratdi — bu tadbirkorlarga o‘z mobil ilovasini ishlab chiqmasdan millionlab foydalanuvchilarga darhol chiqish imkonini beradi.",
+         "sort_order": 3,
+         "is_visible": true
+      },
+      {
+         "name": "Tezbor",
+         "industry": "logistics",
+         "status": "active",
+         "country": "Uzbekistan",
+         "tagline_en": "Tezbor builds and runs transport and mobility solutions. Its AI-based mobility and logistics platform (MaaS + DaaS) offers an API, mobile apps, dashboards and Telegram bots that solve delivery for businesses, whether they move people or goods. The team also advises companies on optimising processes to grow e-commerce sales.",
+         "tagline_ru": "Tezbor — технологическая компания, которая создает и эксплуатирует транспортные и мобильные решения. Платформа мобильности и логистики на базе искусственного интеллекта (MaaS + DaaS) предоставляет API, мобильные приложения, панели управления и Telegram-боты для задач доставки бизнеса — будь то перемещение людей или товаров. Команда также консультирует компании по оптимизации процессов для роста продаж в электронной коммерции.",
+         "tagline_uz": "Tezbor — transport va mobil yechimlarni yaratuvchi va ishlatuvchi texnologik kompaniya. Sun’iy intellektga asoslangan mobillik va logistika platformasi (MaaS + DaaS) biznesning yetkazib berish vazifalari uchun API, mobil ilovalar, boshqaruv panellari va Telegram-botlarni taqdim etadi — odamlarni yoki tovarlarni tashishda. Jamoa kompaniyalarga elektron tijoratda savdoni oshirish uchun jarayonlarni optimallashtirish bo‘yicha maslahat ham beradi.",
+         "sort_order": 4,
+         "is_visible": true
+      },
+      {
+         "name": "Recepta",
+         "industry": "fintech",
+         "status": "active",
+         "country": "Uzbekistan",
+         "tagline_en": "Recepta automates issuing and collecting digital receipts for every card purchase, removing the need for paper. Customisable receipts arrive via NFC tap or QR code in Apple Wallet, Google Pay or the browser with no extra app to install. The ecosystem includes receipt-based loyalty programmes and lotteries, the Sandiq consumer app, a merchant portal, and Sand IQ data products for government. It serves retail, delivery, travel, food service and healthcare.",
+         "tagline_ru": "Recepta автоматизирует создание и сбор цифровых чеков для всех транзакций по картам, исключая необходимость в бумажных чеках. Настраиваемые чеки приходят через NFC (Tap) и QR-коды в Apple Wallet, Google Pay или браузер без установки отдельного приложения. В экосистему входят программы лояльности и лотереи на основе чеков, потребительское приложение Sandiq, портал для мерчантов и решения для государственных структур и монетизации данных Sand IQ. Сферы применения: розничная торговля, доставка, путешествия, общепит и здравоохранение.",
+         "tagline_uz": "Recepta har bir karta orqali xariddagi raqamli cheklarni yaratish va yig‘ishni avtomatlashtiradi, qog‘oz cheklarga ehtiyoj qolmaydi. Moslashtiriladigan cheklar NFC (Tap) va QR-kodlar orqali Apple Wallet, Google Pay yoki brauzerga alohida ilova o‘rnatmasdan keladi. Ekotizimga cheklarga asoslangan sodiqlik dasturlari va lotereyalar, Sandiq iste’molchi ilovasi, merchantlar portali hamda davlat tuzilmalari va ma’lumotlarni monetizatsiya qilish uchun Sand IQ kiradi. Qo‘llanish sohalari: chakana savdo, yetkazib berish, sayohat, umumiy ovqatlanish va sog‘liqni saqlash.",
+         "sort_order": 5,
+         "is_visible": true
+      },
+      {
+         "name": "Redeem",
+         "industry": "fintech",
+         "status": "active",
+         "country": "Uzbekistan",
+         "tagline_en": "Redeem automates and controls corporate spending on fuel and related services. The platform joins companies, banks and gas stations in one digital ecosystem where every payment goes through an escrow account at a partner bank. Drivers pay for fuel in a mobile app, and the system distributes the funds, generates invoices with AI and shows the data in the admin panels of both the client and the gas station.",
+         "tagline_ru": "Redeem автоматизирует и контролирует корпоративные расходы на топливо и связанные с ним услуги. Платформа объединяет компании, банки и АЗС в единую цифровую экосистему, где все платежи проходят через счет эскроу в банке-партнере. Водители оплачивают топливо через мобильное приложение, а система автоматически распределяет средства, генерирует счета-фактуры с помощью искусственного интеллекта и отображает данные в админ-панелях клиента и АЗС.",
+         "tagline_uz": "Redeem korporativ yoqilg‘i va unga bog‘liq xizmatlar xarajatlarini avtomatlashtiradi va nazorat qiladi. Platforma kompaniyalar, banklar va yoqilg‘i quyish shoxobchalarini yagona raqamli ekotizimga birlashtiradi, barcha to‘lovlar hamkor bankdagi eskrou hisobi orqali o‘tadi. Haydovchilar yoqilg‘i uchun mobil ilova orqali to‘laydi, tizim esa mablag‘larni avtomatik taqsimlaydi, sun’iy intellekt yordamida hisob-fakturalar yaratadi va ma’lumotlarni mijoz hamda shoxobcha admin panellarida ko‘rsatadi.",
+         "sort_order": 6,
+         "is_visible": true
+      }
+   ],
+   "pages": [
+      {
+         "slug": "privacy",
+         "is_published": true,
+         "title_en": "Privacy policy",
+         "title_ru": "Политика конфиденциальности",
+         "title_uz": "Maxfiylik siyosati",
+         "body_en": "<h2>What we collect</h2><p>When you apply for investment or send a partnership request, we collect the details you enter in the form: company information, founder names and contact details, and any files you attach.</p><h2>How we use it</h2><p>We use this information to review your application and to contact you about it. It is shared with the investment team and committee members only.</p><h2>How long we keep it</h2><p>Applications that do not lead to an investment are deleted on request. Write to the address on the Contacts page.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      }
+   ],
+   "site_settings": [
+      {
+         "email": "info@sqbventures.example",
+         "map_url": "https://yandex.uz/maps/?text=Tashkent%2C%20Shahrisabz%20street%203",
+         "address_en": "3 Shahrisabz Street, Tashkent, Uzbekistan",
+         "address_ru": "Узбекистан, Ташкент, улица Шахрисабз, 3",
+         "address_uz": "O‘zbekiston, Toshkent, Shahrisabz ko‘chasi, 3",
+         "hours_en": "Monday to Friday, 9:00–18:00",
+         "hours_ru": "Понедельник — пятница, 9:00–18:00",
+         "hours_uz": "Dushanba — juma, 9:00–18:00"
+      }
+   ],
+   "news": [
+      {
+         "slug": "investment-committee-to-review-two-companies-on-15-october",
+         "date": "2026-09-18",
+         "category": "Fund",
+         "outlet": "",
+         "url": "",
+         "image": "",
+         "is_published": false,
+         "title_en": "Investment committee to review two companies on 15 October",
+         "title_ru": "Инвестиционный комитет рассмотрит две компании 15 октября",
+         "title_uz": "Investitsiya qo‘mitasi 15-oktabrda ikki kompaniyani ko‘rib chiqadi",
+         "excerpt_en": "Zavod OS and Quyosh Grid have completed due diligence and move to the committee stage.",
+         "excerpt_ru": "Zavod OS и Quyosh Grid завершили due diligence и переходят на этап комитета.",
+         "excerpt_uz": "Zavod OS va Quyosh Grid due diligence bosqichini yakunladi.",
+         "body_en": "<p>Two companies from the current pipeline have finished legal, financial and technical review. Both will present to the investment committee on 15 October.</p><p>Founders receive the committee decision in writing within five working days of the session.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      },
+      {
+         "slug": "nasiya-hub-acquired-by-a-regional-payments-group",
+         "date": "2026-08-27",
+         "category": "Portfolio",
+         "outlet": "",
+         "url": "",
+         "image": "",
+         "is_published": false,
+         "title_en": "Nasiya Hub acquired by a regional payments group",
+         "title_ru": "Nasiya Hub приобретена региональной платёжной группой",
+         "title_uz": "Nasiya Hub mintaqaviy to‘lov guruhi tomonidan sotib olindi",
+         "excerpt_en": "The first exit from the SQB Ventures portfolio closes two years after the investment.",
+         "excerpt_ru": "Первый выход из портфеля SQB Ventures состоялся через два года после инвестиции.",
+         "excerpt_uz": "SQB Ventures portfelidan birinchi chiqish investitsiyadan ikki yil o‘tib amalga oshdi.",
+         "body_en": "<p>Nasiya Hub, which builds instalment payment infrastructure for offline retailers, has been acquired. The fund sold its full stake as part of the transaction.</p><p>The team stays in Tashkent and continues to run the product.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      },
+      {
+         "slug": "open-pitch-day-for-industrial-and-green-technology-founders",
+         "date": "2026-07-09",
+         "category": "Events",
+         "outlet": "",
+         "url": "",
+         "image": "",
+         "is_published": false,
+         "title_en": "Open pitch day for industrial and green technology founders",
+         "title_ru": "Открытый питч-день для основателей в сфере промышленных и зелёных технологий",
+         "title_uz": "Sanoat va yashil texnologiyalar asoschilari uchun ochiq pitch-kun",
+         "excerpt_en": "Ten teams will pitch to the fund and to SQB corporate clients looking for pilots.",
+         "excerpt_ru": "Десять команд выступят перед фондом и корпоративными клиентами SQB.",
+         "excerpt_uz": "O‘nta jamoa fond va SQB korporativ mijozlari oldida chiqish qiladi.",
+         "body_en": "<p>The pitch day is open to teams with a working product and first customers. Each team gets seven minutes and a follow-up meeting with an investment manager.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      },
+      {
+         "slug": "omborly-rolls-out-to-40-distributor-warehouses",
+         "date": "2026-05-21",
+         "category": "Portfolio",
+         "outlet": "",
+         "url": "",
+         "image": "",
+         "is_published": false,
+         "title_en": "Omborly rolls out to 40 distributor warehouses",
+         "title_ru": "Omborly внедрён на 40 складах дистрибьюторов",
+         "title_uz": "Omborly 40 ta distribyutor omborida ishga tushdi",
+         "excerpt_en": "The warehouse software company doubled its customer base in the six months after the round.",
+         "excerpt_ru": "Компания удвоила клиентскую базу за шесть месяцев после раунда.",
+         "excerpt_uz": "Kompaniya raunddan keyingi olti oyda mijozlar bazasini ikki barobar oshirdi.",
+         "body_en": "<p>Omborly now runs in 40 warehouses across five regions. The company used part of the round to build offline mode for sites with unstable connectivity.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      },
+      {
+         "slug": "how-we-run-due-diligence-step-by-step",
+         "date": "2026-03-12",
+         "category": "Fund",
+         "outlet": "",
+         "url": "",
+         "image": "",
+         "is_published": false,
+         "title_en": "How we run due diligence, step by step",
+         "title_ru": "Как мы проводим due diligence: шаг за шагом",
+         "title_uz": "Due diligence qanday o‘tkaziladi: bosqichma-bosqich",
+         "excerpt_en": "What we ask for, who reviews it and how long each part takes.",
+         "excerpt_ru": "Что мы запрашиваем, кто проверяет и сколько времени занимает каждый этап.",
+         "excerpt_uz": "Nimalar so‘raladi, kim tekshiradi va har bir bosqich qancha vaqt oladi.",
+         "body_en": "<p>Due diligence covers four areas: corporate and legal, finance, product and technology, and the team. Founders upload documents to a shared data room, and each area has a named reviewer.</p><p>We publish this so founders can prepare before they apply.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      },
+      {
+         "slug": "paxta-link-joins-the-portfolio",
+         "date": "2026-01-28",
+         "category": "Portfolio",
+         "outlet": "",
+         "url": "",
+         "image": "",
+         "is_published": false,
+         "title_en": "Paxta Link joins the portfolio",
+         "title_ru": "Paxta Link вошла в портфель фонда",
+         "title_uz": "Paxta Link fond portfeliga qo‘shildi",
+         "excerpt_en": "A pre-seed investment in logistics planning for agricultural clusters in the Fergana Valley.",
+         "excerpt_ru": "Pre-seed инвестиция в планирование логистики для аграрных кластеров Ферганской долины.",
+         "excerpt_uz": "Farg‘ona vodiysidagi agroklasterlar logistikasiga pre-seed investitsiya.",
+         "body_en": "<p>Paxta Link connects cotton and grain clusters with processors and plans truck loads between them. The investment funds the first full harvest season on the platform.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      },
+      {
+         "slug": "sample-press-mention-replace-with-a-real-publication",
+         "date": "2026-09-05",
+         "category": "Press",
+         "outlet": "Sample entry",
+         "url": "",
+         "image": "",
+         "is_published": false,
+         "title_en": "Sample press mention: replace with a real publication",
+         "title_ru": "Пример упоминания в прессе: замените реальной публикацией",
+         "title_uz": "Matbuotdagi eslatma namunasi: haqiqiy nashr bilan almashtiring",
+         "excerpt_en": "Add each article that mentions SQB Ventures as a news item with the category Press. It appears here with the name of the outlet and a link.",
+         "excerpt_ru": "Добавляйте каждую статью, где упоминается SQB Ventures, как новость с категорией Press. Она появится здесь с названием издания и ссылкой.",
+         "excerpt_uz": "SQB Ventures tilga olingan har bir maqolani Press toifasidagi yangilik sifatida qo‘shing. U shu yerda nashr nomi va havolasi bilan ko‘rinadi.",
+         "body_en": "<p>This is a sample entry for the Newsroom. Replace it with a link to the publication.</p>",
+         "body_ru": "",
+         "body_uz": ""
+      }
+   ]
+}

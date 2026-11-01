@@ -1,10 +1,12 @@
 import markWhite from '@assets/images/mark-white.png';
+import { SITE_EDITORS } from '@modules/Site/constants';
+import site from '@modules/Site/services';
 import { Avatar } from '@shared/components';
 import { ROLE_LABELS } from '@shared/constants';
-import { useCurrentUser } from '@shared/hooks';
+import { useCurrentUser, useTeamStatus } from '@shared/hooks';
 import clsx from 'clsx';
 import { Search, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
 import { NAV_GROUPS, type NavLabel, SETTINGS_ITEM } from './constants';
@@ -29,16 +31,30 @@ const itemClass = ({ isActive }: { isActive: boolean }) =>
 const Sidebar = ({ open, onClose }: SidebarProps) => {
    const { t } = useTranslation('layout');
    const user = useCurrentUser();
+   const team = useTeamStatus();
    const counters = useCounters(user.id);
    const [query, setQuery] = useState('');
    const SettingsIcon = SETTINGS_ITEM.icon;
+   const editor = SITE_EDITORS.includes(user.role);
+
+   // «Сайт» is read ahead, after the page's own data, so it opens with its content there
+   useEffect(() => {
+      if (!editor) return;
+      const later = window.setTimeout(() => void site.getState(), 1500);
+      return () => window.clearTimeout(later);
+   }, [editor]);
 
    // «Найти в меню» keeps the items whose name holds the text
    const shown = (label: NavLabel) =>
       t(label).toLowerCase().includes(query.trim().toLowerCase());
    const groups = NAV_GROUPS.map((group) => ({
       ...group,
-      items: group.items.filter((item) => shown(item.label)),
+      items: group.items.filter(
+         (item) =>
+            shown(item.label) &&
+            // it stays while the staff list is read: only then is the role known
+            (!('editorsOnly' in item) || editor || team === 'loading'),
+      ),
    })).filter((group) => group.items.length);
 
    return (
