@@ -1,4 +1,10 @@
 import portfolio from '@modules/Portfolio/services';
+import {
+   DRAGGED_ROW,
+   RowHandle,
+   useRowDrag,
+   useRowOrder,
+} from '@modules/Settings/pages/components/Dict';
 import { listOf, nameOf } from '@modules/Settings/services';
 import {
    Badge,
@@ -19,13 +25,14 @@ import {
 } from '@shared/components';
 import { useServiceData } from '@shared/hooks';
 import type { SiteCompany } from '@shared/types/site.types';
+import clsx from 'clsx';
 import { Plus } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { emptyLocalized, firstOf, moved } from '../../helpers';
+import { emptyLocalized, firstOf } from '../../helpers';
 import { useSiteSave } from '../../hooks';
 import site from '../../services';
-import { LocalizedRow, OnSite, OrderButtons } from './parts';
+import { LocalizedRow, OnSite } from './parts';
 
 const loadFund = () => portfolio.getState();
 const subscribeFund = (listener: () => void) => portfolio.subscribe(listener);
@@ -238,13 +245,20 @@ const CompanyDialog = ({
    );
 };
 
-const Companies = ({ companies }: { companies: SiteCompany[] }) => {
+const Companies = ({ companies: stored }: { companies: SiteCompany[] }) => {
    const { t } = useTranslation('site');
    const [editing, setEditing] = useState<SiteCompany | null>(null);
    const [removing, setRemoving] = useState<SiteCompany | null>(null);
-   const moving = useSiteSave((list: SiteCompany[]) =>
-      site.reorder('companies', list),
+   const moving = useSiteSave((id: string, to: number) =>
+      site.move('companies', id, to),
    );
+   const order = useRowOrder(
+      stored,
+      (company) => company.id,
+      (id, to) => moving.run(id, to),
+   );
+   const drag = useRowDrag(order.move);
+   const companies = order.rows;
    const showing = useSiteSave((id: string, shown: boolean) =>
       site.setShown('companies', id, shown),
    );
@@ -266,6 +280,7 @@ const Companies = ({ companies }: { companies: SiteCompany[] }) => {
          <Card>
             {companies.length ? (
                <Table
+                  body={drag.body}
                   head={
                      <>
                         <th className={TH} />
@@ -278,21 +293,18 @@ const Companies = ({ companies }: { companies: SiteCompany[] }) => {
                   }
                >
                   {companies.map((company, index) => (
-                     <tr key={company.id}>
+                     <tr
+                        key={company.id}
+                        className={clsx(drag.dragged === index && DRAGGED_ROW)}
+                        style={drag.rowStyle(index)}
+                     >
                         <td className={TD}>
-                           <OrderButtons
-                              busy={moving.pending}
-                              first={index === 0}
-                              last={index === companies.length - 1}
+                           <RowHandle
+                              count={companies.length}
+                              index={index}
                               name={company.name}
-                              onMove={(step) => {
-                                 const next = moved(
-                                    companies,
-                                    company.id,
-                                    step,
-                                 );
-                                 if (next) void moving.run(next);
-                              }}
+                              onMove={order.move}
+                              onPress={(event) => drag.press(index, event)}
                            />
                         </td>
                         <td className={TD}>
