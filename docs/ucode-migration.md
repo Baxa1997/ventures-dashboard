@@ -1769,6 +1769,17 @@ Table site_founder_statuses
 - is_visible: BOOLEAN
 ```
 
+## Batch 21 — a startup person's password
+
+The fund adds a startup's people on a deal's or a company's card, and hands over a login and a password, so the cabinet works without a mailbox. The password is made in the panel and shown once; only its hash is kept here, as `pbkdf2-sha256$<rounds>$<salt>$<hash>`. The cabinet's server checks it (`server/passwords.ts` there). No ucode user per person, so no paid seats (docs/cabinet-and-website.md, §2). The one who applied gets a row too once they get a password or the fund closes their access; a closed row keeps them out however they sign in. A deal entered by hand gets an `applications` row with its first user (`source` = `panel`), and the whole cabinet then works from it.
+
+```
+Batch 21. Same rules.
+
+New fields in the existing table cabinet_members
+- password_hash: SINGLE_LINE
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

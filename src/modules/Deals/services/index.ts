@@ -1,9 +1,17 @@
 import portfolio from '@modules/Portfolio/services';
 import settings from '@modules/Settings/services';
 import { deleteFile, uploadFile } from '@shared/api/ucode';
-import { addWorkingDays, createStore, newId, todayISO } from '@shared/helpers';
+import {
+   addWorkingDays,
+   createStore,
+   newId,
+   personName,
+   todayISO,
+} from '@shared/helpers';
 import attachments from '@shared/services/attachments';
 import type {
+   CabinetPerson,
+   CabinetUserInput,
    Criterion,
    Deal,
    DealDocument,
@@ -35,6 +43,13 @@ import {
    nextStageOf,
    stageNorm,
 } from '../helpers';
+import {
+   addCabinetUser,
+   issueCabinetPassword,
+   removeCabinetUser,
+   setCabinetAccess,
+   updateCabinetUser,
+} from './cabinet';
 import { insertDeal, loadDeals, saveDeal, summarize } from './ucode';
 
 /* The deals come from ucode's tables, applications from the website among
@@ -117,6 +132,18 @@ const logged = (deal: Deal, input: EntryInput): Deal => ({
    journal: [entry(input), ...deal.journal],
 });
 
+const dealOf = async (id: string) => {
+   const deal = (await store.get()).find((item) => item.id === id);
+   if (!deal) throw new Error(`Deal ${id} does not exist`);
+   return deal;
+};
+
+// After a change to who signs in to the cabinet: read back, and in the deal's journal.
+const cabinetChanged = async (id: string, text: string) => {
+   await store.reload();
+   await change(id, (deal) => logged(deal, { kind: 'text', text }));
+};
+
 // The stage history once the deal leaves the stage it is on for `stage`,
 // as ucode writes it (./ucode).
 const leaving = (deal: Deal, stage: StageRecord['stage']): StageRecord[] => {
@@ -190,6 +217,64 @@ class Deals {
    // Reads the deals again, after another section wrote to their rows.
    async reload() {
       await store.reload();
+   }
+
+   // Who signs in to the startup cabinet (./cabinet): a new person's login and
+   // password, and a new password, come back to be shown once.
+   async addCabinetUser(
+      id: string,
+      input: CabinetUserInput,
+      userId: string,
+      note: string,
+   ) {
+      const credentials = await addCabinetUser(
+         await dealOf(id),
+         input,
+         personName(userId),
+      );
+      await cabinetChanged(id, note);
+      return credentials;
+   }
+
+   async updateCabinetUser(
+      id: string,
+      person: CabinetPerson,
+      input: CabinetUserInput,
+      note: string,
+   ) {
+      await updateCabinetUser(await dealOf(id), person, input);
+      await cabinetChanged(id, note);
+   }
+
+   async issueCabinetPassword(
+      id: string,
+      person: CabinetPerson,
+      userId: string,
+      note: string,
+   ) {
+      const credentials = await issueCabinetPassword(
+         await dealOf(id),
+         person,
+         personName(userId),
+      );
+      await cabinetChanged(id, note);
+      return credentials;
+   }
+
+   async setCabinetAccess(
+      id: string,
+      person: CabinetPerson,
+      active: boolean,
+      userId: string,
+      note: string,
+   ) {
+      await setCabinetAccess(await dealOf(id), person, active, personName(userId));
+      await cabinetChanged(id, note);
+   }
+
+   async removeCabinetUser(id: string, person: CabinetPerson, note: string) {
+      await removeCabinetUser(person);
+      await cabinetChanged(id, note);
    }
 
    // An application entered by hand goes to the incoming ones.

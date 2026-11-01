@@ -1,4 +1,4 @@
-import { RisksCard } from '@modules/Deals/components';
+import { CabinetCard, RisksCard } from '@modules/Deals/components';
 import { FIELD_FACTS } from '@modules/Deals/constants';
 import {
    COMMITTEE_STAGES,
@@ -14,7 +14,6 @@ import type { Deal } from '@shared/types/deals.types';
 import type { DealStage } from '@shared/types/work.types';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import CabinetCard from './CabinetCard';
 import CapitalCard from './CapitalCard';
 import MandateCard from './MandateCard';
 import MetricsCard from './MetricsCard';

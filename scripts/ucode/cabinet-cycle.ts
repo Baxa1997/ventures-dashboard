@@ -41,6 +41,7 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 const { default: dayjs } = await import('dayjs');
 const api = await import('@shared/api/ucode');
 const { signIn } = await import('@shared/hooks/useSession');
+const { cabinetPeople } = await import('@modules/Deals/helpers');
 const { TEAM } = await import('@shared/constants');
 const settings = (await import('@modules/Settings/services')).default;
 const { listOf } = await import('@modules/Settings/services');
@@ -62,11 +63,13 @@ const fresh = async () => {
 };
 
 // A person in the cabinet: their cookie, and the calls of its pages.
-const person = () => {
+const person = (ip = '') => {
    let cookie = '';
    const call = async (method: string, path: string, body?: unknown) => {
       const headers = new Headers();
       if (cookie) headers.set('cookie', cookie);
+      // the rate limit counts by address: a person of their own has theirs
+      if (ip) headers.set('x-real-ip', ip);
       const form = body instanceof FormData;
       if (body && !form) headers.set('content-type', 'application/json');
       const response = await cabinet.handle(new Request(`https://app.test${path}`, { method, headers, body: form ? (body as FormData) : body ? JSON.stringify(body) : undefined }));
@@ -82,6 +85,7 @@ const person = () => {
          return call('POST', '/api/account/verify', { email, code: code.body?.devCode });
       },
       account: async () => (await call('GET', '/api/account')).body,
+      login: (email: string, password: string) => call('POST', '/api/account/login', { email, password }),
    };
 };
 const formOf = (fields: Record<string, string>, files: File[] = [], name = 'files') => {
@@ -103,7 +107,7 @@ const applyAs = async (email: string, company: string) => {
    const deal = await deals.createDeal({ company, about: 'ZZ', legalName: '', tin: '', foundedYear: null, employees: null, website: '', applicantEmail: email, applicantPhone: '', industryKey: 'fintech', industry: '', source: 'network', amount: 100000, country: 'UZ', roundStage: 'seed' }, me.id);
    const applicationId = newId();
    await api.createRow('applications', { guid: applicationId, email, startup_name: company, contact_name: 'ZZ Основатель', phone: '', ref: `ZZ-${company}`, public_status: 'submitted', locale: 'ru' });
-   await api.updateRow('deals', { guid: deal.id, applications_id: applicationId });
+   await api.updateRow('deals', { guid: deal.id, applications_id: applicationId, channel: 'site' });
    await fresh();
    return { id: deal.id, applicationId };
 };
@@ -197,9 +201,8 @@ try {
    // ---- members: added by the CEO, visible to the fund, with their own rights
    const added = await founder.call('POST', '/api/account/members', { name: 'ZZ Финансист', email: 'zz.cfo@example.com', role: 'cfo' });
    check('the CEO adds a CFO', added.status === 200, added);
-   await portfolio.reload();
-   const memberRow = (await portfolio.getState()).members.find((item) => item.email === 'zz.cfo@example.com');
-   check("the panel's «Команда в кабинете основателя» has them", memberRow?.role === 'cfo' && memberRow.applicationId === applied.applicationId, memberRow);
+   const memberRow = (await dealOf(applied.id)).cabinet?.find((item) => item.email === 'zz.cfo@example.com');
+   check("the panel's «Команда в кабинете основателя» has them", memberRow?.role === 'cfo' && memberRow.applicationId === applied.applicationId && !memberRow.hasPassword, memberRow);
    const cfo = person();
    const cfoIn = await cfo.signIn('zz.cfo@example.com');
    const cfoAccount = await cfo.account();
@@ -293,6 +296,136 @@ try {
    check('the founder withdraws the application', left.status === 200, left);
    const leftDeal = await dealOf(toLeave.id);
    check('the panel shows the deal withdrawn, with the reason', leftDeal.status === 'withdrawn' && JSON.stringify(leftDeal.closed ?? {}).includes('ZZ нашли другого инвестора'), leftDeal.closed);
+
+   // ---- a login from the fund: on the card of the deal, for the applicant and for others
+   const health = await person().call('GET', '/api/health');
+   check('the sign-in page learns that a code can be sent', health.body?.signInByCode === true, health.body);
+   const applicantEmail = 'zz.owner@example.com';
+   const startup = await applyAs(applicantEmail, 'ZZ Login Co');
+   const otherStartup = await applyAs('zz.stranger@example.com', 'ZZ Stranger Co');
+   await deals.addRequest(otherStartup.id, { title: 'ZZ чужой запрос', text: '', dueDate: addWorkingDays(today, 5), folder: '', ddQuestionnaire: false }, me.id);
+   const strangerRequest = (await dealOf(otherStartup.id)).requests!.find((item) => item.title === 'ZZ чужой запрос')!;
+   const peopleOf = async (id: string) => cabinetPeople(await dealOf(id));
+   const ownerBefore = (await peopleOf(startup.id))[0];
+   check('the card lists the applicant, with no password yet', ownerBefore?.owner && ownerBefore.email === applicantEmail && !ownerBefore.hasPassword && ownerBefore.id === '', ownerBefore);
+   const noPassword = await person().login(applicantEmail, 'anything');
+   check('without a password from the fund the password does not open', noPassword.status === 400 && noPassword.body?.error?.code === 'wrong_password', noPassword);
+   const given = await deals.issueCabinetPassword(startup.id, ownerBefore, me.id, 'ZZ пароль');
+   const stored = (await api.listRows('cabinet_members', { email: applicantEmail })).find((row) => row.email === applicantEmail);
+   check('only the hash of the password is kept', String(stored?.password_hash).startsWith('pbkdf2-sha256$') && !JSON.stringify(stored).includes(given.password), stored);
+   check('the deal keeps a note of it', (await dealOf(startup.id)).journal.some((item) => item.kind === 'text' && item.text === 'ZZ пароль'));
+   const owner = person();
+   const wrongPassword = await owner.login(applicantEmail, 'not it');
+   const unknownEmail = await owner.login('zz.nobody@example.com', given.password);
+   check('a wrong password and an unknown email get the same answer', wrongPassword.status === 400 && unknownEmail.status === 400 && wrongPassword.body?.error?.code === unknownEmail.body?.error?.code, { wrongPassword, unknownEmail });
+   const ownerIn = await owner.login(applicantEmail, given.password);
+   const ownerAccount = await owner.account();
+   check('the applicant signs in with it, as the owner of their startup', ownerIn.status === 200 && ownerAccount.me?.owner === true && ownerAccount.application?.company === 'ZZ Login Co' && ownerAccount.hasDeal === true, ownerIn.status === 200 ? ownerAccount?.me : ownerIn);
+   check('their own row is not listed as a member', ownerAccount.members?.length === 1 && ownerAccount.members[0].owner === true, ownerAccount.members);
+   const codeAfter = await person('10.0.0.1').call('POST', '/api/account/code', { email: applicantEmail, language: 'ru' });
+   check('a password sign-in does not hold up a code', codeAfter.status === 200, codeAfter);
+
+   const workerLogin = await deals.addCabinetUser(startup.id, { name: 'ZZ Технарь', email: ' ZZ.CTO@example.com ', role: 'cto' }, me.id, 'ZZ добавлен');
+   check('the fund adds a person: their login is their email in lower case', workerLogin.login === 'zz.cto@example.com' && workerLogin.password.length === 12, workerLogin.login);
+   const worker = person();
+   const workerIn = await worker.login(workerLogin.login, workerLogin.password);
+   const workerAccount = await worker.account();
+   check('they sign in to that startup with the role the fund gave', workerIn.status === 200 && workerAccount.application?.company === 'ZZ Login Co' && workerAccount.me?.role === 'cto' && workerAccount.me?.owner === false, workerAccount?.me);
+   check('the CEO sees them in Участники', (await owner.account()).members?.some((item: { email: string }) => item.email === workerLogin.login));
+
+   // ---- one startup sees nothing of another
+   const seen = JSON.stringify(workerAccount);
+   check("nothing of another startup in the account", !['ZZ Stranger Co', 'zz.stranger@example.com', 'ZZ-ZZ Stranger Co', 'ZZ чужой запрос'].some((text) => seen.includes(text)));
+   const foreign = await owner.call('POST', `/api/account/requests/${strangerRequest.id}/answer`, formOf({ text: 'ZZ' }));
+   check("another startup's request cannot be answered by its id", foreign.status === 404, foreign);
+   const foreignMember = await owner.call('PUT', `/api/account/members/${(await dealOf(startup.id)).cabinet?.find((row) => row.email === applicantEmail)?.id}`, { active: false });
+   check("the CEO cannot reach the fund's row of the owner", foreignMember.status === 404, foreignMember);
+
+   // ---- the fund changes and closes access
+   const workerRow = (await peopleOf(startup.id)).find((item) => item.email === workerLogin.login)!;
+   await deals.setCabinetAccess(startup.id, workerRow, false, me.id, 'ZZ закрыт');
+   const closedRead = await worker.call('GET', '/api/account');
+   const closedLogin = await person().login(workerLogin.login, workerLogin.password);
+   check('closed access: the session stops and the password no longer opens', closedRead.status === 404 && closedLogin.status === 400, { closedRead: closedRead.status, closedLogin: closedLogin.status });
+   await deals.setCabinetAccess(startup.id, { ...workerRow, active: false }, true, me.id, 'ZZ открыт');
+   check('opened newLogin, the same password works', (await person().login(workerLogin.login, workerLogin.password)).status === 200);
+
+   const ownerNow = (await peopleOf(startup.id))[0];
+   await deals.setCabinetAccess(startup.id, ownerNow, false, me.id, 'ZZ закрыт');
+   const closedOwner = await owner.call('GET', '/api/account');
+   const closedOwnerCode = await person('10.0.0.2').call('POST', '/api/account/code', { email: applicantEmail, language: 'ru' });
+   check("the applicant's access closes too, by password and by code", closedOwner.status === 404 && closedOwnerCode.status === 404 && (await person().login(applicantEmail, given.password)).status === 400, { closedOwner: closedOwner.status, closedOwnerCode: closedOwnerCode.status });
+   check('other people see that on the card and in Участники', (await peopleOf(startup.id))[0].active === false && (await worker.account()).members?.[0]?.active === false);
+   await deals.setCabinetAccess(startup.id, { ...ownerNow, active: false }, true, me.id, 'ZZ открыт');
+
+   const newLogin = await deals.issueCabinetPassword(startup.id, (await peopleOf(startup.id))[0], me.id, 'ZZ новый');
+   const signIns = (await api.listRows('founder_codes', { email: applicantEmail })).filter((row) => row.used_at);
+   check('a new password replaces the old and ends the open sessions', (await person().login(applicantEmail, given.password)).status === 400 && signIns.length > 0 && signIns.every((row) => row.revoked_at), signIns);
+   check('the new one opens', (await person().login(applicantEmail, newLogin.password)).status === 200);
+
+   const renamed = (await peopleOf(startup.id)).find((item) => item.email === workerLogin.login)!;
+   await deals.updateCabinetUser(startup.id, renamed, { name: 'ZZ Финансы', email: 'zz.cfo2@example.com', role: 'cfo' }, 'ZZ изменён');
+   const movedOld = await person().login(workerLogin.login, workerLogin.password);
+   const movedNew = person();
+   await movedNew.login('zz.cfo2@example.com', workerLogin.password);
+   const movedAccount = await movedNew.account();
+   check('changed on the card: the old email stops, the new one has the new role', movedOld.status === 400 && movedAccount.me?.role === 'cfo' && movedAccount.me?.name === 'ZZ Финансы', movedAccount?.me);
+   await deals.updateCabinetUser(startup.id, (await peopleOf(startup.id))[0], { name: 'ZZ Новый CEO', email: 'zz.owner2@example.com', role: 'ceo' }, 'ZZ заявитель');
+   const reOwned = (await peopleOf(startup.id))[0];
+   check("changing the applicant changes the application, and they stay its owner", reOwned.email === 'zz.owner2@example.com' && reOwned.name === 'ZZ Новый CEO' && reOwned.owner && reOwned.hasPassword && (await dealOf(startup.id)).applicantEmail === 'zz.owner2@example.com', reOwned);
+   const reOwner = person();
+   await reOwner.login('zz.owner2@example.com', newLogin.password);
+   check('they sign in with the new email', (await reOwner.account()).me?.owner === true);
+
+   await deals.removeCabinetUser(startup.id, (await peopleOf(startup.id)).find((item) => item.email === 'zz.cfo2@example.com')!, 'ZZ удалён');
+   check('deleted: their session stops and they are off the card', (await movedNew.call('GET', '/api/account')).status === 404 && !(await peopleOf(startup.id)).some((item) => item.email === 'zz.cfo2@example.com'));
+
+   // ---- a deal entered by hand gets its cabinet with the first user
+   const byHand = await deals.createDeal({ company: 'ZZ Hand Co', about: 'ZZ', legalName: '', tin: '', foundedYear: null, employees: null, website: '', applicantEmail: '', applicantPhone: '', industryKey: 'fintech', industry: '', source: 'network', amount: 100000, country: 'UZ', roundStage: 'seed' }, me.id);
+   check('a deal entered by hand has no cabinet yet', !byHand.applicationId && !cabinetPeople(byHand).length);
+   const handLogin = await deals.addCabinetUser(byHand.id, { name: 'ZZ Основатель', email: 'zz.hand@example.com', role: 'other' }, me.id, 'ZZ первый');
+   const handDeal = await dealOf(byHand.id);
+   check('the first user opens it and owns it as CEO', !!handDeal.applicationId && cabinetPeople(handDeal)[0].owner && cabinetPeople(handDeal).length === 1 && cabinetPeople(handDeal)[0].role === 'ceo' && cabinetPeople(handDeal)[0].hasPassword, cabinetPeople(handDeal));
+   check('the deal still says where it came from', handDeal.fromSite === false && handDeal.source === 'network', { fromSite: handDeal.fromSite, source: handDeal.source });
+   const hand = person();
+   await hand.login(handLogin.login, handLogin.password);
+   const handAccount = await hand.account();
+   check('the cabinet shows that deal, as a new application', handAccount.application?.company === 'ZZ Hand Co' && /^SQBV-\d{4}-[0-9A-Z]{6}$/.test(handAccount.application?.ref) && handAccount.application?.status === 'submitted' && handAccount.hasDeal === true && handAccount.me?.owner === true && !!handAccount.application?.submittedAt, handAccount.application);
+   await deals.addRequest(byHand.id, { title: 'ZZ запрос руками', text: '', dueDate: addWorkingDays(today, 5), folder: '', ddQuestionnaire: false }, me.id);
+   check('a request from the fund reaches it', (await hand.account()).requests?.some((item: { title: string }) => item.title === 'ZZ запрос руками'));
+   await deals.takeToScreening(byHand.id, me.id);
+   check('its status follows the deal', (await hand.account()).application?.status === 'screening', (await hand.account()).application);
+
+   // ---- the real startups: what each sees is what its own rows say, and nothing else
+   const realDeals = (await deals.getDeals()).filter((deal) => deal.applicationId && !deal.company.startsWith('ZZ'));
+   const raw = async (table: string) => api.listRows(table);
+   const [realApps, realRequests, realDocuments, realCompanies] = await Promise.all([raw('applications'), raw('deal_requests'), raw('deal_documents'), raw('portfolio_companies')]);
+   const fundOnly = ['password_hash', 'code_hash', 'owner_id', 'ownerId', 'screening', 'memo', 'recommendation', 'scores', 'closed_note', 'journal', 'committee'];
+   const keysOf = (value: unknown): string[] =>
+      value && typeof value === 'object'
+         ? Object.entries(value).flatMap(([key, item]) => [key, ...keysOf(item)])
+         : [];
+   check('there are real startups to look at', realDeals.length > 0, realDeals.length);
+   for (const deal of realDeals) {
+      const application = realApps.find((row) => row.guid === deal.applicationId)!;
+      const login = await deals.issueCabinetPassword(deal.id, cabinetPeople(deal)[0], me.id, 'ZZ');
+      const someone = person();
+      const signed = await someone.login(login.login, login.password);
+      const account = await someone.account();
+      const text = JSON.stringify(account);
+      const others = realDeals.filter((item) => item.id !== deal.id && item.company !== deal.company);
+      const ownRequests = realRequests.filter((row) => row.deals_id === deal.id).map((row) => row.guid).sort();
+      const ownDocuments = realDocuments.filter((row) => row.deals_id === deal.id && row.uploaded_by === 'applicant').map((row) => row.guid).sort();
+      const company = realCompanies.find((row) => row.deals_id === deal.id);
+      check(`${deal.company}: signs in and sees its own application`, signed.status === 200 && account.application?.company === application.startup_name && account.application?.ref === application.ref && account.me?.email === login.login, account?.application);
+      check(`${deal.company}: its requests, and only those`, JSON.stringify((account.requests ?? []).map((item: { id: string }) => item.id).sort()) === JSON.stringify(ownRequests), { shown: account.requests?.length, own: ownRequests.length });
+      check(`${deal.company}: its own documents, and none of the fund's`, JSON.stringify((account.documents ?? []).map((item: { id: string }) => item.id).sort()) === JSON.stringify(ownDocuments), { shown: account.documents?.length, own: ownDocuments.length });
+      check(`${deal.company}: its company, if the fund invested`, (account.company?.name ?? '') === String(company?.name ?? ''), { shown: account.company?.name, own: company?.name });
+      const leaked = others.filter((item) => text.includes(item.applicationEmail ?? '\0') || (item.applicationId && text.includes(realApps.find((row) => row.guid === item.applicationId)?.ref as string)));
+      check(`${deal.company}: nothing of the others`, !leaked.length, leaked.map((item) => item.company));
+      const keys = keysOf(account);
+      check(`${deal.company}: no field only the fund may see`, !fundOnly.some((key) => keys.includes(key)), fundOnly.filter((key) => keys.includes(key)));
+   }
 
    // ---- sessions
    const out = await founder.call('POST', '/api/account/logout');

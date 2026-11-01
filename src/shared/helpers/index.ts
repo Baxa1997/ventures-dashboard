@@ -103,6 +103,37 @@ export const newPassword = (): string => {
       : newPassword();
 };
 
+const PASSWORD_ROUNDS = 600_000;
+const base64url = (bytes: Uint8Array) =>
+   btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+/* A password as the startup cabinet's server checks it (server/passwords.ts there):
+   PBKDF2 with a salt of its own. Nothing keeps the password itself. */
+export const passwordHash = async (password: string) => {
+   const salt = crypto.getRandomValues(new Uint8Array(16));
+   const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits'],
+   );
+   const hash = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PASSWORD_ROUNDS },
+      key,
+      256,
+   );
+   return [
+      'pbkdf2-sha256',
+      PASSWORD_ROUNDS,
+      base64url(salt),
+      base64url(new Uint8Array(hash)),
+   ].join('$');
+};
+
 // A sum as short as the design writes it: $850, $150K, $2.45M.
 export const formatMoneyShort = (amount: number) => {
    const short = (value: number, unit: string) =>

@@ -1,8 +1,8 @@
 import { investmentContractOf } from '@modules/Contracts/helpers';
+import { CabinetCard } from '@modules/Deals/components';
 import contractsService from '@modules/Contracts/services';
 import AnswerDialog from '@modules/Portfolio/components/AnswerDialog';
 import {
-   CABINET_ROLES,
    EXIT_TYPES,
    INSTRUMENT_LABELS,
    PILOT_STATUSES,
@@ -28,7 +28,6 @@ import { TaskLine } from '@modules/Work/components';
 import { isDone, statusAfterTick } from '@modules/Work/helpers';
 import work from '@modules/Work/services';
 import {
-   Avatar,
    Badge,
    Card,
    CheckList,
@@ -112,13 +111,12 @@ const Overview = ({
             Number(a.status === 'closed') - Number(b.status === 'closed') ||
             b.openedAt.localeCompare(a.openedAt),
       );
-   const facts = company.facts.length
-      ? company.facts
-      : (deal?.facts ?? []).map(([label, value]) => ({ label, value }));
-   const members = data.members.filter(
-      ({ applicationId }) =>
-         !!deal?.applicationId && applicationId === deal.applicationId,
-   );
+   // the application's rows, in Russian as stored; the sector has its own row below
+   const facts = (
+      company.facts.length
+         ? company.facts
+         : (deal?.facts ?? []).map(([label, value]) => ({ label, value }))
+   ).filter(({ label }) => label !== 'Отрасль');
    const approvals = (deal?.decisions ?? []).filter(
       ({ verdict }) => verdict === 'approved',
    );
@@ -339,7 +337,8 @@ const Overview = ({
                               '—',
                         },
                         { label: t('Страны'), value: company.countries || '—' },
-                        ...(deal?.applicantEmail
+                        ...(deal?.applicantEmail &&
+                        !facts.some(({ label }) => label === 'Контакт')
                            ? [
                                 {
                                    label: t('Контакты'),
@@ -405,72 +404,17 @@ const Overview = ({
                      </NoData>
                   )}
                </Card>
-               <Card
-                  hint={
-                     (deal?.applicantEmail ? 1 : 0) + members.length ||
-                     undefined
-                  }
-                  title={t('Команда в кабинете основателя')}
-               >
-                  {deal?.applicantEmail ? (
-                     <ul className='divide-line divide-y'>
-                        <li className={ROW}>
-                           <Avatar
-                              name={deal.applicantName || deal.applicantEmail}
-                              size='md'
-                           />
-                           <div className='min-w-0 flex-1'>
-                              <div className='font-semibold'>
-                                 {deal.applicantName || deal.applicantEmail}
-                              </div>
-                              <div className='text-ink-soft text-xs'>
-                                 {deal.applicantEmail}
-                              </div>
-                           </div>
-                           <Badge tone='accent'>{t('Заявитель')}</Badge>
-                        </li>
-                        {members.map((member) => (
-                           <li key={member.id} className={ROW}>
-                              <Avatar
-                                 name={member.name || member.email}
-                                 size='md'
-                              />
-                              <div className='min-w-0 flex-1'>
-                                 <div className='font-semibold'>
-                                    {member.name || member.email}
-                                 </div>
-                                 <div className='text-ink-soft text-xs'>
-                                    {[
-                                       member.email,
-                                       !member.active && t('доступ закрыт'),
-                                    ]
-                                       .filter(Boolean)
-                                       .join(' · ')}
-                                 </div>
-                              </div>
-                              <Badge
-                                 tone={member.active ? 'accent' : 'neutral'}
-                              >
-                                 {t(CABINET_ROLES[member.role])}
-                              </Badge>
-                           </li>
-                        ))}
-                     </ul>
-                  ) : (
+               {deal ? (
+                  <CabinetCard deal={deal} />
+               ) : (
+                  <Card title={t('Команда в кабинете основателя')}>
                      <NoData>
                         {t(
-                           'Компания пришла не через сайт: кабинета основателя у неё нет.',
+                           'У компании нет сделки, поэтому нет и кабинета основателя.',
                         )}
                      </NoData>
-                  )}
-                  {deal?.applicantEmail && (
-                     <p className='text-ink-soft border-line border-t px-4.5 py-2.5 text-xs'>
-                        {t(
-                           'Заявитель входит в кабинет по коду на свой email и сам добавляет команду.',
-                        )}
-                     </p>
-                  )}
-               </Card>
+                  </Card>
+               )}
             </div>
             <div className='gap-section flex min-w-0 flex-col'>
                <Card title={t('Инвестиция')}>

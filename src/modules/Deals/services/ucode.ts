@@ -486,6 +486,7 @@ const toMember = (row: Row): CabinetMember => ({
    name: str(row.full_name),
    role: (['ceo', 'cfo', 'cto'] as const).find((role) => role === row.role) ?? 'other',
    active: row.is_active !== false,
+   hasPassword: Boolean(row.password_hash),
 });
 
 const toDeal = (
@@ -493,6 +494,7 @@ const toDeal = (
    children: Children,
    meetings: Map<string, Row>,
    members: Row[],
+   application: Row | undefined,
 ): Deal => {
    companyFields = 'legal_name' in row;
    const questionnaire = toQuestionnaire(children.questionnaires);
@@ -535,7 +537,7 @@ const toDeal = (
       industry: str(row.niche),
       tags: str(row.tags),
       source: listKeyOf('sources', row.lead_sources_id) ?? oldSource(row),
-      fromSite: str(row.channel) === 'site' || Boolean(row.applications_id),
+      fromSite: str(row.channel) === 'site',
       amount: num(row.amount),
       country: listKeyOf('countries', row.countries_id) ?? oldCountry(str(row.country)),
       roundStage: listKeyOf('rounds', row.round_stages_id) ?? str(row.round_stage),
@@ -594,6 +596,10 @@ const toDeal = (
       ...(members.length > 0 && { cabinet: members.map(toMember) }),
       ...(questionnaire && { questionnaire }),
       ...(row.applications_id ? { applicationId: str(row.applications_id) } : {}),
+      ...(application && {
+         applicationEmail: str(application.email).trim().toLowerCase(),
+         applicationName: str(application.contact_name),
+      }),
       ...((num(row.paused_days) > 0 || Boolean(row.paused_since)) && {
          clock: { pausedDays: num(row.paused_days), pausedSince: day(row.paused_since) },
       }),
@@ -709,6 +715,7 @@ export const loadDeals = async (): Promise<Deal[]> => {
                (member) =>
                   !!row.applications_id && member.applications_id === row.applications_id,
             ),
+            application,
          );
       })
       .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
@@ -864,7 +871,7 @@ const resubmitAfter = (closed: NonNullable<Deal['closed']>, today: string) => {
 };
 
 // What the website shows the applicant for the deal, or null to leave it.
-const publicStatusOf = (deal: Deal) => {
+export const publicStatusOf = (deal: Deal) => {
    if (deal.status === 'rejected') return 'rejected';
    if (deal.status === 'portfolio') return 'portfolio';
    if (deal.status === 'paused' || deal.status === 'withdrawn') return null;
