@@ -8,6 +8,8 @@ import {
 } from '@shared/components';
 import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
+import type { Task } from '@shared/types/work.types';
+import clsx from 'clsx';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { STATUS_LABELS } from '../constants';
@@ -37,6 +39,71 @@ interface MoveFormProps {
    onClose: () => void;
 }
 
+interface MoveNoticeProps {
+   deal: Deal;
+   stage: string; // where it goes
+   tasks: Task[]; // for the conditions of the committee's approvals
+   className?: string;
+}
+
+/* What a move by hand passes over: the conditions of the stage the deal
+   leaves, the stages it skips, or a stage it goes back to. Nothing when the
+   move is the next step with its conditions met. */
+export const MoveNotice = ({ deal, stage, tasks, className }: MoveNoticeProps) => {
+   const { t } = useTranslation('deals');
+   const keys = stageKeys();
+   const from = keys.indexOf(deal.stage);
+   const to = keys.indexOf(stage);
+   // what still holds the deal where it is, when it moves ahead past it
+   const unmet =
+      deal.status === 'active' && to > from
+         ? exitConditions(t, deal, tasks).filter(
+              ({ state }) => state !== 'done',
+           )
+         : [];
+   const skipped = to > from + 1 ? keys.slice(from + 1, to) : [];
+   if (!unmet.length && !skipped.length && to >= from) return null;
+
+   return (
+      <div
+         className={clsx(
+            'bg-warning-tint text-warning-ink text-meta rounded-lg px-4 py-3',
+            className,
+         )}
+      >
+         {unmet.length > 0 && (
+            <>
+               <p className='font-semibold'>
+                  {t('Этап «{{stage}}» ещё не пройден:', {
+                     stage: stageName(deal.stage),
+                  })}
+               </p>
+               <ul className='mt-1 list-disc pl-5'>
+                  {unmet.map((item) => (
+                     <li key={item.id}>{item.text}</li>
+                  ))}
+               </ul>
+            </>
+         )}
+         {skipped.length > 0 && (
+            <p className={unmet.length ? 'mt-2' : undefined}>
+               {t('Будут пропущены: {{stages}}.', {
+                  stages: skipped.map(stageName).join(', '),
+               })}
+            </p>
+         )}
+         {to < from && (
+            <p>
+               {t(
+                  'Сделка вернётся на этап «{{stage}}», его срок начнётся заново.',
+                  { stage: stageName(stage) },
+               )}
+            </p>
+         )}
+      </div>
+   );
+};
+
 const MoveForm = ({ deal, to: target, onClose }: MoveFormProps) => {
    const { t } = useTranslation('deals');
    const user = useCurrentUser();
@@ -58,18 +125,8 @@ const MoveForm = ({ deal, to: target, onClose }: MoveFormProps) => {
       },
    );
 
-   const from = keys.indexOf(deal.stage);
-   const to = keys.indexOf(stage);
    const unchanged =
       stage === deal.stage && status === 'active' && deal.status === 'active';
-   // what still holds the deal where it is, when it moves ahead past it
-   const unmet =
-      deal.status === 'active' && to > from
-         ? exitConditions(t, deal, tasks).filter(
-              ({ state }) => state !== 'done',
-           )
-         : [];
-   const skipped = to > from + 1 ? keys.slice(from + 1, to) : [];
 
    const submit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -110,39 +167,12 @@ const MoveForm = ({ deal, to: target, onClose }: MoveFormProps) => {
                      ))}
                   </select>
                </Field>
-               {(unmet.length > 0 || skipped.length > 0 || to < from) && (
-                  <div className='bg-warning-tint text-warning-ink text-meta rounded-lg px-4 py-3 sm:col-span-2'>
-                     {unmet.length > 0 && (
-                        <>
-                           <p className='font-semibold'>
-                              {t('Этап «{{stage}}» ещё не пройден:', {
-                                 stage: stageName(deal.stage),
-                              })}
-                           </p>
-                           <ul className='mt-1 list-disc pl-5'>
-                              {unmet.map((item) => (
-                                 <li key={item.id}>{item.text}</li>
-                              ))}
-                           </ul>
-                        </>
-                     )}
-                     {skipped.length > 0 && (
-                        <p className={unmet.length ? 'mt-2' : undefined}>
-                           {t('Будут пропущены: {{stages}}.', {
-                              stages: skipped.map(stageName).join(', '),
-                           })}
-                        </p>
-                     )}
-                     {to < from && (
-                        <p>
-                           {t(
-                              'Сделка вернётся на этап «{{stage}}», его срок начнётся заново.',
-                              { stage: stageName(stage) },
-                           )}
-                        </p>
-                     )}
-                  </div>
-               )}
+               <MoveNotice
+                  className='sm:col-span-2'
+                  deal={deal}
+                  stage={stage}
+                  tasks={tasks}
+               />
                <Field
                   className='sm:col-span-2'
                   hint={t('необязательно; попадёт в историю сделки')}

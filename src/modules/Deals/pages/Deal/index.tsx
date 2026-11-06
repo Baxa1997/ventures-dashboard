@@ -33,6 +33,7 @@ import {
    buttonClass,
    Card,
    Loading,
+   type MenuAction,
    NoData,
    PageBody,
    PageHeader,
@@ -41,6 +42,10 @@ import {
 import { formatDate } from '@shared/helpers';
 import { useAction, useCurrentUser } from '@shared/hooks';
 import {
+   ArrowLeftRight,
+   ArrowRight,
+   Ban,
+   FileQuestion,
    FileText,
    FolderLock,
    Gavel,
@@ -53,6 +58,7 @@ import {
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
+import DealChat from './components/DealChat';
 import {
    DealHeader,
    DealStepper,
@@ -92,6 +98,7 @@ const DealCard = () => {
    const [rejecting, setRejecting] = useState(false);
    const [transferring, setTransferring] = useState(false);
    const [editing, setEditing] = useState(false);
+   const [chatting, setChatting] = useState(false);
    // «Сменить этап»: closed, or open set to a stage the stepper was clicked on
    const [moving, setMoving] = useState<MoveTarget | null>(null);
    // the open folder of the data room, kept while the card's tabs change;
@@ -179,46 +186,59 @@ const DealCard = () => {
          },
       );
 
-   const requestButton = (
-      <Button
-         hint={t(
-            'Попросить у основателя документ: запрос появится в его кабинете',
-         )}
-         variant='ghost'
-         onClick={() => setRequestTitle('')}
-      >
-         {t('Запросить данные')}
-      </Button>
-   );
-
-   const overviewPrimary = () => {
-      if (deal.status === 'review')
-         return (
-            <Button
-               hint={t('Взять заявку в работу и начать скрининг')}
-               loading={taking.pending}
-               onClick={() =>
-                  taking.run(
-                     deal.id,
-                     // a website application is offered to nobody: the person taking it owns it
-                     deal.ownerId || deal.proposedOwnerId || user.id,
-                  )
-               }
-            >
-               {t('Взять в скрининг')}
-            </Button>
-         );
-      return (
-         <Button
-            hint={t('Проверить условия и перевести сделку дальше')}
-            onClick={() => setTransferring(true)}
-         >
-            {next
-               ? t('Перевести в «{{stage}}»', { stage: stageName(next) })
-               : t('Перевести в портфель')}
-         </Button>
-      );
-   };
+   /* The deal's steps under the head's «⋯», as the prototype keeps them: the
+      main one in the accent colour (take the application, or move the deal
+      on), then asking the founder for data and putting the deal on another
+      stage, and the refusal in red, last. */
+   const menu: MenuAction[] = open
+      ? [
+           deal.status === 'review'
+              ? {
+                   label: t('Взять в скрининг'),
+                   icon: ArrowRight,
+                   accent: true,
+                   hint: t('Взять заявку в работу и начать скрининг'),
+                   onSelect: () =>
+                      void taking.run(
+                         deal.id,
+                         // a website application is offered to nobody: the person taking it owns it
+                         deal.ownerId || deal.proposedOwnerId || user.id,
+                      ),
+                }
+              : {
+                   label: next
+                      ? t('Перевести в «{{stage}}»', { stage: stageName(next) })
+                      : t('Перевести в портфель'),
+                   icon: ArrowRight,
+                   accent: true,
+                   hint: t('Проверить условия и перевести сделку дальше'),
+                   onSelect: () => setTransferring(true),
+                },
+           {
+              label: t('Запросить данные'),
+              icon: FileQuestion,
+              hint: t(
+                 'Попросить у основателя документ: запрос появится в его кабинете',
+              ),
+              onSelect: () => setRequestTitle(''),
+           },
+           {
+              label: t('Сменить этап или статус'),
+              icon: ArrowLeftRight,
+              hint: t(
+                 'Поставить сделку на любой этап или приостановить её: переход попадёт в историю',
+              ),
+              onSelect: () => setMoving({}),
+           },
+           {
+              label: t('Отказать с причиной'),
+              icon: Ban,
+              danger: true,
+              hint: t('Указать причину и закрыть сделку отказом'),
+              onSelect: () => setRejecting(true),
+           },
+        ]
+      : [];
 
    // the screening ends as its decision says
    const completeScreening = () => {
@@ -234,20 +254,8 @@ const DealCard = () => {
 
 
    const actions: Record<CardTab, ReactNode> = {
-      overview: (
-         <>
-            <Button
-               hint={t('Указать причину и закрыть сделку отказом')}
-               variant='text'
-               onClick={() => setRejecting(true)}
-            >
-               {t('Отказать с причиной')}
-            </Button>
-            {requestButton}
-            {overviewPrimary()}
-         </>
-      ),
-      // as the design has them, the other tabs' buttons are in the tabs
+      // the deal's steps are under «⋯»; the other tabs' buttons are in the tabs
+      overview: null,
       screening: null,
       requests: null,
       dd: null,
@@ -301,8 +309,9 @@ const DealCard = () => {
                actions={(open || tab === 'memo') && actions[tab]}
                deal={deal}
                editable={open}
+               menu={menu}
+               onChat={() => setChatting(true)}
                onEdit={() => setEditing(true)}
-               onMove={() => setMoving({})}
             />
             {(isClosed(deal) || deal.status === 'paused') && deal.closed && (
                <div className='bg-neutral-tint text-meta mb-section flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg px-5 py-3.5'>
@@ -418,6 +427,11 @@ const DealCard = () => {
             deal={deal}
             open={editing}
             onClose={() => setEditing(false)}
+         />
+         <DealChat
+            deal={deal}
+            open={chatting}
+            onClose={() => setChatting(false)}
          />
          <MoveDealDialog
             deal={moving ? deal : null}

@@ -4,5 +4,7 @@
    "Укажите дату": "Sanani kiriting",
    "Введите корректный адрес почты": "To‘g‘ri pochta manzilini kiriting",
    "Укажите сумму больше нуля": "Noldan katta summani kiriting",
-   "Начало позже дедлайна": "Boshlanish muddatdan keyin"
+   "Начало позже дедлайна": "Boshlanish muddatdan keyin",
+   "Укажите год из четырёх цифр": "Yilni to‘rt raqam bilan kiriting",
+   "Укажите целое число": "Butun son kiriting"
 }

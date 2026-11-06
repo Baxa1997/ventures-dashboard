@@ -113,7 +113,7 @@ export const AUTO_REMINDER_DAYS = 5;
 
 export const PILOT_STATUSES = {
    planned: { label: 'Запланирован', tone: 'neutral' },
-   success: { label: 'Успешно', tone: 'success' },
+   success: { label: 'Завершён успешно', tone: 'success' },
    in_progress: { label: 'Идёт', tone: 'accent' },
    failed: { label: 'Не принят', tone: 'danger' },
 } as const satisfies Record<PilotStatus, { label: string; tone: BadgeTone }>;

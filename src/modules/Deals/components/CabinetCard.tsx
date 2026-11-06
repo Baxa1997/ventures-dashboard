@@ -108,10 +108,16 @@ const CabinetCard = ({ deal }: CabinetCardProps) => {
                            <div className='text-ink-soft truncate text-xs'>
                               {[
                                  person.email,
+                                 person.telegram &&
+                                    `Telegram ${person.telegram}`,
+                                 person.whatsapp &&
+                                    `WhatsApp ${person.whatsapp}`,
                                  person.hasPassword
                                     ? t('пароль выдан')
                                     : t('пароль не выдан'),
-                              ].join(' · ')}
+                              ]
+                                 .filter(Boolean)
+                                 .join(' · ')}
                            </div>
                         </div>
                         <Badge tone='accent'>

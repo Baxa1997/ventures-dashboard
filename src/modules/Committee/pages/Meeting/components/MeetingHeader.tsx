@@ -13,8 +13,8 @@ import { useTranslation } from 'react-i18next';
 
 interface MeetingHeaderProps {
    meeting: Meeting;
-   editable: boolean; // planned, and the secretary or the director looks
-   removable: boolean; // no decision came from it
+   editable: boolean; // the secretary or the director looks
+   removable: boolean; // the same: in any state, its decisions go with it
    actions: ReactNode; // what the meeting's state allows: open it, a break…
    onEdit: () => void;
    onDelete: () => void;
@@ -24,9 +24,9 @@ const ICON_BUTTON =
    'border-line text-ink-soft hover:bg-hover hover:text-ink grid size-9 shrink-0 place-items-center rounded-lg border bg-white transition-colors';
 
 /* The meeting's head, as the design draws it: the committee's mark, the
-   meeting's name and status, when and how it is held; a planned meeting is
-   changed or deleted by its icon buttons, and the buttons of its state
-   follow them. */
+   meeting's name and status, when and how it is held; the meeting, in any
+   state, is changed or deleted by its icon buttons, and the buttons of its
+   state follow them. */
 const MeetingHeader = ({
    meeting,
    editable,

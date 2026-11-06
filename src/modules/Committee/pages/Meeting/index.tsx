@@ -266,14 +266,9 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
          <PageBody className='flex flex-col pt-5'>
             <MeetingHeader
                actions={actions}
-               editable={planned && canRecord}
+               editable={canRecord}
                meeting={meeting}
-               removable={
-                  canRecord &&
-                  !data.decisions.some(
-                     ({ meetingId }) => meetingId === meeting.id,
-                  )
-               }
+               removable={canRecord}
                onDelete={() => setRemoving(true)}
                onEdit={() => setChanging(true)}
             />
@@ -349,9 +344,13 @@ const MeetingView = ({ data, meeting }: MeetingViewProps) => {
             }}
          >
             <p>
-               {t(
-                  'Заседание удалится вместе с повесткой и списком участников; сделки с повестки снова будут ждать заседания.',
-               )}
+               {data.decisions.some(({ meetingId }) => meetingId === meeting.id)
+                  ? t(
+                       'Заседание удалится вместе с повесткой, голосами и его решениями в реестре; задачи по условиям останутся в «Задачах».',
+                    )
+                  : t(
+                       'Заседание удалится вместе с повесткой и списком участников; сделки с повестки снова будут ждать заседания.',
+                    )}
             </p>
          </ConfirmDialog>
          <SponsorDialog

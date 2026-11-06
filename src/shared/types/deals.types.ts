@@ -274,7 +274,9 @@ export type JournalEntry =
         reason: string;
         userId: string;
      })
-   | (JournalBase & { kind: 'workstream'; name: string; handed: boolean });
+   | (JournalBase & { kind: 'workstream'; name: string; handed: boolean })
+   // a message in the deal's team chat
+   | (JournalBase & { kind: 'message'; text: string; userId: string });
 
 export interface Deal {
    id: string; // also the address of the deal's card
@@ -286,6 +288,14 @@ export interface Deal {
    foundedYear: number | null;
    employees: number | null;
    website: string;
+   // batch 23: the company's logo (a ucode Files link, '' for its initials),
+   // its city, what it does in English for the cabinet and the website, when
+   // it was registered (YYYY-MM-DD, '' when not known) and its legal address
+   logo: string;
+   city: string;
+   aboutEn: string;
+   registeredAt: string;
+   legalAddress: string;
    owners: DealOwner[]; // its capital before the deal
    industryKey: string; // the sector, an industries key; '' when not chosen
    industry: string; // the niche as the analyst writes it; may be empty
@@ -381,8 +391,14 @@ export interface NewDealInput {
    foundedYear: number | null;
    employees: number | null;
    website: string;
+   logo: string;
+   city: string;
+   aboutEn: string;
+   registeredAt: string;
+   legalAddress: string;
    applicantEmail: string;
    applicantPhone: string;
+   receivedAt?: string; // YYYY-MM-DD HH:mm; a new deal is received now
    industryKey: string;
    industry: string;
    source: DealSource;
@@ -412,9 +428,20 @@ export interface RequestInput {
 export interface CabinetPerson
    extends Pick<
       CabinetMember,
-      'id' | 'email' | 'name' | 'role' | 'active' | 'hasPassword'
+      | 'id'
+      | 'email'
+      | 'name'
+      | 'role'
+      | 'active'
+      | 'hasPassword'
+      | 'telegram'
+      | 'whatsapp'
    > {
    owner: boolean;
 }
 
 export type CabinetUserInput = Pick<CabinetMember, 'name' | 'email' | 'role'>;
+
+// A person as the deal's «Данные стартапа» edits the cabinet's team: `id` ''
+// for one added there, `owner` for the one the cabinet belongs to.
+export type CabinetTeamRow = Omit<CabinetPerson, 'hasPassword'>;

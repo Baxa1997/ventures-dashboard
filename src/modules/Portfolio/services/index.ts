@@ -58,6 +58,7 @@ export interface PortfolioState {
    dataRequests: CompanyDataRequest[]; // the fund's requests for data, newest first
    cycle: ReportingCycle;
    exitFields: boolean; // ucode has batch 13's fields for an exit
+   pilotFields: boolean; // ucode has batch 24's sponsor and budget of a pilot
 }
 
 const COMPANY_STATUSES: CompanyStatus[] = ['active', 'exit', 'written_off'];
@@ -96,6 +97,9 @@ const toReport = (row: Row): QuarterReport => ({
    filledAt: day(row.filled_at) || null,
 });
 
+// metric_values' `quarter` holds a quarter (2026-Q3) or a month (2026-09)
+const isMonth = (period: string) => /^\d{4}-\d{2}$/.test(period);
+
 const toCompany = (
    row: Row,
    investments: Row[],
@@ -106,11 +110,12 @@ const toCompany = (
    const byQuarter = new Map(
       reports.map((report) => [str(report.quarter), report]),
    );
-   // a figure in metric_values; one a report row holds in its own column
-   // (batch 4) counts while metric_values has none
-   const valueOf = (key: MetricKey) =>
+   // a figure in metric_values, by quarter or, with `monthly`, by month; one
+   // a report row holds in its own column (batch 4) counts while
+   // metric_values has none
+   const valueOf = (key: MetricKey, monthly = false) =>
       Object.fromEntries([
-         ...[...byQuarter].flatMap(([quarter, report]) =>
+         ...(monthly ? [] : [...byQuarter]).flatMap(([quarter, report]) =>
             report[key] === undefined || report[key] === null
                ? []
                : [[quarter, numOrNull(report[key])]],
@@ -118,7 +123,8 @@ const toCompany = (
          ...values
             .filter(
                (value) =>
-                  listKeyOf('metrics', value.portfolio_metrics_id) === key,
+                  listKeyOf('metrics', value.portfolio_metrics_id) === key &&
+                  isMonth(str(value.quarter)) === monthly,
             )
             .map((value) => [str(value.quarter), numOrNull(value.value)]),
       ]);
@@ -158,11 +164,14 @@ const toCompany = (
          key,
          format: metricFormat(key),
          values: valueOf(key),
+         months: valueOf(key, true),
       })),
       pilots: pilots.map((pilot) => ({
          id: pilot.guid,
          title: str(pilot.title),
          customer: str(pilot.customer),
+         sponsor: str(pilot.sponsor),
+         budget: numOrNull(pilot.budget),
          status: (str(pilot.status) || 'in_progress') as PilotStatus,
          note: str(pilot.note),
          startedAt: day(pilot.started_at),
@@ -190,7 +199,11 @@ const toRequest = (row: Row): CompanyRequest => ({
    answer: str(row.answer),
 });
 
-const DATA_STATUSES: CompanyDataRequest['status'][] = ['waiting', 'answered', 'accepted'];
+const DATA_STATUSES: CompanyDataRequest['status'][] = [
+   'waiting',
+   'answered',
+   'accepted',
+];
 
 const toDataRequest = (row: Row): CompanyDataRequest => ({
    id: row.guid,
@@ -210,7 +223,7 @@ const toDataRequest = (row: Row): CompanyDataRequest => ({
 let rowIds = {
    cycle: '',
    reports: new Map<string, string>(),
-   values: new Map<string, string>(), // company/metric/quarter → metric_values
+   values: new Map<string, string>(), // company/metric/period → metric_values
    // the figures a report row holds in its own column (batch 4)
    columns: new Set<string>(),
 };
@@ -225,6 +238,8 @@ const investmentFields = (investment: Investment) => ({
 const pilotFields = (input: PilotInput) => ({
    title: input.title,
    customer: input.customer,
+   sponsor: input.sponsor,
+   budget: input.budget,
    status: input.status,
    note: input.note,
    started_at: input.startedAt || null,
@@ -233,8 +248,8 @@ const pilotFields = (input: PilotInput) => ({
 
 const reportKey = (companyId: string, quarter: string) =>
    `${companyId}/${quarter}`;
-const valueKey = (companyId: string, metric: string, quarter: string) =>
-   `${companyId}/${metric}/${quarter}`;
+const valueKey = (companyId: string, metric: string, period: string) =>
+   `${companyId}/${metric}/${period}`;
 
 const store = createStore<PortfolioState>(async () => {
    // the companies' sectors are rows of Настройки's industries
@@ -323,6 +338,8 @@ const store = createStore<PortfolioState>(async () => {
          .sort((a, b) => b.sentAt.localeCompare(a.sentAt)),
       // ucode lists every field of a row, empty ones as null
       exitFields: companies.some((row) => 'exit_proceeds' in row),
+      // known only from a pilot: none yet, and the fields are taken as there
+      pilotFields: !pilots.length || pilots.some((row) => 'budget' in row),
       cycle: {
          quarter,
          due: (latest && day(latest.due)) || rule.due,
@@ -362,67 +379,57 @@ class Portfolio {
       await store.reload();
    }
 
-   /* A company's figures for a quarter, as the analyst enters or corrects
-      them: a figure written, changed, or cleared (null deletes its row, and
-      empties the report's column that held it). */
-   async saveQuarterMetrics(
+   /* A company's figures as the analyst enters or corrects them, by period
+      (a quarter, 2026-Q3, or a month, 2026-09) and metric: a figure written,
+      changed, or cleared (null deletes its row, and empties the quarter
+      report's column that held it). */
+   async saveMetrics(
       companyId: string,
-      quarter: string,
-      values: Record<MetricKey, number | null>,
+      periods: Record<string, Record<MetricKey, number | null>>,
    ) {
       await store.get();
-      const report = rowIds.reports.get(reportKey(companyId, quarter));
-      const cleared = Object.entries(values)
-         .filter(
-            ([metric, value]) =>
-               value === null &&
-               rowIds.columns.has(valueKey(companyId, metric, quarter)),
-         )
-         .map(([metric]) => [metric, null]);
-      await Promise.all([
-         ...Object.entries(values).map(([metric, value]) => {
-            const guid = rowIds.values.get(
-               valueKey(companyId, metric, quarter),
-            );
-            if (guid)
-               return value === null
-                  ? deleteRow('metric_values', guid)
-                  : updateRow('metric_values', { guid, value });
-            if (value === null) return Promise.resolve();
-            return createRow('metric_values', {
-               guid: newId(),
-               quarter,
-               value,
-               portfolio_companies_id: companyId,
-               portfolio_metrics_id: listIdOf('metrics', metric),
-            });
-         }),
-         ...(report && cleared.length
-            ? [
-                 updateRow('quarter_reports', {
-                    guid: report,
-                    ...Object.fromEntries(cleared),
-                 }),
-              ]
-            : []),
-      ]);
-      await store.reload();
-   }
-
-   // Every figure of a company's quarter, deleted.
-   async deleteQuarterMetrics(companyId: string, quarter: string) {
-      const company = (await store.get()).companies.find(
-         ({ id }) => id === companyId,
-      );
-      await this.saveQuarterMetrics(
-         companyId,
-         quarter,
-         Object.fromEntries(
-            (company?.metrics ?? [])
-               .filter(({ values }) => values[quarter] != null)
-               .map(({ key }) => [key, null]),
-         ),
-      );
+      const writes = Object.entries(periods).flatMap(([period, values]) => {
+         const report = rowIds.reports.get(reportKey(companyId, period));
+         const cleared = Object.entries(values)
+            .filter(
+               ([metric, value]) =>
+                  value === null &&
+                  rowIds.columns.has(valueKey(companyId, metric, period)),
+            )
+            .map(([metric]) => [metric, null]);
+         return [
+            ...Object.entries(values).map(([metric, value]) => {
+               const guid = rowIds.values.get(
+                  valueKey(companyId, metric, period),
+               );
+               if (guid)
+                  return value === null
+                     ? deleteRow('metric_values', guid)
+                     : updateRow('metric_values', { guid, value });
+               if (value === null) return Promise.resolve();
+               return createRow('metric_values', {
+                  guid: newId(),
+                  quarter: period,
+                  value,
+                  portfolio_companies_id: companyId,
+                  portfolio_metrics_id: listIdOf('metrics', metric),
+               });
+            }),
+            ...(report && cleared.length
+               ? [
+                    updateRow('quarter_reports', {
+                       guid: report,
+                       ...Object.fromEntries(cleared),
+                    }),
+                 ]
+               : []),
+         ];
+      });
+      try {
+         await Promise.all(writes);
+      } finally {
+         await store.reload();
+      }
    }
 
    // A reminder goes to the cabinets of the companies that have not sent all
@@ -636,7 +643,11 @@ class Portfolio {
 
    /* A request for data to a company: it shows in the company's startup
       cabinet («Компания» → «Запросы от фонда»), which answers it there. */
-   async addDataRequest(companyId: string, input: DataRequestInput, userId: string) {
+   async addDataRequest(
+      companyId: string,
+      input: DataRequestInput,
+      userId: string,
+   ) {
       await createRow('company_data_requests', {
          guid: newId(),
          title: input.title,
@@ -675,7 +686,10 @@ class Portfolio {
 
    // The fund checked what the company answered in the cabinet.
    async acceptDataAnswer(id: string) {
-      await updateRow('company_data_requests', { guid: id, status: 'accepted' });
+      await updateRow('company_data_requests', {
+         guid: id,
+         status: 'accepted',
+      });
       await store.reload();
    }
 

@@ -46,9 +46,9 @@ interface AgendaProps {
 
 /* «Участники (стартапы)», as the design draws them: a card for each question
    with what the members are asked — the sum, the score, who presents it, the
-   materials, the sponsor's word. Until the meeting opens a deal waiting for
-   it is added from the list above, and a question is taken off by its cross
-   until the meeting is held. */
+   materials, the sponsor's word. Whatever the meeting's state, a deal
+   waiting for it is added from the list above and a question is taken off
+   by its cross; a held meeting's decision on it leaves the register. */
 const Agenda = ({ data, meeting, editable }: AgendaProps) => {
    const { t } = useTranslation('committee');
    const adding = useRequest({
@@ -71,7 +71,7 @@ const Agenda = ({ data, meeting, editable }: AgendaProps) => {
 
    return (
       <>
-         {meeting.status === 'planned' && editable && (
+         {editable && (
             <div className='mb-3.5 flex flex-wrap items-center gap-2'>
                <select
                   aria-label={t('Добавить в повестку')}
@@ -116,11 +116,7 @@ const Agenda = ({ data, meeting, editable }: AgendaProps) => {
                      data={data}
                      item={item}
                      meeting={meeting}
-                     onRemove={
-                        editable && meeting.status !== 'held'
-                           ? () => setRemoving(item)
-                           : undefined
-                     }
+                     onRemove={editable ? () => setRemoving(item) : undefined}
                   />
                ))}
             </div>
@@ -144,9 +140,13 @@ const Agenda = ({ data, meeting, editable }: AgendaProps) => {
             }
          >
             <p>
-               {t(
-                  'Вопрос уйдёт из повестки вместе с голосами по нему; сделка перестанет ждать это заседание.',
-               )}
+               {meeting.status === 'held'
+                  ? t(
+                       'Вопрос уйдёт из повестки вместе с голосами; решение по нему удалится из реестра.',
+                    )
+                  : t(
+                       'Вопрос уйдёт из повестки вместе с голосами по нему; сделка перестанет ждать это заседание.',
+                    )}
             </p>
          </ConfirmDialog>
       </>
@@ -172,8 +172,7 @@ const ItemCard = ({ data, meeting, item, onRemove }: ItemCardProps) => {
    const speakerRole = TEAM.find(({ id }) => id === speakerId)?.role;
    const memo = deal?.memo;
    const memoVersion = item.memoVersion ?? memo?.version;
-   const materials =
-      item.kind === 'decision' ? materialsOf(item, deal) : null;
+   const materials = item.kind === 'decision' ? materialsOf(item, deal) : null;
    const score = deal ? scoreOf(deal) : null;
    const stage = deal && headerBadge(tDeals, deal);
    const result = itemBadge(t, meeting, item);

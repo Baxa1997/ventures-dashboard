@@ -10,6 +10,11 @@ const REQUIRED: ValidationKey = 'Обязательное поле';
 const TOO_LONG: ValidationKey = 'Слишком длинное значение';
 const DATE_INVALID: ValidationKey = 'Укажите дату';
 const AMOUNT_INVALID: ValidationKey = 'Укажите сумму больше нуля';
+const EMAIL_INVALID: ValidationKey = 'Введите корректный адрес почты';
+const YEAR_INVALID: ValidationKey = 'Укажите год из четырёх цифр';
+const COUNT_INVALID: ValidationKey = 'Укажите целое число';
+
+export const EMAIL = /^\S+@\S+\.\S+$/;
 
 const text = (max: number) => z.string().trim().max(max, TOO_LONG);
 const required = (max: number) =>
@@ -30,6 +35,21 @@ export const newDealSchema = z.object({
    website: text(COMPANY_MAX),
    applicantEmail: text(COMPANY_MAX),
    applicantPhone: text(30),
+});
+
+// «Данные стартапа»: the deal's fields, with the dates and the email checked.
+export const startupSchema = newDealSchema.extend({
+   city: text(COMPANY_MAX),
+   aboutEn: text(TEXT_MAX),
+   legalAddress: text(TEXT_MAX),
+   foundedYear: z.string().trim().regex(/^(\d{4})?$/, YEAR_INVALID),
+   employees: z.string().trim().regex(/^\d{0,7}$/, COUNT_INVALID),
+   registeredAt: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, DATE_INVALID),
+   receivedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, DATE_INVALID),
+   applicantEmail: text(COMPANY_MAX).refine(
+      (value) => !value || EMAIL.test(value),
+      EMAIL_INVALID,
+   ),
 });
 
 export const requestSchema = z.object({

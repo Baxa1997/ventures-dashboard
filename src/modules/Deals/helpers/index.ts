@@ -425,6 +425,8 @@ export const journalAction = (t: T, entry: JournalEntry) => {
                  name: entry.name,
               })
             : t('Добавлено направление DD: {{name}}', { name: entry.name });
+      case 'message':
+         return t('Сообщение в чате: {{text}}', { text: entry.text });
    }
 };
 
@@ -1133,6 +1135,19 @@ export const hasTermsStage = (deal: Deal) =>
 
 /* Who the cabinet's card lists: the one who applied, by the application, with
    their row if they have one, then the others. None without an application. */
+/* Telegram or WhatsApp as the fund writes it down: an @username, or a phone
+   number of digits; a t.me or wa.me link gives its name or number. */
+export const normalHandle = (value: string) => {
+   const text = value.trim().replace(/^(https?:\/\/)?(t\.me|wa\.me)\//i, '');
+   if (!text) return '';
+   if (/^\+?[\d\s()-]+$/.test(text)) return text.replace(/[^\d+]/g, '');
+   return `@${text.replace(/^@+/, '')}`;
+};
+
+// A username of 5–32 Latin letters, digits and _, or a phone of 7–15 digits.
+export const handleOk = (value: string) =>
+   !value || /^@[A-Za-z0-9_]{5,32}$/.test(value) || /^\+?\d{7,15}$/.test(value);
+
 export const cabinetPeople = (deal: Deal): CabinetPerson[] => {
    if (!deal.applicationId) return [];
    const email = (deal.applicationEmail ?? deal.applicantEmail ?? '').toLowerCase();
@@ -1146,17 +1161,21 @@ export const cabinetPeople = (deal: Deal): CabinetPerson[] => {
          role: 'ceo',
          active: own?.active ?? true,
          hasPassword: own?.hasPassword ?? false,
+         telegram: own?.telegram ?? '',
+         whatsapp: own?.whatsapp ?? '',
          owner: true,
       },
       ...rows
          .filter((row) => row !== own)
-         .map(({ id, name, email: address, role, active, hasPassword }) => ({
-            id,
-            name,
-            email: address.toLowerCase(),
-            role,
-            active,
-            hasPassword,
+         .map((row) => ({
+            id: row.id,
+            name: row.name,
+            email: row.email.toLowerCase(),
+            role: row.role,
+            active: row.active,
+            hasPassword: row.hasPassword,
+            telegram: row.telegram,
+            whatsapp: row.whatsapp,
             owner: false,
          })),
    ];

@@ -8,12 +8,19 @@ import {
 import { newId, newPassword, passwordHash } from '@shared/helpers';
 import type {
    CabinetPerson,
+   CabinetTeamRow,
    CabinetUserInput,
    Deal,
 } from '@shared/types/deals.types';
 import type { StaffCredentials } from '@shared/types/settings.types';
 import dayjs from 'dayjs';
-import { publicStatusOf } from './ucode';
+import { hasStartupFields, publicStatusOf } from './ucode';
+
+// Telegram and WhatsApp, written once ucode has batch 23's fields.
+const handles = (row: { telegram?: string; whatsapp?: string }) =>
+   hasStartupFields()
+      ? { telegram: row.telegram ?? '', whatsapp: row.whatsapp ?? '' }
+      : {};
 
 /* Who signs in to the startup cabinet, as the fund manages them on a deal's or a
    company's card (cabinet_members, batch 21). The password is made here and shown
@@ -51,11 +58,12 @@ const openApplication = async (deal: Deal, name: string, email: string) => {
       public_status: publicStatusOf(deal) ?? 'submitted',
       public_status_at: now,
    });
+   // the deal's own contact stays, if it has one
    await updateRow('deals', {
       guid: deal.id,
       applications_id: guid,
-      applicant_name: name,
-      applicant_email: email,
+      ...(!deal.applicantName && { applicant_name: name }),
+      ...(!deal.applicantEmail && { applicant_email: email }),
    });
    return guid;
 };
@@ -95,7 +103,16 @@ const newRow = (
    applicationId: string,
    person: Pick<CabinetPerson, 'name' | 'email' | 'role'>,
    addedBy: string,
-   fields: { is_active: boolean; password_hash?: string },
+   {
+      telegram,
+      whatsapp,
+      ...fields
+   }: {
+      is_active: boolean;
+      password_hash?: string;
+      telegram?: string;
+      whatsapp?: string;
+   },
 ) =>
    createRow('cabinet_members', {
       guid: newId(),
@@ -106,6 +123,7 @@ const newRow = (
       added_by: addedBy,
       applications_id: applicationId,
       ...fields,
+      ...handles({ telegram, whatsapp }),
    });
 
 export const addCabinetUser = async (
@@ -193,3 +211,84 @@ export const updateCabinetUser = async (
 
 export const removeCabinetUser = (person: CabinetPerson) =>
    deleteRow('cabinet_members', person.id);
+
+/* The team as the deal's «Данные стартапа» left it: people taken off are
+   deleted, the others changed where they differ, new ones added without a
+   password (the card gives it). Without a cabinet yet, the first person opens
+   it and owns it. The owner is the application's contact; they get a row of
+   their own only for what the application does not hold: Telegram, WhatsApp
+   or closed access. Answers whether anything changed. */
+export const saveCabinetTeam = async (
+   deal: Deal,
+   before: CabinetPerson[],
+   team: CabinetTeamRow[],
+   addedBy: string,
+) => {
+   const rows = team.map((row) => ({
+      ...row,
+      name: row.name.trim(),
+      email: normal(row.email),
+   }));
+   let applicationId = deal.applicationId ?? '';
+   if (!applicationId) {
+      const [first] = rows;
+      if (!first) return false;
+      applicationId = await openApplication(deal, first.name, first.email);
+      rows[0] = { ...first, owner: true, role: 'ceo' };
+   }
+   const writes: Promise<unknown>[] = [];
+   for (const person of before)
+      if (!person.owner && person.id && !rows.some(({ id }) => id === person.id))
+         writes.push(deleteRow('cabinet_members', person.id));
+   for (const row of rows) {
+      const previous = before.find((person) =>
+         row.owner ? person.owner : !!row.id && person.id === row.id,
+      );
+      const fields = {
+         email: row.email,
+         full_name: row.name,
+         role: row.owner ? 'ceo' : row.role,
+         ...handles(row),
+         is_active: row.active,
+      };
+      const changed =
+         !previous ||
+         previous.name !== row.name ||
+         previous.email !== row.email ||
+         (!row.owner && previous.role !== row.role) ||
+         previous.telegram !== row.telegram ||
+         previous.whatsapp !== row.whatsapp ||
+         previous.active !== row.active;
+      if (!changed) continue;
+      // the owner signs in with the application's email; the deal's own
+      // contact («Email компании») is kept apart
+      if (
+         row.owner &&
+         previous &&
+         (previous.name !== row.name || previous.email !== row.email)
+      )
+         writes.push(
+            updateRow('applications', {
+               guid: applicationId,
+               contact_name: row.name,
+               email: row.email,
+            }),
+         );
+      if (previous?.id)
+         writes.push(updateRow('cabinet_members', { guid: previous.id, ...fields }));
+      else if (
+         !row.owner ||
+         !row.active ||
+         ((row.telegram || row.whatsapp) && hasStartupFields())
+      )
+         writes.push(
+            newRow(applicationId, { ...row, role: fields.role as CabinetPerson['role'] }, addedBy, {
+               is_active: row.active,
+               telegram: row.telegram,
+               whatsapp: row.whatsapp,
+            }),
+         );
+   }
+   await Promise.all(writes);
+   return writes.length > 0 || !deal.applicationId;
+};

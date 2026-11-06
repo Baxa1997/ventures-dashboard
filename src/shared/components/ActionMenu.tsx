@@ -7,6 +7,8 @@ export interface MenuAction {
    label: string;
    icon: LucideIcon;
    danger?: boolean; // a delete: red, and kept last
+   accent?: boolean; // the main step: in the accent colour
+   hint?: string; // what it does, on hover; «label: name» unless given
    onSelect: () => void;
 }
 
@@ -14,6 +16,9 @@ interface ActionMenuProps {
    name: string; // the item, for screen readers: «Действия: Устав.pdf»
    actions: MenuAction[];
    className?: string;
+   // the head of a card: a 36px bordered button, as the icons beside it
+   bordered?: boolean;
+   label?: string; // the button's own hint; «Действия: name» unless given
 }
 
 const GAP = 4; // between the button and the list
@@ -22,7 +27,13 @@ const GAP = 4; // between the button and the list
    popover: it opens over everything (a table's scroll does not cut it),
    and a click outside or Escape closes it. Clicks inside do not reach the
    row, which has its own. */
-const ActionMenu = ({ name, actions, className }: ActionMenuProps) => {
+const ActionMenu = ({
+   name,
+   actions,
+   className,
+   bordered = false,
+   label,
+}: ActionMenuProps) => {
    const { t } = useTranslation('components');
    const id = useId();
    const button = useRef<HTMLButtonElement>(null);
@@ -61,9 +72,13 @@ const ActionMenu = ({ name, actions, className }: ActionMenuProps) => {
          <button
             ref={button}
             type='button'
-            aria-label={t('Действия: {{name}}', { name })}
-            className='text-ink-soft hover:bg-ground hover:text-ink grid size-7 place-items-center rounded-md'
-            data-hint={t('Действия: {{name}}', { name })}
+            aria-label={label ?? t('Действия: {{name}}', { name })}
+            className={
+               bordered
+                  ? 'border-line text-ink-soft hover:bg-hover hover:text-ink grid size-9 place-items-center rounded-lg border bg-white transition-colors'
+                  : 'text-ink-soft hover:bg-ground hover:text-ink grid size-7 place-items-center rounded-md'
+            }
+            data-hint={label ?? t('Действия: {{name}}', { name })}
             popoverTarget={id}
          >
             <Ellipsis aria-hidden className='size-4' />
@@ -81,15 +96,19 @@ const ActionMenu = ({ name, actions, className }: ActionMenuProps) => {
                list.current?.querySelector('button')?.focus();
             }}
          >
-            {actions.map(({ label, icon: Icon, danger, onSelect }) => (
+            {actions.map(({ label, icon: Icon, danger, accent, hint, onSelect }) => (
                <button
                   key={label}
                   type='button'
                   className={clsx(
                      'text-meta hover:bg-ground flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.75 text-left',
-                     danger ? 'text-danger' : 'text-ink',
+                     danger
+                        ? 'text-danger'
+                        : accent
+                          ? 'text-accent font-semibold'
+                          : 'text-ink',
                   )}
-                  data-hint={`${label}: ${name}`}
+                  data-hint={hint ?? `${label}: ${name}`}
                   onClick={() => {
                      list.current?.hidePopover();
                      onSelect();
@@ -99,7 +118,7 @@ const ActionMenu = ({ name, actions, className }: ActionMenuProps) => {
                      aria-hidden
                      className={clsx(
                         'size-4 shrink-0',
-                        !danger && 'text-ink-soft',
+                        !danger && !accent && 'text-ink-soft',
                      )}
                   />
                   {label}

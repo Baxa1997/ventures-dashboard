@@ -39,6 +39,7 @@ import {
    ClipboardCheck,
    Eye,
    FileText,
+   FolderInput,
    Pencil,
    Send,
    Trash2,
@@ -274,10 +275,16 @@ interface FolderButtonProps {
    depth: number; // how far inside other folders
    active: boolean;
    onClick: () => void;
+   // a document of the list dropped on it moves here; not given — it takes none
+   onDropDocument?: (documentId: string) => void;
 }
 
+// What a document of the list carries while it is dragged to a folder.
+const DRAGGED_DOCUMENT = 'application/x-sqb-document';
+
 // A folder on the left, as the design's list of the data room's folders:
-// its name and how many files it has.
+// its name and how many files it has. A document dragged from the list is
+// dropped on it to move there.
 const FolderButton = ({
    name,
    count,
@@ -285,24 +292,107 @@ const FolderButton = ({
    active,
    hint,
    onClick,
-}: FolderButtonProps) => (
-   <button
-      type='button'
-      aria-current={active || undefined}
-      className={clsx(
-         'text-meta flex w-full items-center gap-2 rounded-md py-2 pr-3 text-left',
-         active
-            ? 'bg-accent-tint text-ink-strong font-semibold'
-            : 'text-ink hover:bg-hover',
-      )}
-      data-hint={hint}
-      style={{ paddingLeft: `${0.75 + depth * 0.875}rem` }}
-      onClick={onClick}
-   >
-      <span className='min-w-0 flex-1'>{name}</span>
-      <span className='text-ink-faint text-xs tabular-nums'>{count}</span>
-   </button>
-);
+   onDropDocument,
+}: FolderButtonProps) => {
+   const [over, setOver] = useState(false);
+   const takes = (event: DragEvent) =>
+      !!onDropDocument && event.dataTransfer.types.includes(DRAGGED_DOCUMENT);
+   return (
+      <button
+         type='button'
+         aria-current={active || undefined}
+         className={clsx(
+            'text-meta flex w-full items-center gap-2 rounded-md py-2 pr-3 text-left',
+            over
+               ? 'bg-accent-tint text-accent outline-accent font-semibold outline-2 -outline-offset-2 outline-dashed'
+               : active
+                 ? 'bg-accent-tint text-ink-strong font-semibold'
+                 : 'text-ink hover:bg-hover',
+         )}
+         data-hint={hint}
+         style={{ paddingLeft: `${0.75 + depth * 0.875}rem` }}
+         onClick={onClick}
+         onDragLeave={() => setOver(false)}
+         onDragOver={(event) => {
+            if (!takes(event)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            setOver(true);
+         }}
+         onDrop={(event) => {
+            if (!takes(event)) return;
+            event.preventDefault();
+            setOver(false);
+            onDropDocument?.(event.dataTransfer.getData(DRAGGED_DOCUMENT));
+         }}
+      >
+         <span className='min-w-0 flex-1'>{name}</span>
+         <span className='text-ink-faint text-xs tabular-nums'>{count}</span>
+      </button>
+   );
+};
+
+interface MoveFormProps {
+   deal: Deal;
+   document: DealDocument;
+   onMove: (folderId: string) => Promise<boolean>;
+   onClose: () => void;
+}
+
+// Where a document goes: one of the data room's folders.
+const MoveForm = ({ deal, document, onMove, onClose }: MoveFormProps) => {
+   const { t } = useTranslation('deals');
+   const [folderId, setFolderId] = useState(placeOf(deal, document));
+   const [pending, setPending] = useState(false);
+   const same = folderId === placeOf(deal, document);
+
+   const submit = async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (same) return;
+      setPending(true);
+      const done = await onMove(folderId);
+      setPending(false);
+      if (done) onClose();
+   };
+
+   return (
+      <form noValidate className={MODAL_FORM} onSubmit={submit}>
+         <ModalBody>
+            <Field label={t('В папку')}>
+               <FolderSelect
+                  folders={roomFolders(deal)}
+                  top={t('Без папки')}
+                  value={folderId}
+                  onChange={setFolderId}
+               />
+            </Field>
+            <p className='text-ink-soft mt-3 text-xs'>
+               {t(
+                  'Можно и перетащить: возьмите строку документа и отпустите её на папке слева.',
+               )}
+            </p>
+         </ModalBody>
+         <ModalFooter>
+            <Button
+               disabled={pending}
+               hint={t('Закрыть окно, ничего не меняя')}
+               variant='text'
+               onClick={onClose}
+            >
+               {t('Отмена')}
+            </Button>
+            <Button
+               disabled={same}
+               hint={t('Переместить документ в выбранную папку')}
+               loading={pending}
+               type='submit'
+            >
+               {t('Переместить')}
+            </Button>
+         </ModalFooter>
+      </form>
+   );
+};
 
 /* The deal's data room, as the design draws it: the folders of Настройки on
    the left (a deal's own older folders under them, and «Без папки» while
@@ -360,6 +450,11 @@ const DataRoom = ({
    const [removingFolder, setRemovingFolder] = useState<DealFolder | null>(
       null,
    );
+   // the document being moved by its menu, and the one being dragged
+   const [movingDocument, setMovingDocument] = useState<DealDocument | null>(
+      null,
+   );
+   const [dragged, setDragged] = useState('');
 
    const checking = useAction(
       (document: DealDocument, accepted: boolean) =>
@@ -389,6 +484,30 @@ const DataRoom = ({
 
    const folderName = (id: string) =>
       folders.find((folder) => folder.id === id)?.name ?? t('Без папки');
+
+   // a document into another folder: by its menu, or dropped on the folder
+   const mover = useAction(
+      (document: DealDocument, folderId: string) =>
+         deals.updateDocument(deal.id, document.id, {
+            title: document.title,
+            folderId,
+         }),
+      {
+         success: (document, folderId) =>
+            t('«{{title}}» перемещён в «{{folder}}»', {
+               title: document.title,
+               folder: folderName(folderId),
+            }),
+      },
+   );
+   const dropOn = (folderId: string) =>
+      writable
+         ? (documentId: string) => {
+              const document = documents.find(({ id }) => id === documentId);
+              if (document && placeOf(deal, document) !== folderId)
+                 void mover.run(document, folderId);
+           }
+         : undefined;
 
    // the fund's files, into the open folder: by the button or dropped on it
    const input = useRef<HTMLInputElement>(null);
@@ -506,6 +625,12 @@ const DataRoom = ({
       ...(writable
          ? [
               {
+                 label: t('Переместить'),
+                 icon: FolderInput,
+                 hint: t('Переместить документ в другую папку'),
+                 onSelect: () => setMovingDocument(document),
+              },
+              {
                  label: t('Изменить'),
                  icon: Pencil,
                  onSelect: () => setEditingDocument(document),
@@ -531,9 +656,14 @@ const DataRoom = ({
                            active={folder.id === current}
                            count={countIn(folder.id)}
                            depth={depth}
-                           hint={t('Показать документы этой папки')}
+                           hint={
+                              dragged
+                                 ? t('Отпустите, чтобы переместить сюда')
+                                 : t('Показать документы этой папки')
+                           }
                            name={folder.name}
                            onClick={() => onFolder(folder.id)}
+                           onDropDocument={dropOn(folder.id)}
                         />
                      </li>
                   ))}
@@ -546,6 +676,7 @@ const DataRoom = ({
                            hint={t('Показать документы этой папки')}
                            name={t('Без папки')}
                            onClick={() => onFolder(NO_FOLDER)}
+                           onDropDocument={dropOn('')}
                         />
                      </li>
                   )}
@@ -648,11 +779,22 @@ const DataRoom = ({
                               className={clsx(
                                  document.url &&
                                     'hover:bg-hover cursor-pointer',
+                                 dragged === document.id && 'opacity-50',
                               )}
+                              draggable={writable}
                               onClick={() =>
                                  document.url &&
                                  window.open(document.url, '_blank', 'noopener')
                               }
+                              onDragEnd={() => setDragged('')}
+                              onDragStart={(event) => {
+                                 event.dataTransfer.setData(
+                                    DRAGGED_DOCUMENT,
+                                    document.id,
+                                 );
+                                 event.dataTransfer.effectAllowed = 'move';
+                                 setDragged(document.id);
+                              }}
                            >
                               <td className={TD}>
                                  <div className='flex items-center gap-2.5'>
@@ -746,6 +888,9 @@ const DataRoom = ({
                      {t(
                         'Дата рум общий с кабинетом основателя: заявитель видит свои файлы, файлы фонда — только команда.',
                      )}
+                     {writable &&
+                        files.length > 0 &&
+                        ` ${t('Чтобы переместить файл, перетащите его на папку слева.')}`}
                   </span>
                   <span>
                      {t('{{total}} на проверке', { total: reviewCount })}
@@ -879,6 +1024,22 @@ const DataRoom = ({
                )}
             </p>
          </ConfirmDialog>
+         <Modal
+            open={movingDocument !== null}
+            subtitle={movingDocument?.title}
+            title={t('Переместить документ')}
+            onClose={() => setMovingDocument(null)}
+         >
+            {movingDocument && (
+               <MoveForm
+                  key={movingDocument.id}
+                  deal={deal}
+                  document={movingDocument}
+                  onClose={() => setMovingDocument(null)}
+                  onMove={(folderId) => mover.run(movingDocument, folderId)}
+               />
+            )}
+         </Modal>
          <Modal
             open={editingDocument !== null}
             subtitle={deal.company}
