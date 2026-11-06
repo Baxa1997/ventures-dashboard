@@ -120,7 +120,7 @@ const groupByDeal = (rows: Row[]) => {
 
 // ---- rows → Deal
 
-const toEntry = (row: Row): JournalEntry => {
+export const toEntry = (row: Row): JournalEntry => {
    const base = { id: row.guid, date: localDay(row.at), at: str(row.at) };
    const userId = str(row.employee_id);
    switch (row.kind) {
@@ -157,6 +157,8 @@ const toEntry = (row: Row): JournalEntry => {
          };
       case 'workstream':
          return { ...base, kind: 'workstream', name: str(row.title), handed: row.result === 'handed' };
+      case 'message':
+         return { ...base, kind: 'message', text: str(row.text), userId };
       default:
          return { ...base, kind: 'text', text: str(row.text) || str(row.title) };
    }
@@ -479,6 +481,21 @@ const oldCountry = (text: string) =>
 let companyFields = true;
 export const hasCompanyFields = () => companyFields;
 
+// Whether ucode has batch 23's fields: the logo, the city, the details.
+let startupFields = true;
+export const hasStartupFields = () => startupFields;
+
+// A deal's journal from its deal_events rows, newest first; ucode keeps `at`
+// to the second, its own created_at orders the rest.
+export const journalOf = (rows: Row[]) =>
+   [...rows]
+      .sort(
+         (a, b) =>
+            str(b.at).localeCompare(str(a.at)) ||
+            str(b.created_at).localeCompare(str(a.created_at)),
+      )
+      .map(toEntry);
+
 const toMember = (row: Row): CabinetMember => ({
    id: row.guid,
    applicationId: str(row.applications_id),
@@ -487,6 +504,8 @@ const toMember = (row: Row): CabinetMember => ({
    role: (['ceo', 'cfo', 'cto'] as const).find((role) => role === row.role) ?? 'other',
    active: row.is_active !== false,
    hasPassword: Boolean(row.password_hash),
+   telegram: str(row.telegram),
+   whatsapp: str(row.whatsapp),
 });
 
 const toDeal = (
@@ -497,6 +516,7 @@ const toDeal = (
    application: Row | undefined,
 ): Deal => {
    companyFields = 'legal_name' in row;
+   startupFields = 'city' in row;
    const questionnaire = toQuestionnaire(children.questionnaires);
    const today = todayISO();
    const status = (str(row.status) || 'review') as DealStatus;
@@ -532,6 +552,11 @@ const toDeal = (
       foundedYear: optional(row.founded_year) === undefined ? null : num(row.founded_year),
       employees: optional(row.employees_count) === undefined ? null : num(row.employees_count),
       website: str(row.website),
+      logo: str(row.logo),
+      city: str(row.city),
+      aboutEn: str(row.about_en),
+      registeredAt: day(row.registered_at),
+      legalAddress: str(row.legal_address),
       owners: fromJson<Deal['owners']>(row.owners, []),
       industryKey: listKeyOf('industries', row.industries_id) ?? '',
       industry: str(row.niche),
@@ -612,14 +637,7 @@ const toDeal = (
       memo: toMemo(children.memos, children.checks),
       ...(children.decisions.length > 0 && { decisions: children.decisions.map(toDecision) }),
       ...(exit.length > 0 && { exit }),
-      // newest first; ucode keeps `at` to the second, its own created_at orders the rest
-      journal: [...children.events]
-         .sort(
-            (a, b) =>
-               str(b.at).localeCompare(str(a.at)) ||
-               str(b.created_at).localeCompare(str(a.created_at)),
-         )
-         .map(toEntry),
+      journal: journalOf(children.events),
    };
 };
 
@@ -740,6 +758,15 @@ const dealFields = (deal: Deal): Record<string, unknown> => ({
    founded_year: deal.foundedYear,
    employees_count: deal.employees,
    website: deal.website,
+   // batch 23's fields, written once ucode has them
+   ...(startupFields && {
+      logo: deal.logo,
+      city: deal.city,
+      about_en: deal.aboutEn,
+      registered_at: deal.registeredAt || null,
+      legal_address: deal.legalAddress,
+   }),
+   received_at: dayjs(deal.receivedAt).toISOString(),
    owners: deal.owners.length ? toJson(deal.owners) : null,
    applicant_phone: deal.applicantPhone ?? '',
    industries_id: listIdOf('industries', deal.industryKey),
@@ -813,7 +840,7 @@ const eventRow = (entry: JournalEntry, deal: Deal): Record<string, unknown> => {
       row.title = entry.name;
       row.result = entry.handed ? 'handed' : 'added';
    }
-   if (entry.kind === 'text') row.text = entry.text;
+   if (entry.kind === 'text' || entry.kind === 'message') row.text = entry.text;
    if (entry.kind === 'moved') {
       row.stage = entry.stage;
       row.result = entry.status;
@@ -904,7 +931,6 @@ export const insertDeal = async (deal: Deal) => {
    await createRow('deals', {
       guid: deal.id,
       ...dealFields(deal),
-      received_at: new Date().toISOString(),
       stage_entered_at: todayISO(),
    });
    links.set(deal.id, emptyLinks());

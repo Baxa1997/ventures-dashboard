@@ -55,7 +55,7 @@ const CardFace = ({ deal, lifted = false }: CardFaceProps) => {
          )}
       >
          <div className='flex items-center gap-2.5'>
-            <CompanyMark name={deal.company} />
+            <CompanyMark logo={deal.logo} name={deal.company} />
             <div className='min-w-0'>
                <div className='truncate font-bold'>{deal.company}</div>
                <div className='text-ink-faint truncate text-xs'>

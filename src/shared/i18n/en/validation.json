@@ -4,5 +4,7 @@
    "Укажите дату": "Enter a date",
    "Введите корректный адрес почты": "Enter a valid email address",
    "Укажите сумму больше нуля": "Enter an amount greater than zero",
-   "Начало позже дедлайна": "The start is after the deadline"
+   "Начало позже дедлайна": "The start is after the deadline",
+   "Укажите год из четырёх цифр": "Enter a four-digit year",
+   "Укажите целое число": "Enter a whole number"
 }

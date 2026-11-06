@@ -124,7 +124,7 @@ const DealTimeline = ({ deals }: DealTimelineProps) => {
                      data-hint={t('Открыть карточку сделки')}
                      onClick={() => navigate(`/deals/${deal.id}`)}
                   >
-                     <CompanyMark name={deal.company} />
+                     <CompanyMark logo={deal.logo} name={deal.company} />
                      <span className='grid min-w-0'>
                         <b className='text-meta truncate'>{deal.company}</b>
                         <span className='text-ink-faint truncate text-xs'>

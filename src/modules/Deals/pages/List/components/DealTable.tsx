@@ -74,7 +74,7 @@ const DealTable = ({ deals }: DealTableProps) => {
                      >
                         <td className={TD}>
                            <div className='flex min-w-60 items-center gap-2.5'>
-                              <CompanyMark name={deal.company} />
+                              <CompanyMark logo={deal.logo} name={deal.company} />
                               <div className='min-w-0'>
                                  <Link
                                     className='font-semibold hover:underline'

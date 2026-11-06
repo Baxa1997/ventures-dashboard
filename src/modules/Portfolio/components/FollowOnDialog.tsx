@@ -30,15 +30,24 @@ const FollowOnDialog = ({ company, open, onClose }: FollowOnDialogProps) => {
    // opens the new deal once ucode has it
    const opening = useAction(
       async (value: number) => {
+         // the same company: its details as its first deal has them
+         const first = (await deals.getDeals()).find(
+            ({ id }) => id === company.dealId,
+         );
          const deal = await deals.createDeal(
             {
                company: `${company.name} · follow-on`,
                about: company.about,
-               legalName: '',
-               tin: '',
-               foundedYear: null,
-               employees: null,
-               website: '',
+               legalName: first?.legalName ?? '',
+               tin: first?.tin ?? '',
+               foundedYear: first?.foundedYear ?? null,
+               employees: first?.employees ?? null,
+               website: first?.website ?? '',
+               logo: first?.logo ?? '',
+               city: first?.city ?? '',
+               aboutEn: first?.aboutEn ?? '',
+               registeredAt: first?.registeredAt ?? '',
+               legalAddress: first?.legalAddress ?? '',
                applicantEmail: '',
                applicantPhone: '',
                industryKey: company.industryKey,

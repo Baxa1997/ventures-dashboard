@@ -1791,6 +1791,25 @@ New fields in the existing table deals
 - follow_on_company_id: SINGLE_LINE
 ```
 
+## Batch 23 — the startup's details, as «Данные стартапа» has them
+
+The deal's card edits the company in one window with four tabs, as the prototype has it: the main details with the logo, the legal details and contacts, the deal, and the cabinet's team with the capital. These are the fields it adds. The logo is a file in ucode Files (folder `Logos`, made at most 256px), its link kept on the deal; `about` stays the description for the panel and `about_en` is the one for the cabinet and the website. A cabinet person gets Telegram and WhatsApp, each an `@username` or a phone number. Until the fields exist ucode drops them, and the window says so.
+
+```
+Batch 23. Same rules.
+
+New fields in the existing table deals
+- logo: SINGLE_LINE
+- city: SINGLE_LINE
+- about_en: MULTI_LINE
+- registered_at: DATE
+- legal_address: SINGLE_LINE
+
+New fields in the existing table cabinet_members
+- telegram: SINGLE_LINE
+- whatsapp: SINGLE_LINE
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

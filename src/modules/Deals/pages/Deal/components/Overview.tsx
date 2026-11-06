@@ -91,6 +91,16 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
                         { label: t('Юр. лицо'), value: deal.legalName || '—' },
                         { label: t('ИНН'), value: deal.tin || '—' },
                         {
+                           label: t('Дата регистрации'),
+                           value:
+                              deal.registeredAt &&
+                              formatNumericDate(deal.registeredAt),
+                        },
+                        {
+                           label: t('Юридический адрес'),
+                           value: deal.legalAddress,
+                        },
+                        {
                            label: t('Год основания'),
                            value: String(deal.foundedYear ?? '—'),
                         },
@@ -98,7 +108,13 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
                            label: t('Сотрудников'),
                            value: String(deal.employees ?? '—'),
                         },
-                        { label: t('Регион'), value: countryText(deal) || '—' },
+                        {
+                           label: t('Регион'),
+                           value:
+                              [deal.city, countryText(deal)]
+                                 .filter(Boolean)
+                                 .join(', ') || '—',
+                        },
                         { label: t('Сайт'), value: deal.website || '—' },
                         {
                            label: t('Контакты'),

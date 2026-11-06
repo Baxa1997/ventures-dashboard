@@ -1,6 +1,6 @@
 import portfolio from '@modules/Portfolio/services';
 import settings from '@modules/Settings/services';
-import { deleteFile, uploadFile } from '@shared/api/ucode';
+import { deleteFile, listRows, uploadFile } from '@shared/api/ucode';
 import {
    addWorkingDays,
    createStore,
@@ -11,6 +11,7 @@ import {
 import attachments from '@shared/services/attachments';
 import type {
    CabinetPerson,
+   CabinetTeamRow,
    CabinetUserInput,
    Criterion,
    Deal,
@@ -36,6 +37,7 @@ import type { Investment } from '@shared/types/portfolio.types';
 import type { DealStage } from '@shared/types/work.types';
 import dayjs from 'dayjs';
 import {
+   cabinetPeople,
    countryText,
    emptyScreening,
    industryText,
@@ -43,6 +45,7 @@ import {
    nextStageOf,
    stageNorm,
 } from '../helpers';
+import * as cabinet from './cabinet';
 import {
    addCabinetUser,
    issueCabinetPassword,
@@ -50,7 +53,13 @@ import {
    setCabinetAccess,
    updateCabinetUser,
 } from './cabinet';
-import { insertDeal, loadDeals, saveDeal, summarize } from './ucode';
+import {
+   insertDeal,
+   journalOf,
+   loadDeals,
+   saveDeal,
+   summarize,
+} from './ucode';
 
 /* The deals come from ucode's tables, applications from the website among
    them (./ucode). Each change is worked out here, then written to ucode; if
@@ -76,6 +85,41 @@ const nextVersion = (deal: Deal, title: string) =>
          .filter((item) => item.title === title)
          .map((item) => item.version),
    ) + 1;
+
+// A logo at most this wide and high: it shows at 64px at most.
+const LOGO_SIDE = 256;
+
+// A raster logo made small enough, kept as PNG (JPEG stays JPEG); SVG as it is.
+const shrinkLogo = (file: File) =>
+   new Promise<File>((resolve, reject) => {
+      if (file.type === 'image/svg+xml') return resolve(file);
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+         URL.revokeObjectURL(url);
+         const scale = Math.min(1, LOGO_SIDE / Math.max(image.width, image.height));
+         const canvas = document.createElement('canvas');
+         canvas.width = Math.round(image.width * scale);
+         canvas.height = Math.round(image.height * scale);
+         canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+         const type = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+         canvas.toBlob(
+            (blob) =>
+               blob
+                  ? resolve(
+                       new File([blob], file.name.replace(/\.[^.]+$/, '') + (type === 'image/png' ? '.png' : '.jpg'), { type }),
+                    )
+                  : reject(new Error('The logo could not be read')),
+            type,
+            0.9,
+         );
+      };
+      image.onerror = () => {
+         URL.revokeObjectURL(url);
+         reject(new Error('The logo could not be read'));
+      };
+      image.src = url;
+   });
 
 // A file's name without its extension, as a document's title.
 const titleOf = (name: string) => name.replace(/\.[^.]+$/, '') || name;
@@ -233,6 +277,52 @@ class Deals {
       await note(id, text);
    }
 
+   // The company's logo, stored in ucode Files; its link goes on the deal.
+   async uploadLogo(file: File) {
+      return (await uploadFile(await shrinkLogo(file), 'Logos')).url;
+   }
+
+   // A message to the deal's team chat; it stays in the deal's history.
+   async sendMessage(id: string, text: string, userId: string) {
+      await change(id, (deal) =>
+         logged(deal, {
+            kind: 'message',
+            text,
+            userId,
+            at: new Date().toISOString(),
+         }),
+      );
+   }
+
+   // The deal's journal read again, for the messages others wrote since; an
+   // entry still being written here stays.
+   async refreshJournal(id: string) {
+      const read = journalOf(await listRows('deal_events', { deals_id: id }));
+      const deal = (await store.get()).find((item) => item.id === id);
+      if (!deal) return;
+      const known = new Set(read.map((entry) => entry.id));
+      const journal = [
+         ...deal.journal.filter((entry) => !known.has(entry.id)),
+         ...read,
+      ];
+      if (journal.length === deal.journal.length) return;
+      store.set((current) =>
+         current.map((item) => (item.id === id ? { ...item, journal } : item)),
+      );
+   }
+
+   // The cabinet's team as «Данные стартапа» left it (./cabinet).
+   async saveCabinetTeam(
+      id: string,
+      team: CabinetTeamRow[],
+      userId: string,
+      text: string,
+   ) {
+      const deal = await dealOf(id);
+      if (await cabinet.saveCabinetTeam(deal, cabinetPeople(deal), team, userId))
+         await cabinetChanged(id, text);
+   }
+
    // Who signs in to the startup cabinet (./cabinet): a new person's login and
    // password, and a new password, come back to be shown once.
    async addCabinetUser(
@@ -301,7 +391,7 @@ class Deals {
          id: newId(),
          number: nextNumber(deals, today.slice(0, 4)),
          tags: '',
-         receivedAt: `${today} ${nowTime()}`,
+         receivedAt: input.receivedAt || `${today} ${nowTime()}`,
          status: 'review',
          stage: 'inbox',
          ownerId: '',

@@ -135,6 +135,9 @@ export interface CabinetMember {
    role: 'ceo' | 'cfo' | 'cto' | 'other';
    active: boolean;
    hasPassword: boolean;
+   // where else to reach them: an @username or a phone, '' when not known
+   telegram: string;
+   whatsapp: string;
 }
 
 // What the fund changes about a company on its card.
