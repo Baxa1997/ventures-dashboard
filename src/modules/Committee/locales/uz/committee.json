@@ -439,5 +439,16 @@
    "Закончить заседание и собрать протокол из повестки и голосов": "Majlisni yakunlash va bayonnomani kun tartibi va ovozlardan yig‘ish",
    "Сначала примите решение по каждому вопросу повестки": "Avval kun tartibidagi har bir masala bo‘yicha qaror qabul qiling",
    "Включить сделку в повестку или убрать из неё": "Bitimni kun tartibiga kiritish yoki undan olib tashlash",
-   "Включить человека в состав заседания или убрать": "Odamni majlis tarkibiga kiritish yoki olib tashlash"
+   "Включить человека в состав заседания или убрать": "Odamni majlis tarkibiga kiritish yoki olib tashlash",
+   "Без решения": "Qarorsiz",
+   "Вопрос сохранён": "Masala saqlandi",
+   "Вопрос уйдёт из повестки вместе с голосами; решение по нему удалится из реестра.": "Masala ovozlari bilan birga kun tartibidan olinadi; u bo‘yicha qaror reyestrdan o‘chiriladi.",
+   "Выйти из правки, ничего не меняя": "Hech narsani o‘zgartirmay tahrirdan chiqish",
+   "Докладчик: {{title}}": "Ma’ruzachi: {{title}}",
+   "Запрос, USD: {{title}}": "So‘rov, USD: {{title}}",
+   "Заседание удалится вместе с повесткой, голосами и его решениями в реестре; задачи по условиям останутся в «Задачах».": "Majlis kun tartibi, ovozlar va reyestrdagi qarorlari bilan birga o‘chiriladi; shartlar bo‘yicha vazifalar «Vazifalar»da qoladi.",
+   "Отменить правку": "Tahrirni bekor qilish",
+   "Решение: {{title}}": "Qaror: {{title}}",
+   "Сохранить сумму, докладчика и решение": "Summa, ma’ruzachi va qarorni saqlash",
+   "Сохранить: {{title}}": "Saqlash: {{title}}"
 }

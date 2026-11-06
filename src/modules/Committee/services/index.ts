@@ -432,6 +432,56 @@ const itemOf = (state: Stored, meetingId: string, itemId: string) => {
    return item;
 };
 
+// A decision's line in the register: the question and the sum asked.
+const subjectOf = (item: AgendaItem) =>
+   [item.title, item.amount && `$${item.amount.toLocaleString('ru-RU')}`]
+      .filter(Boolean)
+      .join(' · ');
+
+// The register's decision on a question of a held meeting: by its deal, or
+// by its title for a question without one.
+const decisionOf = (state: Stored, meeting: Meeting, item: AgendaItem) =>
+   state.decisions.find(
+      (decision) =>
+         decision.meetingId === meeting.id &&
+         (item.dealId
+            ? decision.dealId === item.dealId
+            : !decision.dealId &&
+              decision.subject.split(' · ')[0] === item.title),
+   );
+
+// The register's row of a decision on a question.
+const decisionRow = (
+   decision: CommitteeDecision,
+   meeting: Meeting,
+   item: AgendaItem,
+) => ({
+   guid: decision.id,
+   body: decision.body,
+   meeting_label: decision.meetingLabel,
+   date: decision.date,
+   stage: meeting.body === 'board' ? 'board' : (item.stage ?? 'ic2'),
+   subject: decision.subject,
+   outcome: decision.outcome,
+   note: decision.note,
+   conditions: item.protocol.conditions,
+   meetings_id: meeting.id,
+   deals_id: item.dealId ?? null,
+});
+
+// A held meeting's result, from the decisions on its questions.
+const withResult = (meeting: Meeting): Meeting =>
+   meeting.status === 'held'
+      ? {
+           ...meeting,
+           result: resultOf(
+              meeting.agenda.flatMap(({ kind, outcome }) =>
+                 kind === 'decision' && outcome ? [outcome] : [],
+              ),
+           ),
+        }
+      : meeting;
+
 class Committee {
    // The conditions are tasks, so the register follows the task list too.
    subscribe(listener: () => void) {
@@ -543,32 +593,61 @@ class Committee {
       return meeting;
    }
 
-   // The day, time and format of a meeting not opened yet; the materials'
-   // deadline follows the day.
+   // The day, time and format of a meeting, whatever its state; the
+   // materials' deadline follows the day, and so do the dates of a held
+   // meeting's decisions in the register.
    async updateMeeting(
       id: string,
       input: Pick<Meeting, 'date' | 'time' | 'format'>,
    ) {
       const materialsDue = addWorkingDays(input.date, -IC_RULES.materialsDays);
+      const decided = (await store.get()).decisions.filter(
+         ({ meetingId, date }) => meetingId === id && date !== input.date,
+      );
       await apply(
-         withMeeting(id, (meeting) => ({ ...meeting, ...input, materialsDue })),
+         (state) => ({
+            ...withMeeting(id, (meeting) => ({
+               ...meeting,
+               ...input,
+               materialsDue,
+            }))(state),
+            decisions: state.decisions.map((decision) =>
+               decision.meetingId === id
+                  ? { ...decision, date: input.date }
+                  : decision,
+            ),
+         }),
          async () => {
-            await updateRow('meetings', {
-               guid: id,
-               date: input.date,
-               time: input.time,
-               format: input.format,
-               materials_due: materialsDue,
-            });
+            await Promise.all([
+               updateRow('meetings', {
+                  guid: id,
+                  date: input.date,
+                  time: input.time,
+                  format: input.format,
+                  materials_due: materialsDue,
+               }),
+               ...decided.map((decision) =>
+                  updateRow('decisions', {
+                     guid: decision.id,
+                     date: input.date,
+                  }),
+               ),
+            ]);
             await Promise.all([deals.reload(), work.reloadMeetings()]);
          },
       );
    }
 
-   /* Deletes a meeting that has not opened yet, with its agenda and the
-      people asked to it; its deals no longer wait for it. */
+   /* Deletes a meeting, whatever its state, with its agenda, the people asked
+      to it and the votes; a held meeting's decisions leave the register (the
+      tasks of their conditions stay in Задачи). Its deals no longer wait for
+      it. */
    async deleteMeeting(id: string) {
-      const meeting = meetingOf(await store.get(), id);
+      const before = await store.get();
+      const meeting = meetingOf(before, id);
+      const decided = before.decisions.filter(
+         ({ meetingId }) => meetingId === id,
+      );
       const waiting = (await deals.getDeals()).filter(
          (deal) => deal.committee?.id === id,
       );
@@ -576,10 +655,13 @@ class Committee {
          (state) => ({
             ...state,
             meetings: state.meetings.filter((item) => item.id !== id),
+            decisions: state.decisions.filter(
+               ({ meetingId }) => meetingId !== id,
+            ),
             totals: {
-               ...state.totals,
                meetings:
                   state.totals.meetings - (meeting.body === 'ic' ? 1 : 0),
+               decisions: state.totals.decisions - decided.length,
             },
          }),
          async () => {
@@ -604,6 +686,9 @@ class Committee {
                ...meeting.agenda.map((item) =>
                   deleteRow('agenda_items', item.id),
                ),
+               ...decided.map((decision) =>
+                  deleteRow('decisions', decision.id),
+               ),
                ...waiting.map((deal) =>
                   updateRow('deals', { guid: deal.id, meetings_id: null }),
                ),
@@ -614,7 +699,7 @@ class Committee {
       );
    }
 
-   // Puts deals on the agenda of a meeting that has not opened yet.
+   // Puts deals on the agenda of a meeting, whatever its state.
    async addToAgenda(meetingId: string, dealIds: string[]) {
       const [state, all] = await Promise.all([store.get(), deals.getDeals()]);
       const meeting = meetingOf(state, meetingId);
@@ -642,22 +727,45 @@ class Committee {
       );
    }
 
-   /* Takes a question off the agenda of a meeting that has not been held, with
+   /* Takes a question off the agenda of a meeting, whatever its state, with
       the votes recorded on it: a deal decided at another meeting, or put on
-      this one by mistake. The deal no longer waits for this meeting. */
+      this one by mistake. A held meeting's decision on it leaves the
+      register and the meeting's result follows. The deal no longer waits
+      for this meeting. */
    async removeFromAgenda(meetingId: string, itemId: string) {
       const state = await store.get();
-      const item = meetingOf(state, meetingId).agenda.find(
-         ({ id }) => id === itemId,
-      );
+      const meeting = meetingOf(state, meetingId);
+      const item = meeting.agenda.find(({ id }) => id === itemId);
       if (!item) return;
+      const decided =
+         meeting.status === 'held'
+            ? decisionOf(state, meeting, item)
+            : undefined;
       const all = await deals.getDeals();
       const deal = all.find(({ id }) => id === item.dealId);
       await apply(
-         withMeeting(meetingId, (meeting) => {
-            const agenda = meeting.agenda.filter(({ id }) => id !== itemId);
-            return { ...meeting, agenda, summary: summaryOf(agenda) };
-         }),
+         (current) => {
+            const next = withMeeting(meetingId, (one) => {
+               const agenda = one.agenda.filter(({ id }) => id !== itemId);
+               return withResult({
+                  ...one,
+                  agenda,
+                  summary: summaryOf(agenda),
+               });
+            })(current);
+            return decided
+               ? {
+                    ...next,
+                    decisions: next.decisions.filter(
+                       ({ id }) => id !== decided.id,
+                    ),
+                    totals: {
+                       ...next.totals,
+                       decisions: next.totals.decisions - 1,
+                    },
+                 }
+               : next;
+         },
          async (_, after) => {
             const votes = [...rowIds.votes].filter(([key]) =>
                key.startsWith(`${itemId}/`),
@@ -673,9 +781,117 @@ class Committee {
                updateRow('meetings', {
                   guid: meetingId,
                   summary: meetingOf(after, meetingId).summary,
+                  result: meetingOf(after, meetingId).result,
                }),
+               ...(decided ? [deleteRow('decisions', decided.id)] : []),
                ...(deal?.committee?.id === meetingId
                   ? [updateRow('deals', { guid: deal.id, meetings_id: null })]
+                  : []),
+            ]);
+            await Promise.all([deals.reload(), work.reloadMeetings()]);
+         },
+      );
+   }
+
+   /* A question changed from the table of meetings, whatever the meeting's
+      state: who presents it, the sum asked, and its decision, set or taken
+      back without the vote. A held meeting's decisions are in the register,
+      so there the decision is written, changed or deleted too, and the
+      meeting's result follows; the deals' cards read it from there. */
+   async updateItem(
+      meetingId: string,
+      itemId: string,
+      input: Pick<AgendaItem, 'speakerId' | 'amount' | 'outcome'>,
+   ) {
+      const state = await store.get();
+      const meeting = meetingOf(state, meetingId);
+      const item = itemOf(state, meetingId, itemId);
+      const changed: AgendaItem = {
+         ...item,
+         ...input,
+         // the sponsor's word or the reason belongs to the decision it was given for
+         outcomeNote: input.outcome === item.outcome ? item.outcomeNote : '',
+      };
+      const held = meeting.status === 'held';
+      const found = held ? decisionOf(state, meeting, item) : undefined;
+      const decision: CommitteeDecision | null =
+         held && changed.kind === 'decision' && changed.outcome
+            ? {
+                 id: found?.id ?? newId(),
+                 meetingId,
+                 body: meeting.body,
+                 meetingLabel:
+                    found?.meetingLabel ??
+                    `${BODY_NAMES[meeting.body]} № ${meeting.number}`,
+                 date: found?.date ?? meeting.date,
+                 subject: subjectOf(changed),
+                 outcome: changed.outcome,
+                 note: changed.outcomeNote || changed.protocol.conditions,
+                 dealId: changed.dealId,
+              }
+            : null;
+      await apply(
+         (current) => {
+            const next = withMeeting(meetingId, (one) =>
+               withResult({
+                  ...one,
+                  agenda: one.agenda.map((each) =>
+                     each.id === itemId ? changed : each,
+                  ),
+               }),
+            )(current);
+            const decisions = found
+               ? decision
+                  ? next.decisions.map((each) =>
+                       each.id === found.id ? decision : each,
+                    )
+                  : next.decisions.filter(({ id }) => id !== found.id)
+               : decision
+                 ? [decision, ...next.decisions]
+                 : next.decisions;
+            return {
+               ...next,
+               decisions,
+               totals: {
+                  ...next.totals,
+                  decisions:
+                     next.totals.decisions +
+                     decisions.length -
+                     next.decisions.length,
+               },
+            };
+         },
+         async (_, after) => {
+            await Promise.all([
+               updateRow('agenda_items', {
+                  guid: itemId,
+                  speaker_id: changed.speakerId,
+                  amount: changed.amount ?? null,
+                  outcome: changed.outcome ?? '',
+                  outcome_note: changed.outcomeNote,
+               }),
+               ...(held
+                  ? [
+                       updateRow('meetings', {
+                          guid: meetingId,
+                          result: meetingOf(after, meetingId).result,
+                       }),
+                       decision
+                          ? found
+                             ? updateRow('decisions', {
+                                  guid: found.id,
+                                  subject: decision.subject,
+                                  outcome: decision.outcome,
+                                  note: decision.note,
+                               })
+                             : createRow(
+                                  'decisions',
+                                  decisionRow(decision, meeting, changed),
+                               )
+                          : found
+                            ? deleteRow('decisions', found.id)
+                            : Promise.resolve(),
+                    ]
                   : []),
             ]);
             await Promise.all([deals.reload(), work.reloadMeetings()]);
@@ -990,12 +1206,7 @@ class Committee {
          body: meeting.body,
          meetingLabel,
          date: meeting.date,
-         subject: [
-            item.title,
-            item.amount && `$${item.amount.toLocaleString('ru-RU')}`,
-         ]
-            .filter(Boolean)
-            .join(' · '),
+         subject: subjectOf(item),
          outcome: item.outcome as ItemOutcome,
          note: item.outcomeNote || item.protocol.conditions,
          dealId: item.dealId,
@@ -1031,25 +1242,12 @@ class Committee {
                         outcome: 'noted',
                      }),
                   ),
-               ...decisions.map((decision, index) => {
-                  const item = decided[index];
-                  return createRow('decisions', {
-                     guid: decision.id,
-                     body: decision.body,
-                     meeting_label: decision.meetingLabel,
-                     date: decision.date,
-                     stage:
-                        meeting.body === 'board'
-                           ? 'board'
-                           : (item.stage ?? 'ic2'),
-                     subject: decision.subject,
-                     outcome: decision.outcome,
-                     note: decision.note,
-                     conditions: item.protocol.conditions,
-                     meetings_id: meeting.id,
-                     deals_id: item.dealId ?? null,
-                  });
-               }),
+               ...decisions.map((decision, index) =>
+                  createRow(
+                     'decisions',
+                     decisionRow(decision, meeting, decided[index]),
+                  ),
+               ),
             ]);
             // the conditions of an approval: a task for the deal's owner
             for (const [index, item] of decided.entries()) {

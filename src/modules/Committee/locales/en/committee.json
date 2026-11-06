@@ -439,5 +439,16 @@
    "Закончить заседание и собрать протокол из повестки и голосов": "End the meeting and build the minutes from the agenda and votes",
    "Сначала примите решение по каждому вопросу повестки": "First decide each item on the agenda",
    "Включить сделку в повестку или убрать из неё": "Add the deal to the agenda or take it off",
-   "Включить человека в состав заседания или убрать": "Add this person to the meeting or take them off"
+   "Включить человека в состав заседания или убрать": "Add this person to the meeting or take them off",
+   "Без решения": "No decision",
+   "Вопрос сохранён": "Question saved",
+   "Вопрос уйдёт из повестки вместе с голосами; решение по нему удалится из реестра.": "The question leaves the agenda with its votes; its decision is deleted from the register.",
+   "Выйти из правки, ничего не меняя": "Leave editing without changing anything",
+   "Докладчик: {{title}}": "Speaker: {{title}}",
+   "Запрос, USD: {{title}}": "Amount asked, USD: {{title}}",
+   "Заседание удалится вместе с повесткой, голосами и его решениями в реестре; задачи по условиям останутся в «Задачах».": "The meeting is deleted with its agenda, votes and its decisions in the register; the tasks of their conditions stay in «Tasks».",
+   "Отменить правку": "Cancel editing",
+   "Решение: {{title}}": "Decision: {{title}}",
+   "Сохранить сумму, докладчика и решение": "Save the amount, the speaker and the decision",
+   "Сохранить: {{title}}": "Save: {{title}}"
 }

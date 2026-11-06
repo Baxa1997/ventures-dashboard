@@ -1810,6 +1810,18 @@ New fields in the existing table cabinet_members
 - whatsapp: SINGLE_LINE
 ```
 
+## Batch 24 — a pilot's sponsor and budget
+
+«Пилоты SQB» on a portfolio company's card lists, as the prototype has it, who backs each pilot in the bank and what it costs. Until the fields exist ucode drops them, and the pilot's window says so.
+
+```
+Batch 24. Same rules.
+
+New fields in the existing table pilots
+- sponsor: SINGLE_LINE
+- budget: NUMBER
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

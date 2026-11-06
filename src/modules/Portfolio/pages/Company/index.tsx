@@ -2,7 +2,6 @@ import CompanyDialog from '@modules/Portfolio/components/CompanyDialog';
 import DataRequestDialog from '@modules/Portfolio/components/DataRequestDialog';
 import ExitDialog from '@modules/Portfolio/components/ExitDialog';
 import FollowOnDialog from '@modules/Portfolio/components/FollowOnDialog';
-import QuarterMetricsDialog from '@modules/Portfolio/components/QuarterMetricsDialog';
 import ValuationDialog from '@modules/Portfolio/components/ValuationDialog';
 import {
    CARD_TAB_LABELS,
@@ -11,7 +10,6 @@ import {
    OLD_CARD_TABS,
    PORTFOLIO_PATH,
 } from '@modules/Portfolio/constants';
-import { quarterLabel } from '@modules/Portfolio/helpers';
 import {
    type PortfolioData,
    useCompanyTasks,
@@ -19,12 +17,13 @@ import {
 } from '@modules/Portfolio/hooks';
 import portfolio from '@modules/Portfolio/services';
 import { useDeals } from '@modules/Deals/hooks';
+import DealChat from '@modules/Deals/pages/Deal/components/DealChat';
 import { isDone } from '@modules/Work/helpers';
 import {
-   Button,
    Card,
    ConfirmDialog,
    Loading,
+   type MenuAction,
    NoData,
    PageBody,
    PageHeader,
@@ -32,16 +31,21 @@ import {
 } from '@shared/components';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import {
+   FileQuestion,
    FlaskConical,
    FolderLock,
+   Handshake,
    LayoutPanelLeft,
    ListChecks,
+   LogOut,
    type LucideIcon,
+   RotateCcw,
+   Repeat,
    TableProperties,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import CompanyHeader from './components/CompanyHeader';
 import DataRoomTab from './components/DataRoomTab';
 import Metrics from './components/Metrics';
@@ -114,6 +118,7 @@ interface ViewProps {
    active again. */
 const CompanyView = ({ data, company }: ViewProps) => {
    const { t } = useTranslation('portfolio');
+   const navigate = useNavigate();
    const [params, setParams] = useSearchParams();
    const tab = toTab(params.get('tab'));
    const { deals } = useDeals();
@@ -125,9 +130,7 @@ const CompanyView = ({ data, company }: ViewProps) => {
    const [valuing, setValuing] = useState(false);
    const [exiting, setExiting] = useState(false);
    const [reopening, setReopening] = useState(false);
-   // the quarter whose figures are being entered, or asked to be deleted
-   const [editingQuarter, setEditingQuarter] = useState<string | null>(null);
-   const [removingQuarter, setRemovingQuarter] = useState<string | null>(null);
+   const [chatting, setChatting] = useState(false);
    const active = company.status === 'active';
    const dataRequests = data.dataRequests.filter(
       ({ companyId }) => companyId === company.id,
@@ -142,49 +145,62 @@ const CompanyView = ({ data, company }: ViewProps) => {
    const select = (next: CardTab) =>
       setParams(next === 'overview' ? {} : { tab: next }, { replace: true });
 
-   const actions = active ? (
-      <>
-         <Button
-            hint={t(
-               'Попросить у компании данные: запрос появится в её кабинете',
-            )}
-            variant='ghost'
-            onClick={() => setRequesting(true)}
-         >
-            {t('Запросить данные')}
-         </Button>
-         <Button
-            hint={t('Записать продажу доли или списание компании')}
-            variant='ghost'
-            onClick={() => setExiting(true)}
-         >
-            {t('Оформить выход')}
-         </Button>
-         <Button
-            hint={t('Открыть новую сделку follow-on по этой компании')}
-            onClick={() => setFollowOn(true)}
-         >
-            {t('Открыть follow-on')}
-         </Button>
-      </>
-   ) : (
-      <>
-         <Button
-            hint={t('Изменить данные о выходе')}
-            variant='ghost'
-            onClick={() => setExiting(true)}
-         >
-            {t('Изменить выход')}
-         </Button>
-         <Button
-            hint={t('Снять выход и вернуть компанию в активные')}
-            variant='ghost'
-            onClick={() => setReopening(true)}
-         >
-            {t('Вернуть в активные')}
-         </Button>
-      </>
-   );
+   const toDeal: MenuAction[] = company.dealId
+      ? [
+           {
+              label: t('Открыть сделку'),
+              icon: Handshake,
+              hint: t('Открыть сделку этой компании'),
+              onSelect: () => navigate(`/deals/${company.dealId}`),
+           },
+        ]
+      : [];
+
+   /* The company's steps under the head's «⋯», as the deal's: the main one
+      in the accent colour (a follow-on, or making an exited company active
+      again), then asking for data and the deal it came from, and the exit
+      last. */
+   const menu: MenuAction[] = active
+      ? [
+           {
+              label: t('Открыть follow-on'),
+              icon: Repeat,
+              accent: true,
+              hint: t('Открыть новую сделку follow-on по этой компании'),
+              onSelect: () => setFollowOn(true),
+           },
+           {
+              label: t('Запросить данные'),
+              icon: FileQuestion,
+              hint: t(
+                 'Попросить у компании данные: запрос появится в её кабинете',
+              ),
+              onSelect: () => setRequesting(true),
+           },
+           ...toDeal,
+           {
+              label: t('Оформить выход'),
+              icon: LogOut,
+              hint: t('Записать продажу доли или списание компании'),
+              onSelect: () => setExiting(true),
+           },
+        ]
+      : [
+           {
+              label: t('Вернуть в активные'),
+              icon: RotateCcw,
+              accent: true,
+              hint: t('Снять выход и вернуть компанию в активные'),
+              onSelect: () => setReopening(true),
+           },
+           {
+              label: t('Изменить выход'),
+              icon: LogOut,
+              hint: t('Изменить данные о выходе'),
+              onSelect: () => setExiting(true),
+           },
+           ...toDeal,
+        ];
 
    return (
       <>
@@ -195,9 +211,10 @@ const CompanyView = ({ data, company }: ViewProps) => {
          />
          <PageBody className='flex flex-col pt-5'>
             <CompanyHeader
-               actions={actions}
                company={company}
                deal={deal}
+               menu={menu}
+               onChat={deal && (() => setChatting(true))}
                onEdit={() => setEditing(true)}
             />
             <div className='border-line print-hidden mb-4.5 border-b'>
@@ -224,14 +241,11 @@ const CompanyView = ({ data, company }: ViewProps) => {
                />
             )}
             {tab === 'metrics' && (
-               <Metrics
-                  company={company}
-                  cycle={data.cycle}
-                  onDelete={setRemovingQuarter}
-                  onEdit={setEditingQuarter}
-               />
+               <Metrics company={company} cycle={data.cycle} />
             )}
-            {tab === 'pilots' && <Pilots company={company} />}
+            {tab === 'pilots' && (
+               <Pilots company={company} fields={data.pilotFields} />
+            )}
             {tab === 'tasks' && <Tasks company={company} />}
             {tab === 'dataroom' && (
                <DataRoomTab
@@ -281,31 +295,13 @@ const CompanyView = ({ data, company }: ViewProps) => {
             open={followOn}
             onClose={() => setFollowOn(false)}
          />
-         <QuarterMetricsDialog
-            company={company}
-            initial={editingQuarter ?? undefined}
-            open={editingQuarter !== null}
-            quarter={data.cycle.quarter}
-            onClose={() => setEditingQuarter(null)}
-         />
-         <ConfirmDialog
-            open={removingQuarter !== null}
-            subtitle={company.name}
-            title={t('Удалить показатели за {{quarter}}?', {
-               quarter: removingQuarter ? quarterLabel(t, removingQuarter) : '',
-            })}
-            onClose={() => setRemovingQuarter(null)}
-            onConfirm={() =>
-               removingQuarter &&
-               portfolio.deleteQuarterMetrics(company.id, removingQuarter)
-            }
-         >
-            <p>
-               {t(
-                  'Все цифры компании за квартал удалятся; документы отчёта останутся.',
-               )}
-            </p>
-         </ConfirmDialog>
+         {deal && (
+            <DealChat
+               deal={deal}
+               open={chatting}
+               onClose={() => setChatting(false)}
+            />
+         )}
       </>
    );
 };

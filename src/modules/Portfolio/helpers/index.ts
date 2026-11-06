@@ -1,5 +1,10 @@
 import { itemOf, listOf, nameOf } from '@modules/Settings/services';
-import { formatDate, formatNumber, todayISO } from '@shared/helpers';
+import {
+   formatDate,
+   formatNumber,
+   parseAmount,
+   todayISO,
+} from '@shared/helpers';
 import dayjs from 'dayjs';
 import type {
    CompanyRequest,
@@ -102,6 +107,19 @@ export const recentQuarters = (quarter: string, count = QUARTERS_SHOWN) => {
    return quarters;
 };
 
+// The months the metrics table shows, oldest first, ending with the last
+// closed month: 2026-11-06 → … 2026-10.
+export const recentMonths = (count: number, today = todayISO()) =>
+   Array.from({ length: count }, (_, index) =>
+      dayjs(today)
+         .subtract(count - index, 'month')
+         .format('YYYY-MM'),
+   );
+
+// 2026-09 → "сен 26"; with `long`, "сентябрь 2026"
+export const monthLabel = (month: string, long = false) =>
+   dayjs(`${month}-01`).format(long ? 'MMMM YYYY' : 'MMM YY');
+
 // The reporting deadline of a quarter and its automatic reminder.
 export const reportDates = (quarter: string) => {
    const [year, q] = quarter.split('-Q').map(Number);
@@ -186,6 +204,28 @@ export const nowOf = (
    if (report?.metrics === 'confirmed' && !company.now)
       return { text: t('Показатели за квартал подтверждены'), late: false };
    return { text: company.now || '—', late: false };
+};
+
+// What a metric is counted in, after its name: USD, %, мес
+export const metricUnit = (t: T, metric: Metric) =>
+   metric.format === 'usd'
+      ? 'USD'
+      : metric.format === 'percent'
+        ? '%'
+        : metric.format === 'months'
+          ? t('мес')
+          : '';
+
+/* A figure as typed: a sum or a count takes "12 000" or "12,000"; a
+   percent's or a month's comma is a decimal point. '' is no figure (null),
+   and text that is not a number is NaN. */
+export const parseMetric = (text: string, format: MetricFormat) => {
+   if (text.trim() === '') return null;
+   const value =
+      format === 'usd' || format === 'number'
+         ? parseAmount(text)
+         : Number(text.replace(/\s/g, '').replace(',', '.').replace('−', '-'));
+   return Number.isFinite(value) ? value : NaN;
 };
 
 // $38 200, 71%, 14 мес, 212; −$18 500

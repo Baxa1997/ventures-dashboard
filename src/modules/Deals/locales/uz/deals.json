@@ -1038,5 +1038,14 @@
    "участник": "ishtirokchi",
    "Команда и капитал": "Jamoa va kapital",
    "Основное": "Asosiy",
-   "Реквизиты и контакты": "Rekvizitlar va kontaktlar"
+   "Реквизиты и контакты": "Rekvizitlar va kontaktlar",
+   "«{{title}}» перемещён в «{{folder}}»": "«{{title}}» «{{folder}}» papkasiga ko‘chirildi",
+   "В папку": "Papkaga",
+   "Можно и перетащить: возьмите строку документа и отпустите её на папке слева.": "Sudrab ham olish mumkin: hujjat qatorini ushlab, chapdagi papka ustiga qo‘yib yuboring.",
+   "Отпустите, чтобы переместить сюда": "Bu yerga ko‘chirish uchun qo‘yib yuboring",
+   "Переместить": "Ko‘chirish",
+   "Переместить документ": "Hujjatni ko‘chirish",
+   "Переместить документ в выбранную папку": "Hujjatni tanlangan papkaga ko‘chirish",
+   "Переместить документ в другую папку": "Hujjatni boshqa papkaga ko‘chirish",
+   "Чтобы переместить файл, перетащите его на папку слева.": "Faylni ko‘chirish uchun uni chapdagi papka ustiga sudrang."
 }

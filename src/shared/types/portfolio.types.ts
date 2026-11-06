@@ -35,7 +35,8 @@ export type MetricKey = string;
 export interface Metric {
    key: MetricKey;
    format: MetricFormat;
-   values: Record<string, number | null>; // quarter → value
+   values: Record<string, number | null>; // quarter (2026-Q3) → value
+   months: Record<string, number | null>; // month (2026-09) → value, the fund's own
 }
 
 export type PilotStatus = 'planned' | 'in_progress' | 'success' | 'failed';
@@ -44,6 +45,8 @@ export interface Pilot {
    id: string;
    title: string;
    customer: string; // the bank's unit or its client the pilot runs with
+   sponsor: string; // who backs it in the bank (batch 24), '' when not set
+   budget: number | null; // USD (batch 24)
    status: PilotStatus;
    note: string; // its aim, or how it went
    startedAt: string; // YYYY-MM-DD, '' when not set

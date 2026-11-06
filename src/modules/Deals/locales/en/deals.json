@@ -1038,5 +1038,14 @@
    "участник": "shareholder",
    "Команда и капитал": "Team and capital",
    "Основное": "Main",
-   "Реквизиты и контакты": "Details and contacts"
+   "Реквизиты и контакты": "Details and contacts",
+   "«{{title}}» перемещён в «{{folder}}»": "«{{title}}» moved to «{{folder}}»",
+   "В папку": "To folder",
+   "Можно и перетащить: возьмите строку документа и отпустите её на папке слева.": "You can also drag it: pick up the document’s row and drop it on a folder on the left.",
+   "Отпустите, чтобы переместить сюда": "Drop to move it here",
+   "Переместить": "Move",
+   "Переместить документ": "Move document",
+   "Переместить документ в выбранную папку": "Move the document to the chosen folder",
+   "Переместить документ в другую папку": "Move the document to another folder",
+   "Чтобы переместить файл, перетащите его на папку слева.": "To move a file, drag it onto a folder on the left."
 }
