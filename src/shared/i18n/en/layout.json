@@ -98,5 +98,15 @@
    "Открыть меню профиля и выхода": "Open the profile and sign-out menu",
    "Сайт": "Website",
    "Данные сайта: таблицы разделов, портфель, новости, FAQ и контакты": "The site’s data: section tables, portfolio, news, FAQ and contacts",
-   "Ваш доступ к панели закрыт. Обратитесь к директору фонда.": "Your access to the panel is closed. Ask the fund’s director."
+   "Ваш доступ к панели закрыт. Обратитесь к директору фонда.": "Your access to the panel is closed. Ask the fund’s director.",
+   "Этот раздел вам закрыт. Права даёт директор в Настройках → Роли.": "This section is closed to you. The director gives rights in Settings → Roles.",
+   "На дашборд": "To the dashboard",
+   "Чат и письма": "Chat and mail",
+   "Группы сделок: переписка команды по каждой сделке": "Deal groups: the team's conversation on each deal",
+   "P&L": "P&L",
+   "Cash Flow": "Cash Flow",
+   "Транзакции": "Transactions",
+   "Доходы и расходы фонда по месяцам против бюджета": "The fund's income and expenses by month against the budget",
+   "Движение денег на счетах фонда по видам деятельности": "The money on the fund's accounts by activity",
+   "Операции из банковских выписок и их статьи": "Operations from bank statements and their line items"
 }

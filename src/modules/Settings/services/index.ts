@@ -31,12 +31,16 @@ import type {
    ItemFile,
    Access,
    EscalateTo,
+   FundRules,
    IndustryMandate,
    ItemTone,
    ListItem,
    ListItemInput,
    ListKind,
    QuestionSection,
+   Right,
+   RightSection,
+   RoleRights,
    SettingsState,
    StaffCredentials,
    StaffInput,
@@ -48,7 +52,14 @@ import type {
    StatusGroup,
 } from '@shared/types/settings.types';
 import type { Vendor, VendorInput } from '@shared/types/procurement.types';
-import { BUILT_IN_LISTS, COLORED_LISTS, DEFAULT_STAGES } from '../constants';
+import {
+   BUILT_IN_LISTS,
+   COLORED_LISTS,
+   DEFAULT_RIGHTS,
+   DEFAULT_RULES,
+   DEFAULT_STAGES,
+   RIGHT_SECTION_INFO,
+} from '../constants';
 import { BUILT_IN_QUESTIONNAIRE } from '../constants/questionnaire';
 import type { SupportedLanguageType } from '@shared/types/system/language.types';
 import type { Role } from '@shared/types/work.types';
@@ -458,22 +469,87 @@ const byCreated = (a: Row, b: Row) =>
 // The row behind the rules, to write changes back to.
 let rowIds = { settings: '' };
 
+// The columns of fund_settings that hold the rules; batch 25 made the last five.
+const RULE_COLUMNS = {
+   icQuorum: 'ic_quorum',
+   icMaterialsDays: 'ic_materials_days',
+   icDiscussionAt: 'ic_discussion_at',
+   icRejectAt: 'ic_reject_at',
+   requestAnswerDays: 'request_answer_days',
+   reportsDueDay: 'reports_due_day',
+   reportsReminderDays: 'reports_reminder_days',
+   contractExpiringDays: 'contract_expiring_days',
+   profitTaxRate: 'profit_tax_rate',
+   meetingFormats: 'meeting_formats',
+   roleRights: 'role_rights',
+} as const satisfies Record<keyof FundRules, string>;
+
+// A number the row holds, or the rule's default while it is empty.
+const ruleNumber = (value: unknown, fallback: number) =>
+   value === null || value === undefined || value === ''
+      ? fallback
+      : Number(value);
+
+const rulesFrom = (row: Partial<Row>): FundRules => {
+   const formats = fromJson<string[]>(row.meeting_formats, []).filter(Boolean);
+   return {
+      icQuorum: ruleNumber(row.ic_quorum, DEFAULT_RULES.icQuorum),
+      icMaterialsDays: ruleNumber(
+         row.ic_materials_days,
+         DEFAULT_RULES.icMaterialsDays,
+      ),
+      icDiscussionAt: ruleNumber(
+         row.ic_discussion_at,
+         DEFAULT_RULES.icDiscussionAt,
+      ),
+      icRejectAt: ruleNumber(row.ic_reject_at, DEFAULT_RULES.icRejectAt),
+      meetingFormats: formats.length ? formats : DEFAULT_RULES.meetingFormats,
+      requestAnswerDays: ruleNumber(
+         row.request_answer_days,
+         DEFAULT_RULES.requestAnswerDays,
+      ),
+      reportsDueDay: ruleNumber(
+         row.reports_due_day,
+         DEFAULT_RULES.reportsDueDay,
+      ),
+      reportsReminderDays: ruleNumber(
+         row.reports_reminder_days,
+         DEFAULT_RULES.reportsReminderDays,
+      ),
+      contractExpiringDays: ruleNumber(
+         row.contract_expiring_days,
+         DEFAULT_RULES.contractExpiringDays,
+      ),
+      profitTaxRate: ruleNumber(
+         row.profit_tax_rate,
+         DEFAULT_RULES.profitTaxRate,
+      ),
+      roleRights: fromJson<RoleRights>(row.role_rights, {}),
+   };
+};
+
 const store = createStore<SettingsState>(async () => {
-   const [settingsRows, normRows, journal, employees, vendorRows, ...listRowsOf] =
-      await Promise.all([
-         listRows('fund_settings'),
-         listRows('stage_norms'),
-         listRows('settings_journal'),
-         listRows('employees'),
-         // null until batch 18 has made the table
-         listRows('vendors').catch(() => null),
-         // a list with built-in rows may not have its table yet
-         ...LIST_KINDS.map((kind) =>
-            BUILT_IN_LISTS[kind]
-               ? listRows(LIST_TABLES[kind].table).catch(() => [])
-               : listRows(LIST_TABLES[kind].table),
-         ),
-      ]);
+   const [
+      settingsRows,
+      normRows,
+      journal,
+      employees,
+      vendorRows,
+      ...listRowsOf
+   ] = await Promise.all([
+      listRows('fund_settings'),
+      listRows('stage_norms'),
+      listRows('settings_journal'),
+      listRows('employees'),
+      // null until batch 18 has made the table
+      listRows('vendors').catch(() => null),
+      // a list with built-in rows may not have its table yet
+      ...LIST_KINDS.map((kind) =>
+         BUILT_IN_LISTS[kind]
+            ? listRows(LIST_TABLES[kind].table).catch(() => [])
+            : listRows(LIST_TABLES[kind].table),
+      ),
+   ]);
    const row: Partial<Row> = settingsRows[0] ?? {};
    rowIds = { settings: row.guid ?? '' };
    return {
@@ -519,9 +595,14 @@ const store = createStore<SettingsState>(async () => {
       vendorsStored: vendorRows !== null,
       // an empty list the fund left is kept; no field, or never set: the design's
       questionnaire: row.questionnaire
-         ? fromJson<QuestionSection[]>(row.questionnaire, BUILT_IN_QUESTIONNAIRE)
+         ? fromJson<QuestionSection[]>(
+              row.questionnaire,
+              BUILT_IN_QUESTIONNAIRE,
+           )
          : BUILT_IN_QUESTIONNAIRE,
       questionnaireStored: 'questionnaire' in row,
+      rules: rulesFrom(row),
+      rulesStored: 'role_rights' in row,
    };
 });
 
@@ -569,6 +650,29 @@ export const hintOf = (item: ListItem) =>
 export const namesIn = (names: Record<SupportedLanguageType, string>) =>
    names[language()] || names.ru;
 
+// The fund's rules as Настройки set them (the defaults until they are read).
+export const rulesOf = () => currentSettings()?.rules ?? DEFAULT_RULES;
+
+/* What a person may do in a section, as Настройки → Роли say: the director
+   everything, whatever the table; anyone else their role's right there, the
+   default while the table has not changed it. «Доступ: Полный» on a person
+   opens every deal. A right the section does not offer reads as the
+   nearest one it does. */
+export const rightOf = (
+   person: { role: Role; access?: Access },
+   section: RightSection,
+): Right => {
+   if (person.role === 'director') return 'full';
+   if (section === 'deals' && person.access === 'full') return 'full';
+   const right =
+      rulesOf().roleRights[person.role]?.[section] ??
+      DEFAULT_RIGHTS[person.role]?.[section] ??
+      DEFAULT_RIGHTS.other[section];
+   const allowed: readonly Right[] = RIGHT_SECTION_INFO[section].rights;
+   if (allowed.includes(right)) return right;
+   return right === 'own' ? 'read' : allowed.includes('read') ? 'read' : 'none';
+};
+
 // The founder's questionnaire as it is now (the design's until Настройки are read).
 export const questionnaireOf = () =>
    currentSettings()?.questionnaire ?? BUILT_IN_QUESTIONNAIRE;
@@ -614,6 +718,39 @@ class Settings {
 
    async getSettings(): Promise<SettingsState> {
       return store.get();
+   }
+
+   /* Writes a change made outside Настройки to the journal, as Финансы do
+      for a statement loaded or deleted, an operation, an account, a line
+      item, a rule or a budget. A journal that fails to save does not undo
+      the change: it is said in the console. */
+   async log(userId: string, field: string, from: string, to: string) {
+      const change = {
+         id: newId(),
+         date: todayISO(),
+         userId,
+         field,
+         from,
+         to,
+      };
+      try {
+         await createRow('settings_journal', {
+            guid: change.id,
+            date: change.date,
+            employee_id: userId,
+            field,
+            from_value: from,
+            to_value: to,
+         });
+      } catch (error) {
+         console.error(error);
+         return;
+      }
+      if (store.peek())
+         store.set((state) => ({
+            ...state,
+            journal: [change, ...state.journal],
+         }));
    }
 
    // Saves the rules; every changed value goes to the journal.
@@ -772,6 +909,49 @@ class Settings {
          from_value: from,
          to_value: '',
       });
+      await store.reload();
+   }
+
+   /* Changes some of the fund's rules where they stand in Настройки: each
+      changed value goes to the journal, named as `labels` name it. */
+   async saveRules(
+      patch: Partial<FundRules>,
+      userId: string,
+      labels: Partial<Record<keyof FundRules, string>>,
+   ) {
+      const state = await store.get();
+      const text = (value: unknown) =>
+         typeof value === 'object' ? JSON.stringify(value) : String(value);
+      const changed = (Object.keys(patch) as (keyof FundRules)[]).filter(
+         (key) => text(patch[key]) !== text(state.rules[key]),
+      );
+      if (!changed.length) return;
+      const columns = Object.fromEntries(
+         changed.map((key) => {
+            const value = patch[key];
+            return [
+               RULE_COLUMNS[key],
+               typeof value === 'object' ? toJson(value) : value,
+            ];
+         }),
+      );
+      const today = todayISO();
+      await Promise.all([
+         rowIds.settings
+            ? updateRow('fund_settings', { guid: rowIds.settings, ...columns })
+            : createRow('fund_settings', { guid: newId(), ...columns }),
+         ...changed.map((key) =>
+            createRow('settings_journal', {
+               guid: newId(),
+               date: today,
+               employee_id: userId,
+               field: labels[key] ?? key,
+               // the rights' table is too long to quote: the journal names it
+               from_value: key === 'roleRights' ? '' : text(state.rules[key]),
+               to_value: key === 'roleRights' ? '' : text(patch[key]),
+            }),
+         ),
+      ]);
       await store.reload();
    }
 

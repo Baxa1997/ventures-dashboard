@@ -1,6 +1,6 @@
 import { COMMITTEE_PATH } from '@modules/Committee/constants';
 import { DEALS_PATH } from '@modules/Deals/constants';
-import { isOpen, isSharedFolder } from '@modules/Deals/helpers';
+import { isOpen, isSharedFolder, placeOf } from '@modules/Deals/helpers';
 import {
    DocumentForm,
    FolderForm,
@@ -216,6 +216,42 @@ const FileManager = ({
       else if (node.url) openUrl(node.url);
       else if (subject.type === 'deal_document')
          navigate(dealPage(subject.deal, subject.document.folderId));
+   };
+
+   /* A deal's document dragged by its handle onto a folder of the same
+      deal's data room moves there, while the deal is in work. */
+   const mover = useAction(
+      (deal: Deal, document: DealDocument, folder: DealFolder) =>
+         deals.updateDocument(deal.id, document.id, {
+            title: document.title,
+            folderId: folder.id,
+         }),
+      {
+         success: (_, document, folder) =>
+            t('«{{title}}» перемещён в «{{folder}}»', {
+               title: document.title,
+               folder: folder.name,
+            }),
+      },
+   );
+   const canDrag = (node: FileNode) =>
+      node.subject.type === 'deal_document' && isOpen(node.subject.deal);
+   const canDrop = (dragged: FileNode, target: FileNode) =>
+      dragged.subject.type === 'deal_document' &&
+      target.subject.type === 'deal_folder' &&
+      target.subject.deal.id === dragged.subject.deal.id &&
+      placeOf(dragged.subject.deal, dragged.subject.document) !==
+         target.subject.folder.id;
+   const dropNode = (dragged: FileNode, target: FileNode) => {
+      if (
+         dragged.subject.type === 'deal_document' &&
+         target.subject.type === 'deal_folder'
+      )
+         void mover.run(
+            dragged.subject.deal,
+            dragged.subject.document,
+            target.subject.folder,
+         );
    };
 
    const actionsOf = (node: FileNode): MenuAction[] => {
@@ -502,6 +538,9 @@ const FileManager = ({
                   view === 'list' ? (
                      <FileList
                         actionsOf={actionsOf}
+                        canDrag={canDrag}
+                        canDrop={canDrop}
+                        onDropNode={dropNode}
                         dir={sort.dir}
                         hintOf={hintOf}
                         marked={marked && `fd:${marked}`}

@@ -1,9 +1,11 @@
 import { normalHandle } from '@modules/Deals/helpers';
 import { CABINET_ROLES } from '@modules/Portfolio/constants';
-import { Switch } from '@shared/components';
+import { STICKY_HEAD, Switch, TABLE_BOX } from '@shared/components';
+import { useStickyHead } from '@shared/hooks';
 import type { CabinetTeamRow } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import { Plus, X } from 'lucide-react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // A person as the form holds them; `key` tells the rows apart while they change.
@@ -23,6 +25,8 @@ export type TeamField = 'name' | 'email' | 'telegram' | 'whatsapp';
 
 const CELL = 'field-input h-8 px-2 text-meta';
 const HEAD = 'text-ink-soft px-1 pb-1 text-left text-xs font-semibold';
+// the column names, when they stay in view, cover the gaps beside them too
+const HEAD_ROW = '[&>th]:shadow-[0_0_0_4px_var(--color-white)]';
 const ADD =
    'border-line text-ink hover:bg-hover inline-flex h-7 items-center gap-1.5 rounded-md border bg-white px-2.5 text-xs font-semibold';
 const REMOVE =
@@ -57,6 +61,8 @@ export const TeamTable = ({
    onAdd,
    onRemove,
 }: TeamTableProps) => {
+   const table = useRef<HTMLTableElement>(null);
+   useStickyHead(table);
    const { t } = useTranslation('deals');
    const { t: tp } = useTranslation('portfolio');
    const set = (key: string, patch: Partial<TeamDraft>) =>
@@ -89,10 +95,13 @@ export const TeamTable = ({
 
    return (
       <div>
-         <div className='-mx-1 overflow-x-auto'>
-            <table className='w-full min-w-[46rem] border-separate border-spacing-x-1 border-spacing-y-1'>
-               <thead>
-                  <tr>
+         <div className={clsx(TABLE_BOX, '-mx-1')}>
+            <table
+               ref={table}
+               className='w-full min-w-[46rem] border-separate border-spacing-x-1 border-spacing-y-1'
+            >
+               <thead className={STICKY_HEAD}>
+                  <tr className={HEAD_ROW}>
                      <th className={HEAD}>{t('Имя')}</th>
                      <th className={clsx(HEAD, 'w-28')}>{t('Роль')}</th>
                      <th className={HEAD}>{t('Email (логин)')}</th>
@@ -227,8 +236,8 @@ export const CapitalTable = ({
 
    return (
       <table className='-mx-1 w-[calc(100%+0.5rem)] border-separate border-spacing-x-1 border-spacing-y-1'>
-         <thead>
-            <tr>
+         <thead className={STICKY_HEAD}>
+            <tr className={HEAD_ROW}>
                <th className={HEAD}>{t('Участник')}</th>
                <th className={HEAD}>{t('Роль')}</th>
                <th className={clsx(HEAD, 'w-24')}>{t('Доля, %')}</th>

@@ -252,5 +252,8 @@
    "Без метки": "No label",
    "Статусы заявки": "Application statuses",
    "Список в блоке «Аккаунт основателя».": "The list in the “Founder Account” block.",
-   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте.": "The data from the site’s code goes only to the empty tables; the filled ones do not change. The portfolio companies appear on the site at once."
+   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте.": "The data from the site’s code goes only to the empty tables; the filled ones do not change. The portfolio companies appear on the site at once.",
+   "Сайт вам закрыт: право на него даёт директор в Настройках → Роли.": "The website is closed to you: the director gives the right in Settings → Roles.",
+   "Язык текстов в таблице": "Language of the table's texts",
+   "Нет текста на этом языке": "No text in this language"
 }

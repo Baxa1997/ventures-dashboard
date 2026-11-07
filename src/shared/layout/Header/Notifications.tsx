@@ -16,6 +16,7 @@ import {
    Stamp,
    UserPlus,
 } from 'lucide-react';
+import { readPref, writePref } from '@shared/services/prefs';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -31,24 +32,14 @@ const ICONS: Record<Notice['kind'], LucideIcon> = {
 const NOTICE =
    'border-line hover:bg-hover flex w-full gap-2.5 border-b px-3.5 py-2.5 text-left';
 
-// What the person has seen, kept in this browser: their notices' ids.
+// What the person has seen, kept with the person (prefs): their notices' ids.
 const seenKey = (userId: string) => `sqbv_seen_notices_${userId}`;
 
-const readSeen = (userId: string): string[] => {
-   try {
-      return JSON.parse(localStorage.getItem(seenKey(userId)) ?? '[]');
-   } catch {
-      return [];
-   }
-};
+const readSeen = (userId: string): string[] =>
+   readPref<string[]>(seenKey(userId), []);
 
-const writeSeen = (userId: string, ids: string[]) => {
-   try {
-      localStorage.setItem(seenKey(userId), JSON.stringify(ids));
-   } catch {
-      // storage unavailable: the badge comes back after a reload
-   }
-};
+const writeSeen = (userId: string, ids: string[]) =>
+   writePref(seenKey(userId), ids);
 
 // A notice's line, the line under it, and where it leads: a page, or a
 // task's card over the page ('' for to).

@@ -19,9 +19,16 @@ interface ActionMenuProps {
    // the head of a card: a 36px bordered button, as the icons beside it
    bordered?: boolean;
    label?: string; // the button's own hint; «Действия: name» unless given
+   text?: string; // a bordered button's visible name, beside its «⋯»
 }
 
 const GAP = 4; // between the button and the list
+
+/* A card's head button with its name, as «Изменить», «Задача», «Чат» and
+   «Действия» on a deal's or a company's card: 36px, bordered, the icon
+   before the word. */
+export const HEAD_BUTTON =
+   'border-line text-ink hover:bg-hover inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border bg-white px-3 text-sm font-semibold whitespace-nowrap transition-colors';
 
 /* A row's «⋯» and the list of what can be done with it. The list is a
    popover: it opens over everything (a table's scroll does not cut it),
@@ -33,6 +40,7 @@ const ActionMenu = ({
    className,
    bordered = false,
    label,
+   text,
 }: ActionMenuProps) => {
    const { t } = useTranslation('components');
    const id = useId();
@@ -74,14 +82,20 @@ const ActionMenu = ({
             type='button'
             aria-label={label ?? t('Действия: {{name}}', { name })}
             className={
-               bordered
-                  ? 'border-line text-ink-soft hover:bg-hover hover:text-ink grid size-9 place-items-center rounded-lg border bg-white transition-colors'
-                  : 'text-ink-soft hover:bg-ground hover:text-ink grid size-7 place-items-center rounded-md'
+               bordered && text
+                  ? HEAD_BUTTON
+                  : bordered
+                    ? 'border-line text-ink-soft hover:bg-hover hover:text-ink grid size-9 place-items-center rounded-lg border bg-white transition-colors'
+                    : 'text-ink-soft hover:bg-ground hover:text-ink grid size-7 place-items-center rounded-md'
             }
             data-hint={label ?? t('Действия: {{name}}', { name })}
             popoverTarget={id}
          >
-            <Ellipsis aria-hidden className='size-4' />
+            <Ellipsis
+               aria-hidden
+               className={clsx('size-4', text && 'text-ink-soft')}
+            />
+            {bordered && text}
          </button>
          <div
             ref={list}

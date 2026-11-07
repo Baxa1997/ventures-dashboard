@@ -27,6 +27,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { MENU_ITEMS } from '../Sidebar/constants';
+import { sectionOfPath, useRights } from '@modules/Settings/hooks/rights';
 
 interface Result {
    key: string;
@@ -102,6 +103,12 @@ const Search = ({ open, setOpen }: SearchProps) => {
       };
    }, [open, userId]);
 
+   const rights = useRights();
+   // a section Настройки → Роли close to the person is not offered
+   const closed = (path: string) => {
+      const section = sectionOfPath(path);
+      return !!section && rights(section) === 'none';
+   };
    const text = query.trim().toLowerCase();
    const has = (value: string) => value.toLowerCase().includes(text);
 
@@ -109,7 +116,9 @@ const Search = ({ open, setOpen }: SearchProps) => {
       ? [
            {
               label: t('Разделы'),
-              results: MENU_ITEMS.filter((item) => has(t(item.label)))
+              results: MENU_ITEMS.filter(
+                 (item) => has(t(item.label)) && !closed(item.to),
+              )
                  .map((item) => ({
                     key: item.to,
                     to: item.to,

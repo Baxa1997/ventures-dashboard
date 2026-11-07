@@ -4,7 +4,8 @@ import {
    meetingType,
    statusBadge,
 } from '@modules/Committee/helpers';
-import { Badge } from '@shared/components';
+import { Badge, HEAD_BUTTON } from '@shared/components';
+import clsx from 'clsx';
 import type { Meeting } from '@shared/types/committee.types';
 import dayjs from 'dayjs';
 import { Gavel, type LucideIcon, Pencil, Trash2 } from 'lucide-react';
@@ -20,8 +21,6 @@ interface MeetingHeaderProps {
    onDelete: () => void;
 }
 
-const ICON_BUTTON =
-   'border-line text-ink-soft hover:bg-hover hover:text-ink grid size-9 shrink-0 place-items-center rounded-lg border bg-white transition-colors';
 
 /* The meeting's head, as the design draws it: the committee's mark, the
    meeting's name and status, when and how it is held; the meeting, in any
@@ -38,15 +37,22 @@ const MeetingHeader = ({
    const { t } = useTranslation('committee');
    const badge = statusBadge(t, meeting);
 
-   const icon = (label: string, Icon: LucideIcon, onClick: () => void) => (
+   // a head button: its name on it, what it does on hover
+   const icon = (
+      name: string,
+      hint: string,
+      Icon: LucideIcon,
+      onClick: () => void,
+      danger = false,
+   ) => (
       <button
          type='button'
-         aria-label={label}
-         className={ICON_BUTTON}
-         data-hint={label}
+         className={clsx(HEAD_BUTTON, danger && 'hover:text-danger')}
+         data-hint={hint}
          onClick={onClick}
       >
-         <Icon aria-hidden className='size-4' />
+         <Icon aria-hidden className='text-ink-soft size-4' />
+         {name}
       </button>
    );
 
@@ -74,8 +80,16 @@ const MeetingHeader = ({
             </p>
          </div>
          <div className='flex max-w-full flex-wrap items-center gap-2'>
-            {editable && icon(t('Изменить заседание'), Pencil, onEdit)}
-            {removable && icon(t('Удалить заседание'), Trash2, onDelete)}
+            {editable &&
+               icon(t('Изменить'), t('Изменить заседание'), Pencil, onEdit)}
+            {removable &&
+               icon(
+                  t('Удалить'),
+                  t('Удалить заседание'),
+                  Trash2,
+                  onDelete,
+                  true,
+               )}
             {actions}
          </div>
       </header>

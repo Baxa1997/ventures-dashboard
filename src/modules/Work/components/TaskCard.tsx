@@ -3,6 +3,9 @@ import {
    Avatar,
    Button,
    Checkbox,
+   ConfirmDialog,
+   InlineField,
+   ItemActions,
    Progress,
    RichTextEditor,
    Tabs,
@@ -179,6 +182,7 @@ const TaskCard = ({
    // ---- comments and history
    const [feed, setFeed] = useState<FeedTab>('comments');
    const [comment, setComment] = useState('');
+   const [removingComment, setRemovingComment] = useState('');
    const comments = task.history.filter(
       (event): event is Extract<TaskEvent, { kind: 'comment' }> =>
          event.kind === 'comment',
@@ -476,9 +480,43 @@ const TaskCard = ({
                                        {formatNumericDate(event.date)}
                                     </span>
                                  </div>
-                                 <p className='bg-ground mt-1 inline-block rounded-[10px] px-3 py-2 break-words whitespace-pre-line'>
-                                    {event.text}
-                                 </p>
+                                 {event.userId === user.id ||
+                                 user.role === 'director' ? (
+                                    <>
+                                       <div className='bg-ground mt-1 rounded-[10px] px-3 py-1.5'>
+                                          <InlineField
+                                             className='hover:bg-white'
+                                             kind='multiline'
+                                             label={t('Комментарий')}
+                                             maxLength={COMMENT_MAX}
+                                             validate={(text) =>
+                                                text
+                                                   ? undefined
+                                                   : t('Комментарий пустой')
+                                             }
+                                             value={event.text}
+                                             onSave={(text) =>
+                                                work.editComment(
+                                                   task.id,
+                                                   event.id,
+                                                   text,
+                                                )
+                                             }
+                                          />
+                                       </div>
+                                       <ItemActions
+                                          className='mt-1 text-xs'
+                                          name={t('Комментарий')}
+                                          onDelete={() =>
+                                             setRemovingComment(event.id)
+                                          }
+                                       />
+                                    </>
+                                 ) : (
+                                    <p className='bg-ground mt-1 inline-block rounded-[10px] px-3 py-2 break-words whitespace-pre-line'>
+                                       {event.text}
+                                    </p>
+                                 )}
                               </div>
                            </li>
                         ))}
@@ -558,6 +596,14 @@ const TaskCard = ({
                )}
             </p>
          </div>
+         <ConfirmDialog
+            open={!!removingComment}
+            title={t('Удалить комментарий?')}
+            onClose={() => setRemovingComment('')}
+            onConfirm={() => work.removeComment(task.id, removingComment)}
+         >
+            <p>{t('Комментарий уйдёт из задачи; её история останется.')}</p>
+         </ConfirmDialog>
       </div>
    );
 };

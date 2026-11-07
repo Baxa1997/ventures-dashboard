@@ -5,6 +5,7 @@ import {
 import { SETTINGS_PATH } from '@shared/constants';
 import clsx from 'clsx';
 import {
+   AlarmClock,
    CalendarClock,
    CircleDot,
    CircleX,
@@ -57,6 +58,7 @@ const SECTION_ICONS: Record<SettingsSection, LucideIcon> = {
    flags: Flag,
    mandate: Target,
    committee: Scale,
+   deadlines: AlarmClock,
    'contract-types': FileSignature,
    'proc-categories': Shapes,
    vendors: Truck,

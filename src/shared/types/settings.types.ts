@@ -178,6 +178,43 @@ export interface QuestionSection {
    fields: QuestionField[];
 }
 
+// The sections a role is given rights in, the rows of Настройки → Роли.
+export type RightSection =
+   | 'deals'
+   | 'committee'
+   | 'portfolio'
+   | 'documents'
+   | 'contracts'
+   | 'procurement'
+   | 'finance'
+   | 'site'
+   | 'settings';
+
+// full: everything in the section; own: a person's own and attached records
+// (Сделки only); read: looking only; none: the section is not shown.
+export type Right = 'full' | 'own' | 'read' | 'none';
+
+export type RoleRights = Partial<
+   Record<Role, Partial<Record<RightSection, Right>>>
+>;
+
+/* The fund's rules and deadlines the panel works by, changed in Настройки:
+   the committee's voting rules and meeting formats, the portfolio's
+   deadlines, a contract's warning before its end, and the roles' rights. */
+export interface FundRules {
+   icQuorum: number; // members present for a decision
+   icMaterialsDays: number; // working days before a meeting the materials go
+   icDiscussionAt: number; // votes against that send a question to the sponsor
+   icRejectAt: number; // votes against that turn it down
+   meetingFormats: string[];
+   requestAnswerDays: number; // a company's request unanswered longer turns red
+   reportsDueDay: number; // the day of the month after a quarter reports are due
+   reportsReminderDays: number; // days before that the reminder is due
+   contractExpiringDays: number; // a contract ending within them is flagged
+   profitTaxRate: number; // % of the profit before tax, in Финансы → P&L
+   roleRights: RoleRights; // what Настройки → Роли changed from the defaults
+}
+
 export interface SettingsState {
    mandate: Record<MandateField, string>;
    stages: StageItem[]; // in their order
@@ -190,4 +227,6 @@ export interface SettingsState {
    vendorsStored: boolean; // ucode has batch 18's table to keep them in
    questionnaire: QuestionSection[];
    questionnaireStored: boolean; // ucode has batch 17's field to keep it in
+   rules: FundRules;
+   rulesStored: boolean; // ucode has batch 25's fields for the new rules
 }

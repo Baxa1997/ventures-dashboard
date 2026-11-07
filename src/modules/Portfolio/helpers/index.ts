@@ -1,4 +1,4 @@
-import { itemOf, listOf, nameOf } from '@modules/Settings/services';
+import { itemOf, listOf, nameOf, rulesOf } from '@modules/Settings/services';
 import {
    formatDate,
    formatNumber,
@@ -16,14 +16,11 @@ import type {
 import type { ItemFile } from '@shared/types/settings.types';
 import type { TFunction } from 'i18next';
 import {
-   AUTO_REMINDER_DAYS,
    METRIC_FORMATS,
    METRIC_LABELS,
    QUARTERS_SHOWN,
    REPORT_DOC_LABELS,
    REPORT_DOCS,
-   REPORTS_DUE_DAY,
-   REQUEST_ANSWER_DAYS,
 } from '../constants';
 
 type T = TFunction<'portfolio'>;
@@ -94,7 +91,7 @@ export const lastClosedQuarter = (today = todayISO()) => {
 };
 
 // 2026-Q3 → 2026-Q2
-const previousQuarter = (quarter: string) => {
+export const previousQuarter = (quarter: string) => {
    const [year, q] = quarter.split('-Q').map(Number);
    return q > 1 ? `${year}-Q${q - 1}` : `${year - 1}-Q4`;
 };
@@ -116,6 +113,30 @@ export const recentMonths = (count: number, today = todayISO()) =>
          .format('YYYY-MM'),
    );
 
+// The quarter a day is in: 2026-11-07 → 2026-Q4.
+export const quarterOfDay = (day: string) =>
+   `${day.slice(0, 4)}-Q${Math.floor((Number(day.slice(5, 7)) - 1) / 3) + 1}`;
+
+// The months from one to another, both in, oldest first: 2025-11 … 2026-10.
+export const monthsBetween = (from: string, to: string) => {
+   const months: string[] = [];
+   for (
+      let at = dayjs(`${from}-01`);
+      !at.isAfter(dayjs(`${to}-01`));
+      at = at.add(1, 'month')
+   )
+      months.push(at.format('YYYY-MM'));
+   return months;
+};
+
+// The quarters from one to another, both in, oldest first.
+export const quartersBetween = (from: string, to: string) => {
+   if (from > to) return [];
+   const quarters = [to];
+   while (quarters[0] > from) quarters.unshift(previousQuarter(quarters[0]));
+   return quarters;
+};
+
 // 2026-09 → "сен 26"; with `long`, "сентябрь 2026"
 export const monthLabel = (month: string, long = false) =>
    dayjs(`${month}-01`).format(long ? 'MMMM YYYY' : 'MMM YY');
@@ -123,11 +144,12 @@ export const monthLabel = (month: string, long = false) =>
 // The reporting deadline of a quarter and its automatic reminder.
 export const reportDates = (quarter: string) => {
    const [year, q] = quarter.split('-Q').map(Number);
-   const due = dayjs(new Date(year, q * 3, REPORTS_DUE_DAY));
+   const { reportsDueDay, reportsReminderDays } = rulesOf();
+   const due = dayjs(new Date(year, q * 3, reportsDueDay));
    return {
       due: due.format('YYYY-MM-DD'),
       autoReminderAt: due
-         .subtract(AUTO_REMINDER_DAYS, 'day')
+         .subtract(reportsReminderDays, 'day')
          .format('YYYY-MM-DD'),
    };
 };
@@ -172,7 +194,7 @@ export const waitingDays = (request: CompanyRequest, today = todayISO()) =>
 // A request the fund has left unanswered for too long.
 export const isOverdue = (request: CompanyRequest) =>
    request.status === 'waiting_fund' &&
-   waitingDays(request) > REQUEST_ANSWER_DAYS;
+   waitingDays(request) > rulesOf().requestAnswerDays;
 
 // What the list says is going on with a company: an unanswered request first,
 // then a report to check, then the company's own line.

@@ -1,3 +1,6 @@
+import { hasGroup, unreadChats } from '@modules/Chat/helpers';
+import chatRead from '@modules/Chat/services/read';
+import telegram from '@modules/Chat/services/telegram';
 import {
    COMMITTEE_STAGES,
    committeeStateOf,
@@ -35,6 +38,7 @@ import { dealLinks, seesAllDeals } from '@modules/Deals/helpers';
 import { directorId, employeeOf, TEAM } from '@shared/constants';
 import { addWorkingDays, createStore, daysUntil, newId } from '@shared/helpers';
 import attachments from '@shared/services/attachments';
+import { readPref, writePref } from '@shared/services/prefs';
 import type { Deal } from '@shared/types/deals.types';
 import type {
    AttentionItem,
@@ -331,17 +335,9 @@ portfolio.subscribe(notify);
 contracts.subscribe(notify);
 procurement.subscribe(notify);
 
-// What was ticked in Мой день, kept in this browser: queue item id → the day.
-const readQueueDone = (): Record<string, string> => {
-   try {
-      return JSON.parse(localStorage.getItem(QUEUE_DONE_KEY) ?? '{}') as Record<
-         string,
-         string
-      >;
-   } catch {
-      return {};
-   }
-};
+// What was ticked in Мой день, kept with the person (prefs): queue item id → the day.
+const readQueueDone = (): Record<string, string> =>
+   readPref<Record<string, string>>(QUEUE_DONE_KEY, {});
 
 // A new task's moments: made now, begun unless it waits to be done, finished
 // if it is made already done.
@@ -406,6 +402,8 @@ const saveTask = async (before: Task, after: Task) => {
    const old = new Map(before.checklist.map((item) => [item.id, item]));
    const kept = new Set(after.checklist.map(({ id }) => id));
    const known = new Set(before.history.map(({ id }) => id));
+   const earlier = new Map(before.history.map((event) => [event.id, event]));
+   const still = new Set(after.history.map(({ id }) => id));
    await Promise.all([
       updateRow('tasks', { guid: after.id, ...taskFields(after) }),
       ...after.checklist.map((item, index) => {
@@ -424,6 +422,25 @@ const saveTask = async (before: Task, after: Task) => {
       ...after.history
          .filter(({ id }) => !known.has(id))
          .map((event) => createRow('task_events', eventRow(after.id, event))),
+      // a comment corrected or deleted by its author
+      ...after.history
+         .filter((event) => {
+            const previous = earlier.get(event.id);
+            return (
+               event.kind === 'comment' &&
+               previous?.kind === 'comment' &&
+               previous.text !== event.text
+            );
+         })
+         .map((event) =>
+            updateRow('task_events', {
+               guid: event.id,
+               text: event.kind === 'comment' ? event.text : '',
+            }),
+         ),
+      ...before.history
+         .filter(({ id, kind }) => kind === 'comment' && !still.has(id))
+         .map(({ id }) => deleteRow('task_events', id)),
    ]);
 };
 
@@ -752,6 +769,28 @@ class Work {
       }));
    }
 
+   // A comment's text, corrected by its author.
+   async editComment(taskId: string, eventId: string, text: string) {
+      await change(taskId, (task) => ({
+         ...task,
+         history: task.history.map((event) =>
+            event.id === eventId && event.kind === 'comment'
+               ? { ...event, text }
+               : event,
+         ),
+      }));
+   }
+
+   // A comment taken back by its author; the rest of the history stays.
+   async removeComment(taskId: string, eventId: string) {
+      await change(taskId, (task) => ({
+         ...task,
+         history: task.history.filter(
+            (event) => event.id !== eventId || event.kind !== 'comment',
+         ),
+      }));
+   }
+
    // Reads the tasks again, after another section wrote to them.
    async reloadTasks() {
       await store.reload();
@@ -842,11 +881,7 @@ class Work {
       const next = readQueueDone();
       if (done) next[id] = todayISO();
       else delete next[id];
-      try {
-         localStorage.setItem(QUEUE_DONE_KEY, JSON.stringify(next));
-      } catch {
-         // storage unavailable: the tick lasts until the page is reloaded
-      }
+      writePref(QUEUE_DONE_KEY, next);
       notify();
    }
 
@@ -1178,11 +1213,15 @@ class Work {
    }
 
    async getCounters(userId: string): Promise<SectionCounters> {
-      const [tasks, queue, all, holdings] = await Promise.all([
+      const [tasks, queue, all, holdings, groups] = await Promise.all([
          store.get(),
          this.getQueue(userId),
          this.getVisibleDeals(userId),
          portfolio.getState(),
+         telegram.getState().then(
+            (state) => state.groups,
+            () => new Map(),
+         ),
       ]);
       return {
          myDay: myDayCount(myDayOf(tasks, queue, userId)),
@@ -1194,6 +1233,12 @@ class Work {
          portfolio: holdings.requests.filter(
             ({ status }) => status === 'waiting_fund',
          ).length,
+         // deal groups with messages the person has not read
+         chat: unreadChats(
+            all.filter((deal) => hasGroup(groups.get(deal.id))),
+            userId,
+            chatRead.get(userId),
+         ),
       };
    }
 }

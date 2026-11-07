@@ -252,21 +252,55 @@ export const listRows = async (
    }
 };
 
+// ---- a section the person may only read
+
+/* Set by the panel's shell while the person is in a section Настройки → Роли
+   open to them only for «Чтение»: a write from it is refused before it is
+   sent. A task, its checklist and its history, and a person's own
+   preferences, are written from any page, as the task opens over every one. */
+let readOnly = false;
+export const setReadOnly = (value: boolean) => {
+   readOnly = value;
+};
+const ALWAYS_WRITTEN = new Set(['tasks', 'task_checklist', 'task_events']);
+export const READ_ONLY_ERROR = 'read only section';
+const guard = (table: string, data?: Record<string, unknown>) => {
+   if (
+      readOnly &&
+      !ALWAYS_WRITTEN.has(table) &&
+      !(table === 'attachments' && data?.section === 'task')
+   )
+      throw new UcodeError(READ_ONLY_ERROR, 403);
+};
+
 // Creates a row; a guid in `data` is kept, so the panel's own ids stay the rows' ids.
-export const createRow = async (table: string, data: Record<string, unknown>) =>
-   (
+export const createRow = async (
+   table: string,
+   data: Record<string, unknown>,
+) => {
+   guard(table, data);
+   return (
       await call<{ data?: { data?: Row } }>('POST', `/v2/items/${table}`, {
          data,
          disable_faas: true,
       })
    ).data?.data;
+};
 
 // Changes the given fields of a row; the others keep their values.
-export const updateRow = (table: string, data: Row) =>
-   call('PUT', `/v2/items/${table}`, { data, disable_faas: true });
+export const updateRow = async (table: string, data: Row) => {
+   guard(table, data);
+   return call('PUT', `/v2/items/${table}`, { data, disable_faas: true });
+};
 
-export const deleteRow = (table: string, guid: string) =>
-   call('DELETE', `/v2/items/${table}/${guid}`, { data: {} });
+export const deleteRow = async (table: string, guid: string) => {
+   guard(table);
+   return call('DELETE', `/v2/items/${table}/${guid}`, { data: {} });
+};
+
+// A person's own preferences, written from any page whatever the section.
+export const updateOwnRow = (table: string, data: Row) =>
+   call('PUT', `/v2/items/${table}`, { data, disable_faas: true });
 
 // ---- staff users, in ucode's auth service
 

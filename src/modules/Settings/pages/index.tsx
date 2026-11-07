@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useParams } from 'react-router';
 import {
    Committee,
+   Deadlines,
    Flags,
    Integrations,
    Journal,
@@ -46,6 +47,7 @@ import {
    Users,
    Vendors,
 } from './components';
+import { useRights } from '../hooks/rights';
 
 const load = () => settings.getSettings();
 const subscribe = (listener: () => void) => settings.subscribe(listener);
@@ -77,6 +79,7 @@ const isSection = (value: string | undefined): value is SettingsSection =>
 const SettingsPage = () => {
    const { t } = useTranslation('settings');
    const user = useCurrentUser();
+   const rights = useRights();
    const data = useServiceData(load, subscribe);
    const { section: param } = useParams();
    const [draft, setDraft] = useState<Draft | null>(null);
@@ -95,7 +98,8 @@ const SettingsPage = () => {
    const [removing, setRemoving] = useState<ListItem | null>(null);
    const [removingStage, setRemovingStage] = useState<StageItem | null>(null);
    const title = t('Настройки');
-   const director = user.role === 'director';
+   // the right to change Настройки, as Настройки → Роли give it
+   const director = rights('settings') === 'full';
 
    const saving = useAction(async (next: Draft) => {
       const labels: Record<string, string> = {};
@@ -246,7 +250,21 @@ const SettingsPage = () => {
                />
             );
          case 'committee':
-            return <Committee />;
+            return (
+               <Committee
+                  editable={director}
+                  rules={data.rules}
+                  stored={data.rulesStored}
+               />
+            );
+         case 'deadlines':
+            return (
+               <Deadlines
+                  editable={director}
+                  rules={data.rules}
+                  stored={data.rulesStored}
+               />
+            );
          case 'vendors':
             return (
                <Vendors
@@ -268,7 +286,14 @@ const SettingsPage = () => {
                />
             );
          case 'roles':
-            return <Roles staff={data.staff} />;
+            return (
+               <Roles
+                  editable={director}
+                  rules={data.rules}
+                  staff={data.staff}
+                  stored={data.rulesStored}
+               />
+            );
          case 'integrations':
             return <Integrations />;
          case 'journal':

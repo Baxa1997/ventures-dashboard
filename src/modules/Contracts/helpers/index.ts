@@ -1,8 +1,8 @@
-import { listOf } from '@modules/Settings/services';
+import { listOf, rulesOf } from '@modules/Settings/services';
 import { directorId } from '@shared/constants';
 import { daysUntil, todayISO } from '@shared/helpers';
 import type { Contract, ContractInput } from '@shared/types/contracts.types';
-import { EXPIRING_DAYS, INVEST_TYPE } from '../constants';
+import { INVEST_TYPE } from '../constants';
 
 /* What a status brings with it: a contract sent for approval has someone to
    approve it, the director unless named; a signed one has its date. */
@@ -24,13 +24,13 @@ export const isEnding = (
 ) =>
    !!validUntil &&
    status !== 'expired' &&
-   daysUntil(validUntil, today) <= EXPIRING_DAYS;
+   daysUntil(validUntil, today) <= rulesOf().contractExpiringDays;
 
 // A signed contract ending within the days ahead, for Мой день.
 export const isExpiring = (contract: Contract, today = todayISO()) => {
    if (contract.status !== 'signed' || !contract.validUntil) return false;
    const days = daysUntil(contract.validUntil, today);
-   return days >= 0 && days <= EXPIRING_DAYS;
+   return days >= 0 && days <= rulesOf().contractExpiringDays;
 };
 
 export const typeColor = (key: string) =>

@@ -3,12 +3,15 @@ import type { MetricFormat } from '@shared/types/portfolio.types';
 import type {
    Access,
    FlagField,
+   FundRules,
    IndustryMandate,
    EscalateTo,
    ItemTone,
    ListKind,
    MandateField,
    QuestionKind,
+   Right,
+   RightSection,
    StaffRole,
    StatusGroup,
 } from '@shared/types/settings.types';
@@ -36,6 +39,7 @@ export const SETTINGS_SECTION_IDS = [
    'flags',
    'mandate',
    'committee',
+   'deadlines',
    'contract-types',
    'proc-categories',
    'vendors',
@@ -47,11 +51,28 @@ export const SETTINGS_SECTION_IDS = [
 ] as const;
 export type SettingsSection = (typeof SETTINGS_SECTION_IDS)[number];
 
-export const DEFAULT_SECTION: SettingsSection = 'task-types';
+// the section on top of the menu opens first
+export const DEFAULT_SECTION: SettingsSection = 'integrations';
 
-// The menu of Настройки in the prototype's order: groups as the fund thinks
-// of them, each section with what it is for (the line under its title).
+// The menu of Настройки in the prototype's order, Система (Интеграции) on top
+// at the user's word (7 Nov): groups as the fund thinks of them, each section
+// with what it is for (the line under its title).
 export const SETTINGS_GROUPS = [
+   {
+      label: 'Система',
+      sections: [
+         {
+            id: 'integrations',
+            label: 'Интеграции',
+            meta: 'Откуда платформа берёт данные и куда их отдаёт.',
+         },
+         {
+            id: 'journal',
+            label: 'Журнал изменений',
+            meta: 'Каждое изменение правил, справочников и пользователей: кто, когда, что было и что стало.',
+         },
+      ],
+   },
    {
       label: 'Задачи',
       sections: [
@@ -161,6 +182,11 @@ export const SETTINGS_GROUPS = [
             meta: 'Кворум, материалы и как голоса превращаются в решение.',
          },
          {
+            id: 'deadlines',
+            label: 'Сроки и напоминания',
+            meta: 'Когда ждут квартальные отчёты и напоминают о них, когда краснеет запрос компании, за сколько дней отмечается истекающий договор.',
+         },
+         {
             id: 'contract-types',
             label: 'Типы договора',
             meta: 'Типы договоров в реестре «Договоры»: фильтры и цветные метки.',
@@ -194,21 +220,6 @@ export const SETTINGS_GROUPS = [
             id: 'roles',
             label: 'Роли',
             meta: 'Роль задаёт права, человек может совмещать несколько ролей. Внешние участники входят только в свой раздел.',
-         },
-      ],
-   },
-   {
-      label: 'Система',
-      sections: [
-         {
-            id: 'integrations',
-            label: 'Интеграции',
-            meta: 'Откуда платформа берёт данные и куда их отдаёт.',
-         },
-         {
-            id: 'journal',
-            label: 'Журнал изменений',
-            meta: 'Каждое изменение правил, справочников и пользователей: кто, когда, что было и что стало.',
          },
       ],
    },
@@ -594,7 +605,11 @@ export const BUILT_IN_LISTS: Partial<
       },
       {
          key: 'model',
-         names: { ru: 'Бизнес-модель', uz: 'Biznes-model', en: 'Business model' },
+         names: {
+            ru: 'Бизнес-модель',
+            uz: 'Biznes-model',
+            en: 'Business model',
+         },
          hints: {
             ru: 'Юнит-экономика и путь к прибыльности',
             uz: 'Birlik iqtisodiyoti va foydaga chiqish yo‘li',
@@ -604,7 +619,11 @@ export const BUILT_IN_LISTS: Partial<
       },
       {
          key: 'synergy',
-         names: { ru: 'Синергия с SQB', uz: 'SQB bilan sinergiya', en: 'Synergy with SQB' },
+         names: {
+            ru: 'Синергия с SQB',
+            uz: 'SQB bilan sinergiya',
+            en: 'Synergy with SQB',
+         },
          hints: {
             ru: 'Пилот или интеграция с банком и его клиентами',
             uz: 'Bank va uning mijozlari bilan pilot yoki integratsiya',
@@ -796,21 +815,25 @@ export const ACCESS = {
    limited: { label: 'Ограниченный', tone: 'warning' },
 } as const satisfies Record<Access, { label: string; tone: BadgeTone }>;
 
-// The sections the rights are given for, the rows of the table.
-export const RIGHT_SECTIONS = [
-   'Сделки',
-   'ИК и НС',
-   'Портфель',
-   'Финансы',
-   'Договоры',
-   'Закупки',
-   'Корресп.',
-   'Документы',
-   'Настройки',
-   'Сайт',
-] as const;
+// The sections the rights are given for, the rows of the table, with the
+// rights each can be given: «Своё» only in Сделки, where the panel knows a
+// person's deals; Сайт is changed or not shown.
+export const RIGHT_SECTION_INFO = {
+   deals: { label: 'Сделки', rights: ['full', 'own', 'read', 'none'] },
+   committee: { label: 'ИК и НС', rights: ['full', 'read', 'none'] },
+   portfolio: { label: 'Портфель', rights: ['full', 'read', 'none'] },
+   documents: { label: 'Документы', rights: ['full', 'read', 'none'] },
+   contracts: { label: 'Договоры', rights: ['full', 'read', 'none'] },
+   procurement: { label: 'Закупки', rights: ['full', 'read', 'none'] },
+   finance: { label: 'Финансы', rights: ['full', 'read', 'none'] },
+   site: { label: 'Сайт', rights: ['full', 'none'] },
+   settings: { label: 'Настройки', rights: ['full', 'read', 'none'] },
+} as const satisfies Record<
+   RightSection,
+   { label: string; rights: readonly Right[] }
+>;
 
-export type Right = 'full' | 'own' | 'read' | 'none';
+export const RIGHT_SECTIONS = Object.keys(RIGHT_SECTION_INFO) as RightSection[];
 
 export const RIGHTS = {
    full: { label: 'Полный', tone: 'success' },
@@ -819,27 +842,62 @@ export const RIGHTS = {
    none: { label: 'Нет', tone: 'neutral' },
 } as const satisfies Record<Right, { label: string; tone: BadgeTone }>;
 
-const r = (code: string): Right[] =>
-   [...code].map((letter) =>
-      letter === 'f'
-         ? 'full'
-         : letter === 'o'
-           ? 'own'
-           : letter === 'r'
-             ? 'read'
-             : 'none',
-   );
+/* What each role may do while Настройки → Роли have not changed it: what the
+   panel did before the table could be changed. Everybody works in every
+   section; only the director changes Настройки, the director and the deputy
+   the website; analysts and managers see the deals attached to them, while
+   the secretary and the accountant work with all of them. */
+const ANYONE: Record<RightSection, Right> = {
+   deals: 'own',
+   committee: 'full',
+   portfolio: 'full',
+   documents: 'full',
+   contracts: 'full',
+   procurement: 'full',
+   finance: 'none',
+   site: 'none',
+   settings: 'read',
+};
 
-// The proposal for discussion (screen 25), the columns of the table: f —
-// full, o — own and assigned, r — read, - — none, section by section.
-export const ROLE_RIGHTS = [
-   { role: 'director', rights: r('ffffffffff') },
-   { role: 'deputy', rights: r('fffrffff-f') },
-   { role: 'analyst', rights: r('oro-r-or--') },
-   { role: 'manager', rights: r('orf-oror--') },
-   { role: 'ic_secretary', rights: r('rfr---fr--') },
-   { role: 'accountant', rights: r('r-rfrrrr--') },
-] as const satisfies readonly { role: Role; rights: Right[] }[];
+export const DEFAULT_RIGHTS: Record<Role, Record<RightSection, Right>> = {
+   director: {
+      deals: 'full',
+      committee: 'full',
+      portfolio: 'full',
+      documents: 'full',
+      contracts: 'full',
+      procurement: 'full',
+      finance: 'full',
+      site: 'full',
+      settings: 'full',
+   },
+   // Финансы, new on 7 Nov 2026, as docs/ERP.md §6 gives them: in full to the
+   // accountant, to read for the deputy, closed to the rest
+   deputy: { ...ANYONE, deals: 'full', finance: 'read', site: 'full' },
+   analyst: ANYONE,
+   manager: ANYONE,
+   accountant: { ...ANYONE, deals: 'full', finance: 'full' },
+   assistant: ANYONE,
+   ic_secretary: { ...ANYONE, deals: 'full' },
+   lawyer: ANYONE,
+   other: ANYONE,
+};
+
+// The rules the panel works by until Настройки set them: the fund's
+// «Чек-лист ИК» and its reporting calendar.
+export const DEFAULT_RULES: FundRules = {
+   icQuorum: 3,
+   icMaterialsDays: 3,
+   icDiscussionAt: 1,
+   icRejectAt: 2,
+   meetingFormats: ['Очно и по видео', 'Очно', 'По видео'],
+   requestAnswerDays: 5,
+   reportsDueDay: 25,
+   reportsReminderDays: 5,
+   contractExpiringDays: 60,
+   profitTaxRate: 15,
+   roleRights: {},
+};
 
 export const EXTERNAL_RIGHTS = [
    {
@@ -933,7 +991,7 @@ export const INTEGRATIONS = [
    {
       id: 'cabinets',
       title: 'Кабинеты компаний и заявителей',
-      text: 'Кабинет основателя построен (приложение startup-cabinet, те же таблицы ucode): статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Заработает после развёртывания и подключения почты для кодов входа.',
-      state: 'planned',
+      text: 'Кабинет основателя работает на app.sqbvc.uz, на тех же таблицах ucode: статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Вход — по паролю, который фонд выдаёт в карточке сделки; код на почту появится, когда подключат почту.',
+      state: 'built_in',
    },
 ] as const;

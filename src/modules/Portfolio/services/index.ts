@@ -1,6 +1,7 @@
 import {
    createRow,
    day,
+   deleteFile,
    deleteRow,
    fromJson,
    groupBy,
@@ -552,23 +553,87 @@ class Portfolio {
       await store.reload();
    }
 
+   /* Deletes a company added to the portfolio by mistake, with all that is
+      only its: the payments, the quarters' reports and figures, the pilots,
+      the requests either way, its documents and files, and its tasks with
+      their checklists and history. Its deal returns to its closing in the
+      page that asks (deals.moveDeal); the website's row stays, as it may be
+      published. Returns the deal it came from. */
+   async removeCompany(id: string) {
+      const rowsOf = async (table: string, field: string, key: string) =>
+         (await listRows(table, { [field]: key }).catch(() => [] as Row[])).filter(
+            (row) => row[field] === key,
+         );
+      const { companies } = await store.get();
+      const dealId = companies.find((company) => company.id === id)?.dealId ?? '';
+      const tasks = await rowsOf('tasks', 'portfolio_companies_id', id);
+      const taskRows = await Promise.all(
+         tasks.flatMap((task) => [
+            rowsOf('task_checklist', 'tasks_id', task.guid).then((rows) =>
+               rows.map((row) => ['task_checklist', row] as const),
+            ),
+            rowsOf('task_events', 'tasks_id', task.guid).then((rows) =>
+               rows.map((row) => ['task_events', row] as const),
+            ),
+         ]),
+      );
+      const attachments = await rowsOf('attachments', 'portfolio_companies_id', id);
+      const documents = await rowsOf('company_documents', 'portfolio_companies_id', id);
+      try {
+         await Promise.all(
+            taskRows.flat().map(([table, row]) => deleteRow(table, row.guid)),
+         );
+         await Promise.all(tasks.map((task) => deleteRow('tasks', task.guid)));
+         for (const table of [
+            'investments',
+            'quarter_reports',
+            'metric_values',
+            'pilots',
+            'company_requests',
+            'company_data_requests',
+         ])
+            await Promise.all(
+               (await rowsOf(table, 'portfolio_companies_id', id)).map((row) =>
+                  deleteRow(table, row.guid),
+               ),
+            );
+         await Promise.all([
+            ...attachments.map((row) => deleteRow('attachments', row.guid)),
+            ...documents.map((row) => deleteRow('company_documents', row.guid)),
+         ]);
+         await deleteRow('portfolio_companies', id);
+         await Promise.all(
+            [...attachments, ...documents]
+               .map((row) => str(row.file_id) || str(row.file))
+               .filter((file) => file && !file.startsWith('http'))
+               .map((file) => deleteFile(file).catch(() => undefined)),
+         );
+      } finally {
+         await store.reload();
+      }
+      return dealId;
+   }
+
    // A follow-on recorded by mistake; the first payment stays.
    async removeInvestment(id: string) {
       await deleteRow('investments', id);
       await store.reload();
    }
 
-   // What the card changes about the company.
-   async updateCompany(id: string, input: CompanyInput) {
+   // What the card changes about the company: the fields given, whether
+   // the whole window or one field changed where it stands.
+   async updateCompany(id: string, input: Partial<CompanyInput>) {
       await updateRow('portfolio_companies', {
          guid: id,
-         name: input.name,
-         tagline: input.tagline,
-         about: input.about,
-         countries: input.countries,
-         owner_id: input.ownerId,
-         current_note: input.now,
-         industries_id: listIdOf('industries', input.industryKey) || null,
+         ...(input.name !== undefined && { name: input.name }),
+         ...(input.tagline !== undefined && { tagline: input.tagline }),
+         ...(input.about !== undefined && { about: input.about }),
+         ...(input.countries !== undefined && { countries: input.countries }),
+         ...(input.ownerId !== undefined && { owner_id: input.ownerId }),
+         ...(input.now !== undefined && { current_note: input.now }),
+         ...(input.industryKey !== undefined && {
+            industries_id: listIdOf('industries', input.industryKey) || null,
+         }),
       });
       await store.reload();
    }

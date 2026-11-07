@@ -13,16 +13,18 @@ import {
    quarterLabel,
 } from '@modules/Portfolio/helpers';
 import type { PortfolioData } from '@modules/Portfolio/hooks';
+import portfolio from '@modules/Portfolio/services';
 import {
    Badge,
    Card,
    CompanyMark,
+   InlineField,
    NoData,
    Table,
    TD,
    TH,
 } from '@shared/components';
-import { formatDayYear, formatUsd } from '@shared/helpers';
+import { formatDayYear, formatUsd, parseAmount } from '@shared/helpers';
 import type { PortfolioCompany } from '@shared/types/portfolio.types';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -31,18 +33,17 @@ import { useNavigate } from 'react-router';
 interface CompanyTableProps {
    data: PortfolioData;
    companies: PortfolioCompany[]; // those the search leaves
-   onValuation: (company: PortfolioCompany) => void;
 }
 
 const NUM = 'text-right whitespace-nowrap tabular-nums';
 
 /* «Таблица», as the design draws it: each company with its status, the
-   investment, the fund's stake, the company's valuation (pressed to update
-   it), what the stake is worth, MOIC, the latest MRR and the pilots under
+   investment, the fund's stake, the company's valuation (changed where it
+   stands), what the stake is worth, MOIC, the latest MRR and the pilots under
    way. Under the name, a request the fund has left unanswered too long, or
    else how many wait for its answer (on the card's «Обзор»). A row opens
    the company's card. */
-const CompanyTable = ({ data, companies, onValuation }: CompanyTableProps) => {
+const CompanyTable = ({ data, companies }: CompanyTableProps) => {
    const { t, i18n } = useTranslation('portfolio');
    const navigate = useNavigate();
    const language = i18n.resolvedLanguage ?? i18n.language;
@@ -92,9 +93,15 @@ const CompanyTable = ({ data, companies, onValuation }: CompanyTableProps) => {
                      <tr
                         key={company.id}
                         className='hover:bg-hover cursor-pointer'
-                        onClick={() =>
-                           navigate(`${PORTFOLIO_PATH}/${company.id}`)
-                        }
+                        onClick={(event) => {
+                           if (
+                              (event.target as HTMLElement).closest(
+                                 'a, button, input, select, textarea',
+                              )
+                           )
+                              return;
+                           navigate(`${PORTFOLIO_PATH}/${company.id}`);
+                        }}
                      >
                         <td className={TD}>
                            <div className='flex items-center gap-2.5'>
@@ -148,23 +155,32 @@ const CompanyTable = ({ data, companies, onValuation }: CompanyTableProps) => {
                         </td>
                         <td className={clsx(TD, NUM)}>
                            {company.status === 'active' ? (
-                              <button
-                                 type='button'
-                                 className='link'
-                                 data-hint={
-                                    position.valuation === null
-                                       ? t('Указать оценку компании')
-                                       : t('Обновить оценку компании')
+                              <InlineField
+                                 className='text-right tabular-nums'
+                                 format={(value) =>
+                                    formatUsd(Number(value), language)
                                  }
-                                 onClick={(event) => {
-                                    event.stopPropagation();
-                                    onValuation(company);
-                                 }}
-                              >
-                                 {position.valuation === null
-                                    ? t('Внести')
-                                    : usd(position.valuation)}
-                              </button>
+                                 inputMode='numeric'
+                                 label={t('Оценка компании')}
+                                 placeholder={t('Внести')}
+                                 validate={(next) =>
+                                    !next || parseAmount(next) > 0
+                                       ? undefined
+                                       : t('Укажите сумму в долларах')
+                                 }
+                                 value={
+                                    position.valuation === null
+                                       ? ''
+                                       : String(position.valuation)
+                                 }
+                                 onSave={(next) =>
+                                    next &&
+                                    portfolio.setValuation(
+                                       company.id,
+                                       parseAmount(next),
+                                    )
+                                 }
+                              />
                            ) : (
                               <span className='text-ink-soft'>
                                  {company.exit?.date

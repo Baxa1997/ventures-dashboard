@@ -1,3 +1,4 @@
+import TelegramDealNotice from '@modules/Chat/components/TelegramDealNotice';
 import { listName, listOf, nameOf } from '@modules/Settings/services';
 import {
    Button,
@@ -793,6 +794,9 @@ const NewDealForm = ({
                      )}
                   </Notice>
                )}
+               {/* a new deal opens its group in Telegram: what happens, or
+                   how to set it up while it is not connected (docs/telegram.md) */}
+               {!deal && <TelegramDealNotice />}
                {sections[tab]}
             </ModalBody>
             <ModalFooter

@@ -1,4 +1,5 @@
 export { default as Committee } from './Committee';
+export { default as Deadlines } from './Deadlines';
 export { default as Flags } from './Flags';
 export { default as Integrations } from './Integrations';
 export { default as Journal } from './Journal';

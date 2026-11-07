@@ -15,7 +15,8 @@ Sources: the system map «Операционная платформа фонда
 | 2 | **Startup cabinet** — the applicant's status, the fund's requests and documents; the portfolio company's quarterly reports and requests | Built as its own app (`venture/startup-cabinet`, docs/cabinet-and-website.md), not deployed |
 | 3 | **Fund: Документы** — the register of the fund's documents and the open governance questions | On ucode (§4.9). A document links to its file where the fund keeps it |
 | 3 | **Fund: Договоры, Закупки** — the contracts' register and the purchase requests, with their approvals in Мой день | On ucode, as the prototype draws them (docs/ucode-migration.md, batch 18) |
-| 3 | Финансы, Корреспонденция (the prototype's «Чат и письма»), Контент | Not in the panel. Nothing in the deal cycle depends on them |
+| 3 | **Финансы** — P&L, Cash Flow and Транзакции: bank statements (CSV, 1С) sorted into line items, budgets, accounts | Built on 7 Nov 2026 against batch 27 (docs/ucode-migration.md); until its tables exist the pages say so. Обзор's money still comes from `fund_money` |
+| 3 | Корреспонденция (the prototype's «Чат и письма»), Контент | Not in the panel. Nothing in the deal cycle depends on them |
 | — | **Admin: Сайт** — the public website's data, for the director and the deputy: a table for each array of its code | Built. Kept in ucode (batches 19 and 20); the website reads it on every visit |
 
 ## 2. How the parts connect

@@ -1,11 +1,17 @@
+import useStickyHead from '@shared/hooks/useStickyHead';
 import clsx from 'clsx';
-import type { ReactNode, RefObject } from 'react';
+import { type ReactNode, type RefObject, useRef } from 'react';
 
 // Classes of the header and body cells; the first and last cells line up with
 // the card's padding.
 export const TH =
    'px-3.5 py-2.5 text-[11px] font-semibold whitespace-nowrap text-ink-soft first:pl-4.5 last:pr-4.5';
 export const TD = 'px-3.5 py-2.5 first:pl-4.5 last:pr-4.5';
+
+// For a table not built with Table: its box and its <thead>, with
+// useStickyHead on the <table>.
+export const TABLE_BOX = 'relative data-wide:overflow-x-auto';
+export const STICKY_HEAD = 'sticky-head';
 
 interface TableProps {
    head: ReactNode; // the header cells
@@ -14,41 +20,38 @@ interface TableProps {
    children: ReactNode; // the rows
 }
 
-// A table inside a card: small column names on white and hairlines between
-// the rows.
-const Table = ({ head, className, body, children }: TableProps) => (
-   <div className='relative overflow-x-auto'>
-      {/* when rows are dragged the lines belong to the cells, so a row takes its own */}
-      <table
-         className={clsx(
-            'w-full text-left text-sm',
-            body ? 'border-separate border-spacing-0' : 'border-collapse',
-            className,
-         )}
-      >
-         <thead>
-            <tr
-               className={
-                  body
-                     ? '[&>th]:border-line [&>th]:border-b'
-                     : 'border-line border-b'
-               }
-            >
-               {head}
-            </tr>
-         </thead>
-         <tbody
-            ref={body}
-            className={
-               body
-                  ? '[&>tr+tr>td]:border-line [&>tr+tr>td]:border-t'
-                  : 'divide-line divide-y [&>tr]:transition-colors'
-            }
+/* A table inside a card: small column names on white and hairlines between
+   the rows. The lines belong to the cells, so a dragged row takes its own
+   and the column names keep theirs while they stay in view as the page
+   scrolls (useStickyHead). Wider than its card, it scrolls sideways. */
+const Table = ({ head, className, body, children }: TableProps) => {
+   const table = useRef<HTMLTableElement>(null);
+   useStickyHead(table);
+
+   return (
+      <div className={TABLE_BOX}>
+         <table
+            ref={table}
+            className={clsx(
+               'w-full border-separate border-spacing-0 text-left text-sm',
+               className,
+            )}
          >
-            {children}
-         </tbody>
-      </table>
-   </div>
-);
+            <thead className={STICKY_HEAD}>
+               <tr className='[&>th]:border-line [&>th]:border-b'>{head}</tr>
+            </thead>
+            <tbody
+               ref={body}
+               className={clsx(
+                  '[&>tr+tr>td]:border-line [&>tr+tr>td]:border-t',
+                  !body && '[&>tr]:transition-colors',
+               )}
+            >
+               {children}
+            </tbody>
+         </table>
+      </div>
+   );
+};
 
 export default Table;

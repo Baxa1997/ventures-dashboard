@@ -23,11 +23,18 @@ import {
    CompanyMark,
    NoData,
    Notice,
+   STICKY_HEAD,
+   TABLE_BOX,
    TD,
    TH,
 } from '@shared/components';
 import { formatUsd } from '@shared/helpers';
-import { useAction, useAttachments, useRequest } from '@shared/hooks';
+import {
+   useAction,
+   useAttachments,
+   useRequest,
+   useStickyHead,
+} from '@shared/hooks';
 import type {
    AgendaItem,
    Meeting,
@@ -41,7 +48,7 @@ import {
    Mic,
    Paperclip,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import VoteButtons from './VoteButtons';
 
@@ -73,6 +80,8 @@ const Voting = ({ data, meeting, editable, onSponsor }: VotingProps) => {
       { success: t('Голос записан') },
    );
    // the vote being saved: the question's and the member's ids
+   const table = useRef<HTMLTableElement>(null);
+   useStickyHead(table);
    const [votingId, setVotingId] = useState('');
    const participants = participantsOf(meeting, data.members);
    const questions = meeting.agenda.filter(({ kind }) => kind === 'decision');
@@ -101,9 +110,12 @@ const Voting = ({ data, meeting, editable, onSponsor }: VotingProps) => {
          </Notice>
          <Card className='mb-section'>
             {questions.length ? (
-               <div className='overflow-x-auto'>
-                  <table className='w-full border-separate border-spacing-0 text-left text-sm'>
-                     <thead>
+               <div className={TABLE_BOX}>
+                  <table
+                     ref={table}
+                     className='w-full border-separate border-spacing-0 text-left text-sm'
+                  >
+                     <thead className={STICKY_HEAD}>
                         <tr>
                            <th
                               className={clsx(
@@ -144,12 +156,7 @@ const Voting = ({ data, meeting, editable, onSponsor }: VotingProps) => {
                               </th>
                            ))}
                            <th
-                              className={clsx(
-                                 TH,
-                                 CELL,
-                                 STICKY_END,
-                                 'min-w-40',
-                              )}
+                              className={clsx(TH, CELL, STICKY_END, 'min-w-40')}
                            >
                               {t('Итог')}
                            </th>
@@ -364,25 +371,23 @@ const ItemPanel = ({
                   <p className='text-ink-soft'>
                      {t('Вопрос для информации: по нему не голосуют.')}
                   </p>
-                  {!item.outcome &&
-                     editable &&
-                     meeting.status !== 'held' && (
-                        <Button
-                           hint={t(
-                              'Записать, что вопрос принят к сведению, без голосования',
-                           )}
-                           loading={decide.pending}
-                           size='sm'
-                           variant='ghost'
-                           onClick={() =>
-                              decide.run(() =>
-                                 committee.decide(meeting.id, item.id, 'noted'),
-                              )
-                           }
-                        >
-                           {t('Принять к сведению')}
-                        </Button>
-                     )}
+                  {!item.outcome && editable && meeting.status !== 'held' && (
+                     <Button
+                        hint={t(
+                           'Записать, что вопрос принят к сведению, без голосования',
+                        )}
+                        loading={decide.pending}
+                        size='sm'
+                        variant='ghost'
+                        onClick={() =>
+                           decide.run(() =>
+                              committee.decide(meeting.id, item.id, 'noted'),
+                           )
+                        }
+                     >
+                        {t('Принять к сведению')}
+                     </Button>
+                  )}
                </div>
             ) : (
                <ResultBox
@@ -402,9 +407,7 @@ const ItemPanel = ({
                {writing ? (
                   <div className='grid gap-2'>
                      {participants
-                        .filter(
-                           ({ id }) => item.votes[id]?.choice !== 'absent',
-                        )
+                        .filter(({ id }) => item.votes[id]?.choice !== 'absent')
                         .map((member) => {
                            const note = item.votes[member.id]?.note ?? '';
                            return (
@@ -463,11 +466,7 @@ const ItemPanel = ({
                place={files}
             />
          </Section>
-         <Section
-            count={recordCount}
-            icon={Mic}
-            title={t('Записи заседания')}
-         >
+         <Section count={recordCount} icon={Mic} title={t('Записи заседания')}>
             <Attachments
                editable={editable}
                empty={t('Аудио или видео обсуждения: MP3, M4A, MP4.')}

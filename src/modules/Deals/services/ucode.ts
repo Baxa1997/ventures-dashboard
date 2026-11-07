@@ -7,6 +7,7 @@ import {
 } from '@modules/Settings/services';
 import {
    createRow,
+   deleteFile,
    deleteRow,
    fileUrl,
    fromJson,
@@ -158,7 +159,19 @@ export const toEntry = (row: Row): JournalEntry => {
       case 'workstream':
          return { ...base, kind: 'workstream', name: str(row.title), handed: row.result === 'handed' };
       case 'message':
-         return { ...base, kind: 'message', text: str(row.text), userId };
+         return {
+            ...base,
+            kind: 'message',
+            text: str(row.text),
+            userId,
+            ...(row.source === 'telegram' && {
+               source: 'telegram' as const,
+               author: str(row.author),
+            }),
+            ...((['pending', 'sent', 'failed'] as const).includes(
+               row.tg_state as 'pending',
+            ) && { tgState: row.tg_state as 'pending' | 'sent' | 'failed' }),
+         };
       default:
          return { ...base, kind: 'text', text: str(row.text) || str(row.title) };
    }
@@ -743,6 +756,74 @@ export const loadDeals = async (): Promise<Deal[]> => {
       .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 };
 
+/* Deletes a deal with all that is only its: its rows in every table of the
+   deal, the agenda items it stood on, its tasks with their checklists and
+   history, its files, and the website's application with the cabinet's
+   people. The service lets only a deal through that no committee decided on
+   and the fund paid nothing into; a vote cast at a meeting still open goes
+   with its agenda item. Children go first, the deal and its
+   application last, so a failure half way leaves the deal to delete again. */
+export const deleteDealRows = async (dealId: string, applicationId: string) => {
+   const rowsOf = async (table: string, field: string, id: string) =>
+      (await listRows(table, { [field]: id })).filter((row) => row[field] === id);
+   const optionalRows = (table: string, field: string, id: string) =>
+      rowsOf(table, field, id).catch(() => [] as Row[]);
+
+   const tasks = await rowsOf('tasks', 'deals_id', dealId);
+   const [checklists, taskEvents] = await Promise.all([
+      Promise.all(tasks.map((task) => rowsOf('task_checklist', 'tasks_id', task.guid))),
+      Promise.all(tasks.map((task) => rowsOf('task_events', 'tasks_id', task.guid))),
+   ]);
+   const [questionnaires, documents, attachments] = await Promise.all([
+      optionalRows('deal_questionnaires', 'deals_id', dealId),
+      rowsOf('deal_documents', 'deals_id', dealId),
+      rowsOf('attachments', 'deals_id', dealId),
+   ]);
+   const files = [...documents, ...attachments]
+      .map((row) => str(row.file_id))
+      .filter(Boolean);
+   const remove = (table: string, rows: Row[]) =>
+      Promise.all(rows.map((row) => deleteRow(table, row.guid)));
+
+   // the agenda items it stood on, with any votes cast on them, before the
+   // memorandums they point to
+   const agenda = await rowsOf('agenda_items', 'deals_id', dealId);
+   const votes = await Promise.all(
+      agenda.map((item) => rowsOf('votes', 'agenda_items_id', item.guid)),
+   );
+   await remove('votes', votes.flat());
+   await remove('agenda_items', agenda);
+   await remove('task_checklist', checklists.flat());
+   await remove('task_events', taskEvents.flat());
+   await remove('tasks', tasks);
+   await remove('deal_questionnaires', questionnaires);
+   await remove('deal_documents', documents);
+   await remove('attachments', attachments);
+   for (const table of [
+      'deal_events',
+      'deal_folders',
+      'screening_scores',
+      'deal_requests',
+      'deal_risks',
+      'deal_checklists',
+      'deal_team',
+      'workstreams',
+      'memos',
+      'deal_stage_history',
+   ])
+      await remove(table, await rowsOf(table, 'deals_id', dealId));
+   await deleteRow('deals', dealId);
+   if (applicationId) {
+      await remove(
+         'cabinet_members',
+         await optionalRows('cabinet_members', 'applications_id', applicationId),
+      );
+      await deleteRow('applications', applicationId);
+   }
+   // the files last: a failed delete above leaves them to open from the rows
+   await Promise.all(files.map((id) => deleteFile(id).catch(() => undefined)));
+};
+
 // The memos row of a deal's memorandum version, for an agenda item to point to.
 export const memoRowOf = (dealId: string, version: number) =>
    links.get(dealId)?.memos.get(version) ?? null;
@@ -841,6 +922,8 @@ const eventRow = (entry: JournalEntry, deal: Deal): Record<string, unknown> => {
       row.result = entry.handed ? 'handed' : 'added';
    }
    if (entry.kind === 'text' || entry.kind === 'message') row.text = entry.text;
+   // batch 26: a message for the deal's Telegram group waits for the bot
+   if (entry.kind === 'message' && entry.tgState) row.tg_state = entry.tgState;
    if (entry.kind === 'moved') {
       row.stage = entry.stage;
       row.result = entry.status;

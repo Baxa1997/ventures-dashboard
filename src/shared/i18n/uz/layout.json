@@ -98,5 +98,15 @@
    "Открыть меню профиля и выхода": "Profil va chiqish menyusini ochish",
    "Сайт": "Sayt",
    "Данные сайта: таблицы разделов, портфель, новости, FAQ и контакты": "Sayt ma’lumotlari: bo‘lim jadvallari, portfel, yangiliklar, FAQ va aloqa",
-   "Ваш доступ к панели закрыт. Обратитесь к директору фонда.": "Panelga kirishingiz yopilgan. Fond direktoriga murojaat qiling."
+   "Ваш доступ к панели закрыт. Обратитесь к директору фонда.": "Panelga kirishingiz yopilgan. Fond direktoriga murojaat qiling.",
+   "Этот раздел вам закрыт. Права даёт директор в Настройках → Роли.": "Bu bo‘lim siz uchun yopiq. Huquqlarni direktor Sozlamalar → Rollar bo‘limida beradi.",
+   "На дашборд": "Boshqaruv paneliga",
+   "Чат и письма": "Chat va xatlar",
+   "Группы сделок: переписка команды по каждой сделке": "Bitim guruhlari: har bir bitim bo‘yicha jamoa yozishmalari",
+   "P&L": "P&L",
+   "Cash Flow": "Cash Flow",
+   "Транзакции": "Tranzaksiyalar",
+   "Доходы и расходы фонда по месяцам против бюджета": "Fondning oylar bo‘yicha daromad va xarajatlari byudjetga nisbatan",
+   "Движение денег на счетах фонда по видам деятельности": "Fond hisoblaridagi pul harakati faoliyat turlari bo‘yicha",
+   "Операции из банковских выписок и их статьи": "Bank ko‘chirmalaridagi operatsiyalar va ularning moddalari"
 }

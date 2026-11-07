@@ -276,7 +276,16 @@ export type JournalEntry =
      })
    | (JournalBase & { kind: 'workstream'; name: string; handed: boolean })
    // a message in the deal's team chat
-   | (JournalBase & { kind: 'message'; text: string; userId: string });
+   | (JournalBase & {
+        kind: 'message';
+        text: string;
+        userId: string; // the employee who wrote it; '' for one from Telegram
+        // batch 26: a message written in the deal's Telegram group, with its
+        // author's Telegram name; a panel message on its way to the group
+        source?: 'telegram';
+        author?: string;
+        tgState?: 'pending' | 'sent' | 'failed';
+     });
 
 export interface Deal {
    id: string; // also the address of the deal's card

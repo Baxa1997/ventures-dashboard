@@ -199,7 +199,13 @@ export const downloadCsv = (name: string, rows: string[][]) => {
    URL.revokeObjectURL(url);
 };
 
-export { clearStores, createStore, newId, type Store } from './store';
+export {
+   clearStores,
+   createStore,
+   newId,
+   refreshStores,
+   type Store,
+} from './store';
 
 // The text of what the rich editor wrote, on one line: for lists and search.
 export const htmlToText = (html: string) =>

@@ -27,7 +27,6 @@ import type {
 } from '@shared/types/deals.types';
 import dayjs from 'dayjs';
 import { getAssigneeId, isDone } from '@modules/Work/helpers';
-import { RIGHT_SECTIONS, ROLE_RIGHTS } from '@modules/Settings/constants';
 import type { DealStage, Employee, Task } from '@shared/types/work.types';
 import type { TFunction } from 'i18next';
 import {
@@ -42,6 +41,7 @@ import {
    parseCheck,
    parseNorm,
    questionnaireOf,
+   rightOf,
 } from '@modules/Settings/services';
 import {
    APPLICATION_PHRASES,
@@ -1211,14 +1211,21 @@ export const dealLinks = (
    return links.filter((link): link is DealLink => !!link);
 };
 
+/* Why a deal cannot be deleted, or null when it can: once a committee
+   decided on it or it joined the portfolio it stays, so the register of
+   decisions and the fund's money stay right; it is rejected or withdrawn. */
+export const deleteBlockOf = (deal: Deal): 'decided' | 'portfolio' | null =>
+   deal.status === 'portfolio'
+      ? 'portfolio'
+      : deal.decisions?.length
+        ? 'decided'
+        : null;
+
 /* Whether a person sees every deal, as Настройки → Роли say: their role reads
    or runs Сделки, or the director gave them «Доступ: Полный». Otherwise, as
    «Своё» there, they see the deals attached to them. */
-export const seesAllDeals = ({ role, access }: Employee) => {
-   if (access === 'full') return true;
-   const right = ROLE_RIGHTS.find((item) => item.role === role)?.rights[
-      RIGHT_SECTIONS.indexOf('Сделки')
-   ];
+export const seesAllDeals = (person: Employee) => {
+   const right = rightOf(person, 'deals');
    return right === 'full' || right === 'read';
 };
 

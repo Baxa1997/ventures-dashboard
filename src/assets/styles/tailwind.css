@@ -146,10 +146,17 @@
 }
 
 @layer base {
-   /* an open dialog holds the page still and keeps its scrollbar's place */
-   html:has(dialog:modal) {
-      overflow: hidden;
+   /* the page's scrollbar keeps its place whether it is there or not, so
+      nothing shifts when a page grows past the window. An open window does
+      not take it away: Modal stops the wheel from moving the page behind it.
+      Touch screens, whose scrollbars float over the page, hold it still. */
+   html {
       scrollbar-gutter: stable;
+   }
+   @media (hover: none) {
+      html:has(dialog:modal) {
+         overflow: hidden;
+      }
    }
 
    body {
@@ -190,6 +197,36 @@
 }
 
 @layer components {
+   /* A table's column names stay in view while its rows scroll past: under
+      the panel's header on a page, at the top of a window's body or of a
+      section's own scrolling pane (Настройки, Сайт on wide screens). Not
+      in a table that scrolls sideways in its own box, which useStickyHead
+      moves instead, nor in a table inside another table's row. */
+   :root {
+      --sticky-top: 3.375rem;
+   }
+   dialog {
+      --sticky-top: 0px;
+   }
+   @media (width >= 64rem) {
+      [data-scroll-area] {
+         --sticky-top: 0px;
+      }
+   }
+   .sticky-head {
+      position: relative;
+      z-index: 3;
+   }
+   .sticky-head > tr > th {
+      position: sticky;
+      top: var(--sticky-top);
+      z-index: 2;
+      background-color: var(--color-white, #fff);
+   }
+   :is([data-wide], td) .sticky-head > tr > th {
+      top: auto;
+   }
+
    .link {
       @apply text-accent text-meta font-semibold whitespace-nowrap hover:underline;
    }
@@ -210,6 +247,19 @@
    }
    textarea.field-input {
       @apply h-auto py-2;
+   }
+   /* A value changed where it stands (InlineField): it reads as text in the
+      size around it, shows its frame on hover and is a field while focused. */
+   .inline-input {
+      @apply text-ink placeholder:text-ink-faint hover:border-line hover:bg-ground focus:border-accent focus:ring-accent/12 -mx-1.5 block w-[calc(100%+0.75rem)] min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 outline-none transition-colors focus:bg-white focus:ring-3 disabled:cursor-default disabled:opacity-100 disabled:hover:border-transparent disabled:hover:bg-transparent;
+      font: inherit;
+      line-height: inherit;
+   }
+   .inline-input[aria-invalid='true'] {
+      @apply border-danger;
+   }
+   select.inline-input {
+      @apply cursor-pointer;
    }
    /* The browser's own arrow sits on the very edge whatever the padding, so a
       select draws the filters' chevron (lucide ChevronDown, ink-soft) 12px in
@@ -311,6 +361,12 @@
    }
    * {
       animation: none !important;
+   }
+   .sticky-head {
+      transform: none !important;
+   }
+   .sticky-head > tr > th {
+      position: static;
    }
 }
 

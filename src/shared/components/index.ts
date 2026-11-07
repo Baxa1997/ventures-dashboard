@@ -1,4 +1,8 @@
-export { default as ActionMenu, type MenuAction } from './ActionMenu';
+export {
+   default as ActionMenu,
+   HEAD_BUTTON,
+   type MenuAction,
+} from './ActionMenu';
 export { default as Avatar } from './Avatar';
 export {
    default as Badge,
@@ -27,6 +31,11 @@ export { default as Field } from './Field';
 export { default as FilterBar } from './FilterBar';
 export { default as FilterSelect } from './FilterSelect';
 export { default as Hints } from './Hints';
+export {
+   default as InlineField,
+   type InlineKind,
+   type InlineOption,
+} from './InlineField';
 export { default as ItemActions } from './ItemActions';
 export { default as KanbanBoard, type KanbanColumn } from './KanbanBoard';
 export { default as Loading } from './Loading';
@@ -40,13 +49,9 @@ export { default as Person } from './Person';
 export { default as Progress } from './Progress';
 export { default as SearchField } from './SearchField';
 export { default as Segmented, type SegmentedItem } from './Segmented';
-export {
-   default as StatTile,
-   type StatColor,
-   type StatTone,
-} from './StatTile';
+export { default as StatTile, type StatColor, type StatTone } from './StatTile';
 export { default as Switch } from './Switch';
-export { default as Table, TD, TH } from './Table';
+export { default as Table, STICKY_HEAD, TABLE_BOX, TD, TH } from './Table';
 export { default as Tabs, type TabItem } from './Tabs';
 export { default as Timeline, type TimelineRow } from './Timeline';
 export { default as Toaster } from './Toaster';

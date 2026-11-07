@@ -112,5 +112,13 @@
    "Добавить документ фонда": "Add a fund document",
    "Выбрать файлы и загрузить их в эту папку": "Choose files and upload them to this folder",
    "Откройте папку, чтобы загрузить в неё файлы": "Open a folder to upload files into it",
-   "Добавить открытый вопрос управления": "Add an open governance question"
+   "Добавить открытый вопрос управления": "Add an open governance question",
+   "Опишите вопрос": "Describe the question",
+   "Комментарий": "Comment",
+   "Не назначен": "Not assigned",
+   "Удалить вопрос «{{name}}»?": "Delete the question «{{name}}»?",
+   "Вопрос, поднятый по ошибке, уйдёт из списка. Решённый вопрос лучше отметить статусом «Решён».": "A question raised by mistake leaves the list. A settled one is better marked «Resolved».",
+   "Переместить": "Move",
+   "Перетащите на папку, чтобы переместить документ": "Drag onto a folder to move the document",
+   "«{{title}}» перемещён в «{{folder}}»": "«{{title}}» moved to «{{folder}}»"
 }

@@ -392,7 +392,6 @@ export const PARTNER_STATUS_INFO = {
 } as const satisfies Record<PartnerStatus, { label: string; tone: BadgeTone }>;
 
 // Who changes the website: the panel's menu, and the website's own check.
-export const SITE_EDITORS = ['director', 'deputy'];
 
 export const SITE_FILES_FOLDER = 'Website';
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;

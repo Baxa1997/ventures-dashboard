@@ -1,4 +1,4 @@
-import { UcodeError } from '@shared/api/ucode';
+import { READ_ONLY_ERROR, UcodeError } from '@shared/api/ucode';
 
 /* The short notes at the bottom right: a change went through, or it did not
    and why. Any code shows one with toast.success or toast.error; the Toaster
@@ -65,6 +65,7 @@ export const onRaiseToasts = (raise: () => void) => {
 export type FailureReason =
    | 'Сессия закончилась — войдите снова.'
    | 'Нет прав на это действие.'
+   | 'Этот раздел открыт вам только для просмотра.'
    | 'Запись не найдена — возможно, её уже удалили.'
    | 'Нет связи с сервером — проверьте интернет.'
    | 'Сервер не ответил — попробуйте ещё раз.'
@@ -73,7 +74,10 @@ export type FailureReason =
 export const failureReason = (error: unknown): FailureReason => {
    if (error instanceof UcodeError) {
       if (error.status === 401) return 'Сессия закончилась — войдите снова.';
-      if (error.status === 403) return 'Нет прав на это действие.';
+      if (error.status === 403)
+         return error.message === READ_ONLY_ERROR
+            ? 'Этот раздел открыт вам только для просмотра.'
+            : 'Нет прав на это действие.';
       if (error.status === 404)
          return 'Запись не найдена — возможно, её уже удалили.';
       if (error.status >= 500) return 'Сервер не ответил — попробуйте ещё раз.';

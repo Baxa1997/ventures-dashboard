@@ -21,3 +21,4 @@ export {
 } from './useBoardDrag';
 export { type BoardOrder, default as useBoardOrder } from './useBoardOrder';
 export { default as useSaveQueue } from './useSaveQueue';
+export { default as useStickyHead } from './useStickyHead';

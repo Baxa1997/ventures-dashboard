@@ -1,9 +1,9 @@
 import { formatAmount, isOpen, reasonText } from '@modules/Deals/helpers';
 import deals from '@modules/Deals/services';
 import { listName, listOf, nameOf } from '@modules/Settings/services';
-import { Card, Field } from '@shared/components';
+import { Card, Field, InlineField } from '@shared/components';
 import { TEAM } from '@shared/constants';
-import { shortName } from '@shared/helpers';
+import { parseAmount, shortName } from '@shared/helpers';
 import { useAction, useCurrentUser } from '@shared/hooks';
 import type { Deal, NewDealInput } from '@shared/types/deals.types';
 import type { ListKind } from '@shared/types/settings.types';
@@ -46,9 +46,20 @@ const ParamsCard = ({ deal }: ParamsCardProps) => {
                <div className='text-ink-soft text-xs font-medium'>
                   {t('Запрашиваемая сумма')}
                </div>
-               <div className='text-ink-strong mt-0.5 text-[22px] leading-7 font-extrabold tabular-nums'>
-                  {formatAmount(deal.amount, language)}
-               </div>
+               <InlineField
+                  className='text-ink-strong mt-0.5 text-[22px] leading-7 font-extrabold tabular-nums'
+                  disabled={!editable}
+                  format={(value) => formatAmount(Number(value), language)}
+                  inputMode='numeric'
+                  label={t('Запрашиваемая сумма')}
+                  validate={(next) =>
+                     parseAmount(next) > 0
+                        ? undefined
+                        : t('Укажите сумму больше нуля', { ns: 'validation' })
+                  }
+                  value={String(deal.amount)}
+                  onSave={(next) => saving.run({ amount: parseAmount(next) })}
+               />
             </div>
             <Field label={t('Инвестиционный менеджер')}>
                <select

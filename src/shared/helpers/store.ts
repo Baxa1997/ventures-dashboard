@@ -12,9 +12,19 @@ export interface Store<T> {
    notify: () => void;
 }
 
-const stores = new Set<{ clear: () => void }>();
+const stores = new Set<{ clear: () => void; refresh: () => Promise<unknown> }>();
 
 export const clearStores = () => stores.forEach((store) => store.clear());
+
+/* Reads again every store a page has read, so what colleagues, the startup
+   cabinet or the website changed shows without reloading the page; one
+   that fails keeps what it had. */
+export const refreshStores = () =>
+   Promise.all(
+      [...stores].map((store) =>
+         store.refresh().catch((error: unknown) => console.error(error)),
+      ),
+   );
 
 export const createStore = <T>(load: () => Promise<T>): Store<T> => {
    let value: T | undefined;
@@ -42,6 +52,11 @@ export const createStore = <T>(load: () => Promise<T>): Store<T> => {
          value = undefined;
          loading = null;
       },
+      // only what was read: a section nobody opened stays unread
+      refresh: () =>
+         value === undefined
+            ? Promise.resolve()
+            : reload().then((loaded) => (notify(), loaded)),
    });
 
    return {

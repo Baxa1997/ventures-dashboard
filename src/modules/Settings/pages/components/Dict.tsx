@@ -1,5 +1,5 @@
-import { Button, Card } from '@shared/components';
-import { useSaveQueue } from '@shared/hooks';
+import { Button, Card, STICKY_HEAD, TABLE_BOX } from '@shared/components';
+import { useSaveQueue, useStickyHead } from '@shared/hooks';
 import clsx from 'clsx';
 import { GripVertical, Lock, Plus, Trash2 } from 'lucide-react';
 import {
@@ -37,11 +37,10 @@ export const ROW_INPUT =
 export const ROW_SELECT =
    'field-input text-meta h-7 rounded-md pl-2 transition-colors disabled:text-ink-soft disabled:cursor-not-allowed';
 
-interface RowInputProps
-   extends Omit<
-      InputHTMLAttributes<HTMLInputElement>,
-      'value' | 'onChange' | 'onBlur'
-   > {
+interface RowInputProps extends Omit<
+   InputHTMLAttributes<HTMLInputElement>,
+   'value' | 'onChange' | 'onBlur'
+> {
    value: string;
    label: string;
    onSave: (value: string) => void; // when the field is left changed
@@ -335,39 +334,45 @@ export const DictCard = ({
    note,
    extra,
    children,
-}: DictCardProps) => (
-   <Card>
-      <div className='overflow-x-auto'>
-         {/* the lines belong to the cells, so a dragged row takes its own */}
-         <table
-            className={clsx(
-               'w-full table-fixed border-separate border-spacing-0 text-sm',
-               className,
-            )}
-         >
-            <thead>
-               <tr className='[&>th]:border-line [&>th]:border-b'>{head}</tr>
-            </thead>
-            <tbody
-               ref={body}
-               className='[&>tr+tr>td]:border-line [&>tr+tr>td]:border-t'
+}: DictCardProps) => {
+   const table = useRef<HTMLTableElement>(null);
+   useStickyHead(table);
+
+   return (
+      <Card>
+         <div className={TABLE_BOX}>
+            {/* the lines belong to the cells, so a dragged row takes its own */}
+            <table
+               ref={table}
+               className={clsx(
+                  'w-full table-fixed border-separate border-spacing-0 text-sm',
+                  className,
+               )}
             >
-               {children}
-            </tbody>
-         </table>
-      </div>
-      {extra}
-      <div className='border-line text-ink-soft flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t px-4.5 py-2 text-xs'>
-         {editable && (
-            <Button hint={addHint} size='sm' variant='ghost' onClick={onAdd}>
-               <Plus aria-hidden />
-               {addLabel}
-            </Button>
-         )}
-         <span className='max-w-[72ch]'>{note}</span>
-      </div>
-   </Card>
-);
+               <thead className={STICKY_HEAD}>
+                  <tr className='[&>th]:border-line [&>th]:border-b'>{head}</tr>
+               </thead>
+               <tbody
+                  ref={body}
+                  className='[&>tr+tr>td]:border-line [&>tr+tr>td]:border-t'
+               >
+                  {children}
+               </tbody>
+            </table>
+         </div>
+         {extra}
+         <div className='border-line text-ink-soft flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t px-4.5 py-2 text-xs'>
+            {editable && (
+               <Button hint={addHint} size='sm' variant='ghost' onClick={onAdd}>
+                  <Plus aria-hidden />
+                  {addLabel}
+               </Button>
+            )}
+            <span className='max-w-[72ch]'>{note}</span>
+         </div>
+      </Card>
+   );
+};
 
 /* A row's changes, shown at once and saved one after another. Each save
    writes the row as the store has it now with every change made here

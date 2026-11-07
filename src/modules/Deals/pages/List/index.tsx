@@ -168,7 +168,7 @@ const DealsList = () => {
       if (view === 'board')
          return <DealBoard deals={shown} stage={stage} onDrop={drop} />;
       if (view === 'timeline') return <DealTimeline deals={shown} />;
-      return <DealTable deals={shown} />;
+      return <DealTable deals={shown} onMove={drop} />;
    };
 
    return (

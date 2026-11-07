@@ -1,6 +1,7 @@
 import { listRows, str } from '@shared/api/ucode';
 import { FORMER_TEAM, TEAM } from '@shared/constants';
 import { clearStores } from '@shared/helpers/store';
+import { loadPrefs } from '@shared/services/prefs';
 import type { Employee, Role } from '@shared/types/work.types';
 import { useSyncExternalStore } from 'react';
 
@@ -71,6 +72,7 @@ export const reloadTeam = async () => {
       ...rows.filter((row) => row.is_active === false).map(toEmployee),
    );
    const own = rows.find((row) => str(row.user_id) === signedIn.userId);
+   loadPrefs(own);
    currentId = own?.guid ?? '';
    accessClosed = own?.is_active === false;
    notify();
@@ -80,6 +82,7 @@ export const reloadTeam = async () => {
 export const setSignedInUser = async (userId: string, login = '') => {
    signedIn = { userId, login };
    clearStores();
+   loadPrefs();
    currentId = '';
    TEAM.splice(0, TEAM.length);
    FORMER_TEAM.splice(0, FORMER_TEAM.length);

@@ -1,6 +1,5 @@
 import ExitDialog from '@modules/Portfolio/components/ExitDialog';
 import RemindDialog from '@modules/Portfolio/components/RemindDialog';
-import ValuationDialog from '@modules/Portfolio/components/ValuationDialog';
 import {
    LIST_VIEW_LABELS,
    LIST_VIEWS,
@@ -48,7 +47,6 @@ const PortfolioList = () => {
    const view = LIST_VIEWS.find((one) => one === params.get('view')) ?? 'table';
    const [query, setQuery] = useState('');
    const [reminding, setReminding] = useState(false);
-   const [valuing, setValuing] = useState<PortfolioCompany | null>(null);
    const [exiting, setExiting] = useState<PortfolioCompany | null>(null);
    const [reopening, setReopening] = useState<PortfolioCompany | null>(null);
    const title = t('Портфель');
@@ -134,7 +132,6 @@ const PortfolioList = () => {
                   <CompanyTable
                      companies={found}
                      data={data}
-                     onValuation={setValuing}
                   />
                   <MrrChart companies={companies} />
                </>
@@ -152,7 +149,6 @@ const PortfolioList = () => {
             open={reminding}
             onClose={() => setReminding(false)}
          />
-         <ValuationDialog company={valuing} onClose={() => setValuing(null)} />
          <ExitDialog
             company={exiting}
             fields={data.exitFields}
