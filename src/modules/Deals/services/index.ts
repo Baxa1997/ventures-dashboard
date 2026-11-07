@@ -1,6 +1,6 @@
 import portfolio from '@modules/Portfolio/services';
 import settings from '@modules/Settings/services';
-import { deleteFile, listRows, uploadFile } from '@shared/api/ucode';
+import { deleteFile, listRows, updateRow, uploadFile } from '@shared/api/ucode';
 import {
    addWorkingDays,
    createStore,
@@ -39,6 +39,7 @@ import dayjs from 'dayjs';
 import {
    cabinetPeople,
    countryText,
+   deleteBlockOf,
    emptyScreening,
    industryText,
    isUntouchedAudit,
@@ -54,6 +55,7 @@ import {
    updateCabinetUser,
 } from './cabinet';
 import {
+   deleteDealRows,
    insertDeal,
    journalOf,
    loadDeals,
@@ -272,6 +274,21 @@ class Deals {
       await store.reload();
    }
 
+   /* Deletes a deal entered by mistake, with all that is only its
+      (deleteDealRows). One a committee decided on or in the portfolio is
+      refused (deleteBlockOf): it is rejected or withdrawn instead. */
+   async deleteDeal(id: string) {
+      const deal = (await store.get()).find((item) => item.id === id);
+      if (!deal) return;
+      if (deleteBlockOf(deal))
+         throw new Error(`Deal ${id} has a decision or a company`);
+      try {
+         await deleteDealRows(id, deal.applicationId ?? '');
+      } finally {
+         await store.reload();
+      }
+   }
+
    // What another section did about the deal, for its history.
    async addNote(id: string, text: string) {
       await note(id, text);
@@ -282,16 +299,103 @@ class Deals {
       return (await uploadFile(await shrinkLogo(file), 'Logos')).url;
    }
 
-   // A message to the deal's team chat; it stays in the deal's history.
-   async sendMessage(id: string, text: string, userId: string) {
-      await change(id, (deal) =>
-         logged(deal, {
-            kind: 'message',
-            text,
-            userId,
-            at: new Date().toISOString(),
+   /* A message to the deal's group; it stays in the deal's history. Its
+      files go to the attachments table under the message (section `chat`),
+      after the message itself is written. With `telegram` (the deal's group
+      is open in Telegram) the bot's server sends it there: it is marked
+      `pending` once its files are stored, so none goes without them. */
+   async sendMessage(
+      id: string,
+      text: string,
+      userId: string,
+      files: File[] = [],
+      { telegram = false }: { telegram?: boolean } = {},
+   ) {
+      const message: JournalEntry = {
+         id: newId(),
+         date: todayISO(),
+         kind: 'message',
+         text,
+         userId,
+         at: new Date().toISOString(),
+         ...(telegram && !files.length && { tgState: 'pending' as const }),
+      };
+      await change(id, (deal) => ({
+         ...deal,
+         journal: [message, ...deal.journal],
+      }));
+      if (!files.length) return;
+      await attachments.uploadFiles(
+         { dealId: id, section: 'chat', itemId: message.id },
+         files,
+         userId,
+      );
+      if (!telegram) return;
+      await updateRow('deal_events', { guid: message.id, tg_state: 'pending' });
+      store.set((current) =>
+         current.map((deal) =>
+            deal.id === id
+               ? {
+                    ...deal,
+                    journal: deal.journal.map((entry) =>
+                       entry.id === message.id && entry.kind === 'message'
+                          ? { ...entry, tgState: 'pending' as const }
+                          : entry,
+                    ),
+                 }
+               : deal,
+         ),
+      );
+   }
+
+   /* Every deal's group messages read again, for what others wrote since:
+      only the journal's `message` rows, so it is light enough to repeat while
+      «Чат и письма» is open. Returns how many new messages came in. */
+   async refreshMessages() {
+      const rows = (await listRows('deal_events', { kind: 'message' })).filter(
+         (row) => row.kind === 'message',
+      );
+      const byDeal = new Map<string, typeof rows>();
+      for (const row of rows) {
+         const dealId = String(row.deals_id ?? '');
+         byDeal.set(dealId, [...(byDeal.get(dealId) ?? []), row]);
+      }
+      /* what is new, and what changed since: a message edited in Telegram,
+         or one of the panel's that the bot has sent or could not send */
+      const changesOf = (deal: Deal) => {
+         const known = new Map(deal.journal.map((item) => [item.id, item]));
+         const read = journalOf(byDeal.get(deal.id) ?? []);
+         return {
+            fresh: read.filter((item) => !known.has(item.id)),
+            changed: read.filter((item) => {
+               const before = known.get(item.id);
+               return (
+                  before?.kind === 'message' &&
+                  item.kind === 'message' &&
+                  (before.text !== item.text || before.tgState !== item.tgState)
+               );
+            }),
+         };
+      };
+      const counts = (await store.get()).map(changesOf);
+      const added = counts.reduce((sum, { fresh }) => sum + fresh.length, 0);
+      if (!added && !counts.some(({ changed }) => changed.length)) return 0;
+      const moment = (item: JournalEntry) => item.at ?? item.date;
+      store.set((current) =>
+         current.map((deal) => {
+            const { fresh, changed } = changesOf(deal);
+            if (!fresh.length && !changed.length) return deal;
+            const updated = new Map(changed.map((item) => [item.id, item]));
+            return {
+               ...deal,
+               journal: [
+                  ...fresh,
+                  ...deal.journal.map((item) => updated.get(item.id) ?? item),
+               ].sort((a, b) => moment(b).localeCompare(moment(a))),
+            };
          }),
       );
+      return added;
    }
 
    // The deal's journal read again, for the messages others wrote since; an
@@ -1056,7 +1160,11 @@ class Deals {
    async setMetrics(id: string, metrics: Deal['metrics']) {
       await change(id, (deal) => ({
          ...deal,
-         metrics: metrics?.items.length ? metrics : undefined,
+         // a period or a source is kept before the first figure
+         metrics:
+            metrics && (metrics.items.length || metrics.hint || metrics.note)
+               ? metrics
+               : undefined,
       }));
    }
 

@@ -138,6 +138,26 @@ class Documents {
       return id;
    }
 
+   // A question's title, note or owner, changed where it stands.
+   async updateIssue(
+      id: string,
+      patch: Partial<Pick<GovernanceIssue, 'title' | 'note' | 'ownerId'>>,
+   ) {
+      await updateRow('governance_issues', {
+         guid: id,
+         ...(patch.title !== undefined && { title: patch.title }),
+         ...(patch.note !== undefined && { note: patch.note }),
+         ...(patch.ownerId !== undefined && { owner_id: patch.ownerId }),
+      });
+      await store.reload();
+   }
+
+   // A question raised by mistake; a settled one is marked resolved instead.
+   async removeIssue(id: string) {
+      await deleteRow('governance_issues', id);
+      await store.reload();
+   }
+
    async setIssueStatus(id: string, status: IssueStatus) {
       await updateRow('governance_issues', {
          guid: id,

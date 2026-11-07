@@ -25,7 +25,7 @@ import {
 } from '@modules/Portfolio/helpers';
 import { type PortfolioData, useCompanyTasks } from '@modules/Portfolio/hooks';
 import portfolio from '@modules/Portfolio/services';
-import { listName } from '@modules/Settings/services';
+import { listOf, nameOf } from '@modules/Settings/services';
 import { TaskLine } from '@modules/Work/components';
 import { isDone, statusAfterTick } from '@modules/Work/helpers';
 import work from '@modules/Work/services';
@@ -35,18 +35,20 @@ import {
    CheckList,
    ConfirmDialog,
    FactList,
+   InlineField,
    ItemActions,
    NoData,
    StatTile,
 } from '@shared/components';
 import { COMMITTEE_PATH } from '@modules/Committee/constants';
-import { SECTION_PATHS } from '@shared/constants';
+import { SECTION_PATHS, TEAM } from '@shared/constants';
 import {
    formatDate,
    formatDayYear,
    formatMoneyShort,
    formatUsd,
    personName,
+   shortName,
 } from '@shared/helpers';
 import { useCurrentUser, useServiceData } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
@@ -236,7 +238,25 @@ const Overview = ({
       },
       {
          label: t('Ответственный'),
-         value: personName(company.ownerId) || t('Не назначен'),
+         value: manages ? (
+            <InlineField
+               kind='select'
+               label={t('Ответственный')}
+               options={[
+                  { value: '', label: t('Не назначен') },
+                  ...TEAM.map(({ id, name }) => ({
+                     value: id,
+                     label: shortName(name),
+                  })),
+               ]}
+               value={company.ownerId}
+               onSave={(ownerId) =>
+                  portfolio.updateCompany(company.id, { ownerId })
+               }
+            />
+         ) : (
+            personName(company.ownerId) || t('Не назначен')
+         ),
       },
       ...approvals.map((decision) => ({
          label: decision.body,
@@ -373,24 +393,59 @@ const Overview = ({
          <div className='gap-section grid flex-1 items-start xl:grid-cols-[minmax(0,1fr)_21.25rem]'>
             <div className='gap-section flex min-w-0 flex-col'>
                <Card title={t('О компании')}>
-                  {company.about && (
-                     <p className='max-w-[72ch] px-4.5 pt-3.5'>
-                        {company.about}
-                     </p>
-                  )}
+                  <div className='px-4.5 pt-3'>
+                     <InlineField
+                        className='max-w-[72ch]'
+                        kind='multiline'
+                        label={t('О компании')}
+                        maxLength={600}
+                        placeholder={t('Чем занимается компания')}
+                        value={company.about}
+                        onSave={(about) =>
+                           portfolio.updateCompany(company.id, { about })
+                        }
+                     />
+                  </div>
                   <FactList
-                     className='px-4.5 py-2'
+                     className='text-meta px-4.5 py-2'
                      labelWidth='9rem'
                      rows={[
                         ...facts,
                         {
                            label: t('Отрасль'),
-                           value:
-                              listName('industries', company.industryKey) ||
-                              company.tagline ||
-                              '—',
+                           value: (
+                              <InlineField
+                                 kind='select'
+                                 label={t('Отрасль')}
+                                 options={listOf('industries').map((item) => ({
+                                    value: item.key,
+                                    label: nameOf(item),
+                                 }))}
+                                 placeholder={company.tagline || '—'}
+                                 value={company.industryKey}
+                                 onSave={(industryKey) =>
+                                    portfolio.updateCompany(company.id, {
+                                       industryKey,
+                                    })
+                                 }
+                              />
+                           ),
                         },
-                        { label: t('Страны'), value: company.countries || '—' },
+                        {
+                           label: t('Страны'),
+                           value: (
+                              <InlineField
+                                 label={t('Страны')}
+                                 placeholder={t('Узбекистан, Казахстан')}
+                                 value={company.countries}
+                                 onSave={(countries) =>
+                                    portfolio.updateCompany(company.id, {
+                                       countries,
+                                    })
+                                 }
+                              />
+                           ),
+                        },
                         ...(deal?.applicantEmail &&
                         !facts.some(({ label }) => label === 'Контакт')
                            ? [

@@ -252,5 +252,8 @@
    "Без метки": "Yorliqsiz",
    "Статусы заявки": "Ariza holatlari",
    "Список в блоке «Аккаунт основателя».": "«Asoschi akkaunti» blokidagi ro‘yxat.",
-   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте.": "Sayt kodidagi ma’lumotlar faqat bo‘sh jadvallarga yoziladi, to‘ldirilganlari o‘zgarmaydi. Portfel kompaniyalari darhol saytda paydo bo‘ladi."
+   "Данные из кода сайта запишутся только в пустые таблицы, заполненные не изменятся. Компании портфеля сразу появятся на сайте.": "Sayt kodidagi ma’lumotlar faqat bo‘sh jadvallarga yoziladi, to‘ldirilganlari o‘zgarmaydi. Portfel kompaniyalari darhol saytda paydo bo‘ladi.",
+   "Сайт вам закрыт: право на него даёт директор в Настройках → Роли.": "Sayt siz uchun yopiq: huquqni direktor Sozlamalar → Rollar bo‘limida beradi.",
+   "Язык текстов в таблице": "Jadvaldagi matnlar tili",
+   "Нет текста на этом языке": "Bu tilda matn yo‘q"
 }

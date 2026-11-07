@@ -83,5 +83,8 @@
    "Открыть вкладку «{{name}}»": "«{{name}}» yorlig‘ini ochish",
    "Сейчас показано: {{name}}": "Hozir ko‘rsatilgan: {{name}}",
    "Показать: {{name}}": "Ko‘rsatish: {{name}}",
-   "Нажмите, чтобы открыть; перетащите в другую колонку": "Ochish uchun bosing; boshqa ustunga sudrang"
+   "Нажмите, чтобы открыть; перетащите в другую колонку": "Ochish uchun bosing; boshqa ustunga sudrang",
+   "Нажмите, чтобы изменить: {{name}}": "O‘zgartirish uchun bosing: {{name}}",
+   "Добавить": "Qo‘shish",
+   "Этот раздел открыт вам только для просмотра.": "Bu bo‘lim siz uchun faqat ko‘rish uchun ochiq."
 }

@@ -6,6 +6,7 @@ import {
    ActionMenu,
    Badge,
    CompanyMark,
+   HEAD_BUTTON,
    type MenuAction,
 } from '@shared/components';
 import { personName } from '@shared/helpers';
@@ -27,8 +28,6 @@ interface CompanyHeaderProps {
    onChat?: () => void; // the team's chat of its deal; none without a deal
 }
 
-const ICON_BUTTON =
-   'border-line text-ink-soft hover:bg-hover hover:text-ink grid size-9 shrink-0 place-items-center rounded-lg border bg-white transition-colors';
 
 /* The company's head, as the deal's: its mark, its name and status, a line
    of what it is, and icon buttons — change its details, a new task about
@@ -54,15 +53,21 @@ const CompanyHeader = ({
       .filter(Boolean)
       .join(' · ');
 
-   const icon = (label: string, Icon: LucideIcon, onClick: () => void) => (
+   // a head button: its name on it, what it does on hover
+   const icon = (
+      name: string,
+      hint: string,
+      Icon: LucideIcon,
+      onClick: () => void,
+   ) => (
       <button
          type='button'
-         aria-label={label}
-         className={ICON_BUTTON}
-         data-hint={label}
+         className={HEAD_BUTTON}
+         data-hint={hint}
          onClick={onClick}
       >
-         <Icon aria-hidden className='size-4' />
+         <Icon aria-hidden className='text-ink-soft size-4' />
+         {name}
       </button>
    );
 
@@ -77,21 +82,21 @@ const CompanyHeader = ({
             <p className='text-ink-soft text-meta mt-0.5'>{meta}</p>
          </div>
          <div className='print-hidden flex max-w-full flex-wrap items-center gap-2'>
-            {icon(t('Изменить данные компании'), Pencil, onEdit)}
-            {icon(t('Новая задача по компании'), ListPlus, () =>
+            {icon(t('Изменить'), t('Изменить данные компании'), Pencil, onEdit)}
+            {icon(t('Задача'), t('Новая задача по компании'), ListPlus, () =>
                openNewTask({ relation: 'portfolio', relationId: company.id }),
             )}
             {onChat &&
                icon(
-                  t(
-                     'Чат команды по компании: сообщения видят сотрудники фонда',
-                  ),
+                  t('Чат'),
+                  t('Открыть группу сделки в «Чат и письма»'),
                   MessagesSquare,
                   onChat,
                )}
             <ActionMenu
                bordered
                actions={menu}
+               text={t('Действия')}
                label={t('Действия с компанией')}
                name={company.name}
             />

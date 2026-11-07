@@ -1,6 +1,6 @@
 import work from '@modules/Work/services';
 import type { Deal, DealsSummary } from '@shared/types/deals.types';
-import { useCurrentUser, useRefreshOnReturn } from '@shared/hooks';
+import { useCurrentUser } from '@shared/hooks';
 import { useEffect, useState } from 'react';
 import deals from '../services';
 import { summarize } from '../services/ucode';
@@ -48,8 +48,6 @@ const useDeals = () => {
          unsubscribeTasks();
       };
    }, [userId]);
-   // an answer from the startup cabinet comes in when the person returns
-   useRefreshOnReturn(() => deals.reload());
 
    return state;
 };

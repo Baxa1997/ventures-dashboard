@@ -1,8 +1,16 @@
 import IssueDialog from '@modules/Documents/components/IssueDialog';
 import { ISSUE_STATUSES } from '@modules/Documents/constants';
 import documents from '@modules/Documents/services';
-import { Card, FilterSelect, NoData } from '@shared/components';
-import { personName } from '@shared/helpers';
+import {
+   Card,
+   ConfirmDialog,
+   FilterSelect,
+   InlineField,
+   ItemActions,
+   NoData,
+} from '@shared/components';
+import { TEAM } from '@shared/constants';
+import { shortName } from '@shared/helpers';
 import { useAction } from '@shared/hooks';
 import type {
    GovernanceIssue,
@@ -16,11 +24,12 @@ interface IssuesProps {
 }
 
 /* The open questions of corporate governance, beside the fund's documents:
-   what each is, its status (changed in place) and who follows it. A
-   resolved one leaves the list. */
+   what each is, its status and who follows it, all changed where they
+   stand; one raised by mistake is deleted. A resolved one leaves the list. */
 const Issues = ({ issues }: IssuesProps) => {
    const { t } = useTranslation('documents');
    const [adding, setAdding] = useState(false);
+   const [removing, setRemoving] = useState<GovernanceIssue | null>(null);
    const changing = useAction(
       (id: string, status: IssueStatus) => documents.setIssueStatus(id, status),
       { success: t('Статус вопроса сохранён') },
@@ -53,18 +62,52 @@ const Issues = ({ issues }: IssuesProps) => {
                      className='flex flex-wrap items-center gap-x-4 gap-y-2 py-3.5'
                   >
                      <div className='min-w-0 flex-[1_1_20rem]'>
-                        <div className='font-semibold'>{issue.title}</div>
-                        {issue.note && (
-                           <div className='text-ink-soft mt-0.5 text-xs'>
-                              {issue.note}
-                           </div>
-                        )}
+                        <InlineField
+                           className='font-semibold'
+                           label={t('Вопрос')}
+                           maxLength={200}
+                           validate={(text) =>
+                              text ? undefined : t('Опишите вопрос')
+                           }
+                           value={issue.title}
+                           onSave={(title) =>
+                              documents.updateIssue(issue.id, { title })
+                           }
+                        />
+                        <InlineField
+                           className='text-ink-soft text-xs'
+                           kind='multiline'
+                           label={t('Комментарий')}
+                           maxLength={600}
+                           placeholder={t('Комментарий')}
+                           value={issue.note}
+                           onSave={(note) =>
+                              documents.updateIssue(issue.id, { note })
+                           }
+                        />
+                        <ItemActions
+                           className='mt-1 text-xs'
+                           name={issue.title}
+                           onDelete={() => setRemoving(issue)}
+                        />
                      </div>
-                     {issue.ownerId && (
-                        <span className='text-ink-soft text-xs'>
-                           {personName(issue.ownerId)}
-                        </span>
-                     )}
+                     <span className='text-ink-soft w-36 text-xs'>
+                        <InlineField
+                           kind='select'
+                           label={t('Ответственный')}
+                           options={[
+                              { value: '', label: t('Не назначен') },
+                              ...TEAM.map(({ id, name }) => ({
+                                 value: id,
+                                 label: shortName(name),
+                              })),
+                           ]}
+                           value={issue.ownerId}
+                           onSave={(ownerId) =>
+                              documents.updateIssue(issue.id, { ownerId })
+                           }
+                        />
+                     </span>
                      <FilterSelect<IssueStatus>
                         accent={issue.status === 'in_work'}
                         busy={changingId === issue.id}
@@ -90,6 +133,20 @@ const Issues = ({ issues }: IssuesProps) => {
             <NoData>{t('Открытых вопросов нет')}</NoData>
          )}
          <IssueDialog open={adding} onClose={() => setAdding(false)} />
+         <ConfirmDialog
+            open={removing !== null}
+            title={t('Удалить вопрос «{{name}}»?', {
+               name: removing?.title ?? '',
+            })}
+            onClose={() => setRemoving(null)}
+            onConfirm={() => removing && documents.removeIssue(removing.id)}
+         >
+            <p>
+               {t(
+                  'Вопрос, поднятый по ошибке, уйдёт из списка. Решённый вопрос лучше отметить статусом «Решён».',
+               )}
+            </p>
+         </ConfirmDialog>
       </Card>
    );
 };

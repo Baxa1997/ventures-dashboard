@@ -1,4 +1,7 @@
+import committee from '@modules/Committee/services';
+import { useRights } from '@modules/Settings/hooks/rights';
 import { stageName } from '@modules/Settings/services';
+import work from '@modules/Work/services';
 import {
    MoveDealDialog,
    type MoveTarget,
@@ -16,6 +19,7 @@ import {
 } from '@modules/Deals/constants';
 import {
    columnOf,
+   deleteBlockOf,
    reasonText,
    isClosed,
    isOpen,
@@ -32,6 +36,7 @@ import {
    Button,
    buttonClass,
    Card,
+   ConfirmDialog,
    Loading,
    type MenuAction,
    NoData,
@@ -54,11 +59,12 @@ import {
    type LucideIcon,
    ScanSearch,
    ShieldCheck,
+   Trash2,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams, useSearchParams } from 'react-router';
-import DealChat from './components/DealChat';
+import { CHAT_PATH } from '@shared/constants';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
    DealHeader,
    DealStepper,
@@ -92,13 +98,15 @@ const DealCard = () => {
    const { t } = useTranslation('deals');
    const { id } = useParams();
    const user = useCurrentUser();
+   const rights = useRights();
+   const navigate = useNavigate();
    const { deals: all, loading } = useDeals();
+   const [deleting, setDeleting] = useState(false);
    const [params, setParams] = useSearchParams();
    const tab = toTab(params.get('tab'));
    const [rejecting, setRejecting] = useState(false);
    const [transferring, setTransferring] = useState(false);
    const [editing, setEditing] = useState(false);
-   const [chatting, setChatting] = useState(false);
    // «Сменить этап»: closed, or open set to a stage the stepper was clicked on
    const [moving, setMoving] = useState<MoveTarget | null>(null);
    // the open folder of the data room, kept while the card's tabs change;
@@ -190,7 +198,22 @@ const DealCard = () => {
       main one in the accent colour (take the application, or move the deal
       on), then asking the founder for data and putting the deal on another
       stage, and the refusal in red, last. */
-   const menu: MenuAction[] = open
+   const removable = rights('deals') === 'full' && !deleteBlockOf(deal);
+   const remove: MenuAction[] = removable
+      ? [
+           {
+              label: t('Удалить сделку'),
+              icon: Trash2,
+              danger: true,
+              hint: t(
+                 'Удалить сделку, внесённую по ошибке, со всем, что к ней относится',
+              ),
+              onSelect: () => setDeleting(true),
+           },
+        ]
+      : [];
+   const menu: MenuAction[] = [
+      ...(open
       ? [
            deal.status === 'review'
               ? {
@@ -238,7 +261,9 @@ const DealCard = () => {
               onSelect: () => setRejecting(true),
            },
         ]
-      : [];
+      : []),
+      ...remove,
+   ];
 
    // the screening ends as its decision says
    const completeScreening = () => {
@@ -310,7 +335,7 @@ const DealCard = () => {
                deal={deal}
                editable={open}
                menu={menu}
-               onChat={() => setChatting(true)}
+               onChat={() => navigate(`${CHAT_PATH}?chat=${deal.id}`)}
                onEdit={() => setEditing(true)}
             />
             {(isClosed(deal) || deal.status === 'paused') && deal.closed && (
@@ -423,15 +448,40 @@ const DealCard = () => {
             deal={rejecting ? deal : null}
             onClose={() => setRejecting(false)}
          />
+         <ConfirmDialog
+            open={deleting}
+            subtitle={deal.number}
+            success={t('Сделка удалена')}
+            title={t('Удалить сделку «{{name}}»?', { name: deal.company })}
+            onClose={() => setDeleting(false)}
+            onConfirm={async () => {
+               await deals.deleteDeal(deal.id);
+               await Promise.all([work.reloadTasks(), committee.reload()]);
+               navigate(DEALS_PATH, { replace: true });
+            }}
+         >
+            <p>
+               {t(
+                  'Уйдут её журнал, документы и файлы data room, запросы, скоринг, DD, меморандум, анкета, задачи по сделке и место в повестке заседания. Это нельзя отменить.',
+               )}
+            </p>
+            {deal.fromSite && (
+               <p className='mt-2'>
+                  {t(
+                     'Вместе с ней удаляются заявка с сайта и входы в кабинет основателя: с этой почты можно будет подать заявку снова.',
+                  )}
+               </p>
+            )}
+            {!deal.fromSite && deal.applicationId && (
+               <p className='mt-2'>
+                  {t('Входы в кабинет основателя по этой сделке тоже удаляются.')}
+               </p>
+            )}
+         </ConfirmDialog>
          <NewDealDialog
             deal={deal}
             open={editing}
             onClose={() => setEditing(false)}
-         />
-         <DealChat
-            deal={deal}
-            open={chatting}
-            onClose={() => setChatting(false)}
          />
          <MoveDealDialog
             deal={moving ? deal : null}

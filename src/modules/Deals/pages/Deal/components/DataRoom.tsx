@@ -40,6 +40,7 @@ import {
    Eye,
    FileText,
    FolderInput,
+   GripVertical,
    Pencil,
    Send,
    Trash2,
@@ -274,6 +275,8 @@ interface FolderButtonProps {
    count: number; // the documents directly in it
    depth: number; // how far inside other folders
    active: boolean;
+   // a document is being dragged and may be dropped here: the folder shows it
+   ready?: boolean;
    onClick: () => void;
    // a document of the list dropped on it moves here; not given — it takes none
    onDropDocument?: (documentId: string) => void;
@@ -291,6 +294,7 @@ const FolderButton = ({
    depth,
    active,
    hint,
+   ready = false,
    onClick,
    onDropDocument,
 }: FolderButtonProps) => {
@@ -305,9 +309,11 @@ const FolderButton = ({
             'text-meta flex w-full items-center gap-2 rounded-md py-2 pr-3 text-left',
             over
                ? 'bg-accent-tint text-accent outline-accent font-semibold outline-2 -outline-offset-2 outline-dashed'
-               : active
-                 ? 'bg-accent-tint text-ink-strong font-semibold'
-                 : 'text-ink hover:bg-hover',
+               : ready
+                 ? 'outline-accent-soft text-ink outline-1 -outline-offset-2 outline-dashed'
+                 : active
+                   ? 'bg-accent-tint text-ink-strong font-semibold'
+                   : 'text-ink hover:bg-hover',
          )}
          data-hint={hint}
          style={{ paddingLeft: `${0.75 + depth * 0.875}rem` }}
@@ -326,6 +332,9 @@ const FolderButton = ({
             onDropDocument?.(event.dataTransfer.getData(DRAGGED_DOCUMENT));
          }}
       >
+         {ready && (
+            <FolderInput aria-hidden className='text-accent size-4 shrink-0' />
+         )}
          <span className='min-w-0 flex-1'>{name}</span>
          <span className='text-ink-faint text-xs tabular-nums'>{count}</span>
       </button>
@@ -648,6 +657,11 @@ const DataRoom = ({
    return (
       <div className='gap-section grid items-start lg:grid-cols-[14.375rem_minmax(0,1fr)]'>
          <Card className='p-2'>
+            {dragged && (
+               <p className='bg-accent-tint text-accent-ink mb-1.5 rounded-md px-3 py-2 text-xs font-medium'>
+                  {t('Отпустите документ на папке, чтобы переместить его туда')}
+               </p>
+            )}
             <nav aria-label={t('Папки data room')}>
                <ul className='grid gap-0.5'>
                   {treeOf(folders).map(({ folder, depth }) => (
@@ -662,6 +676,7 @@ const DataRoom = ({
                                  : t('Показать документы этой папки')
                            }
                            name={folder.name}
+                           ready={!!dragged && folder.id !== current}
                            onClick={() => onFolder(folder.id)}
                            onDropDocument={dropOn(folder.id)}
                         />
@@ -675,6 +690,7 @@ const DataRoom = ({
                            depth={0}
                            hint={t('Показать документы этой папки')}
                            name={t('Без папки')}
+                           ready={!!dragged && current !== ''}
                            onClick={() => onFolder(NO_FOLDER)}
                            onDropDocument={dropOn('')}
                         />
@@ -758,6 +774,13 @@ const DataRoom = ({
                      className='min-w-2xl'
                      head={
                         <>
+                           {writable && (
+                              <th className={clsx(TH, 'w-0 pr-0')}>
+                                 <span className='sr-only'>
+                                    {t('Переместить')}
+                                 </span>
+                              </th>
+                           )}
                            <th className={TH}>{t('Документ')}</th>
                            <th className={clsx(TH, 'text-right')}>
                               {t('Размер')}
@@ -796,6 +819,22 @@ const DataRoom = ({
                                  setDragged(document.id);
                               }}
                            >
+                              {writable && (
+                                 <td className={clsx(TD, 'w-0 pr-0')}>
+                                    <span
+                                       aria-hidden
+                                       className='text-ink-faint hover:bg-ground hover:text-ink grid h-8 w-5 cursor-grab place-items-center rounded active:cursor-grabbing'
+                                       data-hint={t(
+                                          'Перетащите на папку слева, чтобы переместить документ',
+                                       )}
+                                       onClick={(event) =>
+                                          event.stopPropagation()
+                                       }
+                                    >
+                                       <GripVertical className='size-4' />
+                                    </span>
+                                 </td>
+                              )}
                               <td className={TD}>
                                  <div className='flex items-center gap-2.5'>
                                     <span className='bg-accent-tint text-accent grid size-8.5 shrink-0 place-items-center rounded-lg'>
@@ -890,7 +929,7 @@ const DataRoom = ({
                      )}
                      {writable &&
                         files.length > 0 &&
-                        ` ${t('Чтобы переместить файл, перетащите его на папку слева.')}`}
+                        ` ${t('Чтобы переместить файл, потяните его за ⠿ в начале строки и отпустите на папке слева.')}`}
                   </span>
                   <span>
                      {t('{{total}} на проверке', { total: reviewCount })}

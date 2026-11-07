@@ -112,5 +112,13 @@
    "Добавить документ фонда": "Fond hujjatini qo‘shish",
    "Выбрать файлы и загрузить их в эту папку": "Fayllarni tanlash va shu papkaga yuklash",
    "Откройте папку, чтобы загрузить в неё файлы": "Fayllarni yuklash uchun papkani oching",
-   "Добавить открытый вопрос управления": "Boshqaruvning ochiq masalasini qo‘shish"
+   "Добавить открытый вопрос управления": "Boshqaruvning ochiq masalasini qo‘shish",
+   "Опишите вопрос": "Masalani tavsiflang",
+   "Комментарий": "Izoh",
+   "Не назначен": "Tayinlanmagan",
+   "Удалить вопрос «{{name}}»?": "«{{name}}» masalasini o‘chirasizmi?",
+   "Вопрос, поднятый по ошибке, уйдёт из списка. Решённый вопрос лучше отметить статусом «Решён».": "Xato ko‘tarilgan masala ro‘yxatdan olib tashlanadi. Hal qilingan masalani «Hal qilindi» holati bilan belgilagan ma’qul.",
+   "Переместить": "Ko‘chirish",
+   "Перетащите на папку, чтобы переместить документ": "Hujjatni ko‘chirish uchun papkaga torting",
+   "«{{title}}» перемещён в «{{folder}}»": "«{{title}}» «{{folder}}» papkasiga ko‘chirildi"
 }

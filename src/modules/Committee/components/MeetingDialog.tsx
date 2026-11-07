@@ -1,4 +1,5 @@
-import { FORMAT_OPTIONS } from '@modules/Committee/constants';
+import { meetingFormats } from '@modules/Committee/constants';
+import { formatName } from '@modules/Committee/helpers';
 import committee from '@modules/Committee/services';
 import {
    Button,
@@ -70,13 +71,13 @@ const MeetingForm = ({
                      value={values.format}
                      onChange={(event) => set({ format: event.target.value })}
                   >
-                     {FORMAT_OPTIONS.map((option) => (
+                     {meetingFormats().map((option) => (
                         <option key={option} value={option}>
-                           {t(option)}
+                           {formatName(t, option)}
                         </option>
                      ))}
                      {/* a format the list does not have stays offered */}
-                     {!FORMAT_OPTIONS.some(
+                     {!meetingFormats().some(
                         (option) => option === meeting.format,
                      ) && (
                         <option value={meeting.format}>{meeting.format}</option>

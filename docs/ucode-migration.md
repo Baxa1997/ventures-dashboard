@@ -1795,6 +1795,8 @@ New fields in the existing table deals
 
 The deal's card edits the company in one window with four tabs, as the prototype has it: the main details with the logo, the legal details and contacts, the deal, and the cabinet's team with the capital. These are the fields it adds. The logo is a file in ucode Files (folder `Logos`, made at most 256px), its link kept on the deal; `about` stays the description for the panel and `about_en` is the one for the cabinet and the website. A cabinet person gets Telegram and WhatsApp, each an `@username` or a phone number. Until the fields exist ucode drops them, and the window says so.
 
+Status, 7 November 2026: the 7 fields made in the test project with `node scripts/ucode/fields.mjs create 23`, each read back with its type; a deal row now lists them, so the panel writes them and the window's note is gone. Not named in Russian and Uzbek in the ucode admin. The cabinet and the website do not read them yet. Production: not started.
+
 ```
 Batch 23. Same rules.
 
@@ -1820,6 +1822,165 @@ Batch 24. Same rules.
 New fields in the existing table pilots
 - sponsor: SINGLE_LINE
 - budget: NUMBER
+```
+
+## Batch 25 — the fund's rules, the roles' rights and a person's preferences
+
+What Настройки change now instead of the panel's code: «Правила ИК» (the committee's numbers were in `fund_settings` since batch 1; the meeting formats are new), «Сроки и напоминания» (when quarterly reports are due and reminded of, and how long before its end a contract is flagged; `request_answer_days` was there already), and «Роли», whose table is now changed and applied (`role_rights`: only what differs from the defaults in `DEFAULT_RIGHTS`, as `{role: {section: right}}`). A person's preferences — what they ticked in Мой день, the order of the cards in a board's columns, the notifications they have seen — go with their employees row, so they follow them to another device. Until the fields exist ucode drops them, the panel works by the defaults and this browser's copy, and the sections say so.
+
+```
+Batch 25. Same rules.
+
+New fields in the existing table fund_settings
+- reports_due_day: NUMBER
+- reports_reminder_days: NUMBER
+- contract_expiring_days: NUMBER
+- meeting_formats: JSON
+- role_rights: JSON
+
+New fields in the existing table employees
+- prefs: JSON
+```
+
+## Batch 26 — Telegram groups of the deals
+
+Every new deal opens its group in Telegram with the fund's bot (docs/telegram.md). The bot's server (`venture/telegram-bot`) writes these rows with the project key; the panel reads them and asks for a group.
+
+- **Groups.** `tg_chats` is a deal's Telegram group: `chat_id` (the Bot API's id, a large negative number, kept as text), its `title` and `invite_link`, and `status`: `requested` (the panel asks for a group), `creating` (the fund's account is making it), `waiting_bot` (no account: a person adds the bot by the link with `link_token`, until `link_expires_at`), `active`, `lost` (the bot was removed) or `failed` (with `error`). `created_via` is `account` or `link`. Folder Admin → Deals.
+- **Messages.** A group's messages are the deal journal's `message` rows, the same as the panel's: `source` `telegram` with the Telegram `author` and `tg_message_id` (`<chat_id>:<message_id>`) for one from Telegram; a message written in the panel for a deal with an active group gets `tg_state` `pending`, which the bot's server turns into `sent` (with its `tg_message_id`) or `failed`. Their files are `attachments` with section `chat`, as in the panel.
+- **The bot's state.** The bot's server writes to `fund_settings` its bot's username (`telegram_bot`), whether the fund's account is wired in (`telegram_mode`: `account` or `link`), when it last ran (`telegram_seen_at`, every minute) and from when it opens groups for new deals by itself (`telegram_since`, set the first time it runs). The panel counts Telegram as connected while `telegram_seen_at` is under three minutes old.
+
+- **The fund's account, connected from the panel** (Настройки → Интеграции → «Подключить аккаунт фонда»). `telegram_auth` holds the sign-in's steps as JSON: the panel writes the phone, the `api_id`, the `api_hash` and later the code and the two-step password, and the server answers with the next step or an error, then clears it. `telegram_keys` is the server's public key (RSA-OAEP), with which the panel encrypts the `api_hash` and the password in the browser; its private key is kept there encrypted with the server's `TELEGRAM_SECRET`. `telegram_account` is the connected account: its masked phone, `api_id`, and the `api_hash` and the session encrypted the same way, so reading ucode gives neither.
+
+The table and fields are made with `node scripts/ucode/fields.mjs tables 26 --folder "Deals"` and `node scripts/ucode/fields.mjs create 26`, the relation with the MCP's `update_table`.
+
+```
+Batch 26. Same rules: tg_chats inside the folder "Admin" → "Deals". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table tg_chats
+- title: SINGLE_LINE
+- chat_id: SINGLE_LINE
+- status: SINGLE_LINE
+- created_via: SINGLE_LINE
+- invite_link: SINGLE_LINE
+- link_token: SINGLE_LINE
+- link_expires_at: DATE_TIME
+- linked_at: DATE_TIME
+- requested_by_id: SINGLE_LINE
+- error: MULTI_LINE
+
+New fields in the existing table deal_events
+- source: SINGLE_LINE
+- author: SINGLE_LINE
+- tg_message_id: SINGLE_LINE
+- tg_state: SINGLE_LINE
+
+New fields in the existing table fund_settings
+- telegram_bot: SINGLE_LINE
+- telegram_mode: SINGLE_LINE
+- telegram_seen_at: DATE_TIME
+- telegram_since: DATE_TIME
+- telegram_auth: JSON
+- telegram_keys: JSON
+- telegram_account: JSON
+
+Relations (Many2One, from table → target table; ucode names the field {target}_id)
+- tg_chats → deals
+```
+
+## Batch 27 — Финансы
+
+The prototype's Финансы: P&L, Cash Flow and Транзакции (batch 26 is the Telegram proposal in docs/telegram.md).
+
+- **Счета.** `fin_accounts` are the fund's bank accounts. A statement is loaded to one; its `currency` decides which report it counts in (a report shows one currency at a time); `opening_balance` is what it held on `opening_date`, before the operations from that day, and Cash Flow counts the balance from it.
+- **Операции.** `fin_transactions` are the operations of the statements (`import_id` the `fin_imports` row) or entered by hand (`import_id` empty). `amount` is signed, in the account's currency: minus is money out. `category` keeps a `fin_categories` slug, empty while not sorted. A statement's date, sum, account and counterparty are not changed in the panel; deleting a statement deletes its operations.
+- **Статьи.** `fin_categories` are the line items: `flow` is in, out or both (which operations may take it), `pnl` is income, expense or none, `cash` is operating, investing, financing or none, and `budgets` is a year's budget as `{"2026": 900000}`, a positive sum. `transfer` is the system row: a transfer between own accounts is in neither report.
+- **Правила.** `fin_rules`: an operation whose counterparty or purpose holds `match_text` gets `category` as it is imported, and «Применить к неразнесённым» sorts the rest. The rows below are a start, the words SQB's statements use. Money to or from another of the fund's own accounts (`party_account`, which a 1С statement gives) is sorted as `transfer` before any rule.
+- **Сделка.** An operation in a line item of investing activities (an investment, an exit) keeps `deal_id`, the deal of the portfolio company; on import it is the deal whose company the counterparty or the purpose names.
+- **Журнал.** A statement loaded or deleted, an operation entered by hand, changed or deleted, an account, a line item, a budget and a rule go to `settings_journal` as «Финансы · …»; sorting an operation does not.
+- **Налог.** `fund_settings.profit_tax_rate`, % of the profit before tax in P&L (15 until set), changed in P&L where it stands.
+- **Права.** Настройки → Роли get a row «Финансы»: by default the director and the accountant in full, the deputy to read, the rest closed (docs/ERP.md §6).
+
+Until the tables exist the pages say so and offer nothing to save; the line items are the rows below, built in, and the first change writes them all.
+
+The tables, fields and rows are made with `node scripts/ucode/fields.mjs tables 27 --folder "Fund"`, `node scripts/ucode/fields.mjs create 27` and `node scripts/ucode/rows.mjs insert 27 --write`, in that order.
+
+```
+Batch 27. Same rules: every new table inside the folder "Admin", in "Fund". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table fin_accounts
+- name: SINGLE_LINE
+- bank: SINGLE_LINE
+- number: SINGLE_LINE
+- currency: SINGLE_LINE
+- opening_balance: NUMBER
+- opening_date: DATE
+- sort_order: NUMBER
+- is_active: BOOLEAN
+
+Table fin_categories
+- slug: SINGLE_LINE
+- name_ru: SINGLE_LINE
+- name_uz: SINGLE_LINE
+- name_en: SINGLE_LINE
+- flow: SINGLE_LINE
+- pnl: SINGLE_LINE
+- cash: SINGLE_LINE
+- budgets: JSON
+- sort_order: NUMBER
+- is_active: BOOLEAN
+- is_system: BOOLEAN
+
+Table fin_transactions
+- op_date: DATE
+- account_id: SINGLE_LINE
+- party: SINGLE_LINE
+- purpose: MULTI_LINE
+- amount: NUMBER
+- category: SINGLE_LINE
+- note: SINGLE_LINE
+- deal_id: SINGLE_LINE
+- party_account: SINGLE_LINE
+- import_id: SINGLE_LINE
+- created_by: SINGLE_LINE
+
+Table fin_imports
+- file_name: SINGLE_LINE
+- account_id: SINGLE_LINE
+- imported_on: DATE
+- rows_count: NUMBER
+- by_id: SINGLE_LINE
+
+Table fin_rules
+- match_text: SINGLE_LINE
+- category: SINGLE_LINE
+- sort_order: NUMBER
+
+New fields in the existing table fund_settings
+- profit_tax_rate: NUMBER
+
+Rows for fin_categories (slug | name_ru | name_uz | name_en | flow | pnl | cash | sort_order | is_active | is_system)
+- fee | Плата за управление (от SQB) | Boshqaruv haqi (SQB dan) | Management fee (from SQB) | in | income | operating | 1 | true | false
+- interest | Процентный доход по депозитам | Depozitlar bo‘yicha foiz daromadi | Interest on deposits | in | income | operating | 2 | true | false
+- exit | Поступления от выходов | Chiqishlardan tushumlar | Exit proceeds | in | income | investing | 3 | true | false
+- capital | Взносы капитала от SQB | SQB kapital badallari | Capital contributions from SQB | in | none | financing | 4 | true | false
+- payroll | Фонд оплаты труда | Ish haqi fondi | Payroll | out | expense | operating | 5 | true | false
+- rent | Аренда офиса | Ofis ijarasi | Office rent | out | expense | operating | 6 | true | false
+- legal | Юридические и аудиторские услуги | Yuridik va audit xizmatlari | Legal and audit services | out | expense | operating | 7 | true | false
+- events | Маркетинг и мероприятия | Marketing va tadbirlar | Marketing and events | out | expense | operating | 8 | true | false
+- it | IT и подписки | IT va obunalar | IT and subscriptions | out | expense | operating | 9 | true | false
+- bank_fee | Банковские комиссии | Bank komissiyalari | Bank fees | out | expense | operating | 10 | true | false
+- other | Прочие расходы | Boshqa xarajatlar | Other expenses | out | expense | operating | 11 | true | false
+- invest | Инвестиции в портфельные компании | Portfel kompaniyalariga investitsiyalar | Investments in portfolio companies | out | none | investing | 12 | true | false
+- transfer | Перевод между своими счетами | O‘z hisoblar o‘rtasida o‘tkazma | Transfer between own accounts | both | none | none | 13 | true | true
+
+Rows for fin_rules (match_text | category | sort_order)
+- Плата за управление | fee | 1
+- Проценты | interest | 2
+- Заработная плата | payroll | 3
+- Аренда | rent | 4
+- Аудит | legal | 5
+- Транш | invest | 6
 ```
 
 ## Checking what was created

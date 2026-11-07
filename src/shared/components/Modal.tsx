@@ -31,13 +31,51 @@ interface ModalPartProps {
    children: ReactNode;
 }
 
+const SCROLLS = /auto|scroll|overlay/;
+
+/* Whether a turn of the wheel moves something inside an open window: a part
+   of it that scrolls and has room left that way. Anything else (the dim
+   backdrop, the title, a part already at its end) would move the page
+   behind, which stays put. */
+const movesInside = (event: WheelEvent) => {
+   const start = event.target instanceof Element ? event.target : null;
+   const dialog = start?.closest('dialog');
+   for (
+      let node = start;
+      node && dialog?.contains(node);
+      node = node.parentElement
+   ) {
+      const style = getComputedStyle(node);
+      const down =
+         event.deltaY !== 0 &&
+         (SCROLLS.test(style.overflowY) ||
+            node instanceof HTMLTextAreaElement) &&
+         (event.deltaY > 0
+            ? node.scrollTop + node.clientHeight < node.scrollHeight - 1
+            : node.scrollTop > 0);
+      const across =
+         event.deltaX !== 0 &&
+         SCROLLS.test(style.overflowX) &&
+         (event.deltaX > 0
+            ? node.scrollLeft + node.clientWidth < node.scrollWidth - 1
+            : node.scrollLeft > 0);
+      if (down || across) return true;
+   }
+   return false;
+};
+
+const holdPage = (event: WheelEvent) => {
+   if (!event.ctrlKey && !movesInside(event)) event.preventDefault();
+};
+
 interface ModalFooterProps extends ModalPartProps {
    note?: ReactNode; // short remark at the left, e.g. what happens next
 }
 
 /* Built on the native <dialog>, which traps focus and closes on Escape.
    The title stays at the top and the buttons at the bottom; only the content
-   between them scrolls, and the page behind it stands still (tailwind.css). Put the content in ModalBody and the buttons in
+   between them scrolls, and the page behind it stands still with its
+   scrollbar in place (holdPage). Put the content in ModalBody and the buttons in
    ModalFooter; a form wraps both with the MODAL_FORM class. */
 const Modal = ({
    open,
@@ -62,6 +100,14 @@ const Modal = ({
          raiseToasts(); // the notes stay over it
       }
       if (!open && dialog.open) dialog.close();
+   }, [open]);
+
+   // the page behind stays put while its scrollbar stays in view (tailwind.css)
+   useEffect(() => {
+      if (!open) return;
+      const options = { capture: true, passive: false };
+      document.addEventListener('wheel', holdPage, options);
+      return () => document.removeEventListener('wheel', holdPage, options);
    }, [open]);
 
    return (

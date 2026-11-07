@@ -323,5 +323,8 @@
    "Нажмите, чтобы открыть; перетащите, чтобы сменить статус": "Ochish uchun bosing; holatni o‘zgartirish uchun sudrang",
    "Открыть задачу: {{title}}": "Vazifani ochish: {{title}}",
    "Сменить статус задачи": "Vazifa holatini o‘zgartirish",
-   "Отметить пункт или снять отметку": "Bandni belgilash yoki belgini olib tashlash"
+   "Отметить пункт или снять отметку": "Bandni belgilash yoki belgini olib tashlash",
+   "Комментарий пустой": "Izoh bo‘sh",
+   "Удалить комментарий?": "Izohni o‘chirasizmi?",
+   "Комментарий уйдёт из задачи; её история останется.": "Izoh vazifadan o‘chiriladi; uning tarixi qoladi."
 }

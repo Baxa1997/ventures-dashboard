@@ -83,5 +83,8 @@
    "Открыть вкладку «{{name}}»": "Open the “{{name}}” tab",
    "Сейчас показано: {{name}}": "Showing now: {{name}}",
    "Показать: {{name}}": "Show: {{name}}",
-   "Нажмите, чтобы открыть; перетащите в другую колонку": "Click to open; drag to another column"
+   "Нажмите, чтобы открыть; перетащите в другую колонку": "Click to open; drag to another column",
+   "Нажмите, чтобы изменить: {{name}}": "Click to change: {{name}}",
+   "Добавить": "Add",
+   "Этот раздел открыт вам только для просмотра.": "This section is open to you for viewing only."
 }

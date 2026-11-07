@@ -323,5 +323,8 @@
    "Нажмите, чтобы открыть; перетащите, чтобы сменить статус": "Click to open; drag to change the status",
    "Открыть задачу: {{title}}": "Open the task: {{title}}",
    "Сменить статус задачи": "Change the task’s status",
-   "Отметить пункт или снять отметку": "Tick the item or clear it"
+   "Отметить пункт или снять отметку": "Tick the item or clear it",
+   "Комментарий пустой": "The comment is empty",
+   "Удалить комментарий?": "Delete the comment?",
+   "Комментарий уйдёт из задачи; её история останется.": "The comment leaves the task; its history stays."
 }

@@ -25,6 +25,8 @@ export const OVERVIEW_PATH = '/work/overview';
 export const MY_DAY_PATH = '/work/my-day';
 export const SETTINGS_PATH = '/settings';
 export const SITE_PATH = '/site';
+export const CHAT_PATH = '/chat';
+export const FINANCE_PATH = '/finance';
 export const LOGIN_PATH = '/login';
 
 export const DATE_FORMAT = 'YYYY-MM-DD';

@@ -5,9 +5,13 @@ import {
    metricName,
    metricUnit,
    monthLabel,
+   monthsBetween,
    owesReport,
    parseMetric,
+   previousQuarter,
    quarterLabel,
+   quarterOfDay,
+   quartersBetween,
    receivedCount,
    recentMonths,
    recentQuarters,
@@ -20,6 +24,7 @@ import {
    Button,
    Card,
    ChartTooltip,
+   InlineField,
    NoData,
    Segmented,
    Table,
@@ -36,10 +41,15 @@ import {
    formatNumber,
    todayISO,
 } from '@shared/helpers';
-import { useAction } from '@shared/hooks';
-import type { Metric, PortfolioCompany } from '@shared/types/portfolio.types';
+import { readPref, writePref } from '@shared/services/prefs';
+import type {
+   Metric,
+   MetricKey,
+   PortfolioCompany,
+} from '@shared/types/portfolio.types';
 import clsx from 'clsx';
-import { Pencil } from 'lucide-react';
+import dayjs from 'dayjs';
+import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
@@ -51,8 +61,19 @@ interface MetricsProps {
 
 type Period = 'month' | 'quarter';
 
-// How far back the table and the chart go.
+// The columns a view starts with, and the most it shows.
 const COLUMNS: Record<Period, number> = { month: 12, quarter: 8 };
+const MOST: Record<Period, number> = { month: 36, quarter: 16 };
+// How far back the range can start: five years of months or quarters.
+const BACK: Record<Period, number> = { month: 60, quarter: 24 };
+
+interface Range {
+   from: string; // 2025-11 or 2024-Q4
+   to: string;
+}
+
+// The range a person last picked for a view, kept with them (prefs).
+const rangeKey = (period: Period) => `sqbv_metrics_range_${period}`;
 
 // A quarter is 2026-Q3, a month 2026-09.
 const isQuarter = (period: string) => period.includes('-Q');
@@ -61,43 +82,76 @@ const isQuarter = (period: string) => period.includes('-Q');
 const valuesOf = (metric: Metric, period: Period) =>
    period === 'quarter' ? metric.values : metric.months;
 
-// The figure of a cell, as its input starts.
-const cellText = (value: number | null | undefined) =>
-   value == null ? '' : String(value);
-
 /* «Показатели», as the design draws them: by month or by quarter (the
    address keeps it, ?period=month), a row for each metric with its unit and
-   a column for each period, the newest on the right. «Изменить» turns every
-   cell into a field: the figures are typed in the table itself and saved at
-   once; an emptied cell deletes its figure. A row pressed draws its metric
-   under the table. Under it, each quarter's report: how many of its
-   documents came and whether the figures the fund's template brought in are
-   confirmed. */
+   a column for each period, the newest on the right. The months or quarters
+   shown are picked «с … по …» (kept with the person), and one more is added
+   on the left with «+». Every cell is changed where it stands: a figure
+   typed is saved as it is left, an emptied cell deletes it. A row pressed
+   draws its metric under the table. Under it, each quarter's report: how
+   many of its documents came and whether the figures the fund's template
+   brought in are confirmed. */
 const Metrics = ({ company, cycle }: MetricsProps) => {
    const { t, i18n } = useTranslation('portfolio');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const [params, setParams] = useSearchParams();
    const period: Period =
       params.get('period') === 'month' ? 'month' : 'quarter';
-   const periods =
-      period === 'quarter'
-         ? recentQuarters(cycle.quarter, COLUMNS.quarter)
-         : recentMonths(COLUMNS.month);
+
+   // the months up to this one, the quarters up to this one
+   const thisMonth = todayISO().slice(0, 7);
+   const thisQuarter = quarterOfDay(todayISO());
+   const choices =
+      period === 'month'
+         ? monthsBetween(
+              dayjs(`${thisMonth}-01`)
+                 .subtract(BACK.month - 1, 'month')
+                 .format('YYYY-MM'),
+              thisMonth,
+           )
+         : recentQuarters(thisQuarter, BACK.quarter);
+   const initial = (): Range => {
+      const shown =
+         period === 'quarter'
+            ? recentQuarters(cycle.quarter, COLUMNS.quarter)
+            : recentMonths(COLUMNS.month);
+      return { from: shown[0], to: shown[shown.length - 1] };
+   };
+   const [ranges, setRanges] = useState<Partial<Record<Period, Range>>>(() => ({
+      month: readPref<Range | undefined>(rangeKey('month'), undefined),
+      quarter: readPref<Range | undefined>(rangeKey('quarter'), undefined),
+   }));
+   const range = ranges[period] ?? initial();
+   const between = period === 'month' ? monthsBetween : quartersBetween;
+   const periods = between(range.from, range.to);
+
+   // a range picked: the ends in order, at most MOST columns, kept for next time
+   const pick = (next: Range | null) => {
+      if (!next) {
+         setRanges((prev) => ({ ...prev, [period]: undefined }));
+         writePref(rangeKey(period), null);
+         return;
+      }
+      let { from, to } = next.from <= next.to ? next : { from: next.to, to: next.from };
+      const all = between(from, to);
+      if (all.length > MOST[period]) from = all[all.length - MOST[period]];
+      setRanges((prev) => ({ ...prev, [period]: { from, to } }));
+      writePref(rangeKey(period), { from, to });
+   };
+   const earlier =
+      period === 'month'
+         ? dayjs(`${range.from}-01`).subtract(1, 'month').format('YYYY-MM')
+         : previousQuarter(range.from);
+   const canAdd =
+      choices.includes(earlier) && periods.length < MOST[period];
+   const custom = !!ranges[period];
+
    const label = (at: string) =>
-      isQuarter(at) ? quarterLabel(t, at) : monthLabel(at);
+      isQuarter(at) ? quarterLabel(t, at) : monthLabel(at, true);
    const [chosen, setChosen] = useState(company.metrics[0]?.key ?? '');
    const metric = company.metrics.find(({ key }) => key === chosen);
    // the quarter whose figures from the template are being checked
    const [checking, setChecking] = useState<string | null>(null);
-   // the cells as typed while the table is changed, by `period|metric`;
-   // null while it is only shown
-   const [draft, setDraft] = useState<Record<string, string> | null>(null);
-   const [invalid, setInvalid] = useState<string[]>([]);
-   const saving = useAction(
-      (changes: Record<string, Record<string, number | null>>) =>
-         portfolio.saveMetrics(company.id, changes),
-      { success: t('Показатели сохранены') },
-   );
 
    const latest = [...periods]
       .reverse()
@@ -119,7 +173,9 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
                 'Последние цифры: {{period}}. Помесячные показатели вносит фонд.',
                 { period: monthLabel(latest, true) },
              )
-           : t('Помесячных цифр пока нет: их вносит фонд, нажмите «Изменить».');
+           : t(
+                'Помесячных цифр пока нет: их вносит фонд — нажмите на ячейку и введите цифру.',
+             );
 
    const show = (next: Period) =>
       setParams(
@@ -132,35 +188,27 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
          { replace: true },
       );
 
-   const cancel = () => {
-      setDraft(null);
-      setInvalid([]);
-   };
-
-   // the typed figures that differ from those kept, by period and metric;
-   // a cell that is not a number is marked and nothing is written
-   const save = async () => {
-      if (!draft) return;
-      const changes: Record<string, Record<string, number | null>> = {};
-      const wrong: string[] = [];
-      for (const [key, text] of Object.entries(draft)) {
-         const [at, metricKey] = key.split('|');
-         const row = company.metrics.find(({ key: one }) => one === metricKey);
-         if (!row) continue;
-         const value = parseMetric(text, row.format);
-         if (Number.isNaN(value)) {
-            wrong.push(key);
-            continue;
+   const option = (at: string) => (
+      <option key={at} value={at}>
+         {label(at)}
+      </option>
+   );
+   const bound = (end: 'from' | 'to') => (
+      <select
+         aria-label={end === 'from' ? t('Период с') : t('Период по')}
+         className='field-input h-9 w-auto'
+         data-hint={
+            end === 'from'
+               ? t('С какого месяца или квартала показывать')
+               : t('По какой месяц или квартал показывать')
          }
-         const kept = (isQuarter(at) ? row.values : row.months)[at] ?? null;
-         if (value !== kept)
-            changes[at] = { ...changes[at], [metricKey]: value };
-      }
-      setInvalid(wrong);
-      if (wrong.length) return;
-      if (!Object.keys(changes).length) return cancel();
-      if (await saving.run(changes)) cancel();
-   };
+         value={range[end]}
+         onChange={(event) => pick({ ...range, [end]: event.target.value })}
+      >
+         {!choices.includes(range[end]) && option(range[end])}
+         {[...choices].reverse().map(option)}
+      </select>
+   );
 
    return (
       <div className='gap-section flex flex-1 flex-col'>
@@ -174,54 +222,77 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
                value={period}
                onChange={show}
             />
-            <p className='text-ink-soft text-meta min-w-0 flex-[1_1_18rem]'>
+            <span className='text-meta flex flex-wrap items-center gap-2'>
+               <span className='text-ink-soft'>{t('с')}</span>
+               {bound('from')}
+               <span className='text-ink-soft'>{t('по')}</span>
+               {bound('to')}
+               {canAdd && (
+                  <Button
+                     hint={
+                        period === 'month'
+                           ? t('Показать ещё один месяц слева: {{period}}', {
+                                period: label(earlier),
+                             })
+                           : t('Показать ещё один квартал слева: {{period}}', {
+                                period: label(earlier),
+                             })
+                     }
+                     variant='ghost'
+                     onClick={() => pick({ ...range, from: earlier })}
+                  >
+                     <Plus aria-hidden />
+                     {period === 'month' ? t('Месяц раньше') : t('Квартал раньше')}
+                  </Button>
+               )}
+               {custom && (
+                  <button
+                     type='button'
+                     className='link'
+                     data-hint={t('Вернуть последние 12 месяцев или 8 кварталов')}
+                     onClick={() => pick(null)}
+                  >
+                     {t('Сбросить')}
+                  </button>
+               )}
+            </span>
+            <p className='text-ink-soft text-meta min-w-0 flex-[1_1_100%]'>
                {note}
             </p>
-            {company.metrics.length > 0 && (
-               <div className='ml-auto flex gap-2'>
-                  {draft ? (
-                     <>
-                        <Button
-                           disabled={saving.pending}
-                           hint={t('Выйти из правки, ничего не меняя')}
-                           variant='ghost'
-                           onClick={cancel}
-                        >
-                           {t('Отмена')}
-                        </Button>
-                        <Button
-                           hint={t('Сохранить цифры, введённые в таблице')}
-                           loading={saving.pending}
-                           onClick={save}
-                        >
-                           {t('Сохранить')}
-                        </Button>
-                     </>
-                  ) : (
-                     <Button
-                        hint={t(
-                           'Править цифры прямо в таблице: каждая ячейка станет полем',
-                        )}
-                        variant='ghost'
-                        onClick={() => setDraft({})}
-                     >
-                        <Pencil aria-hidden />
-                        {t('Изменить')}
-                     </Button>
-                  )}
-               </div>
-            )}
          </div>
          <Card>
             {company.metrics.length ? (
                <Table
-                  className={period === 'month' ? 'min-w-5xl' : 'min-w-3xl'}
+                  className={
+                     periods.length <= 8
+                        ? 'min-w-3xl'
+                        : periods.length <= 12
+                          ? 'min-w-5xl'
+                          : periods.length <= 18
+                            ? 'min-w-7xl'
+                            : 'min-w-[110rem]'
+                  }
                   head={
                      <>
                         <th className={TH}>{t('Показатель')}</th>
                         {periods.map((at) => (
-                           <th key={at} className={clsx(TH, 'text-right')}>
-                              {label(at)}
+                           <th
+                              key={at}
+                              className={clsx(TH, 'text-right leading-tight')}
+                           >
+                              {isQuarter(at) ? (
+                                 quarterLabel(t, at)
+                              ) : (
+                                 // the month's name over its year, so it never reads as a day
+                                 <>
+                                    <span className='block'>
+                                       {dayjs(`${at}-01`).format('MMM')}
+                                    </span>
+                                    <span className='text-ink-faint block font-normal'>
+                                       {at.slice(0, 4)}
+                                    </span>
+                                 </>
+                              )}
                            </th>
                         ))}
                      </>
@@ -251,53 +322,43 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
                            </td>
                            {periods.map((at) => {
                               const value = valuesOf(row, period)[at] ?? null;
-                              const key = `${at}|${row.key}`;
                               return (
                                  <td
                                     key={at}
-                                    className={clsx(
-                                       TD,
-                                       'text-right whitespace-nowrap tabular-nums',
-                                       draft && 'py-1.5',
-                                       !draft &&
-                                          value === null &&
-                                          'text-ink-soft text-xs',
-                                    )}
+                                    className={clsx(TD, 'py-1.5 whitespace-nowrap')}
                                  >
-                                    {draft ? (
-                                       <input
-                                          aria-invalid={invalid.includes(key)}
-                                          aria-label={`${name}, ${label(at)}`}
-                                          className='field-input h-8 w-24 px-2 text-right tabular-nums'
-                                          inputMode='decimal'
-                                          maxLength={16}
-                                          value={draft[key] ?? cellText(value)}
-                                          onChange={(event) => {
-                                             const text = event.target.value;
-                                             setDraft(
-                                                (cells) =>
-                                                   cells && {
-                                                      ...cells,
-                                                      [key]: text,
-                                                   },
-                                             );
-                                          }}
-                                          onKeyDown={(event) => {
-                                             if (event.key === 'Enter')
-                                                void save();
-                                             if (event.key === 'Escape')
-                                                cancel();
-                                          }}
-                                       />
-                                    ) : value !== null ? (
-                                       formatMetric(t, row, value, language)
-                                    ) : at === cycle.quarter ? (
-                                       t('ждём до {{date}}', {
-                                          date: formatDay(cycle.due),
-                                       })
-                                    ) : (
-                                       '—'
-                                    )}
+                                    <InlineField
+                                       className={clsx(
+                                          'text-right tabular-nums',
+                                          on && 'hover:bg-white',
+                                       )}
+                                       format={(text) =>
+                                          formatMetric(t, row, Number(text), language)
+                                       }
+                                       inputMode='decimal'
+                                       label={`${name}, ${label(at)}`}
+                                       maxLength={16}
+                                       placeholder={
+                                          at === cycle.quarter
+                                             ? t('ждём до {{date}}', {
+                                                  date: formatDay(cycle.due),
+                                               })
+                                             : '—'
+                                       }
+                                       validate={(text) =>
+                                          Number.isNaN(parseMetric(text, row.format))
+                                             ? t('Нужно число')
+                                             : undefined
+                                       }
+                                       value={value === null ? '' : String(value)}
+                                       onSave={(text) =>
+                                          portfolio.saveMetrics(company.id, {
+                                             [at]: {
+                                                [row.key]: parseMetric(text, row.format),
+                                             },
+                                          } as Record<string, Record<MetricKey, number | null>>)
+                                       }
+                                    />
                                  </td>
                               );
                            })}
@@ -313,14 +374,10 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
                </NoData>
             )}
             <footer className='border-line text-ink-soft flex flex-wrap justify-between gap-x-4 gap-y-1 border-t px-4.5 py-2.5 text-xs'>
-               <span className={clsx(invalid.length > 0 && 'text-danger')}>
-                  {invalid.length
-                     ? t('Нужно число: проверьте ячейки в красной рамке.')
-                     : draft
-                       ? t(
-                            'Пустая ячейка удаляет цифру. Enter — сохранить, Esc — отменить.',
-                         )
-                       : t('Нажмите на показатель, чтобы построить график')}
+               <span>
+                  {t(
+                     'Нажмите на ячейку, чтобы ввести цифру: она сохранится, когда вы выйдете из ячейки; пустая ячейка удаляет цифру. Нажмите на показатель, чтобы построить график.',
+                  )}
                </span>
                <Link
                   className='hover:text-ink'
@@ -341,7 +398,7 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
                <MetricChart
                   metric={metric}
                   points={periods.map((at) => ({
-                     label: label(at),
+                     label: isQuarter(at) ? quarterLabel(t, at) : monthLabel(at),
                      value: valuesOf(metric, period)[at] ?? null,
                   }))}
                />

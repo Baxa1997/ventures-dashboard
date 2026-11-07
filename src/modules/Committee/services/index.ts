@@ -493,6 +493,11 @@ class Committee {
       };
    }
 
+   // Reads the meetings again, after another section deleted their rows.
+   async reload() {
+      await store.reload();
+   }
+
    async getState(): Promise<CommitteeState> {
       const [state, tasks] = await Promise.all([store.get(), work.getTasks()]);
       return {
@@ -725,6 +730,68 @@ class Committee {
             await Promise.all([deals.reload(), work.reloadMeetings()]);
          },
       );
+   }
+
+   /* Puts one question on a meeting, whatever its state, as «Добавить» at
+      the foot of an opened meeting does: a deal — one waiting for it, or any
+      other deal in work, whose stage stays as it is — or a question for
+      information under its own title; then its sum, speaker and decision,
+      which on a held meeting reach the register as any changed decision does.
+      Returns the question's id. */
+   async addQuestion(
+      meetingId: string,
+      input: {
+         dealId?: string;
+         title?: string;
+      } & Pick<AgendaItem, 'speakerId' | 'amount' | 'outcome'>,
+   ) {
+      const [state, all] = await Promise.all([store.get(), deals.getDeals()]);
+      const meeting = meetingOf(state, meetingId);
+      const from = meeting.agenda.length;
+      const [item] = input.dealId
+         ? agendaFor(all, [input.dealId], meeting.stage)
+         : [
+              {
+                 id: newId(),
+                 kind: 'info',
+                 title: (input.title ?? '').trim(),
+                 stage: meeting.stage ?? undefined,
+                 speakerId: input.speakerId,
+                 votes: {},
+                 protocol: { pros: '', cons: '', conditions: '', next: '' },
+                 outcome: null,
+                 outcomeNote: '',
+              } satisfies AgendaItem,
+           ];
+      if (!item || !item.title) throw new Error('Nothing to put on the agenda');
+      await apply(
+         withMeeting(meetingId, (one) => {
+            const agenda = [...one.agenda, item];
+            return { ...one, agenda, summary: summaryOf(agenda) };
+         }),
+         async (_, after) => {
+            await Promise.all([
+               writeAgenda(meetingId, [item], all, from),
+               updateRow('meetings', {
+                  guid: meetingId,
+                  summary: meetingOf(after, meetingId).summary,
+               }),
+            ]);
+            await Promise.all([deals.reload(), work.reloadMeetings()]);
+         },
+      );
+      const amount = input.amount ?? item.amount;
+      if (
+         input.outcome ||
+         input.speakerId !== item.speakerId ||
+         amount !== item.amount
+      )
+         await this.updateItem(meetingId, item.id, {
+            speakerId: input.speakerId,
+            amount,
+            outcome: input.outcome,
+         });
+      return item.id;
    }
 
    /* Takes a question off the agenda of a meeting, whatever its state, with

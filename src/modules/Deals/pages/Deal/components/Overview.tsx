@@ -1,20 +1,17 @@
 import { CabinetCard, RisksCard } from '@modules/Deals/components';
-import { FIELD_FACTS } from '@modules/Deals/constants';
 import {
    COMMITTEE_STAGES,
    committeeStateOf,
-   countryText,
-   factRows,
    hasTermsStage,
    isOpen,
 } from '@modules/Deals/helpers';
-import { Card, FactList, STACK } from '@shared/components';
-import { formatNumericDate } from '@shared/helpers';
+import { STACK } from '@shared/components';
 import type { Deal } from '@shared/types/deals.types';
 import type { DealStage } from '@shared/types/work.types';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import CapitalCard from './CapitalCard';
+import CompanyCard from './CompanyCard';
 import MandateCard from './MandateCard';
 import MetricsCard from './MetricsCard';
 import NextStep from './NextStep';
@@ -64,81 +61,7 @@ const Overview = ({ deal, onTransfer, onEdit, onMove }: OverviewProps) => {
    return (
       <div className='gap-section grid flex-1 items-start xl:grid-cols-[minmax(0,1fr)_21.25rem]'>
          <div className={STACK}>
-            <Card
-               action={
-                  editable && (
-                     <button
-                        type='button'
-                        className='link'
-                        data-hint={t('Изменить данные о компании')}
-                        onClick={onEdit}
-                     >
-                        {t('Изменить')}
-                     </button>
-                  )
-               }
-               title={t('О компании')}
-            >
-               {deal.about && (
-                  <div className='border-line border-b px-4.5 py-3.5'>
-                     <p className='max-w-[72ch]'>{deal.about}</p>
-                  </div>
-               )}
-               <div className='text-meta px-4.5 py-3.5'>
-                  <FactList
-                     labelWidth='10.5rem'
-                     rows={[
-                        { label: t('Юр. лицо'), value: deal.legalName || '—' },
-                        { label: t('ИНН'), value: deal.tin || '—' },
-                        {
-                           label: t('Дата регистрации'),
-                           value:
-                              deal.registeredAt &&
-                              formatNumericDate(deal.registeredAt),
-                        },
-                        {
-                           label: t('Юридический адрес'),
-                           value: deal.legalAddress,
-                        },
-                        {
-                           label: t('Год основания'),
-                           value: String(deal.foundedYear ?? '—'),
-                        },
-                        {
-                           label: t('Сотрудников'),
-                           value: String(deal.employees ?? '—'),
-                        },
-                        {
-                           label: t('Регион'),
-                           value:
-                              [deal.city, countryText(deal)]
-                                 .filter(Boolean)
-                                 .join(', ') || '—',
-                        },
-                        { label: t('Сайт'), value: deal.website || '—' },
-                        {
-                           label: t('Контакты'),
-                           value:
-                              [deal.applicantEmail, deal.applicantPhone]
-                                 .filter(Boolean)
-                                 .join(' · ') || '—',
-                        },
-                        {
-                           label: t('Заявка подана'),
-                           value: formatNumericDate(
-                              deal.receivedAt.slice(0, 10),
-                           ),
-                        },
-                        ...factRows(
-                           t,
-                           (deal.facts ?? []).filter(
-                              ([label]) => !FIELD_FACTS.includes(label),
-                           ),
-                        ),
-                     ].filter(({ value }) => value)}
-                  />
-               </div>
-            </Card>
+            <CompanyCard deal={deal} editable={editable} onEdit={onEdit} />
             <CapitalCard deal={deal} editable={editable} />
             <CabinetCard deal={deal} />
             {terms && <TermsCard deal={deal} editable={editable} />}

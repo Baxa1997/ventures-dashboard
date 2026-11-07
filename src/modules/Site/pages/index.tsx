@@ -8,7 +8,7 @@ import {
    PageHeader,
 } from '@shared/components';
 import { SITE_PATH } from '@shared/constants';
-import { useCurrentUser, useTeamStatus } from '@shared/hooks';
+import { useTeamStatus } from '@shared/hooks';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useParams } from 'react-router';
@@ -17,9 +17,9 @@ import {
    isSiteSection,
    isSiteTable,
    sectionInfo,
-   SITE_EDITORS,
    type SiteSection,
 } from '../constants';
+import { useRights } from '@modules/Settings/hooks/rights';
 import { useSite } from '../hooks';
 import site, { emptyTables, type SiteState } from '../services';
 import Companies from './components/Companies';
@@ -59,10 +59,9 @@ const SitePage = () => {
    const { t } = useTranslation('site');
    const { t: tLayout } = useTranslation('layout');
    const { section: param } = useParams();
-   const user = useCurrentUser();
    const team = useTeamStatus();
    const data = useSite();
-   const editor = SITE_EDITORS.includes(user.role);
+   const editor = useRights()('site') === 'full';
    const [filling, setFilling] = useState(false);
    const empty = data ? emptyTables(data) : 0;
 
@@ -87,7 +86,9 @@ const SitePage = () => {
             {header}
             <PageBody className='pt-5'>
                <Notice>
-                  {t('Менять сайт могут директор и его заместитель.')}
+                  {t(
+                     'Сайт вам закрыт: право на него даёт директор в Настройках → Роли.',
+                  )}
                </Notice>
             </PageBody>
          </>

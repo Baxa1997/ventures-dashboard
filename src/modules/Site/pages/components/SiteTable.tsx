@@ -3,12 +3,14 @@ import {
    Card,
    ConfirmDialog,
    Field,
+   InlineField,
    ItemActions,
    Modal,
    MODAL_FORM,
    ModalBody,
    ModalFooter,
    NoData,
+   Segmented,
    Switch,
    Table,
    TD,
@@ -50,10 +52,12 @@ import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
    type SiteField,
+   SITE_LANGUAGES,
    SITE_TABLES,
    type SiteTableId,
    type SiteTableInfo,
 } from '../../constants';
+import type { SiteLanguage } from '@shared/types/site.types';
 import { filledIn, firstOf } from '../../helpers';
 import { useSiteSave } from '../../hooks';
 import site, { localized, localizedRow } from '../../services';
@@ -209,10 +213,14 @@ const RowDialog = ({
    );
 };
 
-// A table of the website: one array of its code, its rows added and changed here.
+/* A table of the website: one array of its code. Its texts are changed
+   where they stand, in the language picked above the table, and saved as
+   they are left; the site shows them on its next refresh. The pencil opens
+   the whole row with its icon and every language. */
 const SiteTable = ({ id, rows: stored }: { id: SiteTableId; rows: Row[] }) => {
    const { t } = useTranslation('site');
    const info: SiteTableInfo = SITE_TABLES[id];
+   const [language, setLanguage] = useState<SiteLanguage>('ru');
    const [editing, setEditing] = useState<Row | null>(null);
    const [removing, setRemoving] = useState<Row | null>(null);
    const moving = useSiteSave((guid: string, to: number) =>
@@ -241,7 +249,18 @@ const SiteTable = ({ id, rows: stored }: { id: SiteTableId; rows: Row[] }) => {
       <div className='grid gap-4'>
          <div className='flex items-center justify-between gap-3'>
             <code className='text-ink-faint text-xs'>{info.table}</code>
-            <span className='flex items-center gap-3'>
+            <span className='flex flex-wrap items-center gap-3'>
+               {columns.some(({ plain }) => !plain) && (
+                  <Segmented
+                     items={SITE_LANGUAGES.map((value) => ({
+                        id: value,
+                        label: value.toUpperCase(),
+                     }))}
+                     label={t('Язык текстов в таблице')}
+                     value={language}
+                     onChange={setLanguage}
+                  />
+               )}
                <OnSite path={info.path} />
                <Button
                   hint={t('Добавить новую строку в эту таблицу')}
@@ -312,41 +331,79 @@ const SiteTable = ({ id, rows: stored }: { id: SiteTableId; rows: Row[] }) => {
                                  )}
                               </td>
                            )}
-                           {columns.map((field, column) => (
-                              <td key={field.slug} className={TD}>
-                                 {column === 0 ? (
-                                    <button
-                                       type='button'
-                                       className='max-w-[44ch] text-left font-semibold'
-                                       data-hint={t(
-                                          'Открыть и изменить строку',
-                                       )}
-                                       onClick={() => setEditing(row)}
-                                    >
-                                       {text(row, field)}
-                                    </button>
-                                 ) : (
-                                    <span
+                           {columns.map((field, column) => {
+                              // a plain field is one for every language
+                              const slug = field.plain
+                                 ? field.slug
+                                 : `${field.slug}_${language}`;
+                              return (
+                                 <td
+                                    key={field.slug}
+                                    className={clsx(
+                                       TD,
+                                       field.options
+                                          ? 'min-w-32'
+                                          : 'min-w-48 max-w-[56ch]',
+                                    )}
+                                 >
+                                    <InlineField
                                        className={clsx(
-                                          'text-ink-soft line-clamp-2 max-w-[56ch]',
-                                          field.options && 'whitespace-nowrap',
+                                          column === 0
+                                             ? 'font-semibold'
+                                             : 'text-ink-soft',
                                        )}
-                                    >
-                                       {field.options
-                                          ? t(
-                                               field.options.find(
-                                                  ([option]) =>
-                                                     option ===
-                                                     String(
-                                                        row[field.slug] ?? '',
-                                                     ),
-                                               )?.[1] ?? 'Без метки',
-                                            )
-                                          : text(row, field)}
-                                    </span>
-                                 )}
-                              </td>
-                           ))}
+                                       kind={
+                                          field.options
+                                             ? 'select'
+                                             : field.long
+                                               ? 'multiline'
+                                               : 'text'
+                                       }
+                                       label={
+                                          field.plain
+                                             ? t(field.label)
+                                             : `${t(field.label)}, ${language.toUpperCase()}`
+                                       }
+                                       maxLength={field.long ? 2000 : 300}
+                                       options={field.options?.map(
+                                          ([value, label]) => ({
+                                             value,
+                                             label: t(label),
+                                          }),
+                                       )}
+                                       placeholder={
+                                          field.plain
+                                             ? undefined
+                                             : t('Нет текста на этом языке')
+                                       }
+                                       validate={(next) =>
+                                          column === 0 &&
+                                          !next &&
+                                          !SITE_LANGUAGES.some(
+                                             (other) =>
+                                                other !== language &&
+                                                String(
+                                                   row[
+                                                      `${field.slug}_${other}`
+                                                   ] ?? '',
+                                                ).trim(),
+                                          )
+                                             ? t(
+                                                  'Заполните первое поле хотя бы на одном языке',
+                                               )
+                                             : undefined
+                                       }
+                                       value={String(row[slug] ?? '')}
+                                       onSave={(next) =>
+                                          site.saveRow(id, {
+                                             ...row,
+                                             [slug]: next,
+                                          })
+                                       }
+                                    />
+                                 </td>
+                              );
+                           })}
                            <td className={TD}>
                               <LangMarks filled={languages(row)} />
                            </td>

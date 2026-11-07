@@ -80,7 +80,7 @@ export const isUpcoming = ({ status }: Meeting) => status !== 'held';
 // "Очно и по видео" in the interface language; a format typed in ucode as it is.
 export const formatName = (t: T, format: string) => {
    const known = FORMAT_OPTIONS.find((option) => option === format);
-   return known ? t(known) : format;
+   return known ? (t as (key: string) => string)(known) : format;
 };
 
 // The people who can be asked to a meeting: those who have not left.

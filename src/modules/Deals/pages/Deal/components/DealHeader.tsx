@@ -9,6 +9,7 @@ import {
    ActionMenu,
    Badge,
    CompanyMark,
+   HEAD_BUTTON,
    type MenuAction,
 } from '@shared/components';
 import type { Deal } from '@shared/types/deals.types';
@@ -30,8 +31,6 @@ interface DealHeaderProps {
    onChat: () => void;
 }
 
-const ICON_BUTTON =
-   'border-line text-ink-soft hover:bg-hover hover:text-ink grid size-9 shrink-0 place-items-center rounded-lg border bg-white transition-colors';
 
 /* The deal's head, as the prototype draws it: the company's mark, its name
    and status, a line of what it is, and icon buttons — change its details,
@@ -57,15 +56,21 @@ const DealHeader = ({
       .filter(Boolean)
       .join(' · ');
 
-   const icon = (label: string, Icon: LucideIcon, onClick: () => void) => (
+   // a head button: its name on it, what it does on hover
+   const icon = (
+      name: string,
+      hint: string,
+      Icon: LucideIcon,
+      onClick: () => void,
+   ) => (
       <button
          type='button'
-         aria-label={label}
-         className={ICON_BUTTON}
-         data-hint={label}
+         className={HEAD_BUTTON}
+         data-hint={hint}
          onClick={onClick}
       >
-         <Icon aria-hidden className='size-4' />
+         <Icon aria-hidden className='text-ink-soft size-4' />
+         {name}
       </button>
    );
 
@@ -80,12 +85,19 @@ const DealHeader = ({
             <p className='text-ink-soft text-meta mt-0.5'>{meta}</p>
          </div>
          <div className='print-hidden flex max-w-full flex-wrap items-center gap-2'>
-            {editable && icon(t('Изменить данные стартапа'), Pencil, onEdit)}
-            {icon(t('Новая задача по сделке'), ListPlus, () =>
+            {editable &&
+               icon(
+                  t('Изменить'),
+                  t('Изменить данные стартапа'),
+                  Pencil,
+                  onEdit,
+               )}
+            {icon(t('Задача'), t('Новая задача по сделке'), ListPlus, () =>
                openNewTask({ relation: 'deal', relationId: deal.id }),
             )}
             {icon(
-               t('Чат команды по сделке: сообщения видят сотрудники фонда'),
+               t('Чат'),
+               t('Открыть группу сделки в «Чат и письма»'),
                MessagesSquare,
                onChat,
             )}
@@ -93,6 +105,7 @@ const DealHeader = ({
             <ActionMenu
                bordered
                actions={menu}
+               text={t('Действия')}
                label={t('Действия со сделкой')}
                name={deal.company}
             />

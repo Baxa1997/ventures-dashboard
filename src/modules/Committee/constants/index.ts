@@ -1,3 +1,4 @@
+import { rulesOf } from '@modules/Settings/services';
 import type { BadgeTone } from '@shared/components';
 import type {
    Attendance,
@@ -48,13 +49,28 @@ export const OLD_MEETING_TABS: Record<string, MeetingTab> = {
    decisions: 'protocol',
 };
 
-// The voting rules of the fund ("Чек-лист ИК"); Настройки show them.
+/* The voting rules of the fund ("Чек-лист ИК"), as Настройки → Правила ИК
+   set them; read when used, so a change there applies at once. */
 export const IC_RULES = {
-   quorum: 3,
-   materialsDays: 3, // working days before the meeting
-   discussionAt: 1, // votes against that send a question to the sponsor
-   rejectAt: 2, // votes against that turn it down
+   get quorum() {
+      return rulesOf().icQuorum;
+   },
+   // working days before the meeting
+   get materialsDays() {
+      return rulesOf().icMaterialsDays;
+   },
+   // votes against that send a question to the sponsor
+   get discussionAt() {
+      return rulesOf().icDiscussionAt;
+   },
+   // votes against that turn it down
+   get rejectAt() {
+      return rulesOf().icRejectAt;
+   },
 };
+
+// The meeting formats Настройки offer.
+export const meetingFormats = () => rulesOf().meetingFormats;
 
 export const MEMBER_ROLE_LABELS = {
    chair: 'председатель ИК',
@@ -137,4 +153,6 @@ export const BODY_LABELS = {
 } as const;
 
 // Stored on the meeting as written here; keys of the "committee" translations.
+// The platform's own formats, named in the interface language; the ones
+// the fund adds in Настройки read as typed.
 export const FORMAT_OPTIONS = ['Очно и по видео', 'Очно', 'По видео'] as const;

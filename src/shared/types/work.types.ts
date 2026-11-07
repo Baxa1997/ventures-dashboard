@@ -226,12 +226,7 @@ export type UpcomingItem = {
 // applications, the work before and between the committees, the committee
 // stages and closing, the portfolio, rejections and exits.
 export type FunnelGroup =
-   | 'new'
-   | 'work'
-   | 'committee'
-   | 'invested'
-   | 'rejected'
-   | 'exit';
+   'new' | 'work' | 'committee' | 'invested' | 'rejected' | 'exit';
 
 export interface FunnelBar {
    group: FunnelGroup;
@@ -290,4 +285,6 @@ export type Notice = { id: string } & (
 );
 
 // Counters shown next to the sidebar items.
-export type SectionCounters = Partial<Record<Section | 'myDay', number>>;
+export type SectionCounters = Partial<
+   Record<Section | 'myDay' | 'chat' | 'finance', number>
+>;

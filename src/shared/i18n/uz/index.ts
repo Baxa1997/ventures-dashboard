@@ -1,8 +1,10 @@
 import auth from '@modules/Auth/locales/uz';
+import chat from '@modules/Chat/locales/uz';
 import committee from '@modules/Committee/locales/uz';
 import contracts from '@modules/Contracts/locales/uz';
 import deals from '@modules/Deals/locales/uz';
 import documents from '@modules/Documents/locales/uz';
+import finance from '@modules/Finance/locales/uz';
 import portfolio from '@modules/Portfolio/locales/uz';
 import procurement from '@modules/Procurement/locales/uz';
 import settings from '@modules/Settings/locales/uz';
@@ -16,10 +18,12 @@ import validation from './validation.json';
 // Typed against the Russian resources, so a missing key fails the type check.
 const uz: RuTranslation = {
    ...auth,
+   ...chat,
    ...committee,
    ...contracts,
    ...deals,
    ...documents,
+   ...finance,
    ...portfolio,
    ...procurement,
    ...settings,

@@ -3,12 +3,13 @@ import DealPicker from '@modules/Committee/components/DealPicker';
 import MemberDialog from '@modules/Committee/components/MemberDialog';
 import {
    COMMITTEE_PATH,
-   FORMAT_OPTIONS,
    IC_RULES,
    MEMBER_ROLE_LABELS,
+   meetingFormats,
 } from '@modules/Committee/constants';
 import {
    activeMembers,
+   formatName,
    meetingName,
    waitingDeals,
 } from '@modules/Committee/helpers';
@@ -75,7 +76,7 @@ const ScheduleDialog = ({
    const [stage, setStage] = useState<CommitteeStage>('ic1');
    const [date, setDate] = useState(() => nextFriday(data));
    const [time, setTime] = useState('15:00');
-   const [format, setFormat] = useState<string>(FORMAT_OPTIONS[0]);
+   const [format, setFormat] = useState<string>(() => meetingFormats()[0] ?? '');
    const [dealIds, setDealIds] = useState<string[]>([]);
    const [participantIds, setParticipantIds] = useState<string[]>([]);
    // a person being added ('new') or changed, and one leaving the committee
@@ -260,9 +261,9 @@ const ScheduleDialog = ({
                            value={format}
                            onChange={(event) => setFormat(event.target.value)}
                         >
-                           {FORMAT_OPTIONS.map((option) => (
+                           {meetingFormats().map((option) => (
                               <option key={option} value={option}>
-                                 {t(option)}
+                                 {formatName(t, option)}
                               </option>
                            ))}
                         </select>

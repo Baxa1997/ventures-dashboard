@@ -1,20 +1,65 @@
-import { Button, Loading } from '@shared/components';
+import { sectionOfPath, useRights } from '@modules/Settings/hooks/rights';
+import { setReadOnly } from '@shared/api/ucode';
+import { Button, Loading, Notice } from '@shared/components';
 import { LOGIN_PATH, OVERVIEW_PATH } from '@shared/constants';
-import { retryTeam, signOut, useSession, useTeamStatus } from '@shared/hooks';
+import { refreshStores } from '@shared/helpers';
+import {
+   retryTeam,
+   signOut,
+   useRefreshOnReturn,
+   useSession,
+   useTeamStatus,
+} from '@shared/hooks';
 import Layout from '@shared/layout';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, Outlet, useLocation, useRoutes } from 'react-router';
+import { Link, Navigate, Outlet, useLocation, useRoutes } from 'react-router';
 import Auth from './Auth';
+import Chat from './Chat';
 import Committee from './Committee';
 import Contracts from './Contracts';
 import Deals from './Deals';
 import Documents from './Documents';
+import Finance from './Finance';
 import NotFound from './NotFound/NotFound';
 import Portfolio from './Portfolio';
 import Procurement from './Procurement';
 import Settings from './Settings';
 import Site from './Site';
 import Work from './Work';
+
+/* A section as Настройки → Роли open it to the person: «Нет» shows only why,
+   «Чтение» shows it while the panel refuses every write from it (the tasks
+   aside, which open over any page). */
+const SectionGate = () => {
+   const { t } = useTranslation('layout');
+   // every section reads ucode again on return to the tab and every few minutes
+   useRefreshOnReturn(refreshStores);
+   const { pathname } = useLocation();
+   const rights = useRights();
+   const section = sectionOfPath(pathname);
+   const right = section ? rights(section) : 'full';
+
+   useEffect(() => {
+      setReadOnly(right === 'read');
+      return () => setReadOnly(false);
+   }, [right]);
+
+   if (right === 'none')
+      return (
+         <div className='grid flex-1 place-content-center gap-4 p-8 text-center'>
+            <Notice>
+               {t(
+                  'Этот раздел вам закрыт. Права даёт директор в Настройках → Роли.',
+               )}
+            </Notice>
+            <Link className='link' to={OVERVIEW_PATH}>
+               {t('На дашборд')}
+            </Link>
+         </div>
+      );
+   return <Outlet />;
+};
 
 // The pages inside the sidebar layout are for signed-in people. Anybody else
 // goes to the sign-in page, which sends them back here afterwards. The pages
@@ -49,7 +94,7 @@ const SignedIn = () => {
    return (
       <Layout>
          {team === 'ready' ? (
-            <Outlet />
+            <SectionGate />
          ) : team === 'failed' ? (
             <div className='grid flex-1 place-content-center gap-4 p-8 text-center'>
                <p role='alert'>
@@ -78,8 +123,8 @@ const SignedIn = () => {
    );
 };
 
-// Финансы and Корреспонденция (phase 3) come back when their tables exist in
-// ucode (docs/ERP.md §1).
+// Финансы work from batch 27's tables (docs/ucode-migration.md); until they
+// exist the pages say so.
 const Modules = () => {
    const routes = useRoutes([
       { path: '/', element: <Navigate to={OVERVIEW_PATH} replace /> },
@@ -88,12 +133,14 @@ const Modules = () => {
          element: <SignedIn />,
          children: [
             { path: 'work', element: <Outlet />, children: Work },
+            { path: 'chat', element: <Outlet />, children: Chat },
             { path: 'deals', element: <Outlet />, children: Deals },
             { path: 'committee', element: <Outlet />, children: Committee },
             { path: 'portfolio', element: <Outlet />, children: Portfolio },
             { path: 'documents', element: <Outlet />, children: Documents },
             { path: 'contracts', element: <Outlet />, children: Contracts },
             { path: 'procurement', element: <Outlet />, children: Procurement },
+            { path: 'finance', element: <Outlet />, children: Finance },
             { path: 'site', element: <Outlet />, children: Site },
             { path: 'settings', element: <Outlet />, children: Settings },
             { path: '*', element: <NotFound /> },

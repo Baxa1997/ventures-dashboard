@@ -17,7 +17,10 @@ import {
 } from '@modules/Portfolio/hooks';
 import portfolio from '@modules/Portfolio/services';
 import { useDeals } from '@modules/Deals/hooks';
-import DealChat from '@modules/Deals/pages/Deal/components/DealChat';
+import dealsService from '@modules/Deals/services';
+import { useRights } from '@modules/Settings/hooks/rights';
+import work from '@modules/Work/services';
+import { useCurrentUser } from '@shared/hooks';
 import { isDone } from '@modules/Work/helpers';
 import {
    Card,
@@ -42,9 +45,11 @@ import {
    RotateCcw,
    Repeat,
    TableProperties,
+   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CHAT_PATH } from '@shared/constants';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import CompanyHeader from './components/CompanyHeader';
 import DataRoomTab from './components/DataRoomTab';
@@ -119,6 +124,9 @@ interface ViewProps {
 const CompanyView = ({ data, company }: ViewProps) => {
    const { t } = useTranslation('portfolio');
    const navigate = useNavigate();
+   const user = useCurrentUser();
+   const rights = useRights();
+   const [removing, setRemoving] = useState(false);
    const [params, setParams] = useSearchParams();
    const tab = toTab(params.get('tab'));
    const { deals } = useDeals();
@@ -130,7 +138,6 @@ const CompanyView = ({ data, company }: ViewProps) => {
    const [valuing, setValuing] = useState(false);
    const [exiting, setExiting] = useState(false);
    const [reopening, setReopening] = useState(false);
-   const [chatting, setChatting] = useState(false);
    const active = company.status === 'active';
    const dataRequests = data.dataRequests.filter(
       ({ companyId }) => companyId === company.id,
@@ -160,7 +167,23 @@ const CompanyView = ({ data, company }: ViewProps) => {
       in the accent colour (a follow-on, or making an exited company active
       again), then asking for data and the deal it came from, and the exit
       last. */
-   const menu: MenuAction[] = active
+   // a company added by mistake leaves the portfolio, its deal back on its closing
+   const remove: MenuAction[] =
+      rights('portfolio') === 'full'
+         ? [
+              {
+                 label: t('Удалить из портфеля'),
+                 icon: Trash2,
+                 danger: true,
+                 hint: t(
+                    'Удалить компанию, добавленную по ошибке: её сделка вернётся на этап «Закрытие»',
+                 ),
+                 onSelect: () => setRemoving(true),
+              },
+           ]
+         : [];
+   const menu: MenuAction[] = [
+      ...(active
       ? [
            {
               label: t('Открыть follow-on'),
@@ -200,7 +223,9 @@ const CompanyView = ({ data, company }: ViewProps) => {
               onSelect: () => setExiting(true),
            },
            ...toDeal,
-        ];
+        ]),
+      ...remove,
+   ];
 
    return (
       <>
@@ -214,7 +239,7 @@ const CompanyView = ({ data, company }: ViewProps) => {
                company={company}
                deal={deal}
                menu={menu}
-               onChat={deal && (() => setChatting(true))}
+               onChat={deal && (() => navigate(`${CHAT_PATH}?chat=${deal.id}`))}
                onEdit={() => setEditing(true)}
             />
             <div className='border-line print-hidden mb-4.5 border-b'>
@@ -285,6 +310,38 @@ const CompanyView = ({ data, company }: ViewProps) => {
                )}
             </p>
          </ConfirmDialog>
+         <ConfirmDialog
+            open={removing}
+            success={t('Компания удалена из портфеля')}
+            title={t('Удалить {{name}} из портфеля?', { name: company.name })}
+            onClose={() => setRemoving(false)}
+            onConfirm={async () => {
+               const dealId = await portfolio.removeCompany(company.id);
+               if (dealId && deal?.status === 'portfolio')
+                  await dealsService.moveDeal(
+                     dealId,
+                     { stage: 'closing', status: 'active' },
+                     t('Компания удалена из портфеля'),
+                     user.id,
+                  );
+               await work.reloadTasks();
+               navigate(PORTFOLIO_PATH, { replace: true });
+            }}
+         >
+            <p>
+               {t(
+                  'Уйдут платежи, квартальные отчёты и показатели, пилоты, запросы, документы и задачи компании. Это нельзя отменить.',
+               )}
+            </p>
+            {deal && (
+               <p className='mt-2'>
+                  {t(
+                     'Сделка {{number}} вернётся на этап «Закрытие» — так отменяется «Перевести в портфель». Карточка компании на сайте остаётся: её скрывают в «Сайт → Портфель».',
+                     { number: deal.number },
+                  )}
+               </p>
+            )}
+         </ConfirmDialog>
          <DataRequestDialog
             company={company}
             open={requesting}
@@ -295,13 +352,6 @@ const CompanyView = ({ data, company }: ViewProps) => {
             open={followOn}
             onClose={() => setFollowOn(false)}
          />
-         {deal && (
-            <DealChat
-               deal={deal}
-               open={chatting}
-               onClose={() => setChatting(false)}
-            />
-         )}
       </>
    );
 };

@@ -1,5 +1,5 @@
 import markWhite from '@assets/images/mark-white.png';
-import { SITE_EDITORS } from '@modules/Site/constants';
+import { sectionOfPath, useRights } from '@modules/Settings/hooks/rights';
 import site from '@modules/Site/services';
 import { Avatar } from '@shared/components';
 import { ROLE_LABELS } from '@shared/constants';
@@ -32,10 +32,11 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
    const { t } = useTranslation('layout');
    const user = useCurrentUser();
    const team = useTeamStatus();
-   const counters = useCounters(user.id);
+   const rights = useRights();
+   const counters = useCounters(user.id, rights('finance') === 'full');
    const [query, setQuery] = useState('');
    const SettingsIcon = SETTINGS_ITEM.icon;
-   const editor = SITE_EDITORS.includes(user.role);
+   const editor = rights('site') === 'full';
 
    // «Сайт» is read ahead, after the page's own data, so it opens with its content there
    useEffect(() => {
@@ -43,6 +44,12 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
       const later = window.setTimeout(() => void site.getState(), 1500);
       return () => window.clearTimeout(later);
    }, [editor]);
+
+   // a section Настройки → Роли close to the person is not in the menu
+   const closed = (path: string) => {
+      const section = sectionOfPath(path);
+      return !!section && rights(section) === 'none';
+   };
 
    // «Найти в меню» keeps the items whose name holds the text
    const shown = (label: NavLabel) =>
@@ -53,7 +60,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
          (item) =>
             shown(item.label) &&
             // it stays while the staff list is read: only then is the role known
-            (!('editorsOnly' in item) || editor || team === 'loading'),
+            (team === 'loading' || !closed(item.to)),
       ),
    })).filter((group) => group.items.length);
 
@@ -129,7 +136,10 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                                  data-hint={t(hint)}
                                  onClick={onClose}
                               >
-                                 <Icon aria-hidden className='size-4 shrink-0' />
+                                 <Icon
+                                    aria-hidden
+                                    className='size-4 shrink-0'
+                                 />
                                  <span className='min-w-0 flex-1 truncate'>
                                     {t(label)}
                                  </span>
@@ -144,19 +154,15 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                      </div>
                   </div>
                ))}
-               {shown(SETTINGS_ITEM.label) && (
+               {shown(SETTINGS_ITEM.label) && !closed(SETTINGS_ITEM.to) && (
                   <NavLink
                      to={SETTINGS_ITEM.to}
-                     className={(state) =>
-                        clsx(itemClass(state), 'mt-auto')
-                     }
+                     className={(state) => clsx(itemClass(state), 'mt-auto')}
                      data-hint={t(SETTINGS_ITEM.hint)}
                      onClick={onClose}
                   >
                      <SettingsIcon aria-hidden className='size-4 shrink-0' />
-                     <span className='truncate'>
-                        {t(SETTINGS_ITEM.label)}
-                     </span>
+                     <span className='truncate'>{t(SETTINGS_ITEM.label)}</span>
                   </NavLink>
                )}
             </nav>

@@ -13,13 +13,15 @@ import {
    NoData,
    Spinner,
    STACK,
+   STICKY_HEAD,
+   TABLE_BOX,
 } from '@shared/components';
 import { employeeOf } from '@shared/constants';
-import { useAction } from '@shared/hooks';
+import { useAction, useStickyHead } from '@shared/hooks';
 import type { Deal } from '@shared/types/deals.types';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface MemorandumProps {
@@ -36,6 +38,8 @@ const TH = 'px-3 py-2.5 text-xs font-normal text-ink-soft';
 const Memorandum = ({ deal }: MemorandumProps) => {
    const { t } = useTranslation('deals');
    const [active, setActive] = useState(1);
+   const risksTable = useRef<HTMLTableElement>(null);
+   useStickyHead(risksTable);
    const recommending = useAction(
       (value: (typeof RECOMMENDATIONS)[number]) =>
          deals.setRecommendation(deal.id, value),
@@ -210,16 +214,24 @@ const Memorandum = ({ deal }: MemorandumProps) => {
                      'Шаблон требует минимум 5 рисков. Риски подтягиваются из DD-трекера, правка здесь меняет запись в трекере.',
                   )}
                </p>
-               <div className='border-line mt-3 overflow-x-auto rounded-lg border'>
-                  <table className='text-meta w-full min-w-md border-collapse text-left'>
-                     <thead>
-                        <tr className='bg-ground border-line border-b'>
+               <div
+                  className={clsx(
+                     TABLE_BOX,
+                     'border-line mt-3 rounded-lg border not-data-wide:overflow-clip',
+                  )}
+               >
+                  <table
+                     ref={risksTable}
+                     className='text-meta w-full min-w-md border-separate border-spacing-0 text-left'
+                  >
+                     <thead className={STICKY_HEAD}>
+                        <tr className='[&>th]:bg-ground [&>th]:border-line [&>th]:border-b'>
                            <th className={`${TH} pl-4`}>{t('Риск')}</th>
                            <th className={TH}>{t('Тяжесть')}</th>
                            <th className={`${TH} pr-4`}>{t('Мера')}</th>
                         </tr>
                      </thead>
-                     <tbody className='divide-line divide-y'>
+                     <tbody className='[&>tr+tr>td]:border-line [&>tr+tr>td]:border-t'>
                         {risks.map((risk) => (
                            <tr key={risk.id} className='align-top'>
                               <td className='w-[38%] py-3 pr-3 pl-4 font-medium'>
