@@ -46,8 +46,8 @@ A Google News search finds articles but gives only a title and a link. Finding t
 5. **The draft.** A kept article becomes a `news` row: `origin` collected, `is_published` = the source's `auto_publish`, `note` (why), `source_id`, `found_at`. The source gets `checked_at`, `found_count`, `error` and `seen` (the last 500 guids). A rejected or deleted news therefore never comes back.
 
 **Claude** (`src/news/ai.ts`):
-- The request uses the official SDK `@anthropic-ai/sdk`, with `claude-opus-5-5` by default (`ANTHROPIC_MODEL` changes it), effort `low`, and a JSON-schema answer `{relevant, section, reason, title{ru,uz,en}, summary{ru,uz,en}}`.
-- If Claude's safety classifiers decline, the request is retried server-side on the model Anthropic recommends (`fallbacks: "default"`). A decline that stays is treated as «not relevant».
+- The request uses the official SDK `@anthropic-ai/sdk`, with `claude-haiku-5-5`, the latest Haiku, by default (`ANTHROPIC_MODEL` changes it; `claude-opus-5-5` writes better and costs far more), effort `low`, and a JSON-schema answer `{relevant, section, reason, title{ru,uz,en}, summary{ru,uz,en}}`.
+- If Claude's safety classifiers decline, the article is treated as «not relevant». Haiku has no server-side fallback, so the request sends none; with an Opus or Sonnet model it is first retried server-side on the model Anthropic recommends (`fallbacks: "default"`).
 - A wrong key falls back to keywords for the round, and the panel shows `news_error`.
 - When Anthropic asks to wait, the rest of the articles stay for the next round.
 - The article text is wrapped as data, and the prompt says never to follow instructions in it.
