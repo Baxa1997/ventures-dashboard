@@ -382,6 +382,7 @@ export const CATEGORY_LABELS = {
    Fund: 'Фонд',
    Portfolio: 'Портфель',
    Events: 'События',
+   Market: 'Рынок',
    Press: 'Пресса о нас',
 } as const satisfies Record<SiteCategory, string>;
 

@@ -7,9 +7,13 @@ export const SITE_CATEGORIES = [
    'Fund',
    'Portfolio',
    'Events',
+   'Market',
    'Press',
 ] as const;
 export type SiteCategory = (typeof SITE_CATEGORIES)[number];
+
+// The categories whose news open the outlet's article, not a page of the site.
+export const LINKED_CATEGORIES: SiteCategory[] = ['Market', 'Press'];
 
 export interface SiteNews {
    id: string;
@@ -23,6 +27,32 @@ export interface SiteNews {
    title: Localized;
    excerpt: Localized;
    body: Localized;
+   // found by the news collector (Настройки → Сбор новостей; batch 28)
+   collected: boolean;
+   sourceId: string;
+   foundAt: string;
+   note: string; // why it was taken
+   rejected: boolean; // turned down: hidden, and not collected again
+   original: string; // the article's own text and pictures (HTML), for the editor only
+   originalAt: string; // when the server read it; '' while it has not
+}
+
+// A source of the news collector (news_sources, batch 28).
+export type NewsSourceKind = 'rss' | 'site' | 'telegram' | 'google';
+export const NEWS_SOURCE_KINDS: NewsSourceKind[] = ['rss', 'site', 'telegram', 'google'];
+
+export interface NewsSource {
+   id: string;
+   name: string;
+   kind: NewsSourceKind;
+   address: string;
+   keywords: string;
+   mentionsOnly: boolean;
+   autoPublish: boolean;
+   active: boolean;
+   checkedAt: string;
+   foundCount: number;
+   error: string;
 }
 
 export interface SiteLegal {

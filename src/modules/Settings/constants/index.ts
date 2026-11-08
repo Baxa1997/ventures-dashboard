@@ -47,6 +47,7 @@ export const SETTINGS_SECTION_IDS = [
    'users',
    'roles',
    'integrations',
+   'news-collector',
    'journal',
 ] as const;
 export type SettingsSection = (typeof SETTINGS_SECTION_IDS)[number];
@@ -65,6 +66,11 @@ export const SETTINGS_GROUPS = [
             id: 'integrations',
             label: 'Интеграции',
             meta: 'Откуда платформа берёт данные и куда их отдаёт.',
+         },
+         {
+            id: 'news-collector',
+            label: 'Сбор новостей',
+            meta: 'Источники, из которых сервер собирает новости для сайта, и как он их отбирает.',
          },
          {
             id: 'journal',

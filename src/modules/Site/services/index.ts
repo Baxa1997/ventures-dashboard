@@ -63,6 +63,13 @@ const toNews = (row: Row): SiteNews => ({
    title: localized(row, 'title'),
    excerpt: localized(row, 'excerpt'),
    body: localized(row, 'body'),
+   collected: str(row.origin) === 'collected',
+   sourceId: str(row.source_id),
+   foundAt: str(row.found_at),
+   note: str(row.note),
+   rejected: row.is_rejected === true || row.is_rejected === 'true',
+   original: str(row.original),
+   originalAt: str(row.original_at),
 });
 
 const toLegal = (row: Row): SiteLegal => ({
@@ -308,6 +315,17 @@ class Site {
       return store.get();
    }
 
+   /* The news read again: the bot's server adds the ones it collects
+      (Настройки → Сбор новостей), which the panel would not see otherwise. */
+   async refreshNews() {
+      // not read yet: the first read brings the news as they are now
+      if (store.peek() === undefined) {
+         await store.get();
+         return;
+      }
+      await refresh('news');
+   }
+
    // ---- the website's data, from the arrays of its code, into the tables with no rows
    async fill() {
       const { default: seed } = await import('../seed.json');
@@ -327,16 +345,17 @@ class Site {
       return `${SITE_URL}/${language}${path === '/' ? '' : path}`;
    }
 
-   // ---- rows of a list: a new one has no id
+   // ---- rows of a list: a new one has no id; its id, as saved
    async save<K extends RecordKind>(kind: K, record: RecordOf[K]) {
       const { table, row } = TABLES[kind] as unknown as {
          table: string;
          row: (value: RecordOf[K]) => Record<string, unknown>;
       };
-      if (record.id)
-         await updateRow(table, { guid: record.id, ...row(record) });
-      else await createRow(table, { guid: newId(), ...row(record) });
+      const id = record.id || newId();
+      if (record.id) await updateRow(table, { guid: id, ...row(record) });
+      else await createRow(table, { guid: id, ...row(record) });
       await refresh(kind);
+      return id;
    }
 
    async remove(kind: RecordKind, id: string) {
@@ -448,6 +467,17 @@ class Site {
       await refresh('partners');
    }
 
+   /* A collected news turned down, or taken back: it leaves the list of
+      found news and the site, and the collector does not bring it again. */
+   async reject(id: string, rejected: boolean) {
+      await updateRow('news', {
+         guid: id,
+         is_rejected: rejected,
+         ...(rejected && { is_published: false }),
+      });
+      await refresh('news');
+   }
+
    async removePartner(id: string) {
       await deleteRow('partner_requests', id);
       await refresh('partners');
@@ -467,6 +497,13 @@ class Site {
          title: empty(),
          excerpt: empty(),
          body: empty(),
+         collected: false,
+         sourceId: '',
+         foundAt: '',
+         note: '',
+         rejected: false,
+         original: '',
+         originalAt: '',
       };
    }
 

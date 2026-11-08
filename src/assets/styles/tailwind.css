@@ -332,6 +332,69 @@
    .ck.ck-editor__editable_inline {
       @apply min-h-24;
    }
+   /* An article of the website (Сайт → Новости), in its editor and in the
+      preview: headings, quotes, pictures, video, tables, as the site shows them. */
+   .article-text,
+   .article-editor .ck-content {
+      @apply text-[15px] leading-7;
+   }
+   .article-text p,
+   .article-editor .ck-content p {
+      @apply mb-3;
+   }
+   .article-text h2,
+   .article-editor .ck-content h2 {
+      @apply text-ink-strong mt-6 mb-2 text-xl font-bold;
+   }
+   .article-text h3,
+   .article-editor .ck-content h3 {
+      @apply text-ink-strong mt-5 mb-1.5 text-base font-bold;
+   }
+   .article-text ul,
+   .article-text ol {
+      @apply mb-3 pl-5;
+   }
+   .article-text ul {
+      @apply list-disc;
+   }
+   .article-text ol {
+      @apply list-decimal;
+   }
+   .article-text a {
+      @apply text-accent underline;
+   }
+   .article-text strong {
+      @apply font-semibold;
+   }
+   .article-text blockquote,
+   .article-editor .ck-content blockquote {
+      @apply border-l-accent text-ink-soft my-4 border-l-3 pl-4 italic;
+   }
+   .article-text figure {
+      @apply my-4;
+   }
+   .article-text img {
+      @apply mx-auto h-auto max-w-full rounded-lg;
+   }
+   .article-text figcaption {
+      @apply text-ink-faint mt-1.5 text-center text-xs;
+   }
+   .article-text figure.table {
+      @apply overflow-x-auto;
+   }
+   .article-text table {
+      @apply w-full border-collapse text-sm;
+   }
+   .article-text td,
+   .article-text th {
+      @apply border-line border px-2.5 py-1.5 text-left align-top;
+   }
+   .article-text hr {
+      @apply border-line my-6;
+   }
+   .article-editor .ck.ck-editor__editable_inline {
+      @apply min-h-[26rem];
+   }
    .ck.ck-editor {
       --ck-border-radius: 0.5rem;
       --ck-color-base-border: var(--color-line-strong);

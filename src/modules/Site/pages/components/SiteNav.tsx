@@ -67,11 +67,12 @@ const ICONS: Record<SiteSection, LucideIcon> = {
 interface SiteNavProps {
    active: SiteSection;
    newPartners: number; // requests nobody has taken yet
+   foundNews: number; // collected news nobody has published or rejected
 }
 
 /* The sections of «Сайт» in their groups, as Настройки has them: a card beside
    the section on wide screens, a select above it on narrow ones. */
-const SiteNav = ({ active, newPartners }: SiteNavProps) => {
+const SiteNav = ({ active, newPartners, foundNews }: SiteNavProps) => {
    const { t } = useTranslation('site');
    const navigate = useNavigate();
 
@@ -110,6 +111,12 @@ const SiteNav = ({ active, newPartners }: SiteNavProps) => {
                      {group.sections.map((section) => {
                         const current = section.id === active;
                         const Icon = ICONS[section.id];
+                        const count =
+                           section.id === 'partners'
+                              ? newPartners
+                              : section.id === 'news'
+                                ? foundNews
+                                : 0;
                         return (
                            <li key={section.id}>
                               <Link
@@ -135,12 +142,11 @@ const SiteNav = ({ active, newPartners }: SiteNavProps) => {
                                  <span className='min-w-0 flex-1 truncate'>
                                     {t(section.label)}
                                  </span>
-                                 {section.id === 'partners' &&
-                                    newPartners > 0 && (
-                                       <span className='bg-accent-tint text-accent-strong rounded-full px-1.5 text-[11px] leading-4.5 tabular-nums'>
-                                          {newPartners}
-                                       </span>
-                                    )}
+                                 {count > 0 && (
+                                    <span className='bg-accent-tint text-accent-strong rounded-full px-1.5 text-[11px] leading-4.5 tabular-nums'>
+                                       {count}
+                                    </span>
+                                 )}
                               </Link>
                            </li>
                         );
