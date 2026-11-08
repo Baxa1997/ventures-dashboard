@@ -25,6 +25,7 @@ import type {
 } from '@shared/types/settings.types';
 import { UserPlus } from 'lucide-react';
 import CredentialsDialog from '@modules/Settings/components/CredentialsDialog';
+import NewsCollector from '@modules/Site/pages/components/NewsCollector';
 import DeleteUserDialog from '@modules/Settings/components/DeleteUserDialog';
 import ResetPasswordDialog from '@modules/Settings/components/ResetPasswordDialog';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -296,6 +297,8 @@ const SettingsPage = () => {
             );
          case 'integrations':
             return <Integrations />;
+         case 'news-collector':
+            return <NewsCollector />;
          case 'journal':
             return <Journal journal={data.journal} />;
          default:

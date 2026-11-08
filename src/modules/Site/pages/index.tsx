@@ -103,6 +103,12 @@ const SitePage = () => {
                   data?.partners.filter(({ status }) => status === 'new')
                      .length ?? 0
                }
+               foundNews={
+                  data?.news.filter(
+                     ({ collected, published, rejected }) =>
+                        collected && !published && !rejected,
+                  ).length ?? 0
+               }
             />
             <section key={param} className='flex min-w-0 flex-col lg:min-h-0'>
                {empty > 0 && (

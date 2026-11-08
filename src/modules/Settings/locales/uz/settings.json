@@ -575,5 +575,7 @@
    "Целое число от {{min}} до {{max}}": "{{min}} dan {{max}} gacha butun son",
    "Сроки и напоминания": "Muddatlar va eslatmalar",
    "Когда ждут квартальные отчёты и напоминают о них, когда краснеет запрос компании, за сколько дней отмечается истекающий договор.": "Choraklik hisobotlar qachon kutiladi va eslatiladi, kompaniya so‘rovi qachon qizaradi, tugayotgan shartnoma necha kun oldin belgilanadi.",
-   "Кабинет основателя работает на app.sqbvc.uz, на тех же таблицах ucode: статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Вход — по паролю, который фонд выдаёт в карточке сделки; код на почту появится, когда подключат почту.": "Asoschi kabineti app.sqbvc.uz manzilida, o‘sha ucode jadvallarida ishlaydi: ariza holati, so‘rovlar, hujjatlar, anketa, investitsiyadan keyin — hisobotlar va fondga so‘rovlar. Kirish — fond bitim kartasida beradigan parol orqali; pochtaga kod pochta ulangach paydo bo‘ladi."
+   "Кабинет основателя работает на app.sqbvc.uz, на тех же таблицах ucode: статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Вход — по паролю, который фонд выдаёт в карточке сделки; код на почту появится, когда подключат почту.": "Asoschi kabineti app.sqbvc.uz manzilida, o‘sha ucode jadvallarida ishlaydi: ariza holati, so‘rovlar, hujjatlar, anketa, investitsiyadan keyin — hisobotlar va fondga so‘rovlar. Kirish — fond bitim kartasida beradigan parol orqali; pochtaga kod pochta ulangach paydo bo‘ladi.",
+   "Сбор новостей": "Yangiliklarni yig‘ish",
+   "Источники, из которых сервер собирает новости для сайта, и как он их отбирает.": "Server sayt uchun yangiliklarni yig‘adigan manbalar va ularni qanday tanlashi."
 }

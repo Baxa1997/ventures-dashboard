@@ -56,4 +56,4 @@ export { default as Tabs, type TabItem } from './Tabs';
 export { default as Timeline, type TimelineRow } from './Timeline';
 export { default as Toaster } from './Toaster';
 export { default as Attachments } from './Attachments';
-export { RichText, RichTextEditor } from './RichText';
+export { ArticleText, RichText, RichTextEditor } from './RichText';

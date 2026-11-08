@@ -575,5 +575,7 @@
    "Целое число от {{min}} до {{max}}": "A whole number from {{min}} to {{max}}",
    "Сроки и напоминания": "Deadlines and reminders",
    "Когда ждут квартальные отчёты и напоминают о них, когда краснеет запрос компании, за сколько дней отмечается истекающий договор.": "When quarterly reports are due and reminded of, when a company's request turns red, and how many days ahead an ending contract is flagged.",
-   "Кабинет основателя работает на app.sqbvc.uz, на тех же таблицах ucode: статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Вход — по паролю, который фонд выдаёт в карточке сделки; код на почту появится, когда подключат почту.": "The founder cabinet runs at app.sqbvc.uz on the same ucode tables: the application status, requests, documents, the questionnaire and, after the investment, reports and requests to the fund. People sign in with a password the fund gives on the deal card; a code by email comes once mail is connected."
+   "Кабинет основателя работает на app.sqbvc.uz, на тех же таблицах ucode: статус заявки, запросы, документы, анкета, после инвестиции — отчёты и запросы к фонду. Вход — по паролю, который фонд выдаёт в карточке сделки; код на почту появится, когда подключат почту.": "The founder cabinet runs at app.sqbvc.uz on the same ucode tables: the application status, requests, documents, the questionnaire and, after the investment, reports and requests to the fund. People sign in with a password the fund gives on the deal card; a code by email comes once mail is connected.",
+   "Сбор новостей": "News collection",
+   "Источники, из которых сервер собирает новости для сайта, и как он их отбирает.": "The sources the server collects the website's news from, and how it picks them."
 }

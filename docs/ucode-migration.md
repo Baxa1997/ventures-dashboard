@@ -1983,6 +1983,52 @@ Rows for fin_rules (match_text | category | sort_order)
 - Транш | invest | 6
 ```
 
+## Batch 28 — Сбор новостей
+
+The news collector of the website (docs/news.md): the fund lists its sources in Настройки → Сбор новостей, the bot's server (`venture/telegram-bot`, src/news) reads them and puts each article that fits into the website's `news` table as a draft, which the fund publishes or rejects in Сайт → Новости.
+
+- **Sources.** `news_sources`: `name`, `kind` (`rss` a feed, `site` a site whose feed is found, `telegram` a public channel, `google` Google News search words) and `address`. `keywords` are words one per line or by commas, one of which a market article's title or lead must have (none: every article of the source); `mentions_only` keeps only the articles that name the fund; `auto_publish` puts its articles on the site at once; `is_active` switches it on. The server writes `checked_at` (empty means «check now»), `found_count`, the last `error`, and `seen`, the guids of the articles it has looked at (JSON, the last 500), so a news deleted in the panel does not come back.
+- **The news.** A collected article is a `news` row with `origin` `collected`, `source_id` the source, `found_at`, `note` (why it was taken: the fund's name, a keyword, or Claude's reason), `category` `Market` («Рынок», new) or `Press`, `outlet`, `url` the original, `image` the outlet's picture, the title and the excerpt (in the article's language, or in all three with Claude) and no body: the website links to the original. `is_rejected` hides one the fund turned down. Its guid is made from its address, so the same article from two sources is one row. `original` is the article's own text and pictures as clean HTML, read from its page (or the feed's full text, or the Telegram post), shown in the panel's editor as «Текст из источника» and never on the site by itself; `original_at` is when the server read it (empty: not yet, so older rows are filled in a few per minute). A Google News link cannot be read, so its `original` stays empty.
+- **The collector's state.** `fund_settings`: the fund's names to find in articles (`news_names`, one per line), its focus for Claude (`news_focus`), how often a source is checked (`news_every`, minutes, 30 if empty), «Проверить сейчас» (`news_requested_at`, written by the panel), and from the server: `news_seen_at` (every minute: the panel counts the collector as running while it is under three minutes old), `news_checked_at`, `news_ai` (Claude's model, empty without `ANTHROPIC_API_KEY`) and `news_error`.
+
+The table and fields are made with `node scripts/ucode/fields.mjs tables 28` and `node scripts/ucode/fields.mjs create 28`.
+
+```
+Batch 28. Same rules: news_sources inside the folder "Admin" → "Settings and lists". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table news_sources
+- name: SINGLE_LINE
+- kind: SINGLE_LINE
+- address: SINGLE_LINE
+- keywords: MULTI_LINE
+- mentions_only: BOOLEAN
+- auto_publish: BOOLEAN
+- is_active: BOOLEAN
+- checked_at: DATE_TIME
+- found_count: NUMBER
+- error: MULTI_LINE
+- seen: JSON
+
+New fields in the existing table news
+- origin: SINGLE_LINE
+- source_id: SINGLE_LINE
+- found_at: DATE_TIME
+- note: MULTI_LINE
+- is_rejected: BOOLEAN
+- original: MULTI_LINE
+- original_at: DATE_TIME
+
+New fields in the existing table fund_settings
+- news_names: MULTI_LINE
+- news_focus: MULTI_LINE
+- news_every: NUMBER
+- news_requested_at: DATE_TIME
+- news_seen_at: DATE_TIME
+- news_checked_at: DATE_TIME
+- news_ai: SINGLE_LINE
+- news_error: MULTI_LINE
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

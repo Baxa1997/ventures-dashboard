@@ -23,6 +23,7 @@ import {
    ListOrdered,
    type LucideIcon,
    MapPin,
+   Newspaper,
    Plug,
    Radar,
    Scale,
@@ -66,6 +67,7 @@ const SECTION_ICONS: Record<SettingsSection, LucideIcon> = {
    users: Users,
    roles: ShieldCheck,
    integrations: Plug,
+   'news-collector': Newspaper,
    journal: History,
 };
 
