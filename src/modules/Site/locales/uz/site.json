@@ -422,5 +422,9 @@
    "Сервер ещё читает статью: текст и картинки появятся в «Текст новости» в течение минуты.": "Server maqolani hali o‘qiyapti: matn va rasmlar bir daqiqa ichida «Yangilik matni»da paydo bo‘ladi.",
    "Google News открывает статью только в браузере, поэтому её текст получить нельзя: есть только заголовок и ссылка.": "Google News maqolani faqat brauzerda ochadi, shuning uchun uning matnini olib bo‘lmaydi: faqat sarlavha va havola bor.",
    "Снова взять текст и картинки статьи в «Текст новости» на этом языке": "Maqola matni va rasmlarini shu tildagi «Yangilik matni»ga qayta olish",
-   "Взять текст из источника": "Matnni manbadan olish"
+   "Взять текст из источника": "Matnni manbadan olish",
+   "Вернуть": "Qaytarish",
+   "Назад": "Orqaga",
+   "Вернуться туда, откуда открыли новость": "Yangilik ochilgan joyga qaytish",
+   "Найдено: {{count}}": "Topildi: {{count}}"
 }

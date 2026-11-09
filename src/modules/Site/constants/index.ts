@@ -8,8 +8,23 @@ import type phrases from '../locales/ru/site.json';
 
 type Phrase = keyof typeof phrases;
 
-// The menu of «Сайт», in its groups.
+// The menu of «Сайт», in its groups: the news first, the most used.
 export const SITE_GROUPS = [
+   {
+      label: 'Аналитика',
+      sections: [
+         {
+            id: 'news',
+            label: 'Новости',
+            meta: 'Новости фонда и упоминания в прессе. На сайт попадают только опубликованные.',
+         },
+         {
+            id: 'sources',
+            label: 'Источники',
+            meta: 'Медиа и отраслевые отчёты, на которые ссылается раздел «Аналитика».',
+         },
+      ],
+   },
    {
       label: 'Главная',
       sections: [
@@ -131,21 +146,6 @@ export const SITE_GROUPS = [
       ],
    },
    {
-      label: 'Аналитика',
-      sections: [
-         {
-            id: 'news',
-            label: 'Новости',
-            meta: 'Новости фонда и упоминания в прессе. На сайт попадают только опубликованные.',
-         },
-         {
-            id: 'sources',
-            label: 'Источники',
-            meta: 'Медиа и отраслевые отчёты, на которые ссылается раздел «Аналитика».',
-         },
-      ],
-   },
-   {
       label: 'Инвесторам',
       sections: [
          {
@@ -195,7 +195,7 @@ export const SITE_GROUPS = [
 export type SiteSection =
    (typeof SITE_GROUPS)[number]['sections'][number]['id'];
 
-export const DEFAULT_SITE_SECTION: SiteSection = 'home_terms';
+export const DEFAULT_SITE_SECTION: SiteSection = 'news';
 
 export const sectionInfo = (id: SiteSection) =>
    SITE_GROUPS.flatMap(({ sections }) => [...sections]).find(

@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { CATEGORY_LABELS, MAX_IMAGE_BYTES } from '../constants';
 import { filledIn, firstOf, slugOf } from '../helpers';
 import { useSite } from '../hooks';
@@ -44,6 +44,13 @@ import site from '../services';
 import { FileField, LangTabs } from './components/parts';
 
 const LIST = `${SITE_PATH}/news`;
+
+// Where «Назад» leads: the page the news was opened from (Настройки → Сбор
+// новостей on its tab, the list with its filter), or the list.
+const backOf = (state: unknown) => {
+   const from = (state as { from?: unknown } | null)?.from;
+   return typeof from === 'string' && from.startsWith('/') ? from : LIST;
+};
 
 const same = (a: SiteNews, b: SiteNews) =>
    JSON.stringify(a) === JSON.stringify(b);
@@ -148,6 +155,9 @@ const Editor = ({
 }) => {
    const { t } = useTranslation('site');
    const navigate = useNavigate();
+   const location = useLocation();
+   const backTo = backOf(location.state);
+   const fromList = backTo === LIST;
    const upload = useUpload();
    const [saved, setSaved] = useState(initial);
    const [value, setValue] = useState(initial);
@@ -208,7 +218,8 @@ const Editor = ({
          const stored = { ...next, id };
          setSaved(stored);
          setValue(stored);
-         if (!value.id) navigate(`${LIST}/${id}`, { replace: true });
+         if (!value.id)
+            navigate(`${LIST}/${id}`, { replace: true, state: location.state });
       },
       {
          success: (published) =>
@@ -261,7 +272,7 @@ const Editor = ({
           : { label: t('Черновик'), tone: 'neutral' as const };
    const address = `/news/${value.slug || value.id}`;
 
-   const back = () => (dirty ? setLeaving(true) : navigate(LIST));
+   const back = () => (dirty ? setLeaving(true) : navigate(backTo));
 
    // the source's text into this language's text again: at once if it is empty
    const putSource = () => {
@@ -366,11 +377,15 @@ const Editor = ({
             <button
                type='button'
                className='text-ink-soft hover:text-ink text-meta mb-4 inline-flex items-center gap-1.5 font-semibold'
-               data-hint={t('Вернуться к списку новостей')}
+               data-hint={
+                  fromList
+                     ? t('Вернуться к списку новостей')
+                     : t('Вернуться туда, откуда открыли новость')
+               }
                onClick={back}
             >
                <ArrowLeft aria-hidden className='size-4' />
-               {t('Все новости')}
+               {fromList ? t('Все новости') : t('Назад')}
             </button>
             <div className='grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]'>
                <div className='grid min-w-0 gap-4'>
@@ -703,7 +718,7 @@ const Editor = ({
             success={t('Изменения не сохранены')}
             title={t('Уйти без сохранения?')}
             onClose={() => setLeaving(false)}
-            onConfirm={() => navigate(LIST)}
+            onConfirm={() => navigate(backTo)}
          >
             <p>{t('Изменения в этой новости пропадут.')}</p>
          </ConfirmDialog>
@@ -715,7 +730,7 @@ const Editor = ({
             onClose={() => setRemoving(false)}
             onConfirm={async () => {
                await site.remove('news', value.id);
-               navigate(LIST, { replace: true });
+               navigate(backTo, { replace: true });
             }}
          >
             <p>{t('Она пропадёт с сайта, вернуть её будет нельзя.')}</p>

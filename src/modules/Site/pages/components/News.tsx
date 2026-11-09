@@ -26,7 +26,7 @@ import {
 import { ArrowUpRight, LayoutGrid, Plus, Rows3 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { CATEGORY_LABELS } from '../../constants';
 import { filledIn, firstOf } from '../../helpers';
 import { useSiteSave } from '../../hooks';
@@ -59,11 +59,29 @@ const News = ({ news }: { news: SiteNews[] }) => {
       void site.refreshNews().catch((error: unknown) => console.error(error));
    }, []);
    useRefreshOnReturn(() => site.refreshNews());
-   const [params] = useSearchParams();
-   const [category, setCategory] = useState<SiteCategory | ''>('');
-   const [status, setStatus] = useState<Status>(
-      params.get('status') === 'found' ? 'found' : '',
-   );
+   /* The filters live in the address (?status=…&category=…), so «Назад» from
+      a news item, or a link from Сбор новостей, opens the list as it was. */
+   const [params, setParams] = useSearchParams();
+   const asked = params.get('status') ?? '';
+   const status: Status = asked in STATUS_TEST ? (asked as Status) : '';
+   const askedCategory = params.get('category') ?? '';
+   const category: SiteCategory | '' = (
+      SITE_CATEGORIES as readonly string[]
+   ).includes(askedCategory)
+      ? (askedCategory as SiteCategory)
+      : '';
+   const setFilter = (key: 'status' | 'category', value: string) =>
+      setParams(
+         (known) => {
+            const next = new URLSearchParams(known);
+            if (value) next.set(key, value);
+            else next.delete(key);
+            return next;
+         },
+         { replace: true },
+      );
+   const setStatus = (value: Status) => setFilter('status', value);
+   const setCategory = (value: SiteCategory | '') => setFilter('category', value);
    const [query, setQuery] = useState('');
    const [view, setView] = useState<View>(() =>
       readPref<View>(VIEW_PREF, 'cards') === 'table' ? 'table' : 'cards',
@@ -72,7 +90,12 @@ const News = ({ news }: { news: SiteNews[] }) => {
       setView(next);
       writePref(VIEW_PREF, next);
    };
-   const open = (item: SiteNews) => navigate(`${SITE_PATH}/news/${item.id}`);
+   const location = useLocation();
+   // «Назад» in the editor comes back here, with the same filter
+   const open = (item: SiteNews) =>
+      navigate(`${SITE_PATH}/news/${item.id}`, {
+         state: { from: `${location.pathname}${location.search}` },
+      });
    const showing = useSiteSave((id: string, shown: boolean) =>
       site.setShown('news', id, shown),
    );
@@ -178,7 +201,7 @@ const News = ({ news }: { news: SiteNews[] }) => {
             </Notice>
          )}
          {view === 'cards' && shown.length > 0 ? (
-            <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+            <div className='grid gap-4 md:grid-cols-2'>
                {shown.map((item) => (
                   <NewsCard
                      key={item.id}
