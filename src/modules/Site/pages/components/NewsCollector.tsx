@@ -22,6 +22,7 @@ import {
 } from '@shared/components';
 import { SITE_PATH } from '@shared/constants';
 import { useAction, useRefreshOnReturn } from '@shared/hooks';
+import { readPref, writePref } from '@shared/services/prefs';
 import type { SiteNews } from '@shared/types/site.types';
 import {
    NEWS_SOURCE_KINDS,
@@ -38,7 +39,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useSite, useSiteSave } from '../../hooks';
 import site from '../../services';
 import collector, {
@@ -47,7 +48,7 @@ import collector, {
    DEFAULT_NAMES,
    useCollector,
 } from '../../services/collector';
-import { isFound, NewsCard } from './NewsCard';
+import { FoundCard, isFound } from './NewsCard';
 
 // Texts are keys of the "site" translations.
 const KINDS = {
@@ -312,7 +313,12 @@ const PickingDialog = ({
 };
 
 // What the collector found, by state: waiting, published, rejected.
-type Shown = 'found' | 'published' | 'rejected';
+const SHOWN = ['found', 'published', 'rejected'] as const;
+type Shown = (typeof SHOWN)[number];
+const isShown = (value: unknown): value is Shown =>
+   SHOWN.includes(value as Shown);
+// the tab last opened, for coming back to the page by the menu
+const SHOWN_PREF = 'site.collector.shown';
 const SHOWN_TEST: Record<Shown, (item: SiteNews) => boolean> = {
    found: isFound,
    published: (item) => item.collected && item.published,
@@ -358,7 +364,24 @@ const NewsCollector = () => {
    const [removing, setRemoving] = useState<NewsSource | null>(null);
    const [removingNews, setRemovingNews] = useState<SiteNews | null>(null);
    const [picking, setPicking] = useState(false);
-   const [shown, setShown] = useState<Shown>('found');
+   /* The tab is in the address (?shown=…), so «Назад» from a news item comes
+      back to it, and in the person's preferences for the next visit. */
+   const location = useLocation();
+   const [params, setParams] = useSearchParams();
+   const asked = params.get('shown');
+   const saved = readPref<string>(SHOWN_PREF, 'found');
+   const shown: Shown = isShown(asked) ? asked : isShown(saved) ? saved : 'found';
+   const setShown = (next: Shown) => {
+      writePref(SHOWN_PREF, next);
+      setParams(
+         (known) => {
+            const query = new URLSearchParams(known);
+            query.set('shown', next);
+            return query;
+         },
+         { replace: true },
+      );
+   };
    const checking = useAction(() => collector.checkAll(), {
       success: t('Сервер проверит источники в течение минуты'),
    });
@@ -416,7 +439,9 @@ const NewsCollector = () => {
           }
         : { label: t('Сервер не запущен'), tone: 'neutral' as const };
    const openNews = (item: SiteNews) =>
-      navigate(`${SITE_PATH}/news/${item.id}`);
+      navigate(`${SITE_PATH}/news/${item.id}`, {
+         state: { from: `${location.pathname}?shown=${shown}` },
+      });
 
    return (
       <div className='gap-section flex flex-col'>
@@ -539,16 +564,17 @@ const NewsCollector = () => {
                      <>
                         <th className={TH}>{t('Источник')}</th>
                         <th className={TH}>{t('Отбор')}</th>
-                        <th className={TH}>{t('Найдено')}</th>
                         <th className={TH}>{t('Проверка')}</th>
-                        <th className={TH}>{t('Сразу на сайт')}</th>
                         <th className={TH}>{t('Включён')}</th>
                         <th className={TH} />
                      </>
                   }
                >
                   {state.sources.map((source) => (
-                     <tr key={source.id}>
+                     <tr
+                        key={source.id}
+                        className={source.active ? undefined : 'opacity-60'}
+                     >
                         <td className={TD}>
                            <button
                               type='button'
@@ -577,9 +603,11 @@ const NewsCollector = () => {
                            ) : (
                               t('Все статьи')
                            )}
-                        </td>
-                        <td className={`${TD} tabular-nums`}>
-                           {source.foundCount}
+                           {source.autoPublish && (
+                              <span className='text-accent-strong block text-xs font-medium'>
+                                 {t('Сразу на сайт')}
+                              </span>
+                           )}
                         </td>
                         <td className={`${TD} text-meta`}>
                            {source.error ? (
@@ -590,34 +618,19 @@ const NewsCollector = () => {
                                  {source.error}
                               </span>
                            ) : source.checkedAt ? (
-                              time(source.checkedAt)
+                              <>
+                                 {time(source.checkedAt)}
+                                 <span className='text-ink-faint block text-xs tabular-nums'>
+                                    {t('Найдено: {{count}}', {
+                                       count: source.foundCount,
+                                    })}
+                                 </span>
+                              </>
                            ) : (
                               <span className='text-ink-faint'>
                                  {t('В очереди')}
                               </span>
                            )}
-                        </td>
-                        <td className={TD}>
-                           <Switch
-                              small
-                              checked={source.autoPublish}
-                              disabled={!canEdit || switching.pending}
-                              hint={
-                                 source.autoPublish
-                                    ? t(
-                                         'Статьи этого источника сразу на сайте. Выключить: сначала на проверку',
-                                      )
-                                    : t(
-                                         'Публиковать статьи этого источника без проверки',
-                                      )
-                              }
-                              label={source.name}
-                              onChange={(next) =>
-                                 void switching.run(source.id, {
-                                    autoPublish: next,
-                                 })
-                              }
-                           />
                         </td>
                         <td className={TD}>
                            <Switch
@@ -743,9 +756,9 @@ const NewsCollector = () => {
             title={t('Найденные новости')}
          >
             {cards.length ? (
-               <div className='grid gap-4 p-4.5 sm:grid-cols-2 xl:grid-cols-3'>
+               <div className='grid gap-3 p-4.5 lg:grid-cols-2'>
                   {cards.slice(0, CARDS_SHOWN).map((item) => (
-                     <NewsCard
+                     <FoundCard
                         key={item.id}
                         item={item}
                         publishing={publishing.pending}
@@ -761,11 +774,11 @@ const NewsCollector = () => {
                   ))}
                   {cards.length > CARDS_SHOWN && (
                      <Link
-                        className='border-line text-accent hover:bg-accent-tint grid min-h-40 place-items-center rounded-xl border border-dashed font-semibold'
+                        className='border-line text-accent hover:bg-accent-tint text-meta grid min-h-20 place-items-center rounded-xl border border-dashed font-semibold'
                         data-hint={t(
                            'Открыть все найденные в «Сайт → Новости»',
                         )}
-                        to={`${SITE_PATH}/news?status=found`}
+                        to={`${SITE_PATH}/news?status=${shown}`}
                      >
                         {t('Ещё {{count}} в «Сайт → Новости»', {
                            count: cards.length - CARDS_SHOWN,

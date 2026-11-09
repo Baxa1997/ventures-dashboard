@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Spinner } from './Button';
 
@@ -27,11 +28,17 @@ const FilterSelect = <T extends string>({
 }: FilterSelectProps<T>) => {
    const { t } = useTranslation('components');
    const current = options.find((option) => option.value === value)?.label;
+   /* Browsers count a select opened with the mouse as keyboard focus, so the
+      ring stayed after a choice. It shows only when the select was reached
+      by the keyboard (Tab), as for the other controls. */
+   const [byPointer, setByPointer] = useState(false);
 
    return (
       <div
          className={clsx(
-            'has-focus-visible:outline-accent text-meta relative flex h-9 shrink-0 items-center gap-1.5 rounded-lg border pr-2.5 pl-3 font-medium has-focus-visible:outline-2 has-focus-visible:outline-offset-1',
+            'text-meta relative flex h-9 shrink-0 items-center gap-1.5 rounded-lg border pr-2.5 pl-3 font-medium',
+            !byPointer &&
+               'has-focus-visible:outline-accent has-focus-visible:outline-2 has-focus-visible:outline-offset-1',
             accent
                ? 'border-accent-soft bg-accent-tint text-accent'
                : 'border-line-strong bg-white',
@@ -53,6 +60,9 @@ const FilterSelect = <T extends string>({
             className='absolute inset-0 w-full opacity-0 disabled:cursor-progress'
             disabled={busy}
             value={value}
+            onBlur={() => setByPointer(false)}
+            onKeyDown={() => setByPointer(false)}
+            onPointerDown={() => setByPointer(true)}
             onChange={(event) => onChange(event.target.value as T)}
          >
             {options.map((option) => (

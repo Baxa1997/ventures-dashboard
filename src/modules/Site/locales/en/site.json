@@ -422,5 +422,9 @@
    "Сервер ещё читает статью: текст и картинки появятся в «Текст новости» в течение минуты.": "The server is still reading the article: its text and pictures will show in «News text» within a minute.",
    "Google News открывает статью только в браузере, поэтому её текст получить нельзя: есть только заголовок и ссылка.": "Google News opens the article only in a browser, so its text can't be fetched: there is only the title and the link.",
    "Снова взять текст и картинки статьи в «Текст новости» на этом языке": "Take the article's text and pictures into «News text» in this language again",
-   "Взять текст из источника": "Take the text from the source"
+   "Взять текст из источника": "Take the text from the source",
+   "Вернуть": "Restore",
+   "Назад": "Back",
+   "Вернуться туда, откуда открыли новость": "Go back to where the news item was opened from",
+   "Найдено: {{count}}": "Found: {{count}}"
 }
