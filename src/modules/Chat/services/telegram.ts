@@ -86,12 +86,10 @@ const json = <T>(value: unknown, fallback: T): T => {
 // a project without batch 26 reads as Telegram not connected
 const optional = <T>(load: Promise<T[]>) => load.catch(() => [] as T[]);
 
-const store = createStore(async (): Promise<TelegramState> => {
-   const [settings, chats] = await Promise.all([
-      optional(listRows('fund_settings')),
-      optional(listRows('tg_chats')),
-   ]);
-   const row = settings[0] ?? { guid: '' };
+type SettingsRow = Awaited<ReturnType<typeof listRows>>[number];
+
+// What fund_settings says: the bot, its server, the account, a sign-in under way.
+const fromSettings = (row: SettingsRow): Omit<TelegramState, 'groups'> => {
    const seenAt = str(row.telegram_seen_at);
    const auth = json<Partial<TelegramState['auth']> & { step?: AuthStep }>(
       row.telegram_auth,
@@ -109,13 +107,7 @@ const store = createStore(async (): Promise<TelegramState> => {
             (mode) => mode === row.telegram_mode,
          ) ?? '',
       seenAt,
-      groups: new Map(
-         chats
-            .map(toGroup)
-            .filter(({ dealId }) => dealId)
-            .map((group) => [group.dealId, group]),
-      ),
-      settingsId: row.guid,
+      settingsId: str(row.guid),
       publicKey: json<{ public?: string }>(row.telegram_keys, {}).public ?? '',
       app: json<{ app?: boolean }>(row.telegram_keys, {}).app === true,
       auth: {
@@ -127,6 +119,22 @@ const store = createStore(async (): Promise<TelegramState> => {
       account: account.phone
          ? { phone: account.phone, connectedAt: account.connectedAt ?? '' }
          : null,
+   };
+};
+
+const store = createStore(async (): Promise<TelegramState> => {
+   const [settings, chats] = await Promise.all([
+      optional(listRows('fund_settings')),
+      optional(listRows('tg_chats')),
+   ]);
+   return {
+      ...fromSettings(settings[0] ?? { guid: '' }),
+      groups: new Map(
+         chats
+            .map(toGroup)
+            .filter(({ dealId }) => dealId)
+            .map((group) => [group.dealId, group]),
+      ),
    };
 });
 
@@ -162,6 +170,16 @@ const telegram = {
    subscribe: (listener: () => void) => store.subscribe(listener),
    getState: () => store.get(),
    reload: () => store.reload(),
+
+   // Only fund_settings, without the groups: what the QR window waits for
+   // (a new code, the server's answer), one read at a time.
+   reloadAuth: async () => {
+      const [settings] = await Promise.all([
+         optional(listRows('fund_settings')),
+         store.get(),
+      ]);
+      store.set((state) => ({ ...state, ...fromSettings(settings[0] ?? { guid: '' }) }));
+   },
 
    // The link that adds the bot to a group of the person's, for that deal.
    linkOf: (state: TelegramState, group: TgGroup) =>

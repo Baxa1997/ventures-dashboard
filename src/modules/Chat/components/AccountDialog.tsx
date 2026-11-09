@@ -19,7 +19,8 @@ interface AccountDialogProps {
    onClose: () => void;
 }
 
-const POLL_MS = 2000; // the server answers within seconds; a new QR every ~30 s
+// the bot's server takes up a step every 3 s, and makes a new QR every ~30 s
+const POLL_MS = 3000;
 
 /* «Подключить аккаунт фонда», as Telegram Desktop links a device: a QR code
    the fund's phone scans in Telegram → Настройки → Устройства → Подключить
@@ -52,11 +53,23 @@ const AccountDialog = ({ open, onClose }: AccountDialogProps) => {
       }
    }, [open, ready]);
 
-   // while the window is open, the server's answers and new codes come in
+   // while the window is open, the server's answers and new codes come in:
+   // one read of fund_settings at a time, the next POLL_MS after it answered
    useEffect(() => {
       if (!open) return;
-      const timer = setInterval(() => void telegram.reload(), POLL_MS);
-      return () => clearInterval(timer);
+      let stopped = false;
+      let timer = 0;
+      const next = () => {
+         timer = window.setTimeout(async () => {
+            await telegram.reloadAuth().catch(() => undefined);
+            if (!stopped) next();
+         }, POLL_MS);
+      };
+      next();
+      return () => {
+         stopped = true;
+         window.clearTimeout(timer);
+      };
    }, [open]);
 
    const done = asked.current && step === 'done';
