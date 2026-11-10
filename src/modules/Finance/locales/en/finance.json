@@ -237,5 +237,6 @@
    "Таблица как на странице: файл CSV, который открывает Excel": "The table as on the page: a CSV file Excel opens",
    "Налог на прибыль, {{rate}}%": "Profit tax, {{rate}}%",
    "Укажите сумму: с минусом — расход": "Enter the amount: with a minus for money out",
-   "{{name}} за {{month}}": "{{name}}, {{month}}"
+   "{{name}} за {{month}}": "{{name}}, {{month}}",
+   "Напишите название": "Enter a name"
 }

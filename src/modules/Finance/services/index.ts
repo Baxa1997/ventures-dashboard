@@ -545,11 +545,32 @@ class FinanceService {
       }
       const [year, monthNumber] = month.split('-').map(Number);
       const last = `${month}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, '0')}`;
-      const open = state.accounts.filter(
-         (one) =>
-            (one.currency || 'USD') === currency &&
-            (!one.openingDate || one.openingDate <= last),
-      );
+      const openIn = (accounts: FinAccount[]) =>
+         accounts.filter(
+            (one) =>
+               (one.currency || 'USD') === currency &&
+               (!one.openingDate || one.openingDate <= last),
+         );
+      let open = openIn(state.accounts);
+      /* No account in this currency yet: the report is still edited where it
+         stands (10 Nov), so the first figure opens «Основной счёт» in it,
+         with no opening date and a zero balance, to be filled in Счета. */
+      if (!open.length) {
+         await this.saveAccount(
+            null,
+            {
+               name: `Основной счёт ${currency}`,
+               bank: '',
+               number: '',
+               currency,
+               openingBalance: 0,
+               openingDate: '',
+               active: true,
+            },
+            userId,
+         );
+         open = openIn((await store.get()).accounts);
+      }
       const account = open.find(({ active }) => active) ?? open[0];
       if (!account)
          throw new Error(`Нет счёта в ${currency}, открытого в этом месяце`);
