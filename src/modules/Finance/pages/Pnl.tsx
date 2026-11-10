@@ -24,6 +24,7 @@ import { Link } from 'react-router';
 import FlowChart from '../components/FlowChart';
 import ReportBar from '../components/ReportBar';
 import AdjustCell from '../components/AdjustCell';
+import LineName from '../components/LineName';
 import ReportTable, {
    exportReport,
    type ReportLine,
@@ -116,15 +117,21 @@ const Pnl = () => {
    // a month's figure changes where it stands, by an adjustment operation;
    // a quarter's only reads, as do the totals
    const adjustable =
-      editable &&
-      data.stored &&
-      period === 'month' &&
-      data.accounts.some((one) => (one.currency || 'USD') === currency);
+      editable && data.stored && period === 'month';
 
    const line = (category: FinCategory, sign: 1 | -1): ReportLine => {
       const plan = sign * (category.budgets[String(year)] ?? 0);
       const name = categoryName(category, language);
+      const link = `${FINANCE_PAGES.transactions}?category=${encodeURIComponent(category.key)}&year=${year}`;
       return {
+         labelNode: (
+            <LineName
+               category={category}
+               disabled={!editable || !data.stored}
+               link={link}
+               linkHint={t('Операции по статье за год')}
+            />
+         ),
          cell: adjustable
             ? (index) => (
                  <AdjustCell
