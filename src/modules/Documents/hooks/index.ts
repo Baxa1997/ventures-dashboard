@@ -17,7 +17,8 @@ import type {
    DealDocument,
    DealFolder,
 } from '@shared/types/deals.types';
-import { Gavel, Handshake, Landmark } from 'lucide-react';
+import type { FileFolder, FundDocument } from '@shared/types/documents.types';
+import { FolderKanban, Gavel, Handshake, Landmark } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
    APPROVERS,
@@ -30,7 +31,7 @@ import {
    STATUSES,
 } from '../constants';
 import { type FileNode, type FilePath, latest } from '../helpers';
-import documents, { type DocumentsState } from '../services';
+import documents, { type DocumentsState, sectionOf } from '../services';
 
 export interface FilesData {
    fund: DocumentsState;
@@ -142,10 +143,51 @@ export const useFileTree = (data: FilesData) => {
       ];
    };
 
-   const fundLevel = (category: string): FileNode[] =>
-      data.fund.documents
-         .filter((document) => document.category === category)
-         .map((document) => ({
+   // the fund's own modules and folders (batch 29)
+   const ownFolders = data.fund.folders;
+   const ownFolderOf = (id: string) => ownFolders.find((one) => one.id === id);
+   const ownFolderNode = (folder: FileFolder): FileNode => {
+      const inner = folderLevel(folder.id);
+      return {
+         key: `ff:${folder.id}`,
+         name: folder.name,
+         hint: folder.hint,
+         owner: personName(folder.createdById) || FUND,
+         date: latest(filesUnder(['folder', folder.id]).map(({ date }) => date)),
+         folder: {
+            path: ['folder', folder.id],
+            count: inner.length,
+            // a module of its own has its sign, as the three built in
+            ...(!folder.parent && { icon: FolderKanban }),
+         },
+         url: '',
+         subject: { type: 'file_folder', folder },
+      };
+   };
+   const foldersIn = (place: string) =>
+      ownFolders.filter(({ parent }) => parent === place).map(ownFolderNode);
+   // a folder's level: its folders, then the fund's documents put in it
+   const folderLevel = (id: string): FileNode[] => [
+      ...foldersIn(id),
+      ...data.fund.documents
+         .filter(({ folderId }) => folderId === id)
+         .map(fundDocumentNode),
+   ];
+
+   // a section: its folders, then its documents not put in a folder
+   const fundLevel = (category: string): FileNode[] => [
+      ...foldersIn(`fund:${category}`),
+      ...data.fund.documents
+         .filter(
+            (document) =>
+               document.category === category &&
+               (!document.folderId || !ownFolderOf(document.folderId)),
+         )
+         .map(fundDocumentNode),
+   ];
+
+   function fundDocumentNode(document: FundDocument): FileNode {
+      return {
             key: `fd:${document.id}`,
             name: document.title,
             hint:
@@ -162,7 +204,8 @@ export const useFileTree = (data: FilesData) => {
             },
             url: document.link,
             subject: { type: 'fund_document', document },
-         }));
+         };
+   }
 
    const committeeLevel = (meetingId: string, itemId: string): FileNode[] => {
       const meeting = meetingOf(meetingId);
@@ -236,7 +279,8 @@ export const useFileTree = (data: FilesData) => {
    const children = (path: FilePath): FileNode[] => {
       const [area, first = '', second = ''] = path;
       if (!area)
-         return AREAS.map((id) => {
+         return [
+            ...AREAS.map((id): FileNode => {
             const inner = children([id]);
             return {
                key: `area:${id}`,
@@ -252,10 +296,14 @@ export const useFileTree = (data: FilesData) => {
                url: '',
                subject: { type: 'folder' },
             };
-         });
+         }),
+            ...foldersIn(''),
+         ];
+      if (area === 'folder') return ownFolderOf(first) ? folderLevel(first) : [];
       if (area === 'fund') {
          if (first) return fundLevel(first);
-         return CATEGORIES.map((category) => {
+         return [
+            ...CATEGORIES.map((category): FileNode => {
             const inner = fundLevel(category);
             return {
                key: `fc:${category}`,
@@ -267,7 +315,9 @@ export const useFileTree = (data: FilesData) => {
                url: '',
                subject: { type: 'folder' },
             };
-         });
+         }),
+            ...foldersIn('fund'),
+         ];
       }
       if (area === 'deals') {
          if (first) {
@@ -328,6 +378,31 @@ export const useFileTree = (data: FilesData) => {
    const crumbs = (path: FilePath): Crumb[] | null => {
       const [first, second] = path.slice(1);
       if (!path.length) return [];
+      if (path[0] === 'folder') {
+         // the folders from the top down to the open one
+         const chain: FileFolder[] = [];
+         for (
+            let folder = ownFolderOf(first);
+            folder && !chain.includes(folder);
+            folder = ownFolderOf(folder.parent)
+         )
+            chain.unshift(folder);
+         if (!chain.length) return null;
+         const top = chain[0].parent;
+         const section = sectionOf(top);
+         return [
+            ...(top === 'fund' || section
+               ? [{ label: t(AREA_LABELS.fund), path: ['fund'] }]
+               : []),
+            ...(section
+               ? [{ label: t(CATEGORY_LABELS[section]), path: ['fund', section] }]
+               : []),
+            ...chain.map((folder) => ({
+               label: folder.name,
+               path: ['folder', folder.id],
+            })),
+         ];
+      }
       const area = AREAS.find((id) => id === path[0]);
       if (!area) return null;
       const top = [{ label: t(AREA_LABELS[area]), path: [area] }];

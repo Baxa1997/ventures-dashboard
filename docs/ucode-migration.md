@@ -2029,6 +2029,30 @@ New fields in the existing table fund_settings
 - news_error: MULTI_LINE
 ```
 
+## Batch 29 — Документы: modules and folders of the fund's own
+
+Документы (the file manager) shows the fund's documents by section, the deals' data rooms and the committee's materials. On 10 Nov the user asked that new modules can be added at its top, folders added and renamed inside them, and documents and folders moved to another folder with «Переместить» in a window.
+
+- **Folders.** `file_folders`: `name`, `hint` (the line under a module's name), `parent` (where it sits: empty for a module of its own at the top, `fund` inside «Фонд», `fund:<section>` inside one of its sections such as `fund:hr`, or another folder's guid), `sort` and `created_by_id`. Deleting a folder moves what it holds one level up.
+- **The fund's documents.** `fund_documents.folder_id`: the folder a document lies in; empty, it lies in its section (`category`) as before. A document whose folder is gone shows in its section again.
+- The deals' data rooms keep their own folders (`deals.folders`, batch 23) and the committee's files stay with their meetings.
+
+The table and fields are made with `node scripts/ucode/fields.mjs tables 29` and `node scripts/ucode/fields.mjs create 29`.
+
+```
+Batch 29. Same rules: file_folders inside the folder "Admin" → "Settings and lists". Fields ending in _id listed among a table's fields are plain SINGLE_LINE fields, not relations.
+
+Table file_folders
+- name: SINGLE_LINE
+- hint: SINGLE_LINE
+- parent: SINGLE_LINE
+- sort: NUMBER
+- created_by_id: SINGLE_LINE
+
+New fields in the existing table fund_documents
+- folder_id: SINGLE_LINE
+```
+
 ## Checking what was created
 
 With the API: `node scripts/ucode/verify.mjs` reads every table's fields from ucode and reports, table by table, missing fields, a ucode type other than the batch's, hidden fields, pick lists whose options differ, missing or misdirected relations and fields that are not in the spec; `--rows` adds the test environment's row counts. Then `node scripts/ucode/smoke.mjs --write-test-rows` (test environment only) writes and reads a linked row in every table and removes them, and `UCODE_LOGIN=… UCODE_PASSWORD=… node scripts/ucode/panel-test.mjs --write-test-rows` signs in as that user and runs the panel's services through every section, deleting the rows it made.

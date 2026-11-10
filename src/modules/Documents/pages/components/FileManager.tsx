@@ -1,6 +1,11 @@
 import { COMMITTEE_PATH } from '@modules/Committee/constants';
 import { DEALS_PATH } from '@modules/Deals/constants';
-import { isOpen, isSharedFolder, placeOf } from '@modules/Deals/helpers';
+import {
+   isOpen,
+   isSharedFolder,
+   placeOf,
+   roomFolders,
+} from '@modules/Deals/helpers';
 import {
    DocumentForm,
    FolderForm,
@@ -9,8 +14,16 @@ import deals from '@modules/Deals/services';
 import DocumentDialog, {
    type DocumentDialogMode,
 } from '@modules/Documents/components/DocumentDialog';
+import FolderDialog, {
+   type FolderDraft,
+} from '@modules/Documents/components/FolderDialog';
+import MoveDialog, {
+   type MoveTarget,
+} from '@modules/Documents/components/MoveDialog';
 import {
+   AREA_LABELS,
    CATEGORIES,
+   CATEGORY_LABELS,
    RECORDING,
    type SortKey,
 } from '@modules/Documents/constants';
@@ -20,7 +33,7 @@ import {
    sortNodes,
 } from '@modules/Documents/helpers';
 import { type FilesData, useFileTree } from '@modules/Documents/hooks';
-import documents from '@modules/Documents/services';
+import documents, { sectionOf } from '@modules/Documents/services';
 import {
    Button,
    Card,
@@ -39,7 +52,9 @@ import type { Deal, DealDocument, DealFolder } from '@shared/types/deals.types';
 import type { DocCategory } from '@shared/types/documents.types';
 import {
    Eye,
+   FolderInput,
    FolderOpen,
+   FolderPlus,
    Gavel,
    Handshake,
    LayoutGrid,
@@ -119,6 +134,8 @@ const FileManager = ({
    );
    const [editing, setEditing] = useState<Editing | null>(null);
    const [removing, setRemoving] = useState<FileNode | null>(null);
+   const [folderDraft, setFolderDraft] = useState<FolderDraft | null>(null);
+   const [moving, setMoving] = useState<FileNode | null>(null);
    const input = useRef<HTMLInputElement>(null);
    const [dragging, setDragging] = useState(false);
 
@@ -139,6 +156,23 @@ const FileManager = ({
    const canUpload = writable || item !== undefined;
    const category =
       area === 'fund' ? CATEGORIES.find((id) => id === first) : undefined;
+   // the fund's own folder open, or none (batch 29)
+   const ownFolder =
+      area === 'folder'
+         ? data.fund.folders.find(({ id }) => id === first)
+         : undefined;
+   /* Where a module or folder of the fund's own can be made here: at the top
+      (a module), in «Фонд», in one of its sections, or in such a folder.
+      The data rooms' folders come from Настройки; meetings hold questions. */
+   const placeHere: string | null = !area
+      ? ''
+      : area === 'fund'
+        ? first
+           ? `fund:${first}`
+           : 'fund'
+        : ownFolder
+          ? ownFolder.id
+          : null;
 
    const text = query.trim().toLowerCase();
    const matches = (node: FileNode) => node.name.toLowerCase().includes(text);
@@ -254,6 +288,81 @@ const FileManager = ({
          );
    };
 
+   /* The places for «Переместить». A folder of the fund's own or a fund
+      document goes anywhere in «Фонд» or into the fund's own modules (a
+      document lies in a section or a folder, so «Фонд» itself only heads its
+      sections); a folder can also become a module of its own. A deal's
+      document moves within its own data room. */
+   const ownTree = (place: string, depth: number, without: string[]): MoveTarget[] =>
+      data.fund.folders
+         .filter(({ parent, id }) => parent === place && !without.includes(id))
+         .flatMap((folder) => [
+            { value: folder.id, label: folder.name, depth, module: !folder.parent },
+            ...ownTree(folder.id, depth + 1, without),
+         ]);
+   const fundTargets = (folder: boolean, without: string[]): MoveTarget[] => [
+      ...(folder
+         ? [{ value: '', label: t('Отдельный модуль на верхнем уровне'), depth: 0, module: true }]
+         : []),
+      { value: 'fund', label: t(AREA_LABELS.fund), depth: 0, heading: !folder },
+      ...CATEGORIES.flatMap((one) => [
+         { value: `fund:${one}`, label: t(CATEGORY_LABELS[one]), depth: 1 },
+         ...ownTree(`fund:${one}`, 2, without),
+      ]),
+      ...ownTree('fund', 1, without),
+      ...ownTree('', 0, without),
+   ];
+   const dealTargets = (deal: Deal): MoveTarget[] => {
+      const folders = roomFolders(deal);
+      const level = (parentId: string, depth: number): MoveTarget[] =>
+         folders
+            .filter((one) => (one.parentId || '') === parentId)
+            .flatMap((one) => [
+               { value: one.id, label: one.name, depth },
+               ...level(one.id, depth + 1),
+            ]);
+      return [
+         { value: '', label: td('Data room — верхний уровень'), depth: 0 },
+         ...level('', 1),
+      ];
+   };
+   const move = (() => {
+      const subject = moving?.subject;
+      if (subject?.type === 'file_folder') {
+         const { folder } = subject;
+         return {
+            targets: fundTargets(true, [
+               folder.id,
+               ...documents.insideOf(data.fund.folders, folder.id),
+            ]),
+            current: folder.parent,
+            run: (place: string) => documents.moveFolder(folder.id, place),
+         };
+      }
+      if (subject?.type === 'fund_document') {
+         const { document } = subject;
+         const inFolder = data.fund.folders.some(({ id }) => id === document.folderId);
+         return {
+            targets: fundTargets(false, []),
+            current: inFolder ? document.folderId : `fund:${document.category}`,
+            run: (place: string) => documents.moveDocument(document.id, place),
+         };
+      }
+      if (subject?.type === 'deal_document') {
+         const { deal, document } = subject;
+         return {
+            targets: dealTargets(deal),
+            current: placeOf(deal, document),
+            run: (place: string) =>
+               deals.updateDocument(deal.id, document.id, {
+                  title: document.title,
+                  folderId: place,
+               }),
+         };
+      }
+      return null;
+   })();
+
    const actionsOf = (node: FileNode): MenuAction[] => {
       const { subject } = node;
       const open: MenuAction = {
@@ -286,6 +395,12 @@ const FileManager = ({
          danger: true,
          onSelect: () => setRemoving(node),
       };
+      const moveTo: MenuAction = {
+         label: t('Переместить'),
+         icon: FolderInput,
+         hint: t('Переместить в другую папку'),
+         onSelect: () => setMoving(node),
+      };
       const toMeeting = (meeting: Meeting): MenuAction => ({
          label: t('Открыть заседание'),
          icon: Gavel,
@@ -300,6 +415,18 @@ const FileManager = ({
       switch (subject.type) {
          case 'folder':
             return [open];
+         case 'file_folder':
+            return [
+               open,
+               edit(() =>
+                  setFolderDraft({
+                     folder: subject.folder,
+                     parent: subject.folder.parent,
+                  }),
+               ),
+               moveTo,
+               remove,
+            ];
          case 'deal':
             return [open, toDeal(subject.deal)];
          case 'meeting':
@@ -318,6 +445,16 @@ const FileManager = ({
                              folder: subject.folder,
                           }),
                        ),
+                       // its window has «Где лежит»
+                       {
+                          ...moveTo,
+                          onSelect: () =>
+                             setEditing({
+                                kind: 'folder',
+                                deal: subject.deal,
+                                folder: subject.folder,
+                             }),
+                       },
                        remove,
                     ]
                   : []),
@@ -326,6 +463,7 @@ const FileManager = ({
             return [
                ...file,
                edit(() => setDocumentMode(subject.document)),
+               moveTo,
                remove,
             ];
          case 'deal_document':
@@ -341,6 +479,7 @@ const FileManager = ({
                              document: subject.document,
                           }),
                        ),
+                       moveTo,
                        remove,
                     ]
                   : []),
@@ -384,6 +523,30 @@ const FileManager = ({
             run: () => deals.removeDocument(deal.id, document.id),
          };
       }
+      if (subject?.type === 'file_folder') {
+         const { folder } = subject;
+         return {
+            title: folder.parent ? t('Удалить папку?') : t('Удалить модуль?'),
+            body: t(
+               'Документы и папки из него не удалятся: они перейдут уровнем выше, а документы без папки вернутся в свои разделы «Фонда».',
+            ),
+            success: folder.parent ? t('Папка удалена') : t('Модуль удалён'),
+            run: async () => {
+               await documents.removeFolder(folder.id);
+               // the open folder, or one it is inside, is gone: go up
+               if (crumbs.some((crumb) => crumb.path[1] === folder.id))
+                  go(
+                     !folder.parent
+                        ? []
+                        : folder.parent === 'fund'
+                          ? ['fund']
+                          : sectionOf(folder.parent)
+                            ? ['fund', sectionOf(folder.parent) ?? '']
+                            : ['folder', folder.parent],
+                  );
+            },
+         };
+      }
       if (subject?.type === 'deal_folder') {
          const { deal, folder } = subject;
          const parent = deal.folders?.find(({ id }) => id === folder.parentId);
@@ -419,7 +582,7 @@ const FileManager = ({
    };
    const note = !area
       ? t('Поиск ищет по всем модулям сразу.')
-      : area === 'fund'
+      : area === 'fund' || ownFolder
         ? t(
              'Документы фонда хранятся ссылками: в ucode Files файл был бы открыт любому, у кого есть ссылка.',
           )
@@ -462,7 +625,23 @@ const FileManager = ({
                value={view}
                onChange={onView}
             />
-            {area === 'fund' ? (
+            {placeHere !== null && (
+               <Button
+                  hint={
+                     placeHere === ''
+                        ? t('Создать модуль на верхнем уровне Документов')
+                        : t('Создать папку здесь')
+                  }
+                  variant='ghost'
+                  onClick={() =>
+                     setFolderDraft({ folder: null, parent: placeHere })
+                  }
+               >
+                  <FolderPlus aria-hidden />
+                  {placeHere === '' ? t('Новый модуль') : t('Новая папка')}
+               </Button>
+            )}
+            {area === 'fund' || ownFolder ? (
                <Button
                   hint={
                      category === 'orders'
@@ -575,7 +754,8 @@ const FileManager = ({
                                 ? t(
                                      'Перетащите файлы сюда или нажмите «Загрузить».',
                                   )
-                                : category && t('Добавьте первый документ.'),
+                                : (category || ownFolder) &&
+                                  t('Добавьте первый документ.'),
                           ]
                              .filter(Boolean)
                              .join(' ')}
@@ -594,9 +774,23 @@ const FileManager = ({
 
          <DocumentDialog
             category={category ?? 'corporate'}
+            folderId={ownFolder?.id}
             mode={documentMode}
             onClose={() => setDocumentMode(null)}
-            onSaved={onSaved}
+            // in a folder of the fund's own the new document shows here
+            onSaved={ownFolder ? () => undefined : onSaved}
+         />
+         <FolderDialog
+            draft={folderDraft}
+            onClose={() => setFolderDraft(null)}
+         />
+         <MoveDialog
+            current={move?.current ?? ''}
+            name={moving?.name ?? ''}
+            open={move !== null}
+            targets={move?.targets ?? []}
+            onClose={() => setMoving(null)}
+            onMove={(place) => move?.run(place) ?? Promise.resolve()}
          />
          <Modal
             open={editing?.kind === 'folder'}

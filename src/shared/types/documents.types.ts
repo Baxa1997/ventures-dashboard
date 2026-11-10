@@ -20,7 +20,22 @@ export interface FundDocument {
    date: string; // YYYY-MM-DD of the current version; '' when not known
    link: string; // where the file is kept; '' when not given
    createdById: string;
+   folderId: string; // a folder of the fund's own (batch 29); '' — its section
 }
+
+/* A folder of the fund's own in Документы (batch 29): a module at the top,
+   or a folder inside «Фонд», one of its sections or another such folder. */
+export interface FileFolder {
+   id: string;
+   name: string;
+   hint: string; // the line under a module's name
+   parent: string; // '' a module; 'fund'; 'fund:<section>'; a folder's id
+   sort: number;
+   createdById: string;
+}
+
+// Where a folder or a fund document is put: a parent as FileFolder has it
+export type FolderPlace = string;
 
 export type IssueStatus = 'awaiting_reply' | 'in_work' | 'resolved';
 
