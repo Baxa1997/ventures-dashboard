@@ -50,11 +50,12 @@ import type {
 } from '@shared/types/portfolio.types';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { Plus } from 'lucide-react';
+import { EyeOff, Plus, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import PeriodDialog, { type PeriodTarget, periodLabel } from './PeriodDialog';
+import MetricsView from './MetricsView';
 import { PeriodSelect } from './PeriodPicker';
 
 interface MetricsProps {
@@ -77,6 +78,10 @@ interface Range {
 
 // The range a person last picked for a view, kept with them (prefs).
 const rangeKey = (period: Period) => `sqbv_metrics_range_${period}`;
+// The months or quarters a person hid in a company's view (prefs): the
+// figures stay, only the columns go.
+const hiddenKey = (period: Period, companyId: string) =>
+   `sqbv_metrics_hidden_${period}_${companyId}`;
 
 // A quarter is 2026-Q3, a month 2026-09.
 const isQuarter = (period: string) => period.includes('-Q');
@@ -127,7 +132,21 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
    }));
    const range = ranges[period] ?? initial();
    const between = period === 'month' ? monthsBetween : quartersBetween;
-   const periods = between(range.from, range.to);
+   // the columns hidden by the person, read again for another company
+   const [hidden, setHidden] = useState<string[]>(() =>
+      readPref<string[]>(hiddenKey(period, company.id), []),
+   );
+   useEffect(() => {
+      setHidden(readPref<string[]>(hiddenKey(period, company.id), []));
+   }, [period, company.id]);
+   const keepHidden = (next: string[]) => {
+      setHidden(next);
+      writePref(hiddenKey(period, company.id), next.length ? next : null);
+   };
+   const inRange = between(range.from, range.to);
+   const periods = inRange.filter((at) => !hidden.includes(at));
+   const hiddenHere = inRange.filter((at) => hidden.includes(at));
+   const [viewing, setViewing] = useState(false); // «Вид таблицы»
 
    // a range picked: the ends in order, at most MOST columns, kept for next time
    const pick = (next: Range | null) => {
@@ -259,15 +278,29 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
                   </button>
                )}
             </span>
-            <Button
-               className='ml-auto'
-               disabled={!company.metrics.length}
-               hint={t('Внести цифры компании за месяц или квартал')}
-               onClick={() => setTarget({ kind: period, at: null })}
-            >
-               <Plus aria-hidden />
-               {t('Добавить показатели')}
-            </Button>
+            <span className='ml-auto flex flex-wrap items-center gap-2'>
+               <Button
+                  disabled={!company.metrics.length}
+                  hint={t('Выбрать, какие месяцы и кварталы показывать в таблице')}
+                  variant='ghost'
+                  onClick={() => setViewing(true)}
+               >
+                  <SlidersHorizontal aria-hidden />
+                  {hiddenHere.length
+                     ? t('Вид таблицы · скрыто {{count}}', {
+                          count: hiddenHere.length,
+                       })
+                     : t('Вид таблицы')}
+               </Button>
+               <Button
+                  disabled={!company.metrics.length}
+                  hint={t('Внести цифры компании за месяц или квартал')}
+                  onClick={() => setTarget({ kind: period, at: null })}
+               >
+                  <Plus aria-hidden />
+                  {t('Добавить показатели')}
+               </Button>
+            </span>
             <p className='text-ink-soft text-meta min-w-0 flex-[1_1_100%]'>
                {note}
             </p>
@@ -310,6 +343,19 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
                               )}
                               {/* the period's figures, in the window or deleted */}
                               <span className='mt-1 flex justify-end opacity-0 transition-opacity group-hover/col:opacity-100 focus-within:opacity-100'>
+                                 <button
+                                    type='button'
+                                    aria-label={t('Скрыть: {{name}}', {
+                                       name: periodLabel(t, period, at),
+                                    })}
+                                    className='text-ink-soft hover:bg-ground grid size-7 place-items-center rounded-md'
+                                    data-hint={t(
+                                       'Скрыть период из таблицы: цифры останутся',
+                                    )}
+                                    onClick={() => keepHidden([...hidden, at])}
+                                 >
+                                    <EyeOff aria-hidden className='size-4' />
+                                 </button>
                                  <ItemActions
                                     icons
                                     name={periodLabel(t, period, at)}
@@ -462,6 +508,19 @@ const Metrics = ({ company, cycle }: MetricsProps) => {
             company={company}
             cycle={cycle}
             onCheck={setChecking}
+         />
+         <MetricsView
+            hidden={hidden}
+            open={viewing}
+            period={period}
+            periods={inRange}
+            rangeText={`${t('с')} ${label(range.from)} ${t('по')} ${label(range.to)}`}
+            withFigures={(at) =>
+               company.metrics.some((row) => valuesOf(row, period)[at] != null)
+            }
+            onChange={keepHidden}
+            onClose={() => setViewing(false)}
+            onPeriod={show}
          />
          <PeriodDialog
             company={company}
