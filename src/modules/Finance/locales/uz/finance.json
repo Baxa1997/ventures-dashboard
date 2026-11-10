@@ -235,5 +235,7 @@
    "Сделки в работе": "Ishdagi bitimlar",
    "Сделка не в работе": "Bitim ishda emas",
    "Таблица как на странице: файл CSV, который открывает Excel": "Sahifadagidek jadval: Excel ochadigan CSV fayl",
-   "Налог на прибыль, {{rate}}%": "Foyda solig‘i, {{rate}}%"
+   "Налог на прибыль, {{rate}}%": "Foyda solig‘i, {{rate}}%",
+   "Укажите сумму: с минусом — расход": "Summani kiriting: minus bilan — chiqim",
+   "{{name}} за {{month}}": "{{name}}, {{month}}"
 }

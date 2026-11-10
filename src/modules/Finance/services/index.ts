@@ -28,7 +28,10 @@ import type {
    StatementRow,
 } from '@shared/types/finance.types';
 import { BUILT_IN_CATEGORIES } from '../constants';
-import { autoCategory, autoDeal, isInvesting } from '../helpers';
+import { autoCategory, autoDeal, inCurrency, isInvesting } from '../helpers';
+
+// the counterparty of an operation that sets a report's figure by hand
+export const ADJUSTMENT = 'Корректировка';
 
 /* Финансы in ucode (docs/ucode-migration.md, batch 27): fin_accounts,
    fin_categories, fin_transactions, fin_imports and fin_rules. `stored` is
@@ -508,6 +511,63 @@ class FinanceService {
             item.id === id ? { ...item, category, dealId } : item,
          ),
       }));
+   }
+
+   /* A line item's figure for a month in P&L or Cash Flow, typed in the
+      report: the difference goes into one «Корректировка» operation of that
+      line item, month and currency, made, changed, or removed when it comes
+      to nothing. The reports stay sums of operations, and Транзакции lists
+      the adjustment. It goes on the currency's first account open that month. */
+   async adjust(
+      {
+         category,
+         month,
+         currency,
+         target,
+      }: { category: string; month: string; currency: string; target: number },
+      userId: string,
+   ) {
+      const state = await store.get();
+      const counted = inCurrency(state.transactions, state.accounts, currency);
+      const ofCell = counted.filter(
+         (one) => one.category === category && one.date.startsWith(month),
+      );
+      const current = ofCell.reduce((sum, { amount }) => sum + amount, 0);
+      const difference = Math.round((target - current) * 100) / 100;
+      if (!difference) return;
+      const existing = ofCell.find(
+         (one) => !one.importId && one.party === ADJUSTMENT,
+      );
+      if (existing) {
+         const amount = Math.round((existing.amount + difference) * 100) / 100;
+         if (!amount) return this.removeTransaction(existing.id, userId);
+         return this.saveTransaction(existing.id, { ...existing, amount }, userId);
+      }
+      const [year, monthNumber] = month.split('-').map(Number);
+      const last = `${month}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, '0')}`;
+      const open = state.accounts.filter(
+         (one) =>
+            (one.currency || 'USD') === currency &&
+            (!one.openingDate || one.openingDate <= last),
+      );
+      const account = open.find(({ active }) => active) ?? open[0];
+      if (!account)
+         throw new Error(`Нет счёта в ${currency}, открытого в этом месяце`);
+      return this.saveTransaction(
+         null,
+         {
+            date: last,
+            accountId: account.id,
+            party: ADJUSTMENT,
+            purpose: `Корректировка отчёта за ${month}`,
+            amount: difference,
+            category,
+            note: '',
+            dealId: '',
+            partyAccount: '',
+         },
+         userId,
+      );
    }
 
    async removeTransaction(id: string, userId: string) {

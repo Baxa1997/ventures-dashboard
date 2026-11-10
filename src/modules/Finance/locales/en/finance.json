@@ -235,5 +235,7 @@
    "Сделки в работе": "Deals in work",
    "Сделка не в работе": "The deal is not in work",
    "Таблица как на странице: файл CSV, который открывает Excel": "The table as on the page: a CSV file Excel opens",
-   "Налог на прибыль, {{rate}}%": "Profit tax, {{rate}}%"
+   "Налог на прибыль, {{rate}}%": "Profit tax, {{rate}}%",
+   "Укажите сумму: с минусом — расход": "Enter the amount: with a minus for money out",
+   "{{name}} за {{month}}": "{{name}}, {{month}}"
 }
