@@ -15,6 +15,7 @@ export interface ReportLine {
    total?: number;
    budget?: number; // the year's plan, signed as the figures
    budgetNode?: ReactNode; // shown in its place: the budget to change
+   cell?: (index: number) => ReactNode; // a column's figure to change, in its place
 }
 
 interface ReportTableProps {
@@ -38,13 +39,16 @@ const Figure = ({
    value,
    format,
    strong,
+   node,
 }: {
    value: number;
    format: (value: number) => string;
    strong?: boolean;
+   node?: ReactNode; // the figure to change, in place of the text
 }) => (
    <td className={clsx(NUM, value < 0 && 'text-danger', strong && 'font-bold')}>
-      {value ? format(value) : <span className='text-ink-faint'>—</span>}
+      {node ??
+         (value ? format(value) : <span className='text-ink-faint'>—</span>)}
    </td>
 );
 
@@ -119,6 +123,7 @@ const ReportTable = ({
                      <Figure
                         key={columns[index]}
                         format={format}
+                        node={line.cell?.(index)}
                         value={value}
                      />
                   ))}

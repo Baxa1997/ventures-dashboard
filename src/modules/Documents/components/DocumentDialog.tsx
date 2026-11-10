@@ -33,6 +33,7 @@ export type DocumentDialogMode = 'order' | 'document' | FundDocument;
 interface DocumentDialogProps {
    mode: DocumentDialogMode | null; // a document: edit it; null — closed
    category: DocCategory; // the section a new document goes to by default
+   folderId?: string; // a folder of the fund's own a new one is made in
    onClose: () => void;
    onSaved: (id: string, category: DocCategory) => void;
 }
@@ -55,6 +56,7 @@ const isLink = (value: string) => /^https?:\/\/\S+$/.test(value);
 const DocumentDialog = ({
    mode,
    category,
+   folderId = '',
    onClose,
    onSaved,
 }: DocumentDialogProps) => {
@@ -121,7 +123,7 @@ const DocumentDialog = ({
          await saving.run(async () => {
             const id = editing
                ? (await documents.updateDocument(editing.id, input), editing.id)
-               : await documents.addDocument(input, user.id);
+               : await documents.addDocument(input, user.id, folderId);
             onSaved(id, input.category);
          })
       )

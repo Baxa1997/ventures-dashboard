@@ -2,7 +2,7 @@ import type { BadgeTone } from '@shared/components';
 import type { Attachment } from '@shared/types/attachments.types';
 import type { Meeting } from '@shared/types/committee.types';
 import type { Deal, DealDocument, DealFolder } from '@shared/types/deals.types';
-import type { FundDocument } from '@shared/types/documents.types';
+import type { FileFolder, FundDocument } from '@shared/types/documents.types';
 import {
    FileArchive,
    FileHeadphone,
@@ -15,8 +15,9 @@ import { RECORDING, type SortKey } from '../constants';
 
 /* Where the manager is open, as the address keeps it (?in=deals/<id>/<f>):
    [] the modules; ['fund', section]; ['deals', deal, folder], the innermost
-   folder only, since a data room's folders sit inside one another; and
-   ['ic', meeting, question]. */
+   folder only, since a data room's folders sit inside one another;
+   ['ic', meeting, question]; and ['folder', id], a module or folder of the
+   fund's own, also the innermost only. */
 export type FilePath = string[];
 
 export const pathFrom = (value: string | null): FilePath =>
@@ -25,6 +26,7 @@ export const pathFrom = (value: string | null): FilePath =>
 // What a row stands for, and so what can be done with it.
 export type FileSubject =
    | { type: 'folder' } // a module, a section of the fund, a question
+   | { type: 'file_folder'; folder: FileFolder } // the fund's own (batch 29)
    | { type: 'deal'; deal: Deal }
    | { type: 'deal_folder'; deal: Deal; folder: DealFolder }
    | { type: 'meeting'; meeting: Meeting }

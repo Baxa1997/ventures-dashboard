@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import FlowChart from '../components/FlowChart';
 import ReportBar from '../components/ReportBar';
+import AdjustCell from '../components/AdjustCell';
 import ReportTable, {
    exportReport,
    type ReportLine,
@@ -38,7 +39,7 @@ import {
    sumsByMonth,
    yearsOf,
 } from '../helpers';
-import { useFinance, useReportParams } from '../hooks';
+import { useFinance, useFinanceEditable, useReportParams } from '../hooks';
 import StoredNotice from './StoredNotice';
 
 const GROUPS: Exclude<FinCash, 'none'>[] = [
@@ -58,6 +59,7 @@ const CashFlow = () => {
    const { t: tLayout } = useTranslation('layout');
    const language = i18n.resolvedLanguage ?? i18n.language;
    const data = useFinance();
+   const editable = useFinanceEditable();
    const years = yearsOf(data?.transactions ?? []);
    const currencies = data?.accounts.length
       ? currenciesOf(data.accounts)
@@ -121,7 +123,27 @@ const CashFlow = () => {
    const deleted = [...sums.keys()].filter((key) => key && !known.has(key));
    const unsortedOf = (list: string[]) => sumOf(sums, [''], list);
 
+   // a month's figure changes where it stands, by an adjustment operation;
+   // a quarter's only reads, as do the totals and balances
+   const adjustable =
+      editable &&
+      data.stored &&
+      period === 'month' &&
+      data.accounts.some((one) => (one.currency || 'USD') === currency);
+
    const lineOf = (category: FinCategory): ReportLine => ({
+      cell: adjustable
+         ? (index) => (
+              <AdjustCell
+                 category={category.key}
+                 currency={currency}
+                 format={money}
+                 month={columns[index].months[0]}
+                 name={categoryName(category, language)}
+                 value={sumOf(sums, [category.key], columns[index].months)}
+              />
+           )
+         : undefined,
       key: category.key,
       kind: 'line',
       label: categoryName(category, language),

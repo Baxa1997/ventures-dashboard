@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import FlowChart from '../components/FlowChart';
 import ReportBar from '../components/ReportBar';
+import AdjustCell from '../components/AdjustCell';
 import ReportTable, {
    exportReport,
    type ReportLine,
@@ -112,10 +113,30 @@ const Pnl = () => {
    const values = (of: (list: string[]) => number) =>
       columns.map((column) => of(column.months));
 
+   // a month's figure changes where it stands, by an adjustment operation;
+   // a quarter's only reads, as do the totals
+   const adjustable =
+      editable &&
+      data.stored &&
+      period === 'month' &&
+      data.accounts.some((one) => (one.currency || 'USD') === currency);
+
    const line = (category: FinCategory, sign: 1 | -1): ReportLine => {
       const plan = sign * (category.budgets[String(year)] ?? 0);
       const name = categoryName(category, language);
       return {
+         cell: adjustable
+            ? (index) => (
+                 <AdjustCell
+                    category={category.key}
+                    currency={currency}
+                    format={money}
+                    month={columns[index].months[0]}
+                    name={name}
+                    value={sumOf(sums, [category.key], columns[index].months)}
+                 />
+              )
+            : undefined,
          key: category.key,
          kind: 'line',
          label: name,

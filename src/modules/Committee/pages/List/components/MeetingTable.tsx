@@ -324,21 +324,20 @@ const MeetingItems = ({ data, meeting }: MeetingItemsProps) => {
         ]
       : [];
 
-   // its width does not count in the meetings' table, so opening a meeting
-   // leaves the columns where they are; a narrow screen scrolls it sideways
+   /* Fits the meetings' table with no sideways scroll: the request shows its
+      score under it, the decision its votes, and the startup's name opens
+      its deal. Its width does not count in the meetings' table, so opening a
+      meeting leaves the columns where they are. */
    return (
       <div className='border-line overflow-hidden rounded-lg border bg-white [contain:inline-size]'>
          {meeting.agenda.length ? (
             <Table
-               className='min-w-4xl'
                head={
                   <>
                      <th className={TH}>{t('Стартап (сделка)')}</th>
                      <th className={TH}>{t('Этап')}</th>
                      <th className={clsx(TH, 'text-right')}>{t('Запрос')}</th>
-                     <th className={clsx(TH, 'text-right')}>{t('Скоринг')}</th>
                      <th className={TH}>{t('Менеджер')}</th>
-                     <th className={TH}>{t('Голоса')}</th>
                      <th className={TH}>{t('Решение')}</th>
                      <th className={TH}>{t('Материалы')}</th>
                      <th aria-label={t('Действия')} className={TH} />
@@ -362,9 +361,19 @@ const MeetingItems = ({ data, meeting }: MeetingItemsProps) => {
                                  name={item.title}
                               />
                               <div className='min-w-0'>
-                                 <div className='font-semibold'>
-                                    {item.title}
-                                 </div>
+                                 {deal ? (
+                                    <Link
+                                       className='font-semibold hover:underline'
+                                       data-hint={t('Открыть карточку сделки')}
+                                       to={`/deals/${deal.id}`}
+                                    >
+                                       {item.title}
+                                    </Link>
+                                 ) : (
+                                    <div className='font-semibold'>
+                                       {item.title}
+                                    </div>
+                                 )}
                                  <div className='text-ink-soft text-xs'>
                                     {deal
                                        ? [industryText(deal), roundText(deal)]
@@ -388,57 +397,49 @@ const MeetingItems = ({ data, meeting }: MeetingItemsProps) => {
                               'text-right whitespace-nowrap tabular-nums',
                            )}
                         >
-                           {item.amount || deal?.amount
-                              ? formatMoneyShort(
-                                   item.amount || deal?.amount || 0,
-                                )
-                              : '—'}
-                        </td>
-                        <td
-                           className={clsx(
-                              TD,
-                              'text-right whitespace-nowrap tabular-nums',
-                           )}
-                        >
-                           {score === null ? (
-                              <span className='text-ink-faint'>—</span>
-                           ) : (
-                              <b className={scoreClass(score)}>
+                           <div>
+                              {item.amount || deal?.amount
+                                 ? formatMoneyShort(
+                                      item.amount || deal?.amount || 0,
+                                   )
+                                 : '—'}
+                           </div>
+                           {score !== null && (
+                              <div
+                                 className={clsx(
+                                    'text-xs font-semibold',
+                                    scoreClass(score),
+                                 )}
+                                 data-hint={t('Скоринг')}
+                              >
                                  {t('{{score}} / 5', {
                                     score: score.toFixed(1),
                                  })}
-                              </b>
+                              </div>
                            )}
                         </td>
                         <td className={TD}>
                            {personName(speakerOf(item, deal)) || '—'}
                         </td>
-                        <td
-                           className={clsx(
-                              TD,
-                              'whitespace-nowrap tabular-nums',
-                           )}
-                        >
-                           {item.kind === 'info' ? (
-                              <span className='text-ink-faint'>—</span>
-                           ) : meeting.status === 'planned' ? (
-                              <span className='text-ink-soft'>
-                                 {t('голосование не начато')}
-                              </span>
-                           ) : (
-                              <span
-                                 data-hint={t('За / против / особое мнение')}
-                              >
-                                 {[
-                                    tally.for,
-                                    tally.against,
-                                    tally.dissent.length,
-                                 ].join(' · ')}
-                              </span>
-                           )}
-                        </td>
                         <td className={TD}>
                            <Badge tone={result.tone}>{result.label}</Badge>
+                           {item.kind !== 'info' &&
+                              (meeting.status === 'planned' ? (
+                                 <div className='text-ink-faint mt-0.5 text-xs'>
+                                    {t('голосование не начато')}
+                                 </div>
+                              ) : (
+                                 <div
+                                    className='text-ink-soft mt-0.5 text-xs tabular-nums'
+                                    data-hint={t('За / против / особое мнение')}
+                                 >
+                                    {`${t('Голоса')}: ${[
+                                       tally.for,
+                                       tally.against,
+                                       tally.dissent.length,
+                                    ].join(' · ')}`}
+                                 </div>
+                              ))}
                         </td>
                         <td className={clsx(TD, 'whitespace-nowrap')}>
                            {materials ? (
@@ -456,38 +457,27 @@ const MeetingItems = ({ data, meeting }: MeetingItemsProps) => {
                            )}
                         </td>
                         <td className={clsx(TD, 'w-0 whitespace-nowrap')}>
-                           <span className='flex items-center justify-end gap-2'>
-                              {deal && (
-                                 <Link
-                                    className='link'
-                                    data-hint={t('Открыть карточку сделки')}
-                                    to={`/deals/${deal.id}`}
-                                 >
-                                    {t('Сделка')}
-                                 </Link>
-                              )}
-                              {editable && (
-                                 <ActionMenu
-                                    actions={[
-                                       {
-                                          label: t('Изменить вопрос'),
-                                          icon: Pencil,
-                                          hint: t(
-                                             'Изменить сумму, докладчика и решение',
-                                          ),
-                                          onSelect: () => setEditing(item),
-                                       },
-                                       {
-                                          label: t('Убрать из повестки'),
-                                          icon: Trash2,
-                                          danger: true,
-                                          onSelect: () => setRemovingItem(item),
-                                       },
-                                    ]}
-                                    name={item.title}
-                                 />
-                              )}
-                           </span>
+                           {editable && (
+                              <ActionMenu
+                                 actions={[
+                                    {
+                                       label: t('Изменить вопрос'),
+                                       icon: Pencil,
+                                       hint: t(
+                                          'Изменить сумму, докладчика и решение',
+                                       ),
+                                       onSelect: () => setEditing(item),
+                                    },
+                                    {
+                                       label: t('Убрать из повестки'),
+                                       icon: Trash2,
+                                       danger: true,
+                                       onSelect: () => setRemovingItem(item),
+                                    },
+                                 ]}
+                                 name={item.title}
+                              />
+                           )}
                         </td>
                      </tr>
                   );

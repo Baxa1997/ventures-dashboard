@@ -4,6 +4,7 @@ import {
    Card,
    ConfirmDialog,
    FilterSelect,
+   InlineField,
    Loading,
    type MenuAction,
    PageBody,
@@ -18,6 +19,7 @@ import {
 import {
    downloadCsv,
    formatNumericDate,
+   parseAmount,
    personName,
    todayISO,
 } from '@shared/helpers';
@@ -245,6 +247,39 @@ const Transactions = () => {
       );
    const undo = data.imports.find(({ id }) => id === undoing);
 
+   /* One field of an operation changed where it stands, as in the other
+      tables: its frame shows on hover, a click makes it a field. An
+      operation from a bank statement keeps the bank's date, sum, account and
+      counterparty (only its line item and comment change); one entered by
+      hand changes in every field. */
+   const saveField = (one: FinTransaction, patch: Partial<FinTransaction>) =>
+      finance.saveTransaction(
+         one.id,
+         {
+            date: one.date,
+            accountId: one.accountId,
+            party: one.party,
+            purpose: one.purpose,
+            amount: one.amount,
+            category: one.category,
+            note: one.note,
+            dealId: one.dealId,
+            partyAccount: one.partyAccount,
+            ...patch,
+         },
+         user.id,
+      );
+   // a click on the row, not on one of its fields, opens the operation
+   const openRow = (one: FinTransaction) => (event: React.MouseEvent) => {
+      if (
+         (event.target as HTMLElement).closest(
+            'a, button, input, select, textarea',
+         )
+      )
+         return;
+      setEditing(one);
+   };
+
    return (
       <>
          <PageHeader
@@ -423,32 +458,54 @@ const Transactions = () => {
                      }
                   >
                      {list.slice(0, shown).map((one) => {
-                        const own = accountOf(one.accountId);
                         const source = data.imports.find(
                            ({ id }) => id === one.importId,
                         );
+                        const canChange = editable && data.stored;
+                        // the bank's own fields change only on an operation entered by hand
+                        const byHand = canChange && !one.importId;
                         return (
                            <tr
                               key={one.id}
                               className='hover:bg-hover cursor-pointer'
                               data-hint={t('Открыть операцию')}
-                              onClick={() => setEditing(one)}
+                              onClick={openRow(one)}
                            >
-                              <td
-                                 className={clsx(
-                                    TD,
-                                    'align-top whitespace-nowrap',
-                                 )}
-                              >
-                                 {formatNumericDate(one.date)}
-                                 <div className='text-ink-faint text-xs'>
-                                    {own?.name ?? '—'}
-                                 </div>
+                              <td className={clsx(TD, 'align-top')}>
+                                 <InlineField
+                                    className='whitespace-nowrap'
+                                    disabled={!byHand}
+                                    format={formatNumericDate}
+                                    kind='date'
+                                    label={t('Дата')}
+                                    value={one.date}
+                                    onSave={(date) => saveField(one, { date })}
+                                 />
+                                 <InlineField
+                                    className='text-ink-faint text-xs'
+                                    disabled={!byHand}
+                                    kind='select'
+                                    label={t('Счёт')}
+                                    options={data.accounts.map((item) => ({
+                                       value: item.id,
+                                       label: item.name,
+                                    }))}
+                                    placeholder='—'
+                                    value={one.accountId}
+                                    onSave={(accountId) =>
+                                       saveField(one, { accountId })
+                                    }
+                                 />
                               </td>
                               <td className={clsx(TD, 'min-w-64 align-top')}>
-                                 <div className='font-semibold'>
-                                    {one.party || '—'}
-                                 </div>
+                                 <InlineField
+                                    className='font-semibold'
+                                    disabled={!byHand}
+                                    label={t('Контрагент')}
+                                    placeholder='—'
+                                    value={one.party}
+                                    onSave={(party) => saveField(one, { party })}
+                                 />
                                  {one.dealId && (
                                     <div className='text-accent text-xs font-semibold'>
                                        →{' '}
@@ -457,74 +514,100 @@ const Transactions = () => {
                                        )?.company ?? t('Сделка не в работе')}
                                     </div>
                                  )}
-                                 {one.purpose && (
-                                    <div className='text-ink-soft line-clamp-2 text-xs'>
-                                       {one.purpose}
-                                    </div>
-                                 )}
+                                 <InlineField
+                                    className='text-ink-soft text-xs'
+                                    disabled={!byHand}
+                                    kind='multiline'
+                                    label={t('Назначение платежа')}
+                                    placeholder={byHand ? t('Назначение платежа') : ''}
+                                    value={one.purpose}
+                                    onSave={(purpose) =>
+                                       saveField(one, { purpose })
+                                    }
+                                 />
                                  <div className='text-ink-faint mt-0.5 flex items-center gap-1 text-[11px]'>
                                     {source ? (
                                        <>
                                           <FileSpreadsheet
                                              aria-hidden
-                                             className='size-3'
+                                             className='size-3 shrink-0'
                                           />
                                           {source.fileName}
                                        </>
                                     ) : (
                                        t('внесена вручную')
                                     )}
-                                    {one.note && <i>· {one.note}</i>}
+                                    <span aria-hidden>·</span>
+                                    <InlineField
+                                       className='text-[11px] italic'
+                                       disabled={!canChange}
+                                       label={t('Комментарий')}
+                                       placeholder={canChange ? t('Комментарий') : ''}
+                                       value={one.note}
+                                       onSave={(note) => saveField(one, { note })}
+                                    />
                                  </div>
                               </td>
-                              <td
-                                 className={clsx(TD, 'align-top')}
-                                 onClick={(event) => event.stopPropagation()}
-                              >
-                                 <select
-                                    aria-label={t('Статья: {{party}}', {
+                              <td className={clsx(TD, 'align-top')}>
+                                 <InlineField
+                                    className={clsx(
+                                       'max-w-56 min-w-44 text-xs',
+                                       !one.category &&
+                                          'text-warning-ink font-semibold',
+                                    )}
+                                    disabled={!canChange}
+                                    kind='select'
+                                    label={t('Статья: {{party}}', {
                                        party: one.party,
                                     })}
-                                    className={clsx(
-                                       'field-input h-8 max-w-56 min-w-44 text-xs',
-                                       !one.category &&
-                                          'border-warning/60 bg-warning-tint text-warning-ink',
-                                    )}
-                                    disabled={!editable || !data.stored}
+                                    options={[
+                                       { value: '', label: t('Не разнесено') },
+                                       ...categoriesFor(
+                                          data.categories,
+                                          one.amount,
+                                          one.category,
+                                       ).map((item) => ({
+                                          value: item.key,
+                                          label: categoryName(item, language),
+                                       })),
+                                    ]}
                                     value={one.category}
-                                    onChange={(event) =>
-                                       change(one, event.target.value)
-                                    }
-                                 >
-                                    <option value=''>
-                                       {t('Не разнесено')}
-                                    </option>
-                                    {categoriesFor(
-                                       data.categories,
-                                       one.amount,
-                                       one.category,
-                                    ).map((item) => (
-                                       <option key={item.key} value={item.key}>
-                                          {categoryName(item, language)}
-                                       </option>
-                                    ))}
-                                 </select>
+                                    onSave={(key) => change(one, key)}
+                                 />
                               </td>
                               <td
                                  className={clsx(
                                     TD,
-                                    'text-right align-top font-bold whitespace-nowrap tabular-nums',
+                                    'text-right align-top font-bold tabular-nums',
                                     one.amount < 0
                                        ? 'text-danger'
                                        : 'text-success-ink',
                                  )}
                               >
-                                 {formatSum(
-                                    one.amount,
-                                    currencyOf(one),
-                                    language,
-                                    true,
-                                 )}
+                                 <InlineField
+                                    className='justify-end text-right whitespace-nowrap'
+                                    disabled={!byHand}
+                                    format={(text) =>
+                                       formatSum(
+                                          Number(text),
+                                          currencyOf(one),
+                                          language,
+                                          true,
+                                       )
+                                    }
+                                    inputMode='decimal'
+                                    kind='number'
+                                    label={t('Сумма')}
+                                    validate={(text) =>
+                                       parseAmount(text)
+                                          ? undefined
+                                          : t('Укажите сумму: с минусом — расход')
+                                    }
+                                    value={String(one.amount)}
+                                    onSave={(text) =>
+                                       saveField(one, { amount: parseAmount(text) })
+                                    }
+                                 />
                               </td>
                            </tr>
                         );
